@@ -13,7 +13,7 @@
 #0 | glacier | glacier  | GLACIER
 0 | Infiltration | Modified rational | SUR_MR
 0 | Depression and Surface Runoff | Linsley | DEP_LINSLEY
-0 | Hillslope erosion | MUSLE | SERO_MUSLE
+#0 | Hillslope erosion | MUSLE | SERO_MUSLE
 0 | Plant Management Operation | SWAT | PLTMGT_SWAT
 0 | Percolation | Storage routing | PER_STR
 0 | Subsurface | Darcy and Kinematic | SSR_DA
@@ -22,11 +22,11 @@
 #0 | SET | Linearly Method from WetSpa | SET_LM
 0 | PG | Simplified EPIC | PG_EPIC
 0 | NUTR_TF | Nutrient Transformation of C, N, and P | NUTR_TF
-0 | Water overland routing | IUH | IUH_OL
-#0 | Water overland routing | OLFLOW | OL_FDIR
-0 | Sediment overland routing | IUH | IUH_SED_OL
-0 | Nutrient | Attached nutrient loss | NUTRSED
-0 | Nutrient | Soluble nutrient loss | NUTRMV
+#0 | Water overland routing | IUH | IUH_OL
+0 | Water overland routing | OLFLOW | OL_FDIR
+#0 | Sediment overland routing | IUH | IUH_SED_OL
+#0 | Nutrient | Attached nutrient loss | NUTRSED
+#0 | Nutrient | Soluble nutrient loss | NUTRMV
 ### Route Modules, including water, sediment, and nutrient
 #0 | Wetland | SWAT wetland| WETLAND
 #0 | Groundwater | Linear reservoir | GWA_RE
@@ -34,8 +34,8 @@
 ###ljj++ test GW waterlevel
 #0 | Groundwater | Linear reservoir | GWA_WB
 ###ljj--
-0 | DOC| groundwater DOC transport | CarbonGW
-0 | Nutrient | groundwater nutrient transport | NUTRGW
+#0 | DOC| groundwater DOC transport | CarbonGW
+#0 | Nutrient | groundwater nutrient transport | NUTRGW
 0 | Water channel routing | MUSK | MUSK_CH
-0 | Sediment channel routing | Simplified Bagnold equation | SEDR_SBAGNOLD
-0 | Nutrient | Channel routing | NutrCH_QUAL2E
+#0 | Sediment channel routing | Simplified Bagnold equation | SEDR_SBAGNOLD
+#0 | Nutrient | Channel routing | NutrCH_QUAL2E

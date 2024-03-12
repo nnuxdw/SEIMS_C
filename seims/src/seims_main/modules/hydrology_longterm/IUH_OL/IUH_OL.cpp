@@ -50,7 +50,7 @@ void IUH_OL::InitialOutputs() {
 int IUH_OL::Execute() {
     CheckInputData();
     InitialOutputs();
-    // delete value of last time step
+    // delete value of flow from each subbasin to stream of last time step
     for (int n = 0; n <= m_nSubbsns; n++) {
         m_Q_SBOF[n] = 0.f;
     }
@@ -67,6 +67,7 @@ int IUH_OL::Execute() {
         int min = CVT_INT(m_iuhCell[i][0]);
         int max = CVT_INT(m_iuhCell[i][1]);
         int col = 2;
+		// xdw, IUH是单位量的有效降雨均匀分布在整个流域上时，产生的直接径流，这里用HRU上的地表水深*IUH，即认为所有地表水都会变成径流，在后面分配到河道
         for (int k = min; k <= max; k++) {
 			//m_cellFlow[i][k] += m_surfRf[i] * 0.001f * m_iuhCell[i][col] * m_cellArea / m_TimeStep;
             m_cellFlow[i][k] += m_surfRf[i] * 0.001f * m_iuhCell[i][col] * m_area[i] / m_TimeStep;
@@ -82,6 +83,7 @@ int IUH_OL::Execute() {
         }
 #pragma omp for
         for (int i = 0; i < m_nCells; i++) {
+			// xdw, 将每个HRU上的地表径流分配到对应的subbasin，成为该subbasin对应的径流
             tmp_qsSub[CVT_INT(m_subbsnID[i])] += m_cellFlow[i][0]; //get new value
             m_OL_Flow[i] = m_cellFlow[i][0];
 			//m_OL_Flow[i] = m_OL_Flow[i] * m_TimeStep * 1000.f / m_cellArea; // m3/s -> mm
