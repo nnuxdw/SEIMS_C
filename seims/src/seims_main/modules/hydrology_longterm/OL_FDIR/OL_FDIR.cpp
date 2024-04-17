@@ -103,22 +103,27 @@ int OL_FDIR::Execute() {
 			}
 		}
 	}
-
+# ifdef USE_OPENMP
 #pragma omp parallel
+#endif // USE_OPENMP
 	{
 		float* tmp_qsSub = new float[m_nSubbsns + 1];
 		for (int i = 0; i <= m_nSubbsns; i++) {
 			tmp_qsSub[i] = 0.f;
 		}
 		// 子流域内所有HRU的地表水都汇入河道
+# ifdef USE_OPENMP
 #pragma omp for
+#endif // USE_OPENMP
 		for (int i = 0; i < m_nCells; i++) {
 			m_OL_Flow[i] = m_surfRf[i]; //mm
 			if (m_rchID[i] <= 0.f) continue;
 			tmp_qsSub[CVT_INT(m_rchID[i])] += m_surfRftotal[i]; // m3/s
 		}
 		// 每个子流域的原本的河道流量加上新汇入的流量
+# ifdef USE_OPENMP
 #pragma omp critical
+#endif // USE_OPENMP
 		{
 			for (int i = 1; i <= m_nSubbsns; i++) {
 				m_Q_SBOF[i] += tmp_qsSub[i];

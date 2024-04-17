@@ -33,7 +33,11 @@ from postprocess.config import PostConfig
 from parameters_sensitivity.config import PSAConfig
 from calibration.config import CaliConfig
 
-DEMO_MODELS = {'youwuzhen': 'demo_youwuzhen30m_longterm_model','hlg_hband': 'hlg_hband_longterm_model','hulugou': 'hulugou_longterm_model'}
+DEMO_MODELS = {'youwuzhen': 'demo_youwuzhen30m_longterm_model',
+               'hlg_hband': 'hlg_hband_longterm_model',
+               'hulugou': 'hulugou_longterm_model',
+                'gongba': 'gongba_longterm_model'
+               }
 
 
 def get_watershed_name(desc='Specify watershed name to run this script.'):
@@ -64,6 +68,7 @@ class ModelPaths(object):
     def __init__(self, bpath, data_dir_name, model_dir_name):
         self.mpi_bin = None
         self.bin_dir = bpath + os.path.sep + 'bin'
+        # self.bin_dir = bpath + os.path.sep + 'build\\seims\\bin\\seims_project\\Debug'
         self.prescript_dir = bpath + os.path.sep + 'seims' + os.path.sep + 'preprocess'
         self.base_dir = bpath + os.path.sep + 'data' + os.path.sep + data_dir_name
         self.cfg_dir = self.base_dir + os.path.sep + 'model_configs'

@@ -59,7 +59,7 @@ def raster2shp(rasterfile, vectorshp, layername=None, fieldname=None,
             # for example, try GetRasterBand(10)
             print('Band ( %i ) not found, %s' % (band_num, e))
             sys.exit(1)
-        
+
         if mask == 'default':
             maskband = srcband.GetMaskBand()
         elif mask is None or mask.upper() == 'NONE':
@@ -123,11 +123,11 @@ def field_param_csv(csv_file,field_shp_file, raster_para_files):
     soil_typedata = ['SOILLAYERS', 'HYDRO_GROUP','SOIL_TEXTURE'] #众数
     # 根据土壤层数不同，获取各层的土壤参数
     soil = ['SOL_AVPOR','DET_SILT','WFSH','ESCO','SOL_AVBD','DET_SAND','SOL_SUMWP','SOL_ZMX',
-            'SOL_CRK','ANION_EXCL','SOL_SUMUL','DET_CLAY','SOL_SUMAWC','SOL_ALB','DET_SMAGG','DET_LGAGG']       
+            'SOL_CRK','ANION_EXCL','SOL_SUMUL','DET_CLAY','SOL_SUMAWC','SOL_ALB','DET_SMAGG','DET_LGAGG']
     soil_paras = ['SOL_AWC_','SILT_','WILTINGPOINT_','SOL_ORGN_','SOL_SOLP_','SAND_','ROCK_','CONDUCTIVITY_','AWC_',
                 'SOL_N_','SOL_NO3_','POREINDEX_','DENSITY_','CLAY_','OM_','USLE_K_','SOL_WPMM_','SOL_ORGP_','SOILTHICK_',
                 'SOL_NH4_','SOL_HK_','SOL_CBN_','FIELDCAP_','VWT_','POROSITY_','SOL_UL_','SOILDEPTH_','CRDEP_']
-    for soil_para in soil_paras: 
+    for soil_para in soil_paras:
         raster_para_file = raster_para_files + os.sep + soil_para + '*.tif'
         for raster_para_file in glob(raster_para_file):
             raster_para_name = os.path.basename(raster_para_file).split('.')[0]
@@ -142,13 +142,13 @@ def field_param_csv(csv_file,field_shp_file, raster_para_files):
     land_init = ['CURYR_INIT','BIO_INIT','RSDIN','EPCO','LAI_INIT','CHT','DORMI','PHU_PLT']
     land_init_type = ['LANDCOVER','IGRO']#众数
     other_param = ['CN2','dayLenMin','dem','depression','dormhr','USLE_P','slope','slope_dinf','moist_in','runoff_co','acc']
-    
+
     # landuse_lookup = ['landuse'] #众数
     # soil_typedata = ['SOILLAYERS', 'HYDRO_GROUP','SOIL_TEXTURE'] #众数
     # # 根据土壤层数不同，获取各层的土壤参数
-    # soil = ['SOL_AVPOR']       
+    # soil = ['SOL_AVPOR']
     # soil_paras = ['SOL_AWC_']
-    # for soil_para in soil_paras: 
+    # for soil_para in soil_paras:
     #     raster_para_file = raster_para_files + os.sep + soil_para + '*.tif'
     #     for raster_para_file in glob(raster_para_file):
     #         raster_para_name = os.path.basename(raster_para_file).split('.')[0]
@@ -171,8 +171,8 @@ def field_param_csv(csv_file,field_shp_file, raster_para_files):
     param_lists_majority_file = ['landuse_lookup','soil_typedata','crop','land_init_type']
     if  not os.path.exists(csv_file):#如果路径不存在
         os.makedirs(csv_file)
-    
-    i = 0 
+
+    i = 0
     field_num = 0
     for param_list_mean in param_lists_mean :
         df=pd.DataFrame(columns=['FID'])
@@ -183,8 +183,8 @@ def field_param_csv(csv_file,field_shp_file, raster_para_files):
         df['FID'] = df_param['FID']
         field_num = len(df)
         df.to_csv(csv_file + os.sep + param_lists_mean_file[i] + '.csv',index=0)
-        i = i + 1 
-    i = 0 
+        i = i + 1
+    i = 0
     for param_list_majority in param_lists_majority :
         df=pd.DataFrame(columns=['FID'])
         for param in param_list_majority:
@@ -210,7 +210,7 @@ def get_coord_field_point(celllat_tif, field_center,csv_file):
 
     field_center_list = pd.read_csv(field_center)
     row, fiald_num = field_center_list.shape
-    
+
     fcsv = open(csv_file, 'w')
     fcsv.write('FID,prjX,prjY,celllong,celllat\n')
     for fiald_id in range(fiald_num):
@@ -245,7 +245,7 @@ def stream_link_csv(field_txt, csv_file):
     df = pd.DataFrame()
     field_id = list()
     stream_link = list()
-    
+
     for id in range(len(txt_data.loc[:,'FID'])):
         field_id.append(id)
         if txt_data.loc[id, 'downstreamFID'] < 0:
@@ -269,7 +269,9 @@ def flowin_index(field_txt,csv_file):
     for id in range(len(txt_data.loc[:,'FID'])):
         flowin = list()
         upstram_id = txt_data.loc[txt_data['downstreamFID'] == id]
+        # 该HRU上游HRU的数量
         flowin.append(len(upstram_id))
+        # 该HRU上游HRU的FID
         flowin.extend(list(upstram_id.loc[:, 'FID']))
         flowin_index.append(flowin)
     df.insert(loc=0,column='flowin_index_d8', value=flowin_index)
@@ -338,7 +340,7 @@ def flowout_index(field_shp_file,stream_file,field_raster_file,field_file,csv_fi
     length = list()
     for feat in lyr:
         id = feat.GetField('FIELDID')
-        geom = feat.GetGeometryRef() 
+        geom = feat.GetGeometryRef()
         ftdic[id] = [feat,id]
     ds2 = ogr_Open(stream_file)
     lyr2 = ds2.GetLayer(0)
@@ -346,29 +348,29 @@ def flowout_index(field_shp_file,stream_file,field_raster_file,field_file,csv_fi
     length = list()
     for feat in lyr2:
         id = feat.GetField('FIELDID')
-        geom = feat.GetGeometryRef() 
+        geom = feat.GetGeometryRef()
         ftdic2[id] = [feat,id]
     dataset = gdal.Open(field_raster_file)
     adfGeoTransform = dataset.GetGeoTransform()
 
-    
+
     for id in range(len(txt_data.loc[:,'FID'])):
         poly1 = (ftdic[id][0].GetGeometryRef() )
         if (txt_data.loc[id,'downstreamFID'] > -1):
             #不临近河流的计算共边长
             poly2 = (ftdic[txt_data.loc[id,'downstreamFID']][0].GetGeometryRef() )
-            boundary = poly1.Intersection(poly2)   
-            if(boundary.Length()>0): 
+            boundary = poly1.Intersection(poly2)
+            if(boundary.Length()>0):
                 length.append(round(boundary.Length(),2))#公共边界长度
-            else: 
+            else:
                 length.append(adfGeoTransform[1]) #取分辨率
         else:
             #临近河流的计算河流的共边
             poly3 = (ftdic2[txt_data.loc[id,'subbasin']][0].GetGeometryRef() )
-            boundary = poly1.Intersection(poly3)   
-            if(boundary.Length()>0): 
+            boundary = poly1.Intersection(poly3)
+            if(boundary.Length()>0):
                 length.append(round(boundary.Length(),2))#公共边界长度
-            else: 
+            else:
                 length.append(adfGeoTransform[1])
     #print(length)
     df = pd.DataFrame()
@@ -378,7 +380,7 @@ def flowout_index(field_shp_file,stream_file,field_raster_file,field_file,csv_fi
     df.to_csv(csv_file2 ,index=0)
 
 def routing_layer( massif_downstream):
-    
+
     massif_num = len(massif_downstream)
     result = np.zeros(massif_num, dtype=np.int32)
     block = np.zeros(massif_num, dtype=np.int32)
@@ -391,9 +393,9 @@ def routing_layer( massif_downstream):
     for downstream_massif_id in massif_downstream:
         if downstream_massif_id > 0:
             upstream_num[downstream_massif_id] += 1
-    
+
     queue = []
-    # 寻找没有上游的地块：    
+    # 寻找没有上游的地块：
     for i in range(massif_num):
         if upstream_num[i] == 0:
             queue.append(i)
@@ -437,6 +439,51 @@ def routing_layer_csv(field_txt,csv_file):
     df.insert(loc=0,column='routing_layers_down_up', value=layer_data)
     df.to_csv(csv_file ,index=0)
 
+def reflect_fid_and_subbasinid(subbasin_file):
+    # 打开shapefile
+    ds = ogr_Open(subbasin_file)
+    if ds is None:
+        raise ValueError("Could not open the shapefile")
+
+    # 获取第一个图层
+    layer = ds.GetLayer(0)
+
+    # 创建字典存储FID和SUBBASINID的对应关系
+    fid_subbasinid_map = {}
+
+    # 遍历图层中的每个要素
+    for feature in layer:
+        # 获取FID和SUBBASINID属性
+        if feature.GetFID() is not None and feature.GetField('SUBBASINID') is not None:
+            fid = feature.GetFID()
+            subbasinid = feature.GetField('SUBBASINID')
+            fid_subbasinid_map[fid] = subbasinid
+
+    # 关闭数据源
+    ds = None
+
+    return fid_subbasinid_map
+
+def over_write_hru_txt(all_hru_fields_txt,hru_txt, fid_subbasinid_map):
+    txt_data = pd.read_csv(all_hru_fields_txt, delimiter="\s+", engine='python')
+    # 创建一个新的 DataFrame，以便替换 'subbasin' 列的值
+    new_df = txt_data.copy()
+    for index, row in new_df.iterrows():
+        # 获取当前行的 'subbasin' 值
+        subbasin = row['subbasin']
+        # 通过映射找到相应的 'subbasin_id'
+        subbasin_id = fid_subbasinid_map.get(subbasin, subbasin)  # 使用 get 方法避免键不存在的错误
+        # 替换 'subbasin' 列的值
+        new_df.at[index, 'subbasin'] = subbasin_id
+    # 将更新后的 DataFrame 写入到新的 txt 文件
+    with open(hru_txt, 'w') as file:
+        # 写入列标题
+        file.write("    ".join(new_df.columns) + "\n")
+        # 写入数据行
+        for index, row in new_df.iterrows():
+            file.write("    ".join(row.astype(str)) + "\n")
+
+
 def datatype(datatype_csv):
     df = pd.DataFrame()
     layer_data = list()
@@ -444,31 +491,38 @@ def datatype(datatype_csv):
     df.insert(loc=0,column='datatypes', value=layer_data)
     df.to_csv(datatype_csv ,index=0)
 
-
 if __name__ == "__main__":
-    base_dir = r'D:\Github\SEIMS_C\data\hulugou'
-    db_name = 'hulugou_longterm_model'
+    # base_dir = r'G:\program\seims\SEIMS_C\data\hulugou'
+    # db_name = 'hulugou_longterm_model'
+    base_dir = r'G:\program\seims\SEIMS_C\data\gongba'
+    db_name = 'gongba_longterm_model'
     para_files = base_dir + os.sep + 'workspace\spatial_raster\*.tif'
     raster_para_files = base_dir + os.sep + 'workspace\spatial_raster'
     shp_files = base_dir + os.sep + 'workspace\spatial_shp'
     field_file = base_dir + os.sep + 'workspace\\HRU_file'
     model_dir = base_dir + os.sep + db_name
     csv_path = base_dir + os.sep + 'workspace\csv'
-    HRU_raster = field_file+ os.sep + 'HRU_99.tif'
-    field_txt = field_file + os.sep + 'HRU_info.txt'
+    HRU_raster = field_file+ os.sep + 'ALL_HRU_final.tif'
+    ori_field_txt = field_file+ os.sep + 'ALL_HRU_fields.txt'
+    field_txt = field_file + os.sep + 'HRU_fields.txt'
     subbadin_raster = base_dir + os.sep + 'workspace\spatial_raster\subbasin.tif'
+    # xiaodw add, 获取subbasin.shp中的FID和SUBBASINID的对应关系
+    subbasin_shp = base_dir + os.sep + 'workspace\spatial_shp\subbasin.shp'
+    subbasin_id_map = reflect_fid_and_subbasinid(subbasin_shp)
+    # 将subbasin信息写入HRU.txt
+    over_write_hru_txt(ori_field_txt,field_txt,subbasin_id_map)
 
     #删除目录中文件
     UtilClass.rmmkdir(csv_path)
     HRU_shp = field_file+ os.sep + 'HRU.shp'
     raster2shp(HRU_raster, HRU_shp, 'field', 'FIELDID')
-    # HRU_Albers_shp = field_file+ os.sep + 'HRU_Albers.shp'
-    # Reference(HRU_shp,HRU_Albers_shp)
+    HRU_Albers_shp = field_file+ os.sep + 'HRU_Albers.shp'
+    Reference(HRU_shp,HRU_Albers_shp)
 
     # 统计各个流域地块中的数据
     # 计算时区分取众数和平均数的数据，
     field_num = field_param_csv(csv_path, HRU_shp, raster_para_files)
-    print('cumpute soil & landuse data done!')
+    print('compute soil & landuse data done!')
 
     # 每个HRU在哪个subbasin
     subbasin_csv = csv_path + os.sep + 'subbasin.csv'
@@ -477,26 +531,26 @@ if __name__ == "__main__":
     # IUH csv
     iuh_csv = csv_path + os.sep + 'iuh.csv'
     IUH_1Darray(iuh_csv, field_num)
-    print('cumpute IUH done!')
+    print('compute IUH done!')
 
     # 计算地块中心
     field_center_file = csv_path + os.sep + 'fields_center.csv'
     field_center(HRU_shp,field_center_file)
-    
+
     # 计算celllat
     celllat_csv = csv_path + os.sep + 'celllat.csv'
     get_coord_field_point(subbadin_raster,field_center_file,celllat_csv)
-    print('cumpute HRU center coor done!')
-   
+    print('compute HRU center coor done!')
+
     # 计算cellarea
     csv_file = csv_path + os.sep + 'cellarea.csv'
     cell_area(HRU_shp, csv_file)
-    print('cumpute HRU area done!')
+    print('compute HRU area done!')
 
     # stream_link计算
     csv_file = csv_path + os.sep + 'stream_link.csv'
     stream_link_csv(field_txt, csv_file)
-    print('cumpute stream_link done!')
+    print('compute stream_link done!')
 
     #flowin_index计算
     csv_file = csv_path + os.sep + 'flowin_index.csv'
@@ -509,8 +563,8 @@ if __name__ == "__main__":
     csv_file1 = csv_path + os.sep + 'flowout_index.csv'
     csv_file2 = csv_path + os.sep + 'flowout_length.csv'
     flowout_index(HRU_shp,stream_shp,HRU_raster,field_txt,csv_file1,csv_file2)
-    print('cumpute flow in-out done!')
-    
+    print('compute flow in-out done!')
+
     # routing_layers_down_up
     csv_file = csv_path + os.sep + 'routing_layer.csv'
     routing_layer_csv(field_txt,csv_file)
@@ -524,7 +578,7 @@ if __name__ == "__main__":
     #field_center_file = csv_path + os.sep + 'fields_center.csv'
     #导入数据库中
     #Load configuration file
-    from preprocess.config import parse_ini_configuration
+    from config import parse_ini_configuration
     seims_cfg = parse_ini_configuration()
     db_import_field_arrays.workflow(seims_cfg, db_name,csv_path,field_num)
 
@@ -532,8 +586,8 @@ if __name__ == "__main__":
     ImportWeightData_field.workflow(seims_cfg, field_center_file,db_name)
 
     #导入子流域数据
-    from preprocess.db_mongodb import ConnectMongoDB
-    from preprocess.config import parse_ini_configuration
+    from db_mongodb import ConnectMongoDB
+    from config import parse_ini_configuration
     seims_cfg = parse_ini_configuration()
     client = ConnectMongoDB(seims_cfg.hostname, seims_cfg.port)
     conn = client.get_conn()
@@ -551,7 +605,7 @@ if __name__ == "__main__":
                 db["REACHES"].update({'SUBBASINID': i}, {'$set': {key:dict_target[key][i-1]}},False,True)
 
 
-    
+
 
 
 
