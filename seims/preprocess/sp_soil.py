@@ -152,6 +152,20 @@ class SoilProperty(object):
                 del sol_dict[ele]
         return sol_dict
 
+    def soil_dict2(self):
+        """Convert to dict"""
+        sol_dict = self.__dict__.copy()  # 创建字典的副本，避免直接修改实例的 __dict__
+        sol_dict.pop(SoilProperty._NAME, None)  # 使用 pop 时给定默认值，防止 KeyError
+
+        # 创建一个空列表用来存储将要删除的键
+        empty_keys = [key for key, value in sol_dict.items() if isinstance(value, list) and not value]
+
+        # 删除这些空列表的键
+        for key in empty_keys:
+            del sol_dict[key]
+
+        return sol_dict
+
     def check_data_validation(self):
         """Check the required input, and calculate all physical and general chemical properties"""
         # set a soil layer at dep_new and adjust all lower layers
@@ -681,7 +695,8 @@ class SoilUtilClass(object):
             soil_instances.append(cur_soil_ins)
         soil_prop_dict = dict()
         for sol in soil_instances:
-            cur_sol_dict = sol.soil_dict()
+            # cur_sol_dict = sol.soil_dict()
+            cur_sol_dict = sol.soil_dict2()
             for fld in cur_sol_dict:
                 if fld in soil_prop_dict:
                     soil_prop_dict[fld].append(cur_sol_dict[fld])
@@ -792,6 +807,7 @@ class SoilUtilClass(object):
                                          DEFAULT_NODATA, GDT_Float32)
 
     @staticmethod
+
     def parameters_extraction(cfg):
         """Soil spatial parameters extraction."""
         f = cfg.logs.extract_soil
