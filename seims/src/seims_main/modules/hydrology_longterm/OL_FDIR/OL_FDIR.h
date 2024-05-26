@@ -29,7 +29,13 @@
 #define SEIMS_MODULE_OL_FDIR_H
 
 #include "SimulationModule.h"
-
+# ifdef USE_PIHM
+// xiaodw, for pihm
+#include "pihm_tools.h"
+#ifndef MAXSTRING
+#define MAXSTRING  1024
+#endif
+#endif
  /** \defgroup OL_FDIR
   * \ingroup Hydrology_longterm
   * \brief IUH overland method to calculate overland flow routing
@@ -65,6 +71,15 @@ public:
 	void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
 
 	int Execute() OVERRIDE;
+
+# ifdef USE_PIHM
+	// xiaodw, for pihm
+	PIHM_TOOLS *pihm_tools = nullptr;
+	vector<int> *hru_ids;
+	char * pihm_dir;
+	char * hru_ids_file;
+	char * project;
+#endif
 
 private:
 	/// time step (sec)
@@ -125,5 +140,7 @@ private:
 	float** m_ks;
 
 	float** m_Qtrans;
+
+
 };
 #endif /* SEIMS_MODULE_OL_FDIR_H */

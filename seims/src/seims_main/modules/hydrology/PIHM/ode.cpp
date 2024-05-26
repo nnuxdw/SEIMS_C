@@ -1,7 +1,8 @@
 #include "pihm.h"
 #include <time.h>
 #include <stdio.h>
-
+//#include <iostream>
+//using namespace std;
 int Ode(realtype t, N_Vector CV_Y, N_Vector CV_Ydot, void *pihm_data)
 
 {
@@ -9,21 +10,132 @@ int Ode(realtype t, N_Vector CV_Y, N_Vector CV_Ydot, void *pihm_data)
 	int             i;
 	double         *y;
 	double         *dy;
-	/*pihm_struct     pihm;*/
+	/*pihm_struct     pihm_strc;*/
 	pihm_struct     *pihm;
 	elem_struct    *elem;
 	river_struct   *river;
+	// xiaodw
+	PIHMToolDataStruct* PIHMTool_Data;
+	SeimsVariablesStruct * SeimsVariables;
 
 	y = NV_DATA(CV_Y);
 	dy = NV_DATA(CV_Ydot);
-	//pihm = (pihm_struct)pihm_data;
+	//pihm_strc = (pihm_struct)pihm_data;
 	pihm = (pihm_struct*)pihm_data;
 #if defined(_STATISTIC_TIME_)
 	clock_t ode_start = clock();
 #endif
 	elem = &pihm->elem[0];
 	river = &pihm->river[0];
+	PIHMTool_Data = pihm->PIHMToolData;
+	SeimsVariables = pihm->SeimsVariables;
 
+	if (PIHMTool_Data != nullptr && PIHMTool_Data->hru_ids != nullptr) {
+		for (int id : *(PIHMTool_Data->hru_ids)) {
+			cout << "HRU ID: " << id << endl;
+		}
+	}
+	else {
+		cout << "PIHMTool_Data or hru_ids is null" << endl;
+	}
+	map<int, int> upstream_hru_down_map;
+	map<int, map<int, float>> upstream_hru__down_tris_map;
+	std::unordered_set<int> upstream_hru_id_keys;
+	if (PIHMTool_Data != nullptr && PIHMTool_Data->hrus != nullptr) {
+		for (hru_struct hru : *(PIHMTool_Data->hrus)) {
+			//cout << "HRU ID: " << hru.key << " down_type: " << hru.down_type << endl;
+			if (hru.down_type == 1 && !hru.down_ids.empty()) {
+				//upstream_hru_down_map[hru.key] = hru.down_id;
+				upstream_hru_id_keys.insert(hru.key);
+				upstream_hru__down_tris_map[hru.key] = hru.down_ids;
+				//cout << "down_ids: ";
+				//for (const auto& pair : hru.down_ids) {
+				//	cout << "Key: " << pair.first << ", Value: " << pair.second << "; ";
+				//}
+				//cout << endl;
+				
+			}
+			else if (hru.down_type == 0  ){
+				//cout << "down_id: " << hru.down_id << endl;
+			}
+			else {
+				cout << "error in hru up down relation !!!!!!!!!!!!!!!!" << endl;
+			}
+
+		}
+	}
+	else {
+		cout << "PIHMTool_Data or hru_ids is null" << endl;
+	}
+	map<int, double> tri_id_streamq_map;
+	pihm->exchange = new exchange_struct();
+	pihm->exchange->elem_upstream_surfq = new double[nelem];
+	int curSubbasinId = -1;
+	if (SeimsVariables != nullptr && SeimsVariables->m_surfRftotal != nullptr) {
+		for (int i = 0; i < SeimsVariables->m_nCells; i++) {
+			// 如果是上游HRU, 将上游地表径流量分配给下游三角形的地表水深
+			if (upstream_hru_id_keys.find(i) != upstream_hru_id_keys.end()) {
+				for (map<int, float>::iterator it = upstream_hru__down_tris_map[i].begin(); it != upstream_hru__down_tris_map[i].end(); ++it) {
+					//std::cout << "Key: " << it->first << ", Value: " << it->second << std::endl;
+					//tri_id_streamq_map[(int)it->first] = SeimsVariables->m_surfRftotal[i] * pihm->ctrl.stepsize * (double)it->second;
+					// 地表水：流量m3/s * 步长s * 比例  
+					pihm->exchange->elem_upstream_surfq[int(it->first)] = SeimsVariables->m_surfRftotal[i] * pihm->ctrl.stepsize * (double)it->second;
+					// 土壤水：每层地下水量m3* 比例 * pihm的步长s/seims的步长s
+					for (int j = 0; j < static_cast<int>(SeimsVariables->m_nSoilLyrs[i]); j++) {
+						pihm->exchange->elem_upstream_subsurvol[int(it->first)] += SeimsVariables->m_subSurfRfVol[i][j] * pihm->ctrl.stepsize *  (double)it->second / SeimsVariables->m_TimeStep; /// m^3/s
+					}
+					// 地下水：每个上游HRU所在子流域的所有地下水
+					curSubbasinId = SeimsVariables->m_subbsnID[i];
+					pihm->exchange->elem_upstream_gwStorage[int(it->first)] = SeimsVariables->m_gwStorage[curSubbasinId] * SeimsVariables->subbasin_area[curSubbasinId] * (double)it->second
+						* pihm->ctrl.stepsize / SeimsVariables->m_TimeStep ;
+
+					// 输出变量值在一行
+					std::cout << "tri_id: " << it->first
+						<< ", surfRftotal[" << i << "]: " << SeimsVariables->m_surfRftotal[i]
+						<< ", stepsize: " << pihm->ctrl.stepsize
+						<< ", percent: " << it->second
+						<< ", surfq: " << pihm->exchange->elem_upstream_surfq[int(it->first)]
+						<< std::endl;
+				}
+				
+				cout << "upstream Key " << i << " has downstream." << std::endl;
+			}
+		}
+
+
+		for (int i = 0; i < nelem; i++){
+			cout << "HRU RUNOFF: " << SeimsVariables->m_surfRftotal[i] << endl;
+		}
+	}
+	else {
+		cout << "HRU RUNOFF is null" << endl;
+	}
+	pihm->exchange->elem_upstream_subsurvol = new double[nelem];
+	/*
+	for (int ilyr = 0; ilyr < SeimsVariables->m_nRteLyrs; ilyr++) {
+		// There are not any flow relationship within each routing layer.
+		// So parallelization can be done here.
+		//int ncells = CVT_INT(m_rteLyrs[ilyr][0]);
+		int ncells = static_cast<int>(SeimsVariables->m_rteLyrs[ilyr][0]);
+		
+		// 遍历每个并行层的所有地块，xiaodw
+#pragma omp parallel for reduction(+: errCount)
+		for (int icell = 1; icell <= ncells; icell++) {
+			// 地块id，xiaodw
+			float qiAllLayers = 0.f;
+			int id = static_cast<int>(SeimsVariables->m_rteLyrs[ilyr][icell]);
+			for (int j = 0; j < static_cast<int>(SeimsVariables->m_nSoilLyrs[id]); j++) {
+				if (SeimsVariables->m_subSurfRfVol[i][j] > UTIL_ZERO) {
+					if (upstream_hru_id_keys.find(i) != upstream_hru_id_keys.end()) {
+						for (map<int, float>::iterator it = upstream_hru__down_tris_map[i].begin(); it != upstream_hru__down_tris_map[i].end(); ++it) {
+							pihm->exchange->elem_upstream_subsurvol[id] += SeimsVariables->m_subSurfRfVol[i][j] * pihm->ctrl.stepsize / SeimsVariables->m_TimeStep; /// m^3/s
+						}
+					}
+				}
+			}
+		}
+	}
+	*/
 	// Initialization of RHS of ODEs
 #if defined(_OPENMP)
 # pragma omp parallel for
@@ -101,7 +213,7 @@ int Ode(realtype t, N_Vector CV_Y, N_Vector CV_Ydot, void *pihm_data)
 #if defined(_STATISTIC_TIME_)
 	Hydrol(&pihm->ctrl, pihm->elem, pihm->river, pihm->ptime_calculator);
 #else 
-	Hydrol(&pihm->ctrl, pihm->elem, pihm->river);
+	Hydrol(&pihm->ctrl, pihm->elem, pihm->river,pihm->exchange);
 #endif
 #if defined(_STATISTIC_TIME_)
 	pihm->ptime_calculator->t5_1 = clock();
@@ -131,7 +243,8 @@ int Ode(realtype t, N_Vector CV_Y, N_Vector CV_Ydot, void *pihm_data)
 	{
 		int             j;
 		// dy(m)
-		// Vertical water fluxes for surface and subsurface 
+		// Vertical water fluxes for surface and subsurface
+		// xiaodw, 在这里加入上游HRU的来水
 		dy[SURF(i)] += elem[i].wf.pcpdrp - elem[i].wf.infil - elem[i].wf.edir_surf;
 		dy[UNSAT(i)] += elem[i].wf.infil - elem[i].wf.recharge - elem[i].wf.edir_unsat - elem[i].wf.ett_unsat;
 		dy[GW(i)] += elem[i].wf.recharge - elem[i].wf.edir_gw - elem[i].wf.ett_gw;
@@ -265,7 +378,7 @@ void SetCVodeParam(pihm_struct *pihm, void *cvode_mem, SUNLinearSolver *sun_ls, 
 	}
 	else
 	{
-		// 这里调用了Ode方法，求解流量
+		// 这里设置Ode方法，求解流量
 		cv_flag = CVodeInit(cvode_mem, Ode, 0.0, CV_Y);
 		CheckCVodeFlag(cv_flag);
 		reset = 1;
@@ -293,6 +406,9 @@ void SetCVodeParam(pihm_struct *pihm, void *cvode_mem, SUNLinearSolver *sun_ls, 
 		// Specifies PIHM data block and attaches it to the main cvode memory block
 		cv_flag = CVodeSetUserData(cvode_mem, pihm);
 		CheckCVodeFlag(cv_flag);
+		//xiaodw
+		//cv_flag = CVodeSetUserData(cvode_mem, PIHMToolData);
+		//CheckCVodeFlag(cv_flag);
 
 		// Specifies the initial step size
 		cv_flag = CVodeSetInitStep(cvode_mem, (realtype)pihm->ctrl.initstep);

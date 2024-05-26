@@ -494,8 +494,9 @@ def datatype(datatype_csv):
 if __name__ == "__main__":
     # base_dir = r'G:\program\seims\SEIMS_C\data\hulugou'
     # db_name = 'hulugou_longterm_model'
-    base_dir = r'G:\program\seims\SEIMS_C\data\gongba'
-    db_name = 'gongba_longterm_model'
+    # base_dir = r'G:\program\seims\SEIMS_C\data\gongba'
+    base_dir = r'G:\program\seims\SEIMS_C\data\gongba_subbasin'
+    db_name = 'gongba_subbasin_longterm_model'
     para_files = base_dir + os.sep + 'workspace\spatial_raster\*.tif'
     raster_para_files = base_dir + os.sep + 'workspace\spatial_raster'
     shp_files = base_dir + os.sep + 'workspace\spatial_shp'

@@ -29,7 +29,13 @@
 
 #include "SimulationModule.h"
 #include "clsSubbasin.h"
-
+# ifdef USE_PIHM
+ // xiaodw, for pihm
+#include "pihm_tools.h"
+#ifndef MAXSTRING
+#define MAXSTRING  1024
+#endif
+#endif
 /** \defgroup GWA_MOD
  * \ingroup Hydrology_longterm
  * \brief Reservoir Method to calculate groundwater balance and baseflow of longterm model
@@ -70,6 +76,14 @@ public:
 
     TimeStepType GetTimeStepType() OVERRIDE{ return TIMESTEP_CHANNEL; }
 
+# ifdef USE_PIHM
+	// xiaodw, for pihm
+	PIHM_TOOLS *pihm_tools = nullptr;
+	vector<int> *hru_ids;
+	char * pihm_dir;
+	char * hru_ids_file;
+	char * project;
+#endif
 private:
     //inputs
 
@@ -113,7 +127,10 @@ private:
 
     float* m_petSubbsn; ///< Average PET of each subbasin, mm
     float* m_gwSto;     ///<  Groundwater storage (mm) of the subbasin
-
+	// xiaodw, output for pihm
+# ifdef USE_PIHM
+	float* m_subbasin_area;
+#endif
     /// slope (percent, or drop/distance, or tan) of each cell
     float* m_slope;
 

@@ -186,6 +186,14 @@ int SSR_DA::Execute() {
 		for (int icell = 1; icell <= ncells; icell++) {
 			// 地块id，xiaodw
 			int id = CVT_INT(m_rteLyrs[ilyr][icell]);
+			// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行土壤水量计算
+# ifdef USE_PIHM
+			bool id_in_hru = pihm_tools->CheckIdInHruIds(id, hru_ids);
+			if (id_in_hru)
+			{
+				continue;
+			}
+# endif
 			if (!FlowInSoil(id)) errCount++;
 		}
 		if (errCount > 0) {
@@ -416,4 +424,20 @@ void SSR_DA::InitialOutputs() {
 	if (nullptr == m_ifluQ2Rch) Initialize1DArray(m_nSubbsns + 1, m_ifluQ2Rch, 0.f);
 	if (nullptr == m_subSurfRf) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_subSurfRf, 0.f);
 	if (nullptr == m_subSurfRfVol) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_subSurfRfVol, 0.f);
+# ifdef USE_PIHM
+	// Read select_hand_ids.txt
+	if (nullptr == pihm_tools)
+	{
+		project = new char[MAXSTRING];
+		strcpy(project, PIHM_PROJECT);
+		pihm_tools = new PIHM_TOOLS();
+		hru_ids = new vector<int>();
+		hru_ids_file = new char[MAXSTRING];
+		pihm_dir = new char[MAXSTRING];
+		strcpy(pihm_dir, PIHM_DATA_PATH);
+		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
+		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
+		//pihm_tools->test(1, project);
+	}
+#endif
 }

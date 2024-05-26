@@ -461,14 +461,15 @@ enum output_var {
 # define NSOLUTE                MAXSPS
 #endif
 
-// External variable
+ //External variable
 extern int     verbose_mode;
 extern int     debug_mode;
 extern int     append_mode;
 extern int     corr_mode;
 extern int     spinup_mode;
 extern int     fixed_length;
-extern char    project[MAXSTRING];
+//extern char    project[MAXSTRING];
+extern char*    project;
 extern int     nelem;
 extern int     nriver;
 #if defined(_BGC_)
@@ -479,6 +480,12 @@ extern int     nthreads;
 #endif
 #if defined(_BGC_) || defined(_CYCLES_) || defined(_RT_)
 int            nsolute;
+#endif
+
+#if defined(_OPENMP)
+extern double  start_omp;
+#else
+clock_t         start;
 #endif
 
 #endif

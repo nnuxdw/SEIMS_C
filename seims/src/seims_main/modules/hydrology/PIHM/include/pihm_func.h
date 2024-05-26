@@ -1,7 +1,6 @@
 #pragma once
 #ifndef PIHM_FUNC_HEADER
 #define PIHM_FUNC_HEADER
-
 #define _ARITH_
 
 // State variables
@@ -90,7 +89,8 @@ void            ApplyForcing(int, int, const siteinfo_struct *, const rttbl_stru
 #elif defined(_NOAH_)
 void            ApplyForcing(int, int, const siteinfo_struct *, forc_struct *, elem_struct[]);
 #else
-void            ApplyForcing(int, forc_struct *, elem_struct[]);
+//void            ApplyForcing(int, forc_struct *, elem_struct[]);
+void            ApplyForcing(int, forc_struct *, elem_struct[], float* ,float*, float*, float*, float*);
 #endif
 #if defined(_BGC_) || defined(_CYCLES_)
 void            ApplyLai(elem_struct[]);
@@ -100,7 +100,8 @@ void            ApplyLai(int, forc_struct *, elem_struct[]);
 #if defined(_NOAH_)
 void            ApplyMeteoForcing(int, int, const siteinfo_struct *, forc_struct *, elem_struct[]);
 #else
-void            ApplyMeteoForcing(int, forc_struct *, elem_struct[]);
+//void            ApplyMeteoForcing(int, forc_struct *, elem_struct[]);
+void            ApplyMeteoForcing(int, forc_struct *, elem_struct[], float*, float* , float *, float *, float *);
 #endif
 void            ApplyRiverBc(int, forc_struct *, river_struct[]);
 double          AvgKv(double, double, const soil_struct *);
@@ -112,6 +113,8 @@ void            BoundFluxElem(int, int, const topo_struct *, const soil_struct *
 double          BoundFluxRiver(int, const river_topo_struct *, const shp_struct *, const matl_struct *,
 	const river_bc_struct *, const river_wstate_struct *);
 void            CalcModelSteps(ctrl_struct *);
+// xiaodw 
+void CalcPIHMSteps(ctrl_struct *ctrl, int seims_tstep, int counter, int * cur_simu_time_ptr, int * last_sim_time_ptr);
 double          ChannelFlowElemToRiver(double, double, const river_struct *, elem_struct *);
 double          ChannelFlowRiverToRiver(const river_struct *, const river_struct *);
 void            CheckCVodeFlag(int);
@@ -147,7 +150,9 @@ void            FrictionSlope(const elem_struct[], const river_struct[],
 #if defined(_STATISTIC_TIME_)
 void            Hydrol(const ctrl_struct *, elem_struct[], river_struct[], struct time_struct *);
 #else
-void            Hydrol(const ctrl_struct *, elem_struct[], river_struct[]);
+//void            Hydrol(const ctrl_struct *, elem_struct[], river_struct[]);
+void            Hydrol(const ctrl_struct *, elem_struct[], river_struct[], exchange_struct *);
+
 #endif
 double          Infil(double, const topo_struct *, const soil_struct *, const wstate_struct *, const wstate_struct *,
 	const wflux_struct *);
@@ -158,7 +163,7 @@ void            InitForcing(const rttbl_struct *, const calib_struct *, forc_str
 #else
 void            InitForcing(const calib_struct *, forc_struct *, elem_struct[]);
 #endif
-void            Initialize(pihm_struct*, N_Vector, void **);
+void            Initialize(pihm_struct*, N_Vector, void **, int seims_tstep);
 void            InitLc(const lctbl_struct *, const calib_struct *, elem_struct[]);
 void            InitMesh(const meshtbl_struct *, elem_struct[]);
 void            InitOutputFiles(const char[], int, int, print_struct *);
@@ -205,6 +210,7 @@ int             NumStateVar(void);
 #if defined(_STATISTIC_TIME_)
 int             Ode(realtype, N_Vector, N_Vector, void *);
 #else
+//int             Ode(realtype, N_Vector, N_Vector, void *);
 int             Ode(realtype, N_Vector, N_Vector, void *);
 #endif
 double          OutletFlux(int, const river_topo_struct *, const shp_struct *, const matl_struct *,
@@ -212,13 +218,18 @@ double          OutletFlux(int, const river_topo_struct *, const shp_struct *, c
 double          OverLandFlow(double, double, double, double, double);
 double          OvlFlowElemToElem(int, double, const elem_struct *, const elem_struct *);
 double          OvlFlowElemToRiver(const river_struct *, elem_struct *);
-void            ParseCmdLineParam(int, char *[], char[]);
+void            ParseCmdLineParam(int, char *[], char [], char[]);
 #if defined(_STATISTIC_TIME_)
 void            init_time_struct(struct time_struct *);
 //void            PIHM_STATICTIC(double, pihm_struct, void *, N_Vector);
 void            print_time_struct(struct time_struct*);
 #endif
-void            PIHM(double, pihm_struct*, void *, N_Vector); pihm_t_struct   PIHMTime(int);
+//void            PIHM(double, pihm_struct*, void *, N_Vector, SeimsVariablesStruct *);
+void            RUN_PIHM(double, pihm_struct*, void *, N_Vector, SeimsVariablesStruct *, SeimsMeteoStruct * );
+//void RUN_PIHM(double cputime, pihm_struct *pihm, void *cvode_mem, N_Vector CV_Y, SeimsVariablesStruct * SeimsVariables, SeimsMeteoStruct * seims_meteo);
+
+
+pihm_t_struct   PIHMTime(int);
 
 
 
@@ -236,7 +247,7 @@ double          PtfKv(double, double, double, double, int);
 double          PtfThetar(double, double);
 double          PtfThetas(double, double, double, double, int);
 double          Qtz(int);
-void            ReadAlloc(pihm_struct*);
+void            ReadAlloc(pihm_struct*, char pihm_dir[]);
 void            ReadAtt(const char[], atttbl_struct *);
 #if defined(_RT_)
 void            ReadBc(const char[], const atttbl_struct *, const chemtbl_struct[], const rttbl_struct *,
@@ -263,16 +274,21 @@ void            RiverFlow(elem_struct[], river_struct[]);
 double          RiverPerim(int, double, double);
 void            RiverToElem(river_struct *, elem_struct *, elem_struct *);
 int             roundi(double);
+
 #if defined(_OPENMP)
 void            RunTime(double, double *, double *);
 #else
 void            RunTime(clock_t, double *, double *);
 #endif
 void            RelaxIc(elem_struct[], river_struct[]);
+//void            SetCVodeParam(pihm_struct*, void *, SUNLinearSolver *, N_Vector);
+//xiaodw
 void            SetCVodeParam(pihm_struct*, void *, SUNLinearSolver *, N_Vector);
+
 int             SoilTex(double, double);
 void            SolveCVode(double, const ctrl_struct *, int *, void *, N_Vector);
-void            Spinup(pihm_struct*, N_Vector, void *, SUNLinearSolver *);
+//void            Spinup(pihm_struct*, N_Vector, void *, SUNLinearSolver *);
+void            Spinup(pihm_struct*, N_Vector, void *, SUNLinearSolver *,SeimsVariablesStruct * , SeimsMeteoStruct * );
 void            StartupScreen(void);
 int             StrTime(const char[]);
 double          SubsurfFlow(int, const elem_struct *, const elem_struct *);

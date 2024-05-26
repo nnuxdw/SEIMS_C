@@ -79,6 +79,22 @@ void AET_PT_H::InitialOutputs() {
     if (nullptr == m_maxPltET) Initialize1DArray(m_nCells, m_maxPltET, 0.f);
     if (nullptr == m_soilET) Initialize1DArray(m_nCells, m_soilET, 0.f);
     if (nullptr == m_snowSublim) Initialize1DArray(m_nCells, m_snowSublim, 0.f);
+# ifdef USE_PIHM
+	// Read select_hand_ids.txt
+	if (nullptr == pihm_tools)
+	{
+		project = new char[MAXSTRING];
+		strcpy(project, PIHM_PROJECT);
+		pihm_tools = new PIHM_TOOLS();
+		hru_ids = new vector<int>();
+		hru_ids_file = new char[MAXSTRING];
+		pihm_dir = new char[MAXSTRING];
+		strcpy(pihm_dir, PIHM_DATA_PATH);
+		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
+		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
+		//pihm_tools->test(1, project);
+	}
+#endif
 }
 
 int AET_PT_H::Execute() {
@@ -86,6 +102,14 @@ int AET_PT_H::Execute() {
     InitialOutputs();
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
+		// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行计算
+# ifdef USE_PIHM
+		bool id_in_hru = pihm_tools->CheckIdInHruIds(i, hru_ids);
+		if (id_in_hru)
+		{
+			continue;
+		}
+# endif
         /// define intermediate variables
         float esd = 0.f, etco = 0.f, effnup = 0.f;
         float no3up = 0.f, es_max = 0.f, eos1 = 0.f, xx = 0.f;

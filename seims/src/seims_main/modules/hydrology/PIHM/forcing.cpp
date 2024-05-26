@@ -29,7 +29,7 @@ void ApplyForcing(int t, int rad_mode, const siteinfo_struct *siteinfo, const rt
 #elif defined(_NOAH_)
 void ApplyForcing(int t, int rad_mode, const siteinfo_struct *siteinfo, forc_struct *forc, elem_struct elem[])
 #else
-void ApplyForcing(int t, forc_struct *forc, elem_struct elem[])
+void ApplyForcing(int t, forc_struct *forc, elem_struct elem[],float* pihm_pcp, float* pihm_tmean, float *pihm_ws, float *pihm_rhd, float *pihm_sr)
 #endif
 {
 	// Meteorological forcing
@@ -38,7 +38,9 @@ void ApplyForcing(int t, forc_struct *forc, elem_struct elem[])
 #elif defined(_NOAH_)
 	ApplyMeteoForcing(t, rad_mode, siteinfo, forc, elem);
 #else
-	ApplyMeteoForcing(t, forc, elem);
+	//ApplyMeteoForcing(t, forc, elem);
+	// xiaodw
+	ApplyMeteoForcing(t, forc, elem,pihm_pcp, pihm_tmean, pihm_ws, pihm_rhd, pihm_sr);
 #endif
 	// LAI forcing
 #if defined(_BGC_) || defined(_CYCLES_)
@@ -147,7 +149,7 @@ void ApplyElemBc(int t, forc_struct *forc, elem_struct elem[])
 #if defined(_NOAH_)
 void ApplyMeteoForcing(int t, int rad_mode, const siteinfo_struct *siteinfo, forc_struct *forc, elem_struct elem[])
 #else
-void ApplyMeteoForcing(int t, forc_struct *forc, elem_struct elem[])
+void ApplyMeteoForcing(int t, forc_struct *forc, elem_struct elem[],float * pihm_pcp, float* pihm_tmean, float *pihm_ws, float *pihm_rhd, float *pihm_sr)
 #endif
 {
 	int             i, k;
@@ -156,13 +158,14 @@ void ApplyMeteoForcing(int t, forc_struct *forc, elem_struct elem[])
 #endif
 
 	// Meteorological forcing for PIHM
-#if defined(_OPENMP)
-# pragma omp parallel for
-#endif
-	for (k = 0; k < forc->nmeteo; k++)
-	{
-		IntrplForcing(t, NUM_METEO_VAR, INTRPL, &forc->meteo[k]);
-	}
+	// xiaodw, 暂时不考虑时间插值，用降雨平均值代替
+//#if defined(_OPENMP)
+//# pragma omp parallel for
+//#endif
+	//for (k = 0; k < forc->nmeteo; k++)
+	//{
+	//	IntrplForcing(t, NUM_METEO_VAR, INTRPL, &forc->meteo[k]);
+	//}
 
 #if defined(_NOAH_)
 	// Topographic radiation for Noah 地形辐射
@@ -189,17 +192,30 @@ void ApplyMeteoForcing(int t, forc_struct *forc, elem_struct elem[])
 		int             ind;
 
 		ind = elem[i].attrib.meteo - 1;
+		// todo 这里数值有问题，导致cvode计算错误
+		//elem[i].wf.prcp = pihm_pcp[i];  
+		//elem[i].es.sfctmp = pihm_tmean[i];
+		//elem[i].ps.rh = pihm_rhd[i];
+		//elem[i].ps.sfcspd = pihm_ws[i];
+		//elem[i].ef.soldn = pihm_sr[i] ;
 
-		elem[i].wf.prcp = forc->meteo[ind].value[PRCP_TS] / 1000.0;
-		elem[i].es.sfctmp = forc->meteo[ind].value[SFCTMP_TS];
-		elem[i].ps.rh = forc->meteo[ind].value[RH_TS];
-		elem[i].ps.sfcspd = forc->meteo[ind].value[SFCSPD_TS];
-		elem[i].ef.soldn = forc->meteo[ind].value[SOLAR_TS];
-		elem[i].ef.soldn = MAX(elem[i].ef.soldn, 0.0);
+		elem[i].wf.prcp = 0;  
+		elem[i].es.sfctmp = 1;
+		elem[i].ps.rh = 0.5;
+		elem[i].ps.sfcspd = 1;
+		elem[i].ef.soldn = 1 ;
+		elem[i].ps.sfcprs = 1;
+		//elem[i].wf.prcp = forc->meteo[ind].value[PRCP_TS] / 1000.0;
+		//elem[i].es.sfctmp = forc->meteo[ind].value[SFCTMP_TS];
+		//elem[i].ps.rh = forc->meteo[ind].value[RH_TS];
+		//elem[i].ps.sfcspd = forc->meteo[ind].value[SFCSPD_TS];
+		//elem[i].ef.soldn = forc->meteo[ind].value[SOLAR_TS];
+		//elem[i].ef.soldn = MAX(elem[i].ef.soldn, 0.0);
 #if defined(_NOAH_)
 		elem[i].ef.longwave = forc->meteo[ind].value[LONGWAVE_TS];
 #endif
-		elem[i].ps.sfcprs = forc->meteo[ind].value[PRES_TS];
+		//elem[i].ps.sfcprs = forc->meteo[ind].value[PRES_TS];
+		//elem[i].ps.sfcprs = 97614.16f;
 
 #if defined(_NOAH_)
 		// Calculate solar radiation

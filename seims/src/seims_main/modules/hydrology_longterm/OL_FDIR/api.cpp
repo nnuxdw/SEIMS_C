@@ -30,8 +30,10 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddParameter(VAR_SUBBSN, UNIT_NON_DIM, DESC_SUBBSN, Source_ParameterDB, DT_Raster1D);
 
 	mdi.AddInput(VAR_SURU, UNIT_DEPTH_MM, DESC_SURU, Source_Module, DT_Raster1D);
-
 	mdi.AddOutput(VAR_OLFLOW, UNIT_DEPTH_MM, DESC_OLFLOW, DT_Raster1D);
+# ifdef USE_PIHM
+	mdi.AddOutput(VAR_SURFRFTOTAL, UNIT_FLOW_CMS, DESC_SURFRFTOTAL, DT_Raster1D);
+#endif
 	mdi.AddOutput(VAR_SBOF, UNIT_FLOW_CMS, DESC_SBOF, DT_Array1D);
 
 	//ljj

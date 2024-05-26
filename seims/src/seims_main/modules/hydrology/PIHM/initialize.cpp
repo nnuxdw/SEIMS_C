@@ -2,7 +2,7 @@
 
 #define MAX_TYPE    100
 
-void Initialize(pihm_struct *pihm, N_Vector CV_Y, void **cvode_mem)
+void Initialize(pihm_struct *pihm, N_Vector CV_Y, void **cvode_mem,int seims_tstep)
 {
 	int             i, j;
 	int             bc;
@@ -220,7 +220,9 @@ void Initialize(pihm_struct *pihm, N_Vector CV_Y, void **cvode_mem)
 #endif
 
 	// Calculate model time steps
-	CalcModelSteps(&pihm->ctrl);
+	//CalcModelSteps(&pihm->ctrl);
+	// xiaodw, 根据SEIMS时间步长计算PIHM时间步长
+	//CalcPIHMSteps(&pihm->ctrl, seims_tstep);
 
 #if defined(_DAILY_)
 	InitDailyStruct(pihm->elem);
@@ -491,7 +493,7 @@ void InitVar(elem_struct elem[], river_struct river[], N_Vector CV_Y)
 		elem[i].ws.surf = elem[i].ic.surf;
 		elem[i].ws.unsat = elem[i].ic.unsat;
 		elem[i].ws.gw = elem[i].ic.gw;
-		// 将地表、非饱和层、地下水层、河流初始水位塞到CV_Y内存种
+		// 将地表、非饱和层、地下水层、河流初始水位写入到CV_Y内存中
 		NV_Ith(CV_Y, SURF(i)) = elem[i].ic.surf;
 		NV_Ith(CV_Y, UNSAT(i)) = elem[i].ic.unsat;
 		NV_Ith(CV_Y, GW(i)) = elem[i].ic.gw;
@@ -601,6 +603,34 @@ void CalcModelSteps(ctrl_struct *ctrl)
 
 	ctrl->tout[ctrl->nstep] = (ctrl->tout[ctrl->nstep] < ctrl->endtime) ? ctrl->endtime : ctrl->tout[ctrl->nstep];
 }
+
+//int CalcCurSimulateTime(ctrl_struct *ctrl,int seims_tstep, int counter,int * cur_sim_step_ptr) {
+//	*cur_sim_step_ptr = ctrl->starttime + counter * seims_tstep;
+//	return *cur_sim_step_ptr;
+//}
+
+void CalcPIHMSteps(ctrl_struct *ctrl, int seims_tstep, int counter, int * cur_simu_time_ptr,int * last_sim_time_ptr) {
+
+	int             i;
+
+	//ctrl->nstep = seims_tstep / ctrl->stepsize;
+	int last_sim_time = ctrl->starttime + (counter - 1) * seims_tstep;
+	int cur_sim_time = ctrl->starttime + counter * seims_tstep;
+	last_sim_time_ptr = &last_sim_time;
+	cur_simu_time_ptr = &cur_sim_time;
+	ctrl->nstep = (*cur_simu_time_ptr - *last_sim_time_ptr) / ctrl->stepsize;
+
+	ctrl->tout = (int *)malloc((ctrl->nstep + 1) * sizeof(int));
+
+	for (i = 0; i < ctrl->nstep + 1; i++)
+	{
+		ctrl->tout[i] = (i == 0) ? *last_sim_time_ptr : ctrl->tout[i - 1] + ctrl->stepsize;
+		//ctrl->tout[i] = (i == 0) ? ctrl->starttime : ctrl->tout[i - 1] + ctrl->stepsize;
+	}
+
+	ctrl->tout[ctrl->nstep] = (ctrl->tout[ctrl->nstep] < ctrl->endtime) ? ctrl->endtime : ctrl->tout[ctrl->nstep];
+}
+
 
 void InitWFlux(wflux_struct *wf)
 {

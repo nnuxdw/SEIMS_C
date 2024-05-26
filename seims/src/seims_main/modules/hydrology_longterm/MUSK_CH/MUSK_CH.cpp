@@ -223,13 +223,16 @@ int MUSK_CH::Execute() {
         m_prec[*id] = 0.f;
         
         float total_area=0.f;
+		// xiaodw comment,如果子流域包含湖泊或湿地
         if(m_islake[*id] == 1 || m_isres[*id] == 1){
             for (int i = 0; i < curCellsNum; i++) {
                 int index = curCells[i];
                 total_area += m_area[index];
+				// xiaodw comment,将子流域上所有hru的降雨量*hru面积加起来
                 m_prec[*id]+= m_netPcp[index]/1000* m_area[index]; //m3
                 curBasinArea[*id] += m_area[index];
             }
+			// xiaodw comment,根据面积加权计算子流域内湿地或湖泊上的降雨量
             m_prec[*id] = m_prec[*id] / total_area * m_lakearea[*id]/ m_dt;  //m3/s
         }
     }
@@ -477,6 +480,7 @@ bool MUSK_CH::ChannelFlow(const int i) {
     // 1. first add all the inflow water
     float qIn = 0.f; /// Water entering reach on current day from both current subbasin and upstreams
     // 1.1. water from this subbasin
+	// xiaodw comment，将子流域内地表水流入河道的量加入河道 
     qIn += m_olQ2Rch[i]; /// surface flow
     float qiSub = 0.f;   /// interflow flow
     if (nullptr != m_ifluQ2Rch && m_ifluQ2Rch[i] >= 0.f) {

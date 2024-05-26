@@ -21,6 +21,8 @@ ReservoirMethod::ReservoirMethod() :
     m_GWMIN(NODATA_VALUE),m_alpha_bf(NODATA_VALUE),m_delay(NODATA_VALUE),m_gw_spyld(nullptr),
     gw_delaye(nullptr),gw_height(nullptr),m_gw_shallow(nullptr),
     m_gw_q(nullptr),m_area(nullptr), m_soilSat(nullptr)
+
+	
     {
 }
 
@@ -58,6 +60,23 @@ void ReservoirMethod::InitialOutputs() {
     if (gw_height == nullptr) Initialize1DArray(nLen, gw_height, 1.f);
     if (m_gw_q == nullptr) Initialize1DArray(nLen, m_gw_q, 0.f);
     if (m_gw_shallow == nullptr) Initialize1DArray(nLen, m_gw_shallow, 0.f);
+# ifdef USE_PIHM
+	// Read select_hand_ids.txt
+	if (nullptr == pihm_tools)
+	{
+		project = new char[MAXSTRING];
+		strcpy(project, PIHM_PROJECT);
+		pihm_tools = new PIHM_TOOLS();
+		hru_ids = new vector<int>();
+		hru_ids_file = new char[MAXSTRING];
+		pihm_dir = new char[MAXSTRING];
+		strcpy(pihm_dir, PIHM_DATA_PATH);
+		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
+		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
+		m_subbasin_area = new float[nLen];
+		//pihm_tools->test(1, project);
+	}
+#endif
 }
 
 
@@ -82,13 +101,34 @@ int ReservoirMethod::Execute() {
         //amount of water entering shallow aquifer on previous day
         float rchrg1 = 0.f;
         if (curSub->GetPerco() > 0.f) rchrg1 = curSub->GetPerco();
+		// 子流域内所有HRU的面积相加
         for (int i = 0; i < curCellsNum; i++) {
+			// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行计算
+# ifdef USE_PIHM
+			bool id_in_hru = pihm_tools->CheckIdInHruIds(curCells[i], hru_ids);
+			if (id_in_hru)
+			{
+				continue;
+			}
+# endif
 			curBasinArea += m_area[curCells[i]];
 		}
+# ifdef USE_PIHM
+		m_subbasin_area[subID] = curBasinArea;
+# endif
         total_area += curBasinArea;
+		// 计算所有HRU土壤水向子流域地下水的渗漏
 //#pragma omp parallel for reduction(+:perco, fPET, revap)
         for (int i = 0; i < curCellsNum; i++) {
             int index = curCells[i];
+			// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行计算; 反之HRU的地下水被加入子流域的地下水库
+# ifdef USE_PIHM
+			bool id_in_hru = pihm_tools->CheckIdInHruIds(curCells[i], hru_ids);
+			if (id_in_hru)
+			{
+				continue;
+			}
+# endif
             float tmp_perc = m_soilPerco[index][CVT_INT(m_nSoilLyrs[index]) - 1];
             if (tmp_perc > 0) {
                 perco += tmp_perc * (m_area[index] / curBasinArea)*(1-gw_delaye[subID])+rchrg1* (m_area[index] / curBasinArea)*gw_delaye[subID];// + rchrg1*gw_delaye[subID];
@@ -398,8 +438,12 @@ void ReservoirMethod::Get1DData(const char* key, int* nrows, float** data) {
         *nrows = m_nSubbsns + 1;
     } else if (StringMatch(sk, VAR_GW_SH)) {
         *data = m_gw_shallow;
-        *nrows = m_nSubbsns + 1;
-    } 
+        *nrows = m_nSubbsns + 1; 
+    }
+	else if (StringMatch(sk, VAR_GW_SUBBASIN_AREA)) {
+		*data = m_subbasin_area;
+		*nrows = m_nSubbsns + 1; 
+	}
     else {
         throw ModelException(MID_GWA_RE, "Get1DData", "Parameter " + sk + " does not exist.");
     }

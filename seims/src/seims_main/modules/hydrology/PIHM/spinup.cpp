@@ -1,6 +1,6 @@
 #include "pihm.h"
 
-void Spinup(pihm_struct *pihm, N_Vector CV_Y, void *cvode_mem, SUNLinearSolver *sun_ls)
+void Spinup(pihm_struct *pihm, N_Vector CV_Y, void *cvode_mem, SUNLinearSolver *sun_ls, SeimsVariablesStruct * SeimsVariables, SeimsMeteoStruct * seims_meteo)
 {
 	int             spinyears = 0;
 	int             first_spin_cycle = 1;
@@ -22,7 +22,7 @@ void Spinup(pihm_struct *pihm, N_Vector CV_Y, void *cvode_mem, SUNLinearSolver *
 
 		for (ctrl->cstep = 0; ctrl->cstep < ctrl->nstep; ctrl->cstep++)
 		{
-			PIHM(0.0, pihm, cvode_mem, CV_Y);
+			RUN_PIHM(0.0, pihm, cvode_mem, CV_Y, SeimsVariables, seims_meteo);
 		}
 
 #if defined(_CYCLES_)

@@ -1,7 +1,7 @@
 #include "pihm.h"
 #include "optparse.h"
 
-void ParseCmdLineParam(int argc, char *argv[], char outputdir[])
+void ParseCmdLineParam(int argc, char *argv[], char pihm_dir[], char outputdir[])
 {
 	int             option;
 	struct optparse options;
@@ -27,7 +27,7 @@ void ParseCmdLineParam(int argc, char *argv[], char outputdir[])
 		{
 		case 'o':
 			// Specify output directory
-			sprintf(outputdir, "output/%s/", options.optarg);
+			sprintf(outputdir, "%s/output/%s/", pihm_dir,options.optarg);
 			break;
 		case 'c':
 			// Surface elevation correction mode
@@ -85,7 +85,7 @@ void ParseCmdLineParam(int argc, char *argv[], char outputdir[])
 	//if (options.optind >= argc)
 	//{
 	//	pihm_printf(VL_ERROR, "Error:You must specify the name of project!\n"
-	//		"Usage: ./pihm [-o output_dir] [-c] [-d] [-t] [-v] [-V]"
+	//		"Usage: ./pihm_strc [-o output_dir] [-c] [-d] [-t] [-v] [-V]"
 	//		" <project name>\n"
 	//		"    -o Specify output directory\n"
 	//		"    -b Brief mode\n"

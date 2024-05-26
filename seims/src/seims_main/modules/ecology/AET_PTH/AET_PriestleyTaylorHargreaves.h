@@ -19,7 +19,13 @@
 #define SEIMS_MODULE_AET_PTH_H
 
 #include "SimulationModule.h"
-
+# ifdef USE_PIHM
+ // xiaodw, for pihm
+#include "pihm_tools.h"
+#ifndef MAXSTRING
+#define MAXSTRING  1024
+#endif
+#endif
 /** \defgroup AET_PTH
  * \ingroup Ecology
  * \brief Potential plant transpiration for Priestley-Taylor and Hargreaves ET methods
@@ -49,7 +55,14 @@ public:
     int Execute() OVERRIDE;
 
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
-
+# ifdef USE_PIHM
+	// xiaodw, for pihm
+	PIHM_TOOLS *pihm_tools = nullptr;
+	vector<int> *hru_ids;
+	char * pihm_dir;
+	char * hru_ids_file;
+	char * project;
+#endif
 private:
     // Parameters from database
     int m_nCells;      ///< valid cells number

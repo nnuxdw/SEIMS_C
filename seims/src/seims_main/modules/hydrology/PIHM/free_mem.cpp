@@ -25,7 +25,7 @@ void FreeMem(pihm_struct *pihm)
 	FreeForc(&pihm->forc);
 
 	//#if defined(_STATISTIC_TIME_)
-	//	FreeTimeStruct(pihm->ptime_calculator);
+	//	FreeTimeStruct(pihm_strc->ptime_calculator);
 	//#endif
 #if defined(_BGC_)
 	FreeEpctbl(&pihm->epctbl);

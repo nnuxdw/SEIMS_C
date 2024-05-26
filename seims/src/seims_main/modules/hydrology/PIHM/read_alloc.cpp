@@ -1,6 +1,6 @@
 #include "pihm.h"
 
-void ReadAlloc(pihm_struct *pihm)
+void ReadAlloc(pihm_struct *pihm_strc, char pihm_dir[])
 {
 	char            proj[MAXSTRING];
 	char           *token;
@@ -22,76 +22,79 @@ void ReadAlloc(pihm_struct *pihm)
 	}
 
 	// Set file names of the input files
-	sprintf(pihm->filename.riv, "input/%s/%s.riv", proj, proj);
-	sprintf(pihm->filename.mesh, "input/%s/%s.mesh", proj, proj);
-	sprintf(pihm->filename.att, "input/%s/%s.att", proj, proj);
-	sprintf(pihm->filename.soil, "input/%s/%s.soil", proj, proj);
-	sprintf(pihm->filename.lc, "input/vegprmt.tbl");
-	sprintf(pihm->filename.meteo, "input/%s/%s.meteo", proj, proj);
-	sprintf(pihm->filename.lai, "input/%s/%s.lai", proj, proj);
-	sprintf(pihm->filename.bc, "input/%s/%s.bc", proj, proj);
-	sprintf(pihm->filename.para, "input/%s/%s.para", proj, proj);
-	sprintf(pihm->filename.calib, "input/%s/%s.calib", proj, project);
-	sprintf(pihm->filename.ic, "input/%s/%s.ic", proj, project);
+	sprintf(pihm_strc->filename.riv, "%s/input/%s/%s.riv", pihm_dir,proj, proj);
+	sprintf(pihm_strc->filename.mesh, "%s/input/%s/%s.mesh", pihm_dir, proj, proj);
+	sprintf(pihm_strc->filename.att, "%s/input/%s/%s.att", pihm_dir, proj, proj);
+	sprintf(pihm_strc->filename.soil, "%s/input/%s/%s.soil", pihm_dir, proj, proj);
+	sprintf(pihm_strc->filename.lc, "%s/input/vegprmt.tbl", pihm_dir);
+	sprintf(pihm_strc->filename.meteo, "%s/input/%s/%s.meteo", pihm_dir, proj, proj);
+	sprintf(pihm_strc->filename.lai, "%s/input/%s/%s.lai", pihm_dir, proj, proj);
+	sprintf(pihm_strc->filename.bc, "%s/input/%s/%s.bc", pihm_dir, proj, proj);
+	sprintf(pihm_strc->filename.para, "%s/input/%s/%s.para", pihm_dir, proj, proj);
+	sprintf(pihm_strc->filename.calib, "%s/input/%s/%s.calib", pihm_dir, proj, project);
+	sprintf(pihm_strc->filename.ic, "%s/input/%s/%s.ic", pihm_dir, proj, project);
+	//sprintf(final_downstream_file, "%s/input/%s/final_downstream_file.txt", pihm_dir, proj);
 #if defined(_DGW_)
-	sprintf(pihm->filename.geol, "input/%s/%s.geol", proj, proj);
-	sprintf(pihm->filename.bedrock, "input/%s/%s.bedrock", proj, proj);
+	sprintf(pihm->filename.geol, "%s/input/%s/%s.geol", pihm_dir, proj, proj);
+	sprintf(pihm->filename.bedrock, "%s/input/%s/%s.bedrock", pihm_dir, proj, proj);
 #endif
 #if defined(_NOAH_)
-	sprintf(pihm->filename.lsm, "input/%s/%s.lsm", proj, proj);
-	sprintf(pihm->filename.rad, "input/%s/%s.rad", proj, proj);
-	sprintf(pihm->filename.ice, "input/%s/%s.ice", proj, proj);
+	sprintf(pihm->filename.lsm, "%s/input/%s/%s.lsm", pihm_dir, proj, proj);
+	sprintf(pihm->filename.rad, "%s/input/%s/%s.rad", pihm_dir, proj, proj);
+	sprintf(pihm->filename.ice, "%s/input/%s/%s.ice", pihm_dir, proj, proj);
 #endif
 #if defined(_CYCLES_)
-	sprintf(pihm->filename.cycles, "input/%s/%s.cycles", proj, proj);
-	sprintf(pihm->filename.soilinit, "input/%s/%s.soilinit", proj, proj);
-	sprintf(pihm->filename.crop, "input/%s/%s.crop", proj, proj);
-	sprintf(pihm->filename.cyclesic, "input/%s/%s.cyclesic", proj, proj);
+	sprintf(pihm->filename.cycles, "%s/input/%s/%s.cycles", pihm_dir, proj, proj);
+	sprintf(pihm->filename.soilinit, "%s/input/%s/%s.soilinit", pihm_dir, proj, proj);
+	sprintf(pihm->filename.crop, "%s/input/%s/%s.crop", pihm_dir, proj, proj);
+	sprintf(pihm->filename.cyclesic, "%s/input/%s/%s.cyclesic", pihm_dir, proj, proj);
 #endif
 #if defined(_BGC_)
-	sprintf(pihm->filename.bgc, "input/%s/%s.bgc", proj, proj);
-	sprintf(pihm->filename.bgcic, "input/%s/%s.bgcic", proj, proj);
+	sprintf(pihm->filename.bgc, "%s/input/%s/%s.bgc", pihm_dir, proj, proj);
+	sprintf(pihm->filename.bgcic, "%s/input/%s/%s.bgcic", pihm_dir, proj, proj);
 #endif
 #if defined(_RT_)
-	sprintf(pihm->filename.chem, "input/%s/%s.chem", proj, proj);
-	sprintf(pihm->filename.cini, "input/%s/%s.cini", proj, proj);
-	sprintf(pihm->filename.cdbs, "input/%s/%s.cdbs", proj, proj);
-	sprintf(pihm->filename.prep, "input/%s/%s.prep", proj, proj);
-	sprintf(pihm->filename.rtic, "input/%s/%s.rtic", proj, proj);
+	sprintf(pihm->filename.chem, "%s/input/%s/%s.chem", pihm_dir, proj, proj);
+	sprintf(pihm->filename.cini, "%s/input/%s/%s.cini", pihm_dir, proj, proj);
+	sprintf(pihm->filename.cdbs, "%s/input/%s/%s.cdbs", pihm_dir, proj, proj);
+	sprintf(pihm->filename.prep, "%s/input/%s/%s.prep", pihm_dir, proj, proj);
+	sprintf(pihm->filename.rtic, "%s/input/%s/%s.rtic", pihm_dir, proj, proj);
 #endif
 
 	// Read river input file
-	ReadRiver(pihm->filename.riv, &pihm->rivtbl, &pihm->shptbl, &pihm->matltbl, &pihm->forc);
+	ReadRiver(pihm_strc->filename.riv, &pihm_strc->rivtbl, &pihm_strc->shptbl, &pihm_strc->matltbl, &pihm_strc->forc);
 
 	// Read mesh structure input file
-	ReadMesh(pihm->filename.mesh, &pihm->meshtbl);
+	ReadMesh(pihm_strc->filename.mesh, &pihm_strc->meshtbl);
 
 	// Read attribute table input file
-	ReadAtt(pihm->filename.att, &pihm->atttbl);
+	ReadAtt(pihm_strc->filename.att, &pihm_strc->atttbl);
 
 	// Read soil input file
-	ReadSoil(pihm->filename.soil, &pihm->soiltbl);
+	ReadSoil(pihm_strc->filename.soil, &pihm_strc->soiltbl);
 
 	// Read land cover input file
-	ReadLc(pihm->filename.lc, &pihm->lctbl);
+	ReadLc(pihm_strc->filename.lc, &pihm_strc->lctbl);
 
 	// Read meteorological forcing input file
-	ReadMeteo(pihm->filename.meteo, &pihm->forc);
+	ReadMeteo(pihm_strc->filename.meteo, &pihm_strc->forc);
 
 	// Read LAI input file
-	ReadLai(pihm->filename.lai, &pihm->atttbl, &pihm->forc);
+	ReadLai(pihm_strc->filename.lai, &pihm_strc->atttbl, &pihm_strc->forc);
+
+
 
 	// Read source and sink input file
-	pihm->forc.nsource = 0;
+	pihm_strc->forc.nsource = 0;
 #if NOT_YET_IMPLEMENTED
 	ReadSS();
 #endif
 
 	// Read model control file
-	ReadPara(pihm->filename.para, &pihm->ctrl);
+	ReadPara(pihm_strc->filename.para, &pihm_strc->ctrl);
 
 	// Read calibration input file
-	ReadCalib(pihm->filename.calib, &pihm->calib);
+	ReadCalib(pihm_strc->filename.calib, &pihm_strc->calib);
 
 #if defined(_DGW_)
 	// Read geology input file
@@ -131,7 +134,7 @@ void ReadAlloc(pihm_struct *pihm)
 #if defined(_RT_)
 	ReadBc(pihm->filename.bc, &pihm->atttbl, pihm->chemtbl, &pihm->rttbl, &pihm->forc);
 #else
-	ReadBc(pihm->filename.bc, &pihm->atttbl, &pihm->forc);
+	ReadBc(pihm_strc->filename.bc, &pihm_strc->atttbl, &pihm_strc->forc);
 #endif
 
 #if defined(_CYCLES_)

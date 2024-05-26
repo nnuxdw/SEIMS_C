@@ -26,7 +26,13 @@
 #define SEIMS_MODULE_NUTR_TF_H
 
 #include "SimulationModule.h"
-
+# ifdef USE_PIHM
+ // xiaodw, for pihm
+#include "pihm_tools.h"
+#ifndef MAXSTRING
+#define MAXSTRING  1024
+#endif
+#endif
 /*!
  * \class Nutrient_Transformation
  * \ingroup NUTR_TF
@@ -58,7 +64,14 @@ public:
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
-
+# ifdef USE_PIHM
+	// xiaodw, for pihm
+	PIHM_TOOLS *pihm_tools = nullptr;
+	vector<int> *hru_ids;
+	char * pihm_dir;
+	char * hru_ids_file;
+	char * project;
+#endif
 private:
     /*!
     * \brief estimates daily nitrogen and phosphorus mineralization and immobilization.

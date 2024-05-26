@@ -6,6 +6,8 @@ pihm_t_struct PIHMTime(int t)
 	time_t          rawtime;
 
 	rawtime = (time_t)t;
+	//xiaodw, 不使用utc时间，改为使用本地时间
+	//timestamp = localtime(&rawtime);
 	timestamp = gmtime(&rawtime);
 
 	pihm_time.t = t;

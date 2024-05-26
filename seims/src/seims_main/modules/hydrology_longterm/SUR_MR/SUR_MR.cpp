@@ -73,6 +73,22 @@ void SUR_MR::InitialOutputs() {
             }
         }
     }
+# ifdef USE_PIHM
+	// Read select_hand_ids.txt
+	if (nullptr == pihm_tools)
+	{
+		project = new char[MAXSTRING];
+		strcpy(project, PIHM_PROJECT);
+		pihm_tools = new PIHM_TOOLS();
+		hru_ids = new vector<int>();
+		hru_ids_file = new char[MAXSTRING];
+		pihm_dir = new char[MAXSTRING];
+		strcpy(pihm_dir, PIHM_DATA_PATH);
+		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
+		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
+		//pihm_tools->test(1, project);
+	}
+#endif
 }
 
 int SUR_MR::Execute() {
@@ -82,6 +98,17 @@ int SUR_MR::Execute() {
     m_maxPcpRf *= m_dt * 1.1574074074074073e-05f; /// 1. / 86400. = 1.1574074074074073e-05;
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
+		// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行积雪和融雪计算
+# ifdef USE_PIHM
+		bool id_in_hru = pihm_tools->CheckIdInHruIds(i, hru_ids);
+# ifdef USE_PIHM_DEBUG
+		cout << "i: " << i << " m_nCells: " << m_nCells << " id_in_hru: " << id_in_hru << endl;
+#endif
+		if (id_in_hru)
+		{
+			continue;
+		}
+# endif
         float hWater = 0.f;
         hWater = m_netPcp[i] + m_deprSto[i];
         if (hWater > 0.f) {

@@ -495,7 +495,8 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 
 #define MID_NUTRCH_QUAL2E                      "NutrCH_QUAL2E"
 #define MDESC_NUTRCH_QUAL2E                    "In-stream nutrient transformations"
-
+/// xiaodw,PIHM
+#define MID_PIHM                            "PIHM"
 
 //////////////////////////////////////////////////////////////////////////
 /// Define unit names common used in SEIMS, in case of inconsistency /////
@@ -814,6 +815,7 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define VAR_PUPDIS "p_updis" /// m_upTkDistP, Phosphorus uptake distribution parameter
 #define VAR_QCH "QCH"
 #define VAR_OLFLOW "OL_Flow" /// m_surfRf, overland flow in each cell calculated during overland routing
+#define VAR_SURFRFTOTAL "SURFRFTOTAL"
 #define VAR_QG "QG" /// m_qgRchOut, Groundwater discharge at each reach outlet and at each time step
 #define VAR_QI "QI" /// m_qiRchOut, Interflow at each reach outlet and at each time step
 #define VAR_QOVERLAND "QOverland"
@@ -1574,6 +1576,7 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define DESC_PUPDIS "Phosphorus uptake distribution parameter"
 #define DESC_QCH "Flux in the downslope boundary of cells"
 #define DESC_OLFLOW "overland flow in each cell calculated during overland routing"
+#define DESC_SURFRFTOTAL "overland flow in each cell and its direct upstream cell calculated during overland routing"
 #define DESC_QG "Groundwater discharge at each reach outlet"
 #define DESC_QI "Interflow at each reach outlet"
 #define DESC_QOVERLAND "Water discharge in the downslope boundary of cells"
@@ -1623,6 +1626,8 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define DESC_S_FROZEN "Frozen moisture relative to porosity with no infiltration"
 #define DESC_SAND "Percent of sand content"
 #define DESC_SBGS "Groundwater storage of the subbasin"
+// xiaodw
+#define DESC_GW_SUBBASIN_AREA "area of the subbasin"
 #define DESC_SBIF "Subsurface volume (m3) to streams from each subbasin"
 #define DESC_SBOF "overland flow to streams from each subbasin"
 #define DESC_SBPET "the potential evapotranspiration rate of the subbasin"
@@ -1971,6 +1976,9 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define MID_CarbonGW                             "CarbonGW"
 #define MDESC_CarbonGW                           "estimates DOC transport by baseflow to streamflow"
 
+//xiaodw
+#define VAR_GW_SUBBASIN_AREA                             "GW_SUBBASIN_AREA"
+
 #define VAR_GWH                             "GW_HEIGHT"
 #define VAR_GW_SH                           "GW_SH"
 #define VAR_GWMIN                           "GWMIN" 
@@ -2170,5 +2178,8 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define HEADER_RS_CELLSIZE                     "CELLSIZE"
 #define HEADER_RS_LAYERS                       "LAYERS"
 #define HEADER_RS_SRS                          "SRS"
-
+////xiaodw, PIHM constant/////////////////
+#define PIHM_PROJECT "gongba_subbasin"
+#define PIHM_DATA_PATH  "G:\\program\\seims\\SEIMS_C\\data\\gongba_subbasin\\pihm"
+//#define USE_PIHM_DEBUG
 #endif

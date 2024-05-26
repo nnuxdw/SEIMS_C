@@ -1,7 +1,7 @@
 #pragma once
 #ifndef PIHM_STRUCT_HEADER
 #define PIHM_STRUCT_HEADER
-
+#include "pihm_tools_dev.h"
 // Time structure
 typedef struct pihm_t_struct
 {
@@ -184,6 +184,7 @@ typedef struct ctrl_struct
 	int             write_rt_restart;       // flag to write chemistry restart file
 	int             AvgScl;                 // reaction time step (s)
 #endif
+
 } ctrl_struct;
 
 // Print variable control structure
@@ -252,6 +253,114 @@ typedef struct print_struct
 	FILE           *cvodeperf_file;         // pointer to CVode performance file
 } print_struct;
 
+// 定义存储Down_ID映射的结构体
+//typedef struct DownstreamDetail {
+//	int id;
+//	double proportion;
+//};
+
+//// 定义HRU结构体
+//typedef struct hru_struct {
+//	int key;
+//	int down_type;
+//	int down_id;
+//	map<int, float>  down_ids; // 用于存储复杂的Down_ID数据
+//} hru_struct;
+//
+//typedef struct arg_struct {
+//	char** argv;
+//	int argc;
+//} arg_struct;
+
+
+
+
+
+typedef struct SeimsMeteoStruct {
+	float *pihm_pcp;
+	float *pihm_tmean;
+	float *pihm_ws ;
+	float *pihm_rhd;
+	float *pihm_sr;
+
+}SeimsMeteoStruct;
+
+
+
+typedef struct SeimsVariablesStruct {
+	/// time step (sec)
+	int m_TimeStep;
+	/// validate cells number
+	int m_nCells;
+	/// cell width of the grid (m)
+	float m_CellWth;
+	/// cell area, BE CAUTION, the unit is m^2, NOT ha!!!
+	float m_cellArea;
+	/// the total number of subbasins
+	int m_nSubbsns;
+	/// current subbasin ID, 0 for the entire watershed
+	int m_inputSubbsnID;
+	/// subbasin grid (subbasins ID)
+	float* m_subbsnID;
+
+	/// surface runoff from depression module
+	float* m_surfRf;
+	/*! Precipitation
+ * For STROM_MODE model, the unit is rainfall intensity mm/h
+ * For LONGTERM_MODE model, the unit is mm
+ */
+	float* m_pcp;
+
+	float* m_meanTemp;
+	float* m_maxTemp; ///< maximum air temperature for a given day (deg C)
+	float* m_minTemp; ///< minimum air temperature for a given day (deg C)
+	float* m_rhd; ///< relative humidity (%)
+	float *m_WindSpeed;
+	float* m_SR;
+
+	//temporary
+
+	/// store the flow of each cell in each day between min time and max time
+	float** m_cellFlow;
+	/// the maximum of second column of OL_IUH plus 1.
+	int m_cellFlowCols;
+
+	//output
+
+	/// overland flow to streams for each subbasin (m3/s)
+	float* m_Q_SBOF;
+	// overland flow in each cell (mm) //added by Gao, as intermediate variable, 29 Jul 2016
+	float* m_OL_Flow;
+	//ljj
+	float* m_area;
+	float* total_area;
+	int m_nRteLyrs;
+	int m_maxSoilLyrs;
+	float* m_rchID;
+	float* m_landCover;
+	float* m_slope;
+	float* m_chWidth;
+	float* m_flowout_length;
+	float* m_flowOutIdxD8;
+	float* m_surfRftotal;
+	float **m_subSurfRfVol;     /// subsurface runoff volume (mm), VAR_SSRUVOL
+	float *m_gwStorage;          ///  Groundwater storage (m3) of the subbasin
+	float** m_rteLyrs;
+	float *m_nSoilLyrs;            	/// number of soil layers of each cell
+	float** m_flowInIdxD8;
+	float** m_ks;
+	float* subbasin_area;          /// subbasin area without downstream triangle hrus
+
+	float** m_Qtrans;
+}SeimsVariablesStruct;
+
+typedef struct exchange_struct {
+	// 上游向下游的地表流量输入
+	double* elem_upstream_surfq;
+	double* elem_upstream_subsurvol;
+	double* elem_upstream_gwStorage;
+}exchange_struct;
+
 typedef struct pihm_struct
 {
 	siteinfo_struct siteinfo;
@@ -264,6 +373,8 @@ typedef struct pihm_struct
 	rivtbl_struct   rivtbl;
 	shptbl_struct   shptbl;
 	matltbl_struct  matltbl;
+	PIHMToolDataStruct* PIHMToolData;
+	SeimsVariablesStruct * SeimsVariables;
 
 #if defined(_NOAH_)
 	noahtbl_struct  noahtbl;
@@ -287,6 +398,8 @@ typedef struct pihm_struct
 	calib_struct    calib;
 	ctrl_struct     ctrl;
 	print_struct    print;
+	exchange_struct * exchange;
+
 #if defined(_RT_)
 	chemtbl_struct  chemtbl[MAXSPS];
 	kintbl_struct   kintbl[MAXSPS];
@@ -297,5 +410,7 @@ typedef struct pihm_struct
 	struct time_struct* ptime_calculator;
 #endif
 } pihm_struct;
-
 #endif
+
+
+

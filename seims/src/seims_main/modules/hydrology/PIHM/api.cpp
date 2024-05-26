@@ -36,13 +36,40 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     //mdi.AddParameter(VAR_REACH_PARAM, UNIT_NON_DIM, DESC_REACH_PARAM, Source_ParameterDB, DT_Reach);
     //mdi.AddParameter(VAR_SUBBASIN_PARAM, UNIT_NON_DIM, DESC_SUBBASIN_PARAM, Source_ParameterDB, DT_Subbasin);
     //mdi.AddParameter(VAR_SCENARIO, UNIT_NON_DIM, DESC_SCENARIO, Source_ParameterDB, DT_Scenario);
+	mdi.AddParameter(Tag_TimeStep, UNIT_HOUR, DESC_TIMESTEP, File_Input, DT_Single);
+	mdi.AddParameter(Tag_CellWidth, UNIT_LEN_M, DESC_CellWidth, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_SUBBSNID_NUM, UNIT_NON_DIM, DESC_SUBBSNID_NUM, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(Tag_SubbasinId, UNIT_NON_DIM, Tag_SubbasinId, Source_ParameterDB, DT_Single);
+	//mdi.AddParameter(VAR_OL_IUH, UNIT_NON_DIM, DESC_OL_IUH, Source_ParameterDB, DT_Array2D);
+	mdi.AddParameter(VAR_SUBBSN, UNIT_NON_DIM, DESC_SUBBSN, Source_ParameterDB, DT_Raster1D);
+	//mdi.AddParameter(VAR_SLOPE, UNIT_PERCENT, DESC_SLOPE, Source_ParameterDB, DT_Raster1D);
+	//mdi.AddParameter(VAR_STREAM_LINK, UNIT_NON_DIM, DESC_STREAM_LINK, Source_ParameterDB, DT_Raster1D);
 
     /// Set inputs from other modules (Source_Module or Source_Module_Optional)
+	mdi.AddInput(VAR_SURU, UNIT_DEPTH_MM, DESC_SURU, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_SURFRFTOTAL, UNIT_FLOW_CMS, DESC_SURFRFTOTAL, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_SSRUVOL, UNIT_VOL_M3, DESC_SSRUVOL, Source_Module,DT_Raster2D);
+	mdi.AddInput(VAR_PCP, UNIT_DEPTH_MM, DESC_PCP, Source_Module, DT_Raster1D); /// ITP_P
+	mdi.AddInput(VAR_TMEAN, UNIT_TEMP_DEG, DESC_TMEAN, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_TMAX, UNIT_TEMP_DEG, DESC_TMAX, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_TMIN, UNIT_TEMP_DEG, DESC_TMIN, Source_Module, DT_Raster1D);
+	mdi.AddInput(DataType_RelativeAirMoisture, UNIT_PERCENT, DESC_RM, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_WS, UNIT_SPEED_MS, DESC_WS, Source_Module, DT_Raster1D);
+	mdi.AddInput(DataType_SolarRadiation, UNIT_SR, DESC_SR, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_SBGS, UNIT_DEPTH_MM, DESC_SBGS, Source_Module, DT_Array1D);
+	mdi.AddInput(VAR_GW_SUBBASIN_AREA, UNIT_AREA_M2, DESC_GW_SUBBASIN_AREA, Source_Module, DT_Array1D);
+	
+	mdi.AddParameter(VAR_SOILLAYERS, UNIT_NON_DIM, DESC_SOILLAYERS, Source_ParameterDB, DT_Raster1D);
+
+	mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
+
+	mdi.AddOutput(VAR_OLFLOW, UNIT_DEPTH_MM, DESC_OLFLOW, DT_Raster1D);
     //mdi.AddInput("SingleInput", "UNIT", "DESC", Source_ParameterDB, DT_Single);
     //mdi.AddInput("1DArrayInput", "UNIT", "DESC", Source_ParameterDB, DT_Array1D);
     //mdi.AddInput("1DRasterInput", "UNIT", "DESC", Source_ParameterDB, DT_Raster1D);
     //mdi.AddInput("2DArrayInput", "UNIT", "DESC", Source_ParameterDB, DT_Array2D);
     //mdi.AddInput("2DRasterInput", "UNIT", "DESC", Source_ParameterDB, DT_Raster2D);
+
 
     /// Set output variables of the current module
     //mdi.AddOutput("SingleOutput", "UNIT", "DESC", DT_Single);

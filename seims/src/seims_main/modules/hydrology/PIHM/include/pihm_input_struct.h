@@ -15,6 +15,8 @@ typedef struct filename_struct
 	char            para[MAXSTRING];        // control parameter file
 	char            calib[MAXSTRING];       // calibration file
 	char            ic[MAXSTRING];          // initial condition file
+	
+	
 #if defined(_BGC_) || defined(_CYCLES_)
 	char            co2[MAXSTRING];         // CO2 forcing file
 #endif

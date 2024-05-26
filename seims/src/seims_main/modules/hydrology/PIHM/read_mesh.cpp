@@ -55,13 +55,14 @@ void ReadMesh(const char *fn, meshtbl_struct *meshtbl)
 			pihm_error(ERR_WRONG_FORMAT, fn, lno);
 		}
 #else
+		match = sscanf(cmdstr, "%d %d %d %d %d %d %d", &index,
+			&meshtbl->node[i][0], &meshtbl->node[i][1], &meshtbl->node[i][2],
+			&meshtbl->nabr[i][0], &meshtbl->nabr[i][1], &meshtbl->nabr[i][2]);
 		if (match != 7 || i != index - 1)
 		{
 			pihm_error(ERR_WRONG_FORMAT, fn, lno);
 		}
-		match = sscanf(cmdstr, "%d %d %d %d %d %d %d", &index,
-			&meshtbl->node[i][0], &meshtbl->node[i][1], &meshtbl->node[i][2],
-			&meshtbl->nabr[i][0], &meshtbl->nabr[i][1], &meshtbl->nabr[i][2]);
+
 #endif // USE_MEAN_ELEV
 	}
 

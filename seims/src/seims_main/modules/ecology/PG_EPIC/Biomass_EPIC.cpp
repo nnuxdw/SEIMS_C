@@ -405,6 +405,22 @@ void Biomass_EPIC::InitialOutputs() {
             Initialize1DArray(m_nCells, m_biomass, 0.f);
         }
     }
+# ifdef USE_PIHM
+	// Read select_hand_ids.txt
+	if (nullptr == pihm_tools)
+	{
+		project = new char[MAXSTRING];
+		strcpy(project, PIHM_PROJECT);
+		pihm_tools = new PIHM_TOOLS();
+		hru_ids = new vector<int>();
+		hru_ids_file = new char[MAXSTRING];
+		pihm_dir = new char[MAXSTRING];
+		strcpy(pihm_dir, PIHM_DATA_PATH);
+		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
+		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
+		//pihm_tools->test(1, project);
+	}
+#endif
 }
 
 void Biomass_EPIC::DistributePlantET(const int i) {
@@ -996,6 +1012,14 @@ int Biomass_EPIC::Execute() {
     InitialOutputs();
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
+		// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行计算
+# ifdef USE_PIHM
+		bool id_in_hru = pihm_tools->CheckIdInHruIds(i, hru_ids);
+		if (id_in_hru)
+		{
+			continue;
+		}
+# endif
         if(0<m_dormFlag[i] && m_dormFlag[i]<1) m_dormFlag[i] = 1;  //ljj for averged parameter in HRU
         /// calculate albedo in current day, albedo.f of SWAT
         float cej = -5.e-5f;

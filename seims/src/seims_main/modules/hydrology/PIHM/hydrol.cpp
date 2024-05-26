@@ -2,7 +2,7 @@
 #if defined(_STATISTIC_TIME_)
 void Hydrol(const ctrl_struct *ctrl, elem_struct elem[], river_struct river[], struct time_struct * ptime_calculator)
 #else 
-void Hydrol(const ctrl_struct *ctrl, elem_struct elem[], river_struct river[])
+void Hydrol(const ctrl_struct *ctrl, elem_struct elem[], river_struct river[], exchange_struct * exchange)
 #endif
 {
 	int             i;
@@ -17,6 +17,11 @@ void Hydrol(const ctrl_struct *ctrl, elem_struct elem[], river_struct river[])
 	{
 		// Calculate actual surface water depth
 		elem[i].ws.surfh = SurfH(elem[i].ws.surf);
+		// xiaodw , 在这里给三角形的地表水深增加上游来水
+		// todo 
+		elem[i].ws.surfh += exchange->elem_upstream_surfq[i] / elem[i].topo.area;
+		elem[i].ws.gw += exchange->elem_upstream_subsurvol[i] / elem[i].topo.area;
+		elem[i].ws.gw += exchange->elem_upstream_gwStorage[i] / elem[i].topo.area;
 	}
 #if defined(_STATISTIC_TIME_)
 	ptime_calculator->t5_1_1 = clock();

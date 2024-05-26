@@ -17,7 +17,6 @@
 #pragma once
 #ifndef PIHM_HEADER
 #define PIHM_HEADER
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -66,10 +65,12 @@
 #include "pihm_struct.h"
 #include "pihm_func.h"
 #include "pihm_errors.h"
-
+//#include "pihm_tools_dev.h"
+#include <unordered_set>
 #endif
 
-using namespace std;
+//using namespace std;
+
 
 class PIHM: public SimulationModule {
 public:
@@ -113,19 +114,108 @@ public:
 
     void Get2DData(const char* key, int* n, int* col, float*** data) OVERRIDE;
 
-	void Initialize();
-	void ReadArgs();
+	void PostExcute();
 
-private:
-    int m_nCells; ///< valid cells number
-	char            outputdir[MAXSTRING];
-	pihm_struct     *pihm;
+public:
+	// PIHM variables
+
+	pihm_struct     *pihm_strc;
 	ctrl_struct    *ctrl;
 	N_Vector        CV_Y;
 	void           *cvode_mem;
 	SUNLinearSolver sun_ls;
 
+	PIHM_TOOLS_DEV *pihm_tools;
 
+	
+	SeimsMeteoStruct * seims_meteo;
+
+	// xiaodw, other pihm variables 
+	double      cputime, cputime_dt;    // Time cpu duration
+
+	// xiaodw
+// 记录模型运行时间
+	clock_t start_time, end_time;
+	double elapsed_time;
+	// 计数器，用于控制输出
+	int counter;
+	int* cur_sim_time_ptr;
+	int* last_sim_time_ptr;
+	int finish_times;
+	bool initial_flag;
+
+	//vector<hru_struct> *hrus;
+	//arg_struct *args;
+	//vector<int> *hru_ids;
+	//map<int, int*> *hru_tri_id_map;
+	
+	char * pihm_dir;
+	char * outputdir;
+	char * final_downstream_file;
+	char * args_file;          // args.txt file,xiaodw
+	char * hru_ids_file;
+	char * hru_tri_map_file;
+
+	/*
+	/// time step (sec)
+	int m_TimeStep;
+	/// validate cells number
+	int m_nCells;
+	/// cell width of the grid (m)
+	float m_CellWth;
+	/// cell area, BE CAUTION, the unit is m^2, NOT ha!!!
+	float m_cellArea;
+	/// the total number of subbasins
+	int m_nSubbsns;
+	/// current subbasin ID, 0 for the entire watershed
+	int m_inputSubbsnID;
+	/// subbasin grid (subbasins ID)
+	float* m_subbsnID;
+
+	/// IUH of each grid cell (1/s)
+	float** m_iuhCell;
+	/// the number of columns of Ol_iuh
+	int m_iuhCols;
+	/// surface runoff from depression module
+	float* m_surfRf;
+	// Precipitation
+	//For STROM_MODE model, the unit is rainfall intensity mm/h
+	//For LONGTERM_MODE model, the unit is mm
+	float* m_pcp;
+
+	//temporary
+
+	/// store the flow of each cell in each day between min time and max time
+	float** m_cellFlow;
+	/// the maximum of second column of OL_IUH plus 1.
+	int m_cellFlowCols;
+
+	//output
+
+	/// overland flow to streams for each subbasin (m3/s)
+	float* m_Q_SBOF;
+	// overland flow in each cell (mm) //added by Gao, as intermediate variable, 29 Jul 2016
+	float* m_OL_Flow;
+	//ljj
+	float* m_area;
+	float* total_area;
+	int m_nRteLyrs;
+	int m_maxSoilLyrs;
+	float* m_rchID;
+	float* m_landCover;
+	float* m_slope;
+	float* m_chWidth;
+	float* m_flowout_length;
+	float* m_flowOutIdxD8;
+	float* m_surfRftotal;
+
+	float** m_rteLyrs;
+	float** m_flowInIdxD8;
+	float** m_ks;
+
+	float** m_Qtrans;
+
+	*/
 };
 
 #endif /* SEIMS_MODULE_TEMPLATE_H */
