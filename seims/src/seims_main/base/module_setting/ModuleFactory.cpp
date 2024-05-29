@@ -651,6 +651,7 @@ bool ModuleFactory::ReadConfigFile(const char* configFileName, vector<string>& m
                     delete moduleSetting;
                     continue;
                 }
+				//cout << "read module: " << module << endl;
                 moduleIDs.emplace_back(module);
             }
         }

@@ -421,3 +421,43 @@ void ProgressBar(double progress)
 		pihm_printf(VL_NORMAL, "\n");
 	}
 }
+
+void write_struct_to_file(const string& filename,  int * timeseries ,double** data, int* all_adj_tris_ids, int rows, int cols) {
+	ofstream file(filename, ios::app); // 以追加模式打开文件
+	if (!file.is_open()) {
+		cerr << "Error opening file: " << filename << endl;
+		return;
+	}
+	int offset = 12;
+	// 设置输出精度为小数点后3位
+	file << fixed << setprecision(3);
+	file << setw(offset) << "";
+	int k_tmp = 0;
+	
+	for (int j = 0; j < cols; j++) {
+		int index = 0;
+		for (int k = k_tmp; k < nelem; k++)
+		{
+			if (all_adj_tris_ids[k] == j) {
+				index = k;
+				k_tmp = k + 1;
+				break;
+			}
+		}
+		file << setw(offset) << index;
+	}
+	file << endl; // 换行
+	// 输出每个二维数组到文件
+	for (int i = 0; i < rows; ++i) {
+		// 写入时间序列
+		pihm_t_struct pihm_time = PIHMTime(timeseries[i]);
+		file << setw(offset) << pihm_time.str;
+		for (int j = 0; j < cols; ++j) {
+			// 输出数据，并确保每个数据占据10个位置
+			file << setw(offset) << data[i][j];
+		}
+		file << endl; // 换行
+	}
+
+	file.close();
+}

@@ -151,7 +151,7 @@ void            FrictionSlope(const elem_struct[], const river_struct[],
 void            Hydrol(const ctrl_struct *, elem_struct[], river_struct[], struct time_struct *);
 #else
 //void            Hydrol(const ctrl_struct *, elem_struct[], river_struct[]);
-void            Hydrol(const ctrl_struct *, elem_struct[], river_struct[], exchange_struct *);
+void            Hydrol(const ctrl_struct *, elem_struct[], river_struct[], exchange_struct *, PIHMToolDataStruct*, PIHMDataStruct*);
 
 #endif
 double          Infil(double, const topo_struct *, const soil_struct *, const wstate_struct *, const wstate_struct *,
@@ -240,6 +240,8 @@ int             PrintNow(int, int, pihm_t_struct);
 void            PrintPerf(int, int, double, double, double, FILE *, void *);
 void            PrintWaterBalance(int, int, int, const elem_struct[], const river_struct[], FILE *);
 void            ProgressBar(double);
+//void write_struct_to_file(const string& filename, const PIHMDataStruct& data, int* all_adj_tris_ids,int rows, int cols);
+void write_struct_to_file(const string& filename, int * timeseries, double** data, int* all_adj_tris_ids, int rows, int cols);
 double          Psi(double, double, double);
 double          PtfAlpha(double, double, double, double, int);
 double          PtfBeta(double, double, double, double, int);
@@ -292,7 +294,7 @@ void            Spinup(pihm_struct*, N_Vector, void *, SUNLinearSolver *,SeimsVa
 void            StartupScreen(void);
 int             StrTime(const char[]);
 double          SubsurfFlow(int, const elem_struct *, const elem_struct *);
-void            UpdateVar(double, elem_struct[], river_struct[], N_Vector);
+void            UpdateVar(double, elem_struct[], river_struct[], N_Vector, PIHMDataStruct* , PIHMToolDataStruct*, ctrl_struct*);
 double          SurfH(double);
 void            UpdatePrintVar(int, int, varctrl_struct *);
 void            UpdPrintVarT(varctrl_struct *, int);

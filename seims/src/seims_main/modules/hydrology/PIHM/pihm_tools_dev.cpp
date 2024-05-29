@@ -133,14 +133,41 @@ bool PIHM_TOOLS_DEV::CheckIdInHruIds_dev(int id, vector<int> *hru_ids) {
 	// 检查结果
 	if (it != hru_ids->end()) {
 		// id 存在于 hru_ids 中
-		std::cout << "ID " << id << " 存在于 hru_ids 中" << std::endl;
+		//std::cout << "ID " << id << " 存在于 hru_ids 中" << std::endl;
 		return true;
 	}
-	else {
-		// id 不存在于 hru_ids 中
-		std::cout << "ID " << id << " 不存在于 hru_ids 中" << std::endl;
-	}
+	//else {
+	//	// id 不存在于 hru_ids 中
+	//	std::cout << "ID " << id << " 不存在于 hru_ids 中" << std::endl;
+	//}
 	return false;
+}
+
+void PIHM_TOOLS_DEV::read_adj_tri_ids_from_file(const std::string& filename, int* adj_tri_ids, int * len_adj_tri_ids) {
+	ifstream file(filename);
+
+	if (!file.is_open()) {
+		cerr << "Error opening file: " << filename << endl;
+		return;
+	}
+
+	string line;
+	int index = 0;  // Start storing IDs from index 1
+	if (getline(file, line)) {
+		stringstream ss(line);
+		string id;
+	
+		while (getline(ss, id, ',')) {
+			adj_tri_ids[stoi(id)] = index++;
+		}
+		*len_adj_tri_ids = index - 1;  // Store the length of the array at index 0
+		 
+	}
+	else {
+		cerr << "Error reading line from file: " << filename << endl;
+	}
+
+	file.close();
 }
 
 void PIHM_TOOLS_DEV::read_map_from_file(const std::string& filename, map<int, int*> *hru_tri_id_map) {
@@ -189,3 +216,5 @@ void PIHM_TOOLS_DEV::read_map_from_file(const std::string& filename, map<int, in
 	file.close();
 	return;
 }
+
+

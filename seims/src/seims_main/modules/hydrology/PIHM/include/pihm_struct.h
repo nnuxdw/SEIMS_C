@@ -145,9 +145,9 @@ typedef struct ctrl_struct
 	int             ascii;                  // flag to turn on ascii output
 	int             waterbal;               // flag to turn on water balance diagnostic output
 	int             write_ic;               // flag to write model output as initial conditions
-	int             nstep;                  // number of external time steps (when results can be printed) for the whole
+	int             nstep;                  // number of external time steps (when results can be printed) for the whole 总共多少个用户指定的步长
 											// simulation
-	int             cstep;                  // current model step (from 0)
+	int             cstep;                  // current model step (from 0)  0,1,2,3对应60s,120s,
 	int             prtvrbl[MAXPRINT];      // number of output
 	int             init_type;              // initialization mode: 0 = relaxed mode, 1 = use .ic file
 	int             etstep;                 // land surface (ET) time step (s)
@@ -275,7 +275,6 @@ typedef struct print_struct
 
 
 
-
 typedef struct SeimsMeteoStruct {
 	float *pihm_pcp;
 	float *pihm_tmean;
@@ -344,7 +343,7 @@ typedef struct SeimsVariablesStruct {
 	float* m_flowOutIdxD8;
 	float* m_surfRftotal;
 	float **m_subSurfRfVol;     /// subsurface runoff volume (mm), VAR_SSRUVOL
-	float *m_gwStorage;          ///  Groundwater storage (m3) of the subbasin
+	float *m_gwStorage;          ///  Groundwater storage (mm) of the subbasin
 	float** m_rteLyrs;
 	float *m_nSoilLyrs;            	/// number of soil layers of each cell
 	float** m_flowInIdxD8;
@@ -361,6 +360,17 @@ typedef struct exchange_struct {
 	double* elem_upstream_gwStorage;
 }exchange_struct;
 
+
+typedef struct PIHMDataStruct {
+	// 记录每个时步的变量，时间序列
+	double** elem_upstream_surfq; //接收上游地表来水
+	double** elem_upstream_subsurq; //接收上游土壤水来水
+	double** elem_upstream_gwq;//接收上游地下水来水
+	double** elem_sufh; // 地表水深
+	double** elem_gwh; // 地下水深
+	int * timeseries;
+}PIHMDataStruct;
+
 typedef struct pihm_struct
 {
 	siteinfo_struct siteinfo;
@@ -375,6 +385,9 @@ typedef struct pihm_struct
 	matltbl_struct  matltbl;
 	PIHMToolDataStruct* PIHMToolData;
 	SeimsVariablesStruct * SeimsVariables;
+	SeimsMeteoStruct * SeimsMetros;
+	exchange_struct * ExchangeData;
+	PIHMDataStruct* PIHMData;
 
 #if defined(_NOAH_)
 	noahtbl_struct  noahtbl;
@@ -398,7 +411,6 @@ typedef struct pihm_struct
 	calib_struct    calib;
 	ctrl_struct     ctrl;
 	print_struct    print;
-	exchange_struct * exchange;
 
 #if defined(_RT_)
 	chemtbl_struct  chemtbl[MAXSPS];

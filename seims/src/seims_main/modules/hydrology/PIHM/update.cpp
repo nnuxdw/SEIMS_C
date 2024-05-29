@@ -1,6 +1,6 @@
 #include "pihm.h"
 
-void UpdateVar(double stepsize, elem_struct elem[], river_struct river[], N_Vector CV_Y)
+void UpdateVar(double stepsize, elem_struct elem[], river_struct river[], N_Vector CV_Y, PIHMDataStruct* PIHMData, PIHMToolDataStruct* PIHMToolData, ctrl_struct  *ctrl)
 {
 	double         *y;
 	int             i;
@@ -17,6 +17,13 @@ void UpdateVar(double stepsize, elem_struct elem[], river_struct river[], N_Vect
 		elem[i].ws.surf = y[SURF(i)];
 		elem[i].ws.unsat = y[UNSAT(i)];
 		elem[i].ws.gw = y[GW(i)];
+
+		// 如果是边界处的三角形
+		if (PIHMToolData->all_adj_tris_ids[i] != -1) {
+			int id_index = PIHMToolData->all_adj_tris_ids[i];
+			PIHMData->elem_sufh[ctrl->cstep][id_index] = elem[i].ws.surf;
+			PIHMData->elem_gwh[ctrl->cstep][id_index] = elem[i].ws.gw;
+		}
 		// xdw 修改，求解完后修改值，避免出现负值
 		//elem[i].ws.surf = MAX(y[SURF(i)], 0.0);
 		//elem[i].ws.unsat = MAX(y[UNSAT(i)], 0.0);

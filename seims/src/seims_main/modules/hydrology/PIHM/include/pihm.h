@@ -17,6 +17,7 @@
 #pragma once
 #ifndef PIHM_HEADER
 #define PIHM_HEADER
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -40,7 +41,6 @@
 # include <omp.h>
 #endif
 #define VERSION             "1.0.0.post"
-
  // SUNDIAL Header Files
 #include "cvode/cvode.h"    // Prototypes for CVODE fcts., consts.
 #include "sunlinsol/sunlinsol_spgmr.h"  // Access to SPGMR SUNLinearSolver
@@ -67,9 +67,10 @@
 #include "pihm_errors.h"
 //#include "pihm_tools_dev.h"
 #include <unordered_set>
+#include <set>
 #endif
-
-//using namespace std;
+#include <iostream>
+using namespace std;
 
 
 class PIHM: public SimulationModule {
@@ -124,11 +125,9 @@ public:
 	N_Vector        CV_Y;
 	void           *cvode_mem;
 	SUNLinearSolver sun_ls;
+	PIHM_TOOLS_DEV * pihm_tools;
+	//SeimsMeteoStruct * seims_meteo;
 
-	PIHM_TOOLS_DEV *pihm_tools;
-
-	
-	SeimsMeteoStruct * seims_meteo;
 
 	// xiaodw, other pihm variables 
 	double      cputime, cputime_dt;    // Time cpu duration
@@ -155,6 +154,8 @@ public:
 	char * args_file;          // args.txt file,xiaodw
 	char * hru_ids_file;
 	char * hru_tri_map_file;
+	char * all_adj_tri_ids_file;
+	char * pihm_output_file;
 
 	/*
 	/// time step (sec)

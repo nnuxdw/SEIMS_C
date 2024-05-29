@@ -73,8 +73,8 @@ public:
     void Get1DData(const char* key, int* nrows, float** data) OVERRIDE;
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
-
-    TimeStepType GetTimeStepType() OVERRIDE{ return TIMESTEP_CHANNEL; }
+	// xiaodw modify, 此模块应该是坡面模块，而非河道模块，因此注释掉此方法，ModelMain会默认判定为坡面模块
+    /*TimeStepType GetTimeStepType() OVERRIDE{ return TIMESTEP_CHANNEL; }*/
 
 # ifdef USE_PIHM
 	// xiaodw, for pihm

@@ -12,6 +12,11 @@ int  fixed_length;
 char*  project;
 int  nelem;
 int  nriver;
+double flow_tolarence = 1e-6;
+int curSubbasinId = -1;
+double surfFlowExchange = 0.0;
+double subsurfFlowExchange = 0.0;
+double gwFlowExchange = 0.0;
 #if defined(_OPENMP)
 int             nthreads = 1;               // Default value
 #endif
@@ -83,24 +88,54 @@ void PIHM::SetValueByIndex(const char* key, int index, float value) {
 }
 
 void PIHM::Set1DData(const char* key, int n, float* data) {
-	CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
+	
 	string sk(key);
 	if (StringMatch(sk, VAR_SUBBSN)) {
 		pihm_strc->SeimsVariables->m_subbsnID = data;
 	}
 	// HRU的地表水深
-	else if (StringMatch(sk, VAR_SURU)) pihm_strc->SeimsVariables->m_surfRf = data;
-	else if (StringMatch(sk, VAR_PCP)) pihm_strc->SeimsVariables->m_pcp = data;
-	else if (StringMatch(sk, VAR_TMEAN)) pihm_strc->SeimsVariables->m_meanTemp = data;
-	else if (StringMatch(sk, VAR_TMAX)) pihm_strc->SeimsVariables->m_maxTemp = data;
-	else if (StringMatch(sk, VAR_TMIN)) pihm_strc->SeimsVariables->m_minTemp = data;
-	else if (StringMatch(sk, DataType_RelativeAirMoisture)) pihm_strc->SeimsVariables->m_rhd = data;
-	else if (StringMatch(sk, VAR_AHRU)) pihm_strc->SeimsVariables->m_area = data;
-	else if (StringMatch(sk, VAR_STREAM_LINK)) pihm_strc->SeimsVariables->m_rchID = data;
-	else if (StringMatch(sk, VAR_WS))  pihm_strc->SeimsVariables->m_WindSpeed = data;
-	else if (StringMatch(sk, DataType_SolarRadiation)) pihm_strc->SeimsVariables->m_SR = data;
+	else if (StringMatch(sk, VAR_SURU)) {
+		pihm_strc->SeimsVariables->m_surfRf = data;
+		CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
+	}
+	else if (StringMatch(sk, VAR_PCP)) {
+		pihm_strc->SeimsVariables->m_pcp = data;
+		CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
+	}
+	else if (StringMatch(sk, VAR_TMEAN)) {
+		pihm_strc->SeimsVariables->m_meanTemp = data;
+		CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
+	}
+	else if (StringMatch(sk, VAR_TMAX)) {
+		pihm_strc->SeimsVariables->m_maxTemp = data;
+		CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
+	}
+	else if (StringMatch(sk, VAR_TMIN)) {
+		pihm_strc->SeimsVariables->m_minTemp = data;
+		CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
+	}
+	else if (StringMatch(sk, DataType_RelativeAirMoisture)) {
+		pihm_strc->SeimsVariables->m_rhd = data;
+		CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
+	}
+	else if (StringMatch(sk, VAR_AHRU)) {
+		pihm_strc->SeimsVariables->m_area = data;
+		CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
+	}
+	else if (StringMatch(sk, VAR_STREAM_LINK)) {
+		pihm_strc->SeimsVariables->m_rchID = data;
+	}
+	else if (StringMatch(sk, VAR_WS)) {
+		pihm_strc->SeimsVariables->m_WindSpeed = data;
+		CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
+	}
+	else if (StringMatch(sk, DataType_SolarRadiation)) {
+		pihm_strc->SeimsVariables->m_SR = data;
+		CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
+	}
 	else if (StringMatch(sk, VAR_SURFRFTOTAL)) {
 		pihm_strc->SeimsVariables->m_surfRftotal = data;
+		CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
 	}
 	else if (StringMatch(sk, VAR_SBGS)) {
 		pihm_strc->SeimsVariables->m_gwStorage = data;
@@ -148,7 +183,6 @@ void PIHM::InitialOutputs() {
 	printf("Start time: %s", ctime(&start_datetime));
 
 	pihm_tools = new PIHM_TOOLS_DEV();
-		
 	pihm_strc->PIHMToolData = new PIHMToolDataStruct();
 
 	// Read args.txt
@@ -186,6 +220,54 @@ void PIHM::InitialOutputs() {
 	sprintf(hru_tri_map_file, "%s/input/%s/hru_tri_map_file.txt", pihm_dir, project);
 	pihm_strc->PIHMToolData->hru_tri_id_map = new map<int, int*>();
 	pihm_tools->read_map_from_file(hru_tri_map_file, pihm_strc->PIHMToolData->hru_tri_id_map);
+
+	all_adj_tri_ids_file = new char[MAXSTRING];
+	sprintf(all_adj_tri_ids_file, "%s/input/%s/all_adj_tris_id.txt", pihm_dir, project);
+	pihm_strc->PIHMToolData->all_adj_tris_ids = new int[nelem];
+	for (int i = 0; i < nelem; i++)
+	{
+		pihm_strc->PIHMToolData->all_adj_tris_ids[i] = -1;
+	}
+	pihm_tools->read_adj_tri_ids_from_file(all_adj_tri_ids_file, pihm_strc->PIHMToolData->all_adj_tris_ids, &pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+
+	pihm_strc->SeimsMetros = new SeimsMeteoStruct();
+	pihm_strc->SeimsMetros->pihm_pcp = new float[nelem]();
+	pihm_strc->SeimsMetros->pihm_tmean = new float[nelem]();
+	pihm_strc->SeimsMetros->pihm_ws = new float[nelem]();
+	pihm_strc->SeimsMetros->pihm_rhd = new float[nelem]();
+	pihm_strc->SeimsMetros->pihm_sr = new float[nelem]();
+	pihm_strc->ExchangeData = new exchange_struct();
+	// 数组index从1开始
+	int exchange_len = pihm_strc->PIHMToolData->len_all_adj_tris_ids + 1;
+	// 为节省存储空间，流量交换数组只为需要交换的三角形开辟空间
+	pihm_strc->ExchangeData->elem_upstream_surfq = new double[exchange_len]();
+	pihm_strc->ExchangeData->elem_upstream_subsurvol = new double[exchange_len]();
+	pihm_strc->ExchangeData->elem_upstream_gwStorage = new double[exchange_len]();
+	if (pihm_strc->PIHMToolData != nullptr && pihm_strc->PIHMToolData->hrus != nullptr) {
+		for (hru_struct hru : *(pihm_strc->PIHMToolData->hrus)) {
+			//cout << "HRU ID: " << hru.key << " down_type: " << hru.down_type << endl;
+			if (hru.down_type == 1 && !hru.down_ids.empty()) {
+				pihm_strc->PIHMToolData->upstream_hru_id_keys.insert(hru.key);
+				pihm_strc->PIHMToolData->upstream_hru_down_tris_map[hru.key] = hru.down_ids;
+			}
+			else if (hru.down_type == 0) {
+				//cout << "down_id: " << hru.down_id << endl;
+			}
+			else {
+				cout << "error in hru up down relation !!!!!!!!!!!!!!!!" << endl;
+			}
+
+		}
+	}
+	else {
+		cout << "PIHMTool_Data or hru_ids is null" << endl;
+	}
+	// 存储、输出数据
+	pihm_output_file = new char[MAXSTRING];
+	pihm_strc->PIHMData = new PIHMDataStruct();
+	initial_flag = true;
+	finish_times = 10;
+	counter = 0;
 
 	// Initialize CVODE state variables 三角形数量*3 + 河流数量
 	CV_Y = N_VNew(NumStateVar());
@@ -228,15 +310,7 @@ void PIHM::InitialOutputs() {
 #else
 	start = clock();
 #endif
-	seims_meteo = new SeimsMeteoStruct();
-	seims_meteo->pihm_pcp = new float[nelem];
-	seims_meteo->pihm_tmean = new float[nelem];
-	seims_meteo->pihm_ws = new float[nelem];
-	seims_meteo->pihm_rhd = new float[nelem];
-	seims_meteo->pihm_sr = new float[nelem];
-	initial_flag = true;
-	finish_times = 10;
-	counter = 0;
+
 }
 
 
@@ -253,11 +327,38 @@ int PIHM::Execute() {
 
 	// xiaodw, 计算PIHM时间步长及当前时间
 	CalcPIHMSteps(&pihm_strc->ctrl, pihm_strc->SeimsVariables->m_TimeStep, counter,cur_sim_time_ptr, last_sim_time_ptr);
+
+
+	int time = pihm_strc->ctrl.tout[0];
+	pihm_t_struct   pihm_time = PIHMTime(time);
+	cout << "current pihm time: " << pihm_time.str << endl;
 	ctrl_struct*  ctrl = &pihm_strc->ctrl;
 
+	// 初始化输出的变量
+	const int adj_tri_number = pihm_strc->PIHMToolData->len_all_adj_tris_ids;
+	pihm_strc->PIHMData->timeseries = new int[ctrl->nstep]();
+	// 上游地表、壤中流、地下水输入
+	pihm_strc->PIHMData->elem_upstream_surfq = new double*[ctrl->nstep];
+	pihm_strc->PIHMData->elem_upstream_subsurq = new double*[ctrl->nstep];
+	pihm_strc->PIHMData->elem_upstream_gwq = new double*[ctrl->nstep];
+	// 地表水位
+	pihm_strc->PIHMData->elem_sufh = new double*[ctrl->nstep];
+	// 地下水位
+	pihm_strc->PIHMData->elem_gwh = new double*[ctrl->nstep];
+	for (int i = 0; i < ctrl->nstep; i++) {
+		pihm_strc->PIHMData->elem_upstream_surfq[i] = new double[adj_tri_number]();
+		pihm_strc->PIHMData->elem_upstream_subsurq[i] = new double[adj_tri_number]();
+		pihm_strc->PIHMData->elem_upstream_gwq[i] = new double[adj_tri_number]();
+		pihm_strc->PIHMData->elem_sufh[i] = new double[adj_tri_number]();
+		pihm_strc->PIHMData->elem_gwh[i] = new double[adj_tri_number]();
+		pihm_strc->PIHMData->timeseries[i] = 0;
+
+	}
+
+	
 	for (ctrl->cstep = 0; ctrl->cstep < ctrl->nstep; ctrl->cstep++){
 		// Run PIHM time step///////////////////////////////////
-		RUN_PIHM(cputime, pihm_strc, cvode_mem, CV_Y, pihm_strc->SeimsVariables, seims_meteo);
+		RUN_PIHM(cputime, pihm_strc, cvode_mem, CV_Y, pihm_strc->SeimsVariables, pihm_strc->SeimsMetros);
 
 		// Adjust CVODE max step to reduce oscillation
 		AdjCVodeMaxStep(cvode_mem, &pihm_strc->ctrl);
@@ -278,11 +379,12 @@ int PIHM::Execute() {
 				ctrl->prtvrbl[IC_CTRL], pihm_strc->elem, pihm_strc->river);
 		}
 	}
+	
+	PostExcute();
 
-
-	if (counter >= finish_times){
-		PostExcute();
-	}
+	//if (counter >= finish_times){
+	//	PostExcute();
+	//}
 	ctrl->cstep = 0;
     return 0;
 }
@@ -314,12 +416,24 @@ void PIHM::PostExcute() {
 	{
 		PrintCVodeFinalStats(cvode_mem);
 	}
+
 	#if defined(_STATISTIC_TIME_)
 	pihm->ptime_calculator->t10 = clock();
 	pihm->ptime_calculator->other_time += ((double)(pihm->ptime_calculator->t10 - pihm->ptime_calculator->t9)) / CLOCKS_PER_SEC;
 	// 打印耗时
 	print_time_struct(pihm->ptime_calculator);
 	#endif
+
+	sprintf(pihm_output_file, "%s/output/%s/pihm_output_gwh.txt", pihm_dir, project);
+	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_gwh, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+	sprintf(pihm_output_file, "%s/output/%s/pihm_output_sufh.txt", pihm_dir, project);
+	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_sufh, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+	sprintf(pihm_output_file, "%s/output/%s/pihm_output_ex_gwq.txt", pihm_dir, project);
+	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_upstream_gwq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+	sprintf(pihm_output_file, "%s/output/%s/pihm_output_ex_subsurq.txt", pihm_dir, project);
+	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_upstream_subsurq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+	sprintf(pihm_output_file, "%s/output/%s/pihm_output_ex_surfq.txt", pihm_dir, project);
+	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries,pihm_strc->PIHMData->elem_upstream_surfq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
 	// Free memory
 	N_VDestroy(CV_Y);
 

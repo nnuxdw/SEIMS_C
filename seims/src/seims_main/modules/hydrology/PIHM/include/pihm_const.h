@@ -472,6 +472,11 @@ extern int     fixed_length;
 extern char*    project;
 extern int     nelem;
 extern int     nriver;
+extern double     flow_tolarence;
+extern int curSubbasinId;
+extern double surfFlowExchange;
+extern double subsurfFlowExchange;
+extern double gwFlowExchange;
 #if defined(_BGC_)
 extern int     first_balance;
 #endif
