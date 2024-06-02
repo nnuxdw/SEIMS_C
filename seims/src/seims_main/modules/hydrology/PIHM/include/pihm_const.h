@@ -473,10 +473,11 @@ extern char*    project;
 extern int     nelem;
 extern int     nriver;
 extern double     flow_tolarence;
-extern int curSubbasinId;
-extern double surfFlowExchange;
-extern double subsurfFlowExchange;
-extern double gwFlowExchange;
+extern int roi_elem_id;
+//extern int curSubbasinId;
+//extern double surfFlowExchange;
+//extern double subsurfFlowExchange;
+//extern double gwFlowExchange;
 #if defined(_BGC_)
 extern int     first_balance;
 #endif

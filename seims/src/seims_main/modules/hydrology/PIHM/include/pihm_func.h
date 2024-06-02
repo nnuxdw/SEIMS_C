@@ -90,7 +90,7 @@ void            ApplyForcing(int, int, const siteinfo_struct *, const rttbl_stru
 void            ApplyForcing(int, int, const siteinfo_struct *, forc_struct *, elem_struct[]);
 #else
 //void            ApplyForcing(int, forc_struct *, elem_struct[]);
-void            ApplyForcing(int, forc_struct *, elem_struct[], float* ,float*, float*, float*, float*);
+void            ApplyForcing(int, forc_struct *, elem_struct[], double* , double*, double*, double*, double*);
 #endif
 #if defined(_BGC_) || defined(_CYCLES_)
 void            ApplyLai(elem_struct[]);
@@ -101,7 +101,7 @@ void            ApplyLai(int, forc_struct *, elem_struct[]);
 void            ApplyMeteoForcing(int, int, const siteinfo_struct *, forc_struct *, elem_struct[]);
 #else
 //void            ApplyMeteoForcing(int, forc_struct *, elem_struct[]);
-void            ApplyMeteoForcing(int, forc_struct *, elem_struct[], float*, float* , float *, float *, float *);
+void            ApplyMeteoForcing(int, forc_struct *, elem_struct[], double*, double* , double *, double *, double *);
 #endif
 void            ApplyRiverBc(int, forc_struct *, river_struct[]);
 double          AvgKv(double, double, const soil_struct *);

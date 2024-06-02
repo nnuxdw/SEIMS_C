@@ -13,10 +13,11 @@ char*  project;
 int  nelem;
 int  nriver;
 double flow_tolarence = 1e-6;
-int curSubbasinId = -1;
-double surfFlowExchange = 0.0;
-double subsurfFlowExchange = 0.0;
-double gwFlowExchange = 0.0;
+int roi_elem_id;
+
+//double surfFlowExchange = 0.0;
+//double subsurfFlowExchange = 0.0;
+//double gwFlowExchange = 0.0;
 #if defined(_OPENMP)
 int             nthreads = 1;               // Default value
 #endif
@@ -57,14 +58,18 @@ PIHM::PIHM() :
 	pihm_strc->SeimsVariables->m_OL_Flow = nullptr;
 	pihm_strc->SeimsVariables->m_pcp = nullptr;
 	pihm_strc->SeimsVariables->m_surfRftotal = nullptr;
-	pihm_strc->SeimsVariables->m_gwStorage = nullptr; 
+	//pihm_strc->SeimsVariables->m_gwStorage = nullptr;
+	pihm_strc->SeimsVariables->m_gwQ = nullptr;
 	pihm_strc->SeimsVariables->m_subSurfRfVol = nullptr;
 	pihm_strc->SeimsVariables->m_maxSoilLyrs = -1;
 	
 	nelem = -1;
+	roi_elem_id = 72;
 }
 
 PIHM::~PIHM() {
+	FinalExecute();
+
 }
 
 void PIHM::SetValue(const char* key, const float value) {
@@ -137,8 +142,11 @@ void PIHM::Set1DData(const char* key, int n, float* data) {
 		pihm_strc->SeimsVariables->m_surfRftotal = data;
 		CheckInputSize(MID_PIHM, key, n, pihm_strc->SeimsVariables->m_nCells);
 	}
-	else if (StringMatch(sk, VAR_SBGS)) {
-		pihm_strc->SeimsVariables->m_gwStorage = data;
+	//else if (StringMatch(sk, VAR_SBGS)) {
+	//	pihm_strc->SeimsVariables->m_gwStorage = data;
+	//}
+	else if (StringMatch(sk, VAR_SBQG)) {
+		pihm_strc->SeimsVariables->m_gwQ = data;
 	}
 	else if (StringMatch(sk, VAR_SOILLAYERS)) {
 		pihm_strc->SeimsVariables->m_nSoilLyrs = data;
@@ -231,18 +239,18 @@ void PIHM::InitialOutputs() {
 	pihm_tools->read_adj_tri_ids_from_file(all_adj_tri_ids_file, pihm_strc->PIHMToolData->all_adj_tris_ids, &pihm_strc->PIHMToolData->len_all_adj_tris_ids);
 
 	pihm_strc->SeimsMetros = new SeimsMeteoStruct();
-	pihm_strc->SeimsMetros->pihm_pcp = new float[nelem]();
-	pihm_strc->SeimsMetros->pihm_tmean = new float[nelem]();
-	pihm_strc->SeimsMetros->pihm_ws = new float[nelem]();
-	pihm_strc->SeimsMetros->pihm_rhd = new float[nelem]();
-	pihm_strc->SeimsMetros->pihm_sr = new float[nelem]();
+	pihm_strc->SeimsMetros->pihm_pcp = new double[nelem]();
+	pihm_strc->SeimsMetros->pihm_tmean = new double[nelem]();
+	pihm_strc->SeimsMetros->pihm_ws = new double[nelem]();
+	pihm_strc->SeimsMetros->pihm_rhd = new double[nelem]();
+	pihm_strc->SeimsMetros->pihm_sr = new double[nelem]();
 	pihm_strc->ExchangeData = new exchange_struct();
 	// 数组index从1开始
 	int exchange_len = pihm_strc->PIHMToolData->len_all_adj_tris_ids + 1;
 	// 为节省存储空间，流量交换数组只为需要交换的三角形开辟空间
 	pihm_strc->ExchangeData->elem_upstream_surfq = new double[exchange_len]();
 	pihm_strc->ExchangeData->elem_upstream_subsurvol = new double[exchange_len]();
-	pihm_strc->ExchangeData->elem_upstream_gwStorage = new double[exchange_len]();
+	pihm_strc->ExchangeData->elem_upstream_gwQ = new double[exchange_len]();
 	if (pihm_strc->PIHMToolData != nullptr && pihm_strc->PIHMToolData->hrus != nullptr) {
 		for (hru_struct hru : *(pihm_strc->PIHMToolData->hrus)) {
 			//cout << "HRU ID: " << hru.key << " down_type: " << hru.down_type << endl;
@@ -266,7 +274,6 @@ void PIHM::InitialOutputs() {
 	pihm_output_file = new char[MAXSTRING];
 	pihm_strc->PIHMData = new PIHMDataStruct();
 	initial_flag = true;
-	finish_times = 10;
 	counter = 0;
 
 	// Initialize CVODE state variables 三角形数量*3 + 河流数量
@@ -345,12 +352,16 @@ int PIHM::Execute() {
 	pihm_strc->PIHMData->elem_sufh = new double*[ctrl->nstep];
 	// 地下水位
 	pihm_strc->PIHMData->elem_gwh = new double*[ctrl->nstep];
+	// 降雨
+	pihm_strc->PIHMData->elem_pcp = new double*[ctrl->nstep];
+
 	for (int i = 0; i < ctrl->nstep; i++) {
 		pihm_strc->PIHMData->elem_upstream_surfq[i] = new double[adj_tri_number]();
 		pihm_strc->PIHMData->elem_upstream_subsurq[i] = new double[adj_tri_number]();
 		pihm_strc->PIHMData->elem_upstream_gwq[i] = new double[adj_tri_number]();
 		pihm_strc->PIHMData->elem_sufh[i] = new double[adj_tri_number]();
 		pihm_strc->PIHMData->elem_gwh[i] = new double[adj_tri_number]();
+		pihm_strc->PIHMData->elem_pcp[i] = new double[adj_tri_number]();
 		pihm_strc->PIHMData->timeseries[i] = 0;
 
 	}
@@ -379,13 +390,12 @@ int PIHM::Execute() {
 				ctrl->prtvrbl[IC_CTRL], pihm_strc->elem, pihm_strc->river);
 		}
 	}
-	
-	PostExcute();
 
+	PostExcute();
 	//if (counter >= finish_times){
 	//	PostExcute();
 	//}
-	ctrl->cstep = 0;
+	
     return 0;
 }
 
@@ -434,6 +444,15 @@ void PIHM::PostExcute() {
 	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_upstream_subsurq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
 	sprintf(pihm_output_file, "%s/output/%s/pihm_output_ex_surfq.txt", pihm_dir, project);
 	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries,pihm_strc->PIHMData->elem_upstream_surfq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+	sprintf(pihm_output_file, "%s/output/%s/pihm_output_prcp.txt", pihm_dir, project);
+	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_pcp, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+
+	pihm_strc->ctrl.cstep = 0;
+	
+	return ;
+}
+
+void PIHM::FinalExecute() {
 	// Free memory
 	N_VDestroy(CV_Y);
 
@@ -454,8 +473,6 @@ void PIHM::PostExcute() {
 	int minutes = (int)(elapsed_time - hours * 3600) / 60;
 	int seconds = (int)elapsed_time % 60;
 	printf("Elapsed time: %d hours, %d minutes, %d seconds.\n", hours, minutes, seconds);
-
-	return ;
 }
 
 TimeStepType PIHM::GetTimeStepType() {

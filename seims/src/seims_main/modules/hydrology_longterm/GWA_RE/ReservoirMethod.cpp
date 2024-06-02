@@ -44,6 +44,23 @@ void ReservoirMethod::InitialOutputs() {
     if (m_gwSto == nullptr) Initialize1DArray(nLen, m_gwSto, m_GW0);
     if (m_revap == nullptr) Initialize1DArray(m_nCells, m_revap, 0.f);
     if (m_T_GWWB == nullptr) Initialize2DArray(nLen, 6, m_T_GWWB, 0.f);
+# ifdef USE_PIHM
+	// Read select_hand_ids.txt
+	if (nullptr == pihm_tools)
+	{
+		project = new char[MAXSTRING];
+		strcpy(project, PIHM_PROJECT);
+		pihm_tools = new PIHM_TOOLS();
+		hru_ids = new vector<int>();
+		hru_ids_file = new char[MAXSTRING];
+		pihm_dir = new char[MAXSTRING];
+		strcpy(pihm_dir, PIHM_DATA_PATH);
+		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
+		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
+		m_subbasin_area = new float[nLen];
+		//pihm_tools->test(1, project);
+	}
+#endif
 }
 
 int ReservoirMethod::Execute() {
@@ -63,12 +80,31 @@ int ReservoirMethod::Execute() {
         float revap = 0.f;
         float curBasinArea =0.f;
         for (int i = 0; i < curCellsNum; i++) {
+			// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行计算
+# ifdef USE_PIHM
+			bool id_in_hru = pihm_tools->CheckIdInHruIds(curCells[i], hru_ids);
+			if (id_in_hru)
+			{
+				continue;
+			}
+# endif
 			curBasinArea += m_area[curCells[i]];
 		}
         total_area += curBasinArea;
+# ifdef USE_PIHM
+		m_subbasin_area[subID] = curBasinArea;
+# endif
 #pragma omp parallel for reduction(+:perco, fPET, revap)
         for (int i = 0; i < curCellsNum; i++) {
             int index = curCells[i];
+			// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行计算; 反之HRU的地下水被加入子流域的地下水库
+# ifdef USE_PIHM
+			bool id_in_hru = pihm_tools->CheckIdInHruIds(curCells[i], hru_ids);
+			if (id_in_hru)
+			{
+				continue;
+			}
+# endif
             float tmp_perc = m_soilPerco[index][CVT_INT(m_nSoilLyrs[index]) - 1];
             if (tmp_perc > 0) {
                 //perco += tmp_perc;
@@ -317,7 +353,12 @@ void ReservoirMethod::Get1DData(const char* key, int* nrows, float** data) {
     } else if (StringMatch(sk, VAR_SBPET)) {
         *data = m_petSubbsn;
         *nrows = m_nSubbsns + 1;
-    } else {
+    }
+	else if (StringMatch(sk, VAR_GW_SUBBASIN_AREA)) {
+		*data = m_subbasin_area;
+		*nrows = m_nSubbsns + 1;
+	}
+	else {
         throw ModelException(MID_GWA_RE, "Get1DData", "Parameter " + sk + " does not exist.");
     }
 }

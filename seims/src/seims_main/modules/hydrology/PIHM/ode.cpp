@@ -30,59 +30,12 @@ int Ode(realtype t, N_Vector CV_Y, N_Vector CV_Ydot, void *pihm_data)
 	PIHMTool_Data = pihm->PIHMToolData;
 	SeimsVariables = pihm->SeimsVariables;
 
-	map<int, map<int, float>> upstream_hru_down_tris_map = pihm->PIHMToolData->upstream_hru_down_tris_map;
-	unordered_set<int> upstream_hru_id_keys = pihm->PIHMToolData->upstream_hru_id_keys;
-	
+
 	//map<int, double> tri_id_streamq_map;
 //#if defined(_OPENMP)
 //# pragma omp parallel for
 //#endif
-	for (int i = 0; i < SeimsVariables->m_nCells; i++) {
 
-		// 如果是上游HRU, 将上游地表径流量分配给下游三角形的地表水深
-		if (upstream_hru_id_keys.find(i) != upstream_hru_id_keys.end()) {
-			for (map<int, float>::iterator it = upstream_hru_down_tris_map[i].begin(); it != upstream_hru_down_tris_map[i].end(); ++it) {
-				// 寻找下游三角形id对应的流量交换数组存储index
-				int id_index = pihm->PIHMToolData->all_adj_tris_ids[int(it->first)];
-				// 地表水：流量m3/s * 步长s * 比例
-				surfFlowExchange = SeimsVariables->m_surfRftotal[i] * pihm->ctrl.stepsize * (double)it->second;
-				
-				// 土壤水：每层地下水量m3* 比例 * pihm的步长s/seims的步长s
-				for (int j = 0; j < static_cast<int>(SeimsVariables->m_nSoilLyrs[i]); j++) {
-					subsurfFlowExchange += SeimsVariables->m_subSurfRfVol[i][j] * pihm->ctrl.stepsize *  (double)it->second / SeimsVariables->m_TimeStep; /// m^3/s
-				}
-				// 地下水：每个上游HRU所在子流域的所有地下水
-				curSubbasinId = SeimsVariables->m_subbsnID[i];
-				gwFlowExchange = SeimsVariables->m_gwStorage[curSubbasinId] * SeimsVariables->subbasin_area[curSubbasinId] * (double)it->second
-					* pihm->ctrl.stepsize / SeimsVariables->m_TimeStep /1000.0f ;
-//#pragma omp critical
-				{
-					surfFlowExchange = surfFlowExchange > flow_tolarence ? surfFlowExchange : 0.0;
-					subsurfFlowExchange = subsurfFlowExchange > flow_tolarence ? subsurfFlowExchange : 0.0;
-					gwFlowExchange = gwFlowExchange > flow_tolarence ? gwFlowExchange : 0.0;
-					// 记录数据交换
-
-					pihm->ExchangeData->elem_upstream_surfq[id_index] = surfFlowExchange;
-					pihm->ExchangeData->elem_upstream_subsurvol[id_index] = subsurfFlowExchange;
-					pihm->ExchangeData->elem_upstream_gwStorage[id_index] = gwFlowExchange;
-					// 记录输出
-					pihm->PIHMData->elem_upstream_surfq[pihm->ctrl.cstep][id_index] += surfFlowExchange;
-					pihm->PIHMData->elem_upstream_subsurq[pihm->ctrl.cstep][id_index] += subsurfFlowExchange;
-					pihm->PIHMData->elem_upstream_gwq[pihm->ctrl.cstep][id_index] += gwFlowExchange;
-					surfFlowExchange = 0.0;
-					subsurfFlowExchange = 0.0;
-					gwFlowExchange = 0.0;
-
-				}
-				// 输出变量值在一行
-				//std::cout << "tri_id: " << it->first<< ", surfRftotal[" << i << "]: " << SeimsVariables->m_surfRftotal[i]	<< ", stepsize: " << pihm->ctrl.stepsize
-				//	<< ", percent: " << it->second<< ", surfq: " << pihm->exchange->elem_upstream_surfq[int(it->first)]<< std::endl;
-			}
-			//cout << "upstream Key " << i << " has downstream." << std::endl;
-		}
-	}
-
-	pihm->PIHMData->timeseries[pihm->ctrl.cstep] = t + pihm->ctrl.starttime;
 
 	/*
 	for (int ilyr = 0; ilyr < SeimsVariables->m_nRteLyrs; ilyr++) {
@@ -128,6 +81,8 @@ int Ode(realtype t, N_Vector CV_Y, N_Vector CV_Ydot, void *pihm_data)
 		elem[i].ws.surf = MAX(y[SURF(i)], 0.0);
 		elem[i].ws.unsat = MAX(y[UNSAT(i)], 0.0);
 		elem[i].ws.gw = MAX(y[GW(i)], 0.0);
+
+
 
 #if defined(_DGW_)
 		elem[i].ws.unsat_geol = MAX(y[UNSAT_GEOL(i)], 0.0);
@@ -217,9 +172,22 @@ int Ode(realtype t, N_Vector CV_Y, N_Vector CV_Ydot, void *pihm_data)
 		int             j;
 		// dy(m)
 		// Vertical water fluxes for surface and subsurface
+		//int index_id = pihm->PIHMToolData->all_adj_tris_ids[i];
+		//double tmp = 0.0;
+		//if (index_id >= 0)
+		//{
+		//	tmp = pihm->ExchangeData->elem_upstream_surfq[index_id] / elem[i].topo.area;
+		//}
+		//dy[SURF(i)] += elem[i].wf.pcpdrp - elem[i].wf.infil - elem[i].wf.edir_surf + tmp;
+
 		dy[SURF(i)] += elem[i].wf.pcpdrp - elem[i].wf.infil - elem[i].wf.edir_surf;
+		//if (i == 747)
+		//{
+		//	cout << elem[i].wf.pcpdrp << " " << elem[i].wf.infil << " " << elem[i].wf.edir_surf << " " << tmp <<" " << dy[SURF(i)] << endl;
+		//}
 		dy[UNSAT(i)] += elem[i].wf.infil - elem[i].wf.recharge - elem[i].wf.edir_unsat - elem[i].wf.ett_unsat;
 		dy[GW(i)] += elem[i].wf.recharge - elem[i].wf.edir_gw - elem[i].wf.ett_gw;
+
 
 #if defined(_DGW_)
 		// Vertical water fluxes for deep zone
@@ -307,6 +275,7 @@ int Ode(realtype t, N_Vector CV_Y, N_Vector CV_Ydot, void *pihm_data)
 	pihm->ptime_calculator->t5_2 = clock();
 	pihm->ptime_calculator->solvecvode_bgc_time += ((double)(pihm->ptime_calculator->t5_2 - pihm->ptime_calculator->t5_1)) / CLOCKS_PER_SEC;
 #endif
+
 	return 0;
 }
 

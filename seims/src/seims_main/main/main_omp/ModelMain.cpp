@@ -99,7 +99,7 @@ void ModelMain::StepChannel(const time_t t, const int year_idx) {
     }
     for (auto it = m_channelModules.begin(); it != m_channelModules.end(); ++it) {
         SimulationModule* p_module = m_simulationModules[*it];
-        // cout << "Executing " << m_moduleIDs[*it] << endl; // for debug
+        //cout << "Executing " << m_moduleIDs[*it] << endl; // for debug
         if (m_firstRunChannel) {
             m_factory->GetValueFromDependencyModule(*it, m_simulationModules);
         }

@@ -94,6 +94,7 @@ int OL_FDIR::Execute() {
 		m_Q_SBOF[n] = 0.f;
 	}
 	// m_nRteLyrs是并行的层数
+#pragma omp parallel for
 	for (int ilyr = 0; ilyr < m_nRteLyrs; ilyr++) {
 		// There are not any flow relationship within each routing layer.
 		// So parallelization can be done here.
@@ -113,7 +114,7 @@ int OL_FDIR::Execute() {
 			int nUpstream = CVT_INT(m_flowInIdxD8[id][0]);
 			//if this field is wetland, intercept the upstream water
 			// 将当前HRU和同一子流域内其所有直接上游HRU的地表水流量加起来
-			m_surfRftotal[id] = m_surfRf[id] * 0.001f * m_area[id] / m_TimeStep;  //m3/s
+			m_surfRftotal[id] = m_surfRf[id] * 0.001f * m_area[id] / m_TimeStep;  //mm/step -> m3/s
 			for (int upIndex = 1; upIndex <= nUpstream; upIndex++) {
 				// IMPORTANT!!! If the upstream cell is from another subbasin, CONTINUE to next upstream cell. By lj.
 				// 直接上游HRU的ID
@@ -131,8 +132,10 @@ int OL_FDIR::Execute() {
 				m_surfRftotal[id] += qUp;
 				m_surfRftotal[id] = Max(m_surfRftotal[id], 0.f);
 			}
+			//cout << "m_surfRftotal[" << id << "]: " << m_surfRftotal[id] << endl;
 		}
 	}
+	
 	// xiaodw, 上游HRU的地表水不再进入子流域的河道，而是必须经过下游（精细化）HRU的相邻三角网。
 # ifndef USE_PIHM
 # ifdef USE_OPENMP

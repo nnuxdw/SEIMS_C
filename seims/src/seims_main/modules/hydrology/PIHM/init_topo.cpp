@@ -25,7 +25,7 @@ void InitTopo(const meshtbl_struct *meshtbl, elem_struct elem[])
 #endif
 		}
 
-		elem[i].topo.area = 0.5 * ((x[1] - x[0]) * (y[2] - y[0]) - (y[1] - y[0]) * (x[2] - x[0]));
+		elem[i].topo.area = abs(0.5 * ((x[1] - x[0]) * (y[2] - y[0]) - (y[1] - y[0]) * (x[2] - x[0])));
 		// Calculate centroid of triangle
 		elem[i].topo.x = (x[0] + x[1] + x[2]) / 3.0;
 		elem[i].topo.y = (y[0] + y[1] + y[2]) / 3.0;

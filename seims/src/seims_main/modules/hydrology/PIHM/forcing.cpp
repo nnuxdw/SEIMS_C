@@ -29,7 +29,7 @@ void ApplyForcing(int t, int rad_mode, const siteinfo_struct *siteinfo, const rt
 #elif defined(_NOAH_)
 void ApplyForcing(int t, int rad_mode, const siteinfo_struct *siteinfo, forc_struct *forc, elem_struct elem[])
 #else
-void ApplyForcing(int t, forc_struct *forc, elem_struct elem[],float* pihm_pcp, float* pihm_tmean, float *pihm_ws, float *pihm_rhd, float *pihm_sr)
+void ApplyForcing(int t, forc_struct *forc, elem_struct elem[],double* pihm_pcp, double* pihm_tmean, double *pihm_ws, double *pihm_rhd, double *pihm_sr)
 #endif
 {
 	// Meteorological forcing
@@ -149,7 +149,7 @@ void ApplyElemBc(int t, forc_struct *forc, elem_struct elem[])
 #if defined(_NOAH_)
 void ApplyMeteoForcing(int t, int rad_mode, const siteinfo_struct *siteinfo, forc_struct *forc, elem_struct elem[])
 #else
-void ApplyMeteoForcing(int t, forc_struct *forc, elem_struct elem[],float * pihm_pcp, float* pihm_tmean, float *pihm_ws, float *pihm_rhd, float *pihm_sr)
+void ApplyMeteoForcing(int t, forc_struct *forc, elem_struct elem[],double * pihm_pcp, double* pihm_tmean, double *pihm_ws, double *pihm_rhd, double *pihm_sr)
 #endif
 {
 	int             i, k;
@@ -162,11 +162,11 @@ void ApplyMeteoForcing(int t, forc_struct *forc, elem_struct elem[],float * pihm
 //#if defined(_OPENMP)
 //# pragma omp parallel for
 //#endif
-	//for (k = 0; k < forc->nmeteo; k++)
-	//{
-	//	IntrplForcing(t, NUM_METEO_VAR, INTRPL, &forc->meteo[k]);
-	//}
-
+//	for (k = 0; k < forc->nmeteo; k++)
+//	{
+//		IntrplForcing(t, NUM_METEO_VAR, INTRPL, &forc->meteo[k]);
+//	}
+//
 #if defined(_NOAH_)
 	// Topographic radiation for Noah 地形辐射
 	if (rad_mode == TOPO_SOL)
@@ -193,18 +193,19 @@ void ApplyMeteoForcing(int t, forc_struct *forc, elem_struct elem[],float * pihm
 
 		ind = elem[i].attrib.meteo - 1;
 		// todo 这里数值有问题，导致cvode计算错误
-		//elem[i].wf.prcp = pihm_pcp[i];  
+		elem[i].wf.prcp = pihm_pcp[i];  
 		//elem[i].es.sfctmp = pihm_tmean[i];
 		//elem[i].ps.rh = pihm_rhd[i];
 		//elem[i].ps.sfcspd = pihm_ws[i];
 		//elem[i].ef.soldn = pihm_sr[i] ;
 
-		elem[i].wf.prcp = 0;  
+		//elem[i].wf.prcp = 0;  
 		elem[i].es.sfctmp = 1;
 		elem[i].ps.rh = 0.5;
 		elem[i].ps.sfcspd = 1;
 		elem[i].ef.soldn = 1 ;
 		elem[i].ps.sfcprs = 1;
+
 		//elem[i].wf.prcp = forc->meteo[ind].value[PRCP_TS] / 1000.0;
 		//elem[i].es.sfctmp = forc->meteo[ind].value[SFCTMP_TS];
 		//elem[i].ps.rh = forc->meteo[ind].value[RH_TS];

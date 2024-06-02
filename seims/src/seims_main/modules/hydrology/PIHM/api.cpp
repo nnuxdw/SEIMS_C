@@ -56,7 +56,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddInput(DataType_RelativeAirMoisture, UNIT_PERCENT, DESC_RM, Source_Module, DT_Raster1D);
 	mdi.AddInput(VAR_WS, UNIT_SPEED_MS, DESC_WS, Source_Module, DT_Raster1D);
 	mdi.AddInput(DataType_SolarRadiation, UNIT_SR, DESC_SR, Source_Module, DT_Raster1D);
-	mdi.AddInput(VAR_SBGS, UNIT_DEPTH_MM, DESC_SBGS, Source_Module, DT_Array1D);
+	//mdi.AddInput(VAR_SBGS, UNIT_DEPTH_MM, DESC_SBGS, Source_Module, DT_Array1D);VAR_SBQG
+	mdi.AddInput(VAR_SBQG, UNIT_FLOW_CMS, DESC_SBQG, Source_Module, DT_Array1D);
 	mdi.AddInput(VAR_GW_SUBBASIN_AREA, UNIT_AREA_M2, DESC_GW_SUBBASIN_AREA, Source_Module, DT_Array1D);
 	
 	mdi.AddParameter(VAR_SOILLAYERS, UNIT_NON_DIM, DESC_SOILLAYERS, Source_ParameterDB, DT_Raster1D);
@@ -81,7 +82,6 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     /// Set In/Output variables with transferred data type
     //mdi.AddInOutput("1DArrayOutputSingleInOutput", "UNIT", "DESC", DT_Array1D, TF_SingleValue);
     //mdi.AddInOutput("2DArrayOutput1DArrayInOutput", "UNIT", "DESC", DT_Array2D, TF_OneArray1D);
-
     /// Write out the XML file.
     string res = mdi.GetXMLDocument();
     char* tmp = new char[res.size() + 1];

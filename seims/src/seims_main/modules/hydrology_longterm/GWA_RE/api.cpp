@@ -58,6 +58,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_SBQG, UNIT_FLOW_CMS, DESC_SBQG, DT_Array1D); //used by channel flow routing module
     mdi.AddOutput(VAR_SBPET, UNIT_DEPTH_MM, DESC_SBPET, DT_Array1D);
     mdi.AddOutput(VAR_SBGS, UNIT_DEPTH_MM, DESC_SBGS, DT_Array1D);
+	mdi.AddOutput(VAR_GW_SUBBASIN_AREA, UNIT_AREA_M2, DESC_GW_SUBBASIN_AREA, DT_Array1D);
 
     mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
 

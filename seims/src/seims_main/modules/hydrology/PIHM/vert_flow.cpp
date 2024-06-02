@@ -43,7 +43,7 @@ double Infil(double dt, const topo_struct *topo, const soil_struct *soil, const 
 	double          psi_u;
 	double          h_u;
 	int             j;
-	// 地下水位高于地表，入渗量减去饱和水力传导度
+	// 地下水位高于地表，入渗量等于负的饱和水力传导度
 	if (ws->gw > soil->depth)
 	{
 		infil = -soil->kinfv;

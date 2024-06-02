@@ -26,7 +26,13 @@
  */
 #ifndef SEIMS_MODULE_GWA_RE_H
 #define SEIMS_MODULE_GWA_RE_H
-
+# ifdef USE_PIHM
+ // xiaodw, for pihm
+#include "pihm_tools.h"
+#ifndef MAXSTRING
+#define MAXSTRING  1024
+#endif
+#endif
 #include "SimulationModule.h"
 #include "clsSubbasin.h"
 
@@ -66,7 +72,7 @@ public:
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
 
-    TimeStepType GetTimeStepType() OVERRIDE{ return TIMESTEP_CHANNEL; }
+    //TimeStepType GetTimeStepType() OVERRIDE{ return TIMESTEP_CHANNEL; }
 
 private:
     //inputs
@@ -146,6 +152,17 @@ private:
     clsSubbasins* m_subbasinsInfo;
 
     float* m_area;
-
+	// xiaodw, output for pihm
+# ifdef USE_PIHM
+	float* m_subbasin_area;
+#endif
+# ifdef USE_PIHM
+	// xiaodw, for pihm
+	PIHM_TOOLS *pihm_tools = nullptr;
+	vector<int> *hru_ids;
+	char * pihm_dir;
+	char * hru_ids_file;
+	char * project;
+#endif
 };
 #endif /* SEIMS_MODULE_GWA_RE_H */

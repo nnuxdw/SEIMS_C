@@ -13,12 +13,18 @@ void UpdateVar(double stepsize, elem_struct elem[], river_struct river[], N_Vect
 	for (i = 0; i < nelem; i++)
 	{
 		double          subrunoff;
-		// 因此这几句代码是在每个步长ODE计算完成后，用ODE中的值更新内存中的值
+		// 在这里手动检查和修改 y[SURF(i)] 的值
+		if (y[SURF(i)] < 0.0)
+		{
+			y[SURF(i)] = 0.0;
+		}
+		// 这几句代码是在每个步长ODE计算完成后，用ODE中的值更新内存中的值
 		elem[i].ws.surf = y[SURF(i)];
 		elem[i].ws.unsat = y[UNSAT(i)];
 		elem[i].ws.gw = y[GW(i)];
 
 		// 如果是边界处的三角形
+#pragma omp critical
 		if (PIHMToolData->all_adj_tris_ids[i] != -1) {
 			int id_index = PIHMToolData->all_adj_tris_ids[i];
 			PIHMData->elem_sufh[ctrl->cstep][id_index] = elem[i].ws.surf;

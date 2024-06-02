@@ -276,11 +276,11 @@ typedef struct print_struct
 
 
 typedef struct SeimsMeteoStruct {
-	float *pihm_pcp;
-	float *pihm_tmean;
-	float *pihm_ws ;
-	float *pihm_rhd;
-	float *pihm_sr;
+	double *pihm_pcp;
+	double *pihm_tmean;
+	double *pihm_ws ;
+	double *pihm_rhd;
+	double *pihm_sr;
 
 }SeimsMeteoStruct;
 
@@ -342,8 +342,9 @@ typedef struct SeimsVariablesStruct {
 	float* m_flowout_length;
 	float* m_flowOutIdxD8;
 	float* m_surfRftotal;
-	float **m_subSurfRfVol;     /// subsurface runoff volume (mm), VAR_SSRUVOL
-	float *m_gwStorage;          ///  Groundwater storage (mm) of the subbasin
+	float **m_subSurfRfVol;     /// subsurface runoff volume (m3), VAR_SSRUVOL
+	//float *m_gwStorage;          ///  Groundwater storage (mm) of the subbasin
+	float *m_gwQ;                    /// groundwater discharge (m3/s)
 	float** m_rteLyrs;
 	float *m_nSoilLyrs;            	/// number of soil layers of each cell
 	float** m_flowInIdxD8;
@@ -357,7 +358,7 @@ typedef struct exchange_struct {
 	// 上游向下游的地表流量输入
 	double* elem_upstream_surfq;
 	double* elem_upstream_subsurvol;
-	double* elem_upstream_gwStorage;
+	double* elem_upstream_gwQ;
 }exchange_struct;
 
 
@@ -368,6 +369,7 @@ typedef struct PIHMDataStruct {
 	double** elem_upstream_gwq;//接收上游地下水来水
 	double** elem_sufh; // 地表水深
 	double** elem_gwh; // 地下水深
+	double** elem_pcp;
 	int * timeseries;
 }PIHMDataStruct;
 
