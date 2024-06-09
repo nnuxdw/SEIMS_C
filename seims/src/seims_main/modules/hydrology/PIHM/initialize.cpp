@@ -627,8 +627,9 @@ void CalcPIHMSteps(ctrl_struct *ctrl, int seims_tstep, int counter, int * cur_si
 		ctrl->tout[i] = (i == 0) ? *last_sim_time_ptr : ctrl->tout[i - 1] + ctrl->stepsize;
 		//ctrl->tout[i] = (i == 0) ? ctrl->starttime : ctrl->tout[i - 1] + ctrl->stepsize;
 	}
-
-	ctrl->tout[ctrl->nstep] = (ctrl->tout[ctrl->nstep] < ctrl->endtime) ? ctrl->endtime : ctrl->tout[ctrl->nstep];
+	// xiaodw, 当前时步是相对于当前SEIMS时步内的，而ctrl->endtime是PIHM自己设置的结束时间
+	ctrl->tout[ctrl->nstep] = (ctrl->tout[ctrl->nstep] < cur_sim_time) ? cur_sim_time : ctrl->tout[ctrl->nstep];
+	//ctrl->tout[ctrl->nstep] = (ctrl->tout[ctrl->nstep] < ctrl->endtime) ? ctrl->endtime : ctrl->tout[ctrl->nstep];
 }
 
 

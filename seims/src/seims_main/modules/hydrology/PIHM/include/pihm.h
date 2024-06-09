@@ -144,6 +144,8 @@ public:
 	int* last_sim_time_ptr;
 	int finish_times;
 	bool initial_flag;
+	bool first_write_flag;
+	int write_step;
 
 	//vector<hru_struct> *hrus;
 	//arg_struct *args;

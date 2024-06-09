@@ -27,8 +27,8 @@ void UpdateVar(double stepsize, elem_struct elem[], river_struct river[], N_Vect
 #pragma omp critical
 		if (PIHMToolData->all_adj_tris_ids[i] != -1) {
 			int id_index = PIHMToolData->all_adj_tris_ids[i];
-			PIHMData->elem_sufh[ctrl->cstep][id_index] = elem[i].ws.surf;
-			PIHMData->elem_gwh[ctrl->cstep][id_index] = elem[i].ws.gw;
+			PIHMData->elem_sufh[ctrl->cstep][id_index] = MAX(elem[i].ws.surf,0.0);
+			PIHMData->elem_gwh[ctrl->cstep][id_index] = MAX(elem[i].ws.gw,0.0);
 		}
 		// xdw 修改，求解完后修改值，避免出现负值
 		//elem[i].ws.surf = MAX(y[SURF(i)], 0.0);

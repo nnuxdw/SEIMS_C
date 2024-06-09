@@ -385,8 +385,13 @@ void DataCenter::SetValue(ParamInfo* param, SimulationModule* p_module) {
         //cell size
         param->Value = CVT_FLT(mask_raster_->GetCellWidth());
     } else if (StringMatch(param->Name, Tag_TimeStep)) {
-        param->Value = CVT_FLT(input_->getDtDaily()); // return 86400 secs
-    } else if (StringMatch(param->Name, Tag_HillSlopeTimeStep)) {
+		// xiaodw modify , if USE_SUBDaily mode is used, let  Tag_TimeStep = Tag_HillSlopeTimeStep
+#ifdef USE_SUBDAILY
+		param->Value = CVT_FLT(input_->getDtHillslope());
+#else
+		param->Value = CVT_FLT(input_->getDtDaily()); // return 86400 secs
+#endif
+    } else if (StringMatch(param->Name, Tag_HillSlopeTimeStep)) {		
         param->Value = CVT_FLT(input_->getDtHillslope());
     } else if (StringMatch(param->Name, Tag_ChannelTimeStep)) {
         param->Value = CVT_FLT(input_->getDtChannel());

@@ -43,7 +43,7 @@ PIHM::PIHM() :
 	//	m_nSubbsns(-1), m_inputSubbsnID(-1), m_subbsnID(nullptr),
 	//	 m_surfRf(nullptr),
 	//m_OL_Flow(nullptr), m_surfRftotal(nullptr)
-	initial_flag(false)
+	initial_flag(false), first_write_flag(true), write_step(10800)
 {
 	pihm_strc = (pihm_struct*)malloc(sizeof(pihm_struct));
 	pihm_strc->SeimsVariables = new SeimsVariablesStruct();
@@ -228,6 +228,17 @@ void PIHM::InitialOutputs() {
 	sprintf(hru_tri_map_file, "%s/input/%s/hru_tri_map_file.txt", pihm_dir, project);
 	pihm_strc->PIHMToolData->hru_tri_id_map = new map<int, int*>();
 	pihm_tools->read_map_from_file(hru_tri_map_file, pihm_strc->PIHMToolData->hru_tri_id_map);
+	// convert to tri_hru_map
+	pihm_strc->PIHMToolData->tri_hru_id_map = new map<int, int>();
+	// Èı½ÇĞÎid -> hru id µÄmap
+	for (const auto& pair : *(pihm_strc->PIHMToolData->hru_tri_id_map)) {
+		int hru_id = pair.first;
+		int n_tris  = pair.second[0];
+		for (int i = 1; i <= n_tris; i++) {
+			(*pihm_strc->PIHMToolData->tri_hru_id_map)[pair.second[i]] = hru_id;
+		}
+	}
+
 
 	all_adj_tri_ids_file = new char[MAXSTRING];
 	sprintf(all_adj_tri_ids_file, "%s/input/%s/all_adj_tris_id.txt", pihm_dir, project);
@@ -389,9 +400,12 @@ int PIHM::Execute() {
 			PrintInit(outputdir, ctrl->tout[ctrl->cstep + 1], ctrl->starttime, ctrl->endtime,
 				ctrl->prtvrbl[IC_CTRL], pihm_strc->elem, pihm_strc->river);
 		}
+		//cout << "current step end: " << ctrl->cstep << endl;
+		//PostExcute();
 	}
-
 	PostExcute();
+	pihm_strc->ctrl.cstep = 0;
+
 	//if (counter >= finish_times){
 	//	PostExcute();
 	//}
@@ -435,19 +449,25 @@ void PIHM::PostExcute() {
 	#endif
 
 	sprintf(pihm_output_file, "%s/output/%s/pihm_output_gwh.txt", pihm_dir, project);
-	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_gwh, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+	write_struct_to_file_avg(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_gwh, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag, write_step);
+	//write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_gwh, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag);
 	sprintf(pihm_output_file, "%s/output/%s/pihm_output_sufh.txt", pihm_dir, project);
-	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_sufh, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+	write_struct_to_file_avg(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_sufh, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag, write_step);
+	//write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_sufh, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag);
 	sprintf(pihm_output_file, "%s/output/%s/pihm_output_ex_gwq.txt", pihm_dir, project);
-	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_upstream_gwq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+	write_struct_to_file_avg(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_upstream_gwq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag, write_step);
+	//write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_upstream_gwq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag);
 	sprintf(pihm_output_file, "%s/output/%s/pihm_output_ex_subsurq.txt", pihm_dir, project);
-	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_upstream_subsurq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+	write_struct_to_file_avg(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_upstream_subsurq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag, write_step);
+	//write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_upstream_subsurq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag);
 	sprintf(pihm_output_file, "%s/output/%s/pihm_output_ex_surfq.txt", pihm_dir, project);
-	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries,pihm_strc->PIHMData->elem_upstream_surfq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
+	write_struct_to_file_avg(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_upstream_surfq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag, write_step);
+	//write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries,pihm_strc->PIHMData->elem_upstream_surfq, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag);
 	sprintf(pihm_output_file, "%s/output/%s/pihm_output_prcp.txt", pihm_dir, project);
-	write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_pcp, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids);
-
-	pihm_strc->ctrl.cstep = 0;
+	write_struct_to_file_avg(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_pcp, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag, write_step);
+	//write_struct_to_file(pihm_output_file, pihm_strc->PIHMData->timeseries, pihm_strc->PIHMData->elem_pcp, pihm_strc->PIHMToolData->all_adj_tris_ids, pihm_strc->ctrl.nstep, pihm_strc->PIHMToolData->len_all_adj_tris_ids, first_write_flag);
+	first_write_flag = false;
+	//pihm_strc->ctrl.cstep = 0;
 	
 	return ;
 }

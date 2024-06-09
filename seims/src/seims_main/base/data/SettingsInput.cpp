@@ -46,6 +46,8 @@ bool SettingsInput::readSimulationPeriodDate() {
     vector<string> dtList = SplitString(GetValue(Tag_Interval), ',');
     char* strend = nullptr;
     errno = 0;
+	// xiaodw comment, these are the origin code which just support daily mode
+	/*
     m_dtHs = strtol(dtList[0].c_str(), &strend, 10);
     m_dtCh = m_dtHs;
     if (dtList.size() > 1) {
@@ -56,6 +58,24 @@ bool SettingsInput::readSimulationPeriodDate() {
         m_dtHs *= 86400; // 86400 secs is 1 day
         m_dtCh *= 86400;
     }
+	*/
+
+	// xiaodw add, support sub daily mode, such as 3-hr. Of course MODE should be set in the FILE_IN collection in Mongo before use this new  mode
+	double m_tmp_dtHs = strtod(dtList[0].c_str(), &strend);
+	double m_tmp_dtCh = 0.0;
+	m_tmp_dtCh = m_tmp_dtHs;
+	if (dtList.size() > 1) {
+		m_tmp_dtCh = strtod(dtList[1].c_str(), &strend);
+	}
+	// convert the time interval to seconds to conform to time_t struct
+	if (StringMatch(m_mode, Tag_Mode_Daily)) {
+		m_dtHs = (time_t)(m_tmp_dtHs * 86400); // 86400 secs is 1 day
+		m_dtCh = (time_t)(m_tmp_dtCh * 86400);
+	}
+	else {
+		m_dtHs = (time_t)m_tmp_dtHs;
+		m_dtCh = (time_t)m_tmp_dtCh;
+	}
     return true;
 }
 

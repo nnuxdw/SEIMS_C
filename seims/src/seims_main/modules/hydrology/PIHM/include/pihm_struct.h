@@ -281,6 +281,7 @@ typedef struct SeimsMeteoStruct {
 	double *pihm_ws ;
 	double *pihm_rhd;
 	double *pihm_sr;
+	//double *pihm_pa;
 
 }SeimsMeteoStruct;
 

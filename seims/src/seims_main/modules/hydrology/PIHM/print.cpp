@@ -422,31 +422,35 @@ void ProgressBar(double progress)
 	}
 }
 
-void write_struct_to_file(const string& filename,  int * timeseries ,double** data, int* all_adj_tris_ids, int rows, int cols) {
+void write_struct_to_file(const string& filename,  int * timeseries ,double** data, int* all_adj_tris_ids, int rows, int cols,bool first_write_flag) {
 	ofstream file(filename, ios::app); // 以追加模式打开文件
 	if (!file.is_open()) {
 		cerr << "Error opening file: " << filename << endl;
 		return;
 	}
 	int offset = 12;
-	// 设置输出精度为小数点后3位
-	file << fixed << setprecision(3);
-	file << setw(offset) << "";
-	int k_tmp = 0;
-	
-	for (int j = 0; j < cols; j++) {
-		int index = 0;
-		for (int k = k_tmp; k < nelem; k++)
-		{
-			if (all_adj_tris_ids[k] == j) {
-				index = k;
-				k_tmp = k + 1;
-				break;
+	if (first_write_flag)
+	{
+		// 设置输出精度为小数点后3位
+		file << fixed << setprecision(3);
+		file << setw(offset) << "";
+		int k_tmp = 0;
+
+		for (int j = 0; j < cols; j++) {
+			int index = 0;
+			for (int k = k_tmp; k < nelem; k++)
+			{
+				if (all_adj_tris_ids[k] == j) {
+					index = k;
+					k_tmp = k + 1;
+					break;
+				}
 			}
+			file << setw(offset) << index;
 		}
-		file << setw(offset) << index;
+		file << endl; // 换行
 	}
-	file << endl; // 换行
+	
 	// 输出每个二维数组到文件
 	for (int i = 0; i < rows; ++i) {
 		// 写入时间序列
@@ -457,6 +461,150 @@ void write_struct_to_file(const string& filename,  int * timeseries ,double** da
 			file << setw(offset) << data[i][j];
 		}
 		file << endl; // 换行
+	}
+
+	file.close();
+}
+
+void write_struct_to_file_sum(const string& filename, int* timeseries, double** data, int* all_adj_tris_ids, int rows, int cols, bool first_write_flag, int write_step) {
+	ofstream file(filename, ios::app); // 以追加模式打开文件
+	if (!file.is_open()) {
+		cerr << "Error opening file: " << filename << endl;
+		return;
+	}
+
+	int offset = 12;
+	if (first_write_flag) {
+		// 设置输出精度为小数点后3位
+		file << fixed << setprecision(3);
+		file << setw(offset) << "";
+		int k_tmp = 0;
+
+		for (int j = 0; j < cols; j++) {
+			int index = 0;
+			for (int k = k_tmp; k < rows; k++) {
+				if (all_adj_tris_ids[k] == j) {
+					index = k;
+					k_tmp = k + 1;
+					break;
+				}
+			}
+			file << setw(offset) << index;
+		}
+		file << endl; // 换行
+	}
+
+	// 输出每个二维数组到文件
+	int start_index = 0;
+	while (start_index < rows) {
+		int end_index = start_index;
+		int start_time = timeseries[start_index];
+		int end_time = start_time + write_step;
+
+		// 统计时间范围内的数据
+		vector<double> sum_data(cols, 0.0);
+		while (end_index < rows && timeseries[end_index] < end_time) {
+			for (int j = 0; j < cols; ++j) {
+				sum_data[j] += data[end_index][j];
+			}
+			++end_index;
+		}
+
+		// 写入时间序列
+		pihm_t_struct pihm_time = PIHMTime(start_time);
+		file << setw(offset) << pihm_time.str;
+		for (int j = 0; j < cols; ++j) {
+			// 输出数据，并确保每个数据占据10个位置
+			file << setw(offset) << sum_data[j];
+		}
+		file << endl; // 换行
+
+		// 移动到下一个时间段
+		start_index = end_index;
+	}
+
+	file.close();
+}
+
+
+
+void write_struct_to_file_avg(const string& filename, int* timeseries, double** data, int* all_adj_tris_ids, int rows, int cols, bool first_write_flag, int write_step) {
+	ofstream file;
+	if (first_write_flag) {
+		file.open(filename, ios::out); // 覆盖模式打开文件
+	}
+	else {
+		file.open(filename, ios::app); // 追加模式打开文件
+	}
+
+	if (!file.is_open()) {
+		cerr << "Error opening file: " << filename << endl;
+		return;
+	}
+
+	int offset = 12;
+	if (first_write_flag) {
+		// 设置输出精度为小数点后3位
+		file << fixed << setprecision(3);
+		file << setw(offset) << "";
+		int k_tmp = 0;
+
+		for (int j = 0; j < cols; j++) {
+			int index = 0;
+			for (int k = k_tmp; k < rows; k++) {
+				if (all_adj_tris_ids[k] == j) {
+					index = k;
+					k_tmp = k + 1;
+					break;
+				}
+			}
+			file << setw(offset) << index;
+		}
+		file << endl; // 换行
+	}
+
+	// 输出每个二维数组到文件
+	int start_index = 0;
+	while (start_index < rows) {
+		int end_index = start_index;
+		int start_time = timeseries[start_index];
+		int end_time = start_time + write_step;
+
+		// 统计时间范围内的数据
+		vector<double> sum_data(cols, 0.0);
+		int count = 0;
+		while (end_index < rows && timeseries[end_index] < end_time) {
+			for (int j = 0; j < cols; ++j) {
+				sum_data[j] += data[end_index][j];
+			}
+			++end_index;
+			++count;
+		}
+
+		// 计算平均值
+		if (count > 0) {
+			for (int j = 0; j < cols; ++j) {
+				sum_data[j] /= count;
+			}
+		}
+
+		// 写入时间序列
+		pihm_t_struct pihm_time = PIHMTime(start_time);
+		file << setw(offset) << pihm_time.str;
+		for (int j = 0; j < cols; ++j) {
+			// 输出数据，并确保每个数据占据指定位置
+			// 如果值小于 0.0001，写为 0
+			if (sum_data[j] < 0.0001) {
+				file << setw(offset) << 0;
+			}
+			else {
+				file << setw(offset) << sum_data[j];
+			}
+		}
+		file << endl; // 换行
+
+		// 移动到下一个时间段
+		start_index = end_index;
 	}
 
 	file.close();

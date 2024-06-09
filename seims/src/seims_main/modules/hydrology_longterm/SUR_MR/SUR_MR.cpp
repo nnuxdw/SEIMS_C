@@ -183,7 +183,7 @@ int SUR_MR::Execute() {
         if (m_infil[i] > 0.f) {
             m_soilWtrSto[i][0] += m_infil[i];
         }
-		cout << "m_exsPcp[" << i << "]: " << m_exsPcp[i] << endl;
+		//cout << "m_exsPcp[" << i << "]: " << m_exsPcp[i] << endl;
     }
     return 0;
 }

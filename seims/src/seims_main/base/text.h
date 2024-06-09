@@ -268,6 +268,8 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define Tag_Mode                               "MODE"
 #define Tag_Mode_Storm                         "STORM"
 #define Tag_Mode_Daily                         "DAILY"
+//xiaodw , support sub daily calculation, such as 3-hr
+//#define USE_SUBDaily                         "SUBDAILY"
 
 #define Type_Scenario                          "SCENARIO"
 #define Type_Reach                             "REACH"

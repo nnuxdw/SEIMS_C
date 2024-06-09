@@ -207,8 +207,8 @@ void PIHM_TOOLS_DEV::read_map_from_file(const std::string& filename, map<int, in
 		int* value_array = new int[values.size()+1];
 		// [0]存储数组长度
 		value_array[0] = values.size();
-		for (size_t i = 1; i < values.size(); ++i) {
-			value_array[i] = values[i];
+		for (size_t i = 1; i <= values.size(); ++i) {
+			value_array[i] = values[i-1];
 		}
 
 		(*hru_tri_id_map)[key] = value_array;

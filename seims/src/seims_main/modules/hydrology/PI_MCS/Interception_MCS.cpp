@@ -129,7 +129,7 @@ int clsPI_MCS::Execute() {
 # endif
 
         if (m_pcp[i] > 0.f) {
-			cout << "m_pcp[" << i << "]: " << m_pcp[i] << endl;
+			//cout << "m_pcp[" << i << "]: " << m_pcp[i] << endl;
 #ifdef STORM_MODE
             /// correction for slope gradient, water spreads out over larger area
             /// 1. / 3600. = 0.0002777777777777778
@@ -169,7 +169,7 @@ int clsPI_MCS::Execute() {
             m_intcpLoss[i] = 0.f;
             m_netPcp[i] = 0.f;
         }
-		cout << "m_netPcp[" << i << "]: " << m_netPcp[i] << endl;
+		//cout << "m_netPcp[" << i << "]: " << m_netPcp[i] << endl;
 #ifndef STORM_MODE
         //evaporation
         if (m_canSto[i] > m_pet[i]) {

@@ -30,6 +30,7 @@ typedef struct PIHMToolDataStruct {
 	arg_struct *args;
 	vector<int> *hru_ids;
 	map<int, int*> *hru_tri_id_map;
+	map<int, int> *tri_hru_id_map;
 	int * all_adj_tris_ids;
 	int len_all_adj_tris_ids;
 

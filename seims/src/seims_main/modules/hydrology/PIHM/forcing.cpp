@@ -194,17 +194,18 @@ void ApplyMeteoForcing(int t, forc_struct *forc, elem_struct elem[],double * pih
 		ind = elem[i].attrib.meteo - 1;
 		// todo 这里数值有问题，导致cvode计算错误
 		elem[i].wf.prcp = pihm_pcp[i];  
-		//elem[i].es.sfctmp = pihm_tmean[i];
-		//elem[i].ps.rh = pihm_rhd[i];
-		//elem[i].ps.sfcspd = pihm_ws[i];
-		//elem[i].ef.soldn = pihm_sr[i] ;
-
+		elem[i].es.sfctmp = pihm_tmean[i];
+		elem[i].ps.rh = pihm_rhd[i];
+		elem[i].ps.sfcspd = pihm_ws[i];
+		elem[i].ef.soldn = pihm_sr[i] ;
+		elem[i].ps.sfcprs = 66790.0f;
+		//elem[i].ps.sfcprs =1.0f;
 		//elem[i].wf.prcp = 0;  
-		elem[i].es.sfctmp = 1;
-		elem[i].ps.rh = 0.5;
-		elem[i].ps.sfcspd = 1;
-		elem[i].ef.soldn = 1 ;
-		elem[i].ps.sfcprs = 1;
+		//elem[i].es.sfctmp = 1;
+		//elem[i].ps.rh = 0.5;
+		//elem[i].ps.sfcspd = 1;
+		//elem[i].ef.soldn = 1 ;
+		//elem[i].ps.sfcprs = 1;
 
 		//elem[i].wf.prcp = forc->meteo[ind].value[PRCP_TS] / 1000.0;
 		//elem[i].es.sfctmp = forc->meteo[ind].value[SFCTMP_TS];
