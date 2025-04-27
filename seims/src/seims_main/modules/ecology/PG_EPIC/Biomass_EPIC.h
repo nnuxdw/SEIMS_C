@@ -14,13 +14,7 @@
 #define SEIMS_MODULE_PG_EPIC_H
 
 #include "SimulationModule.h"
-# ifdef USE_PIHM
- // xiaodw, for pihm
-#include "pihm_tools.h"
-#ifndef MAXSTRING
-#define MAXSTRING  1024
-#endif
-#endif
+
 /** \defgroup PG_EPIC
  * \ingroup Ecology
  * \brief Predicts daily potential growth of total plant biomass and roots and calculates leaf area index
@@ -53,14 +47,7 @@ public:
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
-# ifdef USE_PIHM
-	// xiaodw, for pihm
-	PIHM_TOOLS *pihm_tools = nullptr;
-	vector<int> *hru_ids;
-	char * pihm_dir;
-	char * hru_ids_file;
-	char * project;
-#endif
+
 private:
     //////////////////////////////////////////////////////////////////////////
     //  The following code is transferred from swu.f of SWAT rev. 637
@@ -145,6 +132,7 @@ private:
 
     /// amount of water available to plants in soil layer at field capacity (fc - wp water), sol_fc in SWAT
     float** m_soilFC;
+    float** m_soilAWC;
     /// total m_soilAWC in soil profile, sol_sumfc in SWAT
     float* m_soilSumFC;
     /// amount of water held in soil profile at saturation, sol_sumul in SWAT
@@ -349,5 +337,6 @@ private:
     float** m_soilNH4;
     
     float* m_bmdieoff;
+    float* m_landuse;
 };
 #endif /* SEIMS_MODULE_PG_EPIC_H */

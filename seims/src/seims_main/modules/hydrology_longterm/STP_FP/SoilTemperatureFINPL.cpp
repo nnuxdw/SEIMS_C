@@ -17,8 +17,7 @@ SoilTemperatureFINPL::SoilTemperatureFINPL() :
     //ljj++
     m_maxSoilLyrs(-1),m_soildepth(nullptr),m_nSoilLyrs(nullptr), m_solthic(nullptr),m_soilthick(nullptr),
     tsoil1(NODATA_VALUE),tsoil2(NODATA_VALUE),tsoil3(NODATA_VALUE),tsoil4(NODATA_VALUE),tsoil5(NODATA_VALUE),
-    m_ddepth1(NODATA_VALUE),m_ddepth2(NODATA_VALUE),m_snowCoverMax(NODATA_VALUE),m_snowCover50(NODATA_VALUE),
-    m_tfrozen(NODATA_VALUE),
+    m_ddepth1(NODATA_VALUE),m_snowCoverMax(NODATA_VALUE),m_snowCover50(NODATA_VALUE),m_tfrozen(NODATA_VALUE),
     m_effcoe(nullptr),m_kcoe(nullptr),m_kscoe(nullptr),m_ccoe(nullptr),
     m_solnd(nullptr),m_soilPor(nullptr),m_soilWP(nullptr),m_soilWtrSto(nullptr),m_solpormm(nullptr),
     m_rsdInitSoil(nullptr),m_soilBD(nullptr),m_snowAcc(nullptr),m_soilAVBD(nullptr), m_solsw(nullptr),
@@ -34,8 +33,8 @@ SoilTemperatureFINPL::SoilTemperatureFINPL() :
     m_csol(nullptr),m_asol(nullptr),m_dsol(nullptr),m_dsols(nullptr),m_dice(nullptr),
     m_asno(nullptr),m_bsno(nullptr),m_csno(nullptr),m_dsno(nullptr),m_psno(nullptr),m_qsno(nullptr),
     m_soltmp1(nullptr),m_snotmp1(nullptr),m_presnotmp(nullptr), m_soilt(nullptr),
-    m_smp(nullptr),m_supercool(nullptr),m_sand(nullptr),m_clay(nullptr),
-    m_SOTE1(nullptr),m_SOTE20(nullptr),m_SOTE50(nullptr),m_SOTE60(nullptr),m_SOTE100(nullptr),m_SOTE200(nullptr)
+    m_smp(nullptr),m_supercool(nullptr),m_sand(nullptr),m_clay(nullptr),m_soilSat(nullptr),m_tMin(nullptr),m_tMax(nullptr),
+    m_SOTE1(nullptr),m_SOTE5(nullptr),m_SOTE15(nullptr),m_SOTE30(nullptr),m_SOTE60(nullptr),m_SOTE100(nullptr),m_SOTE200(nullptr)
     {
 }
 
@@ -77,8 +76,9 @@ SoilTemperatureFINPL::~SoilTemperatureFINPL() {
     if (m_dsols != nullptr) Release1DArray(m_dsols);
 
     if (m_SOTE1 != nullptr) Release1DArray(m_SOTE1);
-    if (m_SOTE20 != nullptr) Release1DArray(m_SOTE20);
-    if (m_SOTE50 != nullptr) Release1DArray(m_SOTE50);
+    if (m_SOTE5 != nullptr) Release1DArray(m_SOTE5);
+    if (m_SOTE15 != nullptr) Release1DArray(m_SOTE15);
+    if (m_SOTE30 != nullptr) Release1DArray(m_SOTE30);
     if (m_SOTE60 != nullptr) Release1DArray(m_SOTE60);
     if (m_SOTE100 != nullptr) Release1DArray(m_SOTE100);
     if (m_SOTE200 != nullptr) Release1DArray(m_SOTE200);
@@ -143,43 +143,53 @@ int SoilTemperatureFINPL::Execute() {
             m_meanTempPre1[i] = t;
         }
     }
+#pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
-        SoilTempTSWAT(i);   //TSWAT
-        m_soilTemp[i] = m_soilt[i][0];
+        if ((FloatEqual(CVT_INT(m_landUse[i]), LANDUSE_ID_WATR)) || (FloatEqual(CVT_INT(m_landUse[i]), 300))|| (FloatEqual(CVT_INT(m_landUse[i]), 400))) {
+            m_soilTemp[i] = m_meanTemp[i];
+        }else{
+            SoilTempTSWAT(i);   //TSWAT
+            //SoilTempSWAT(i);   //SWAT
+            m_soilTemp[i] = m_soilt[i][0];
+        }
     }
     //output
     int nlyr=5; //!!????ljj
     //assume the depth below the deepest soil layer is devided into 5 layer
     int nly1=0;
-    
+#pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
         nly1 = m_nSoilLyrs[i]+ nlyr;
         for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
             if (m_solnd[i][k+1]>10. && m_solnd[i][k]<=10.) {
-                m_SOTE1[i] = m_soltmp1[i][k] * ( (m_solnd[i][k+1]-10) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
-                            + m_soltmp1[i][k+1] * ((10- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
+                m_SOTE1[i] = m_soilt[i][k] * ( (m_solnd[i][k+1]-10) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
+                            + m_soilt[i][k+1] * ((10- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
             } 
-            if (m_solnd[i][k+1]>200. && m_solnd[i][k]<=200.) {
-                m_SOTE20[i] = m_soltmp1[i][k] * ( (m_solnd[i][k+1]-200) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
-                            + m_soltmp1[i][k+1] * ((200- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
+            if (m_solnd[i][k+1]>50. && m_solnd[i][k]<=50.) {
+                m_SOTE5[i] = m_soilt[i][k] * ( (m_solnd[i][k+1]-50) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
+                            + m_soilt[i][k+1] * ((50- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
+            }
+            if (m_solnd[i][k+1]>150. && m_solnd[i][k]<=150.) {
+                m_SOTE15[i] = m_soilt[i][k] * ( (m_solnd[i][k+1]-150) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
+                            + m_soilt[i][k+1] * ((150- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
             } 
-            if (m_solnd[i][k+1]>500. && m_solnd[i][k]<=500.) {
-                m_SOTE50[i] = m_soltmp1[i][k] * ( (m_solnd[i][k+1]-500) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
-                            + m_soltmp1[i][k+1] * ((500- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
+            if (m_solnd[i][k+1]>300. && m_solnd[i][k]<=300.) {
+                m_SOTE30[i] = m_soilt[i][k] * ( (m_solnd[i][k+1]-300) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
+                            + m_soilt[i][k+1] * ((300- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
             }
             if (m_solnd[i][k+1]>600. && m_solnd[i][k]<=600.) {
-                m_SOTE60[i] = m_soltmp1[i][k] * ( (m_solnd[i][k+1]-600) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
-                            + m_soltmp1[i][k+1] * ((600- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
+                m_SOTE60[i] = m_soilt[i][k] * ( (m_solnd[i][k+1]-600) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
+                            + m_soilt[i][k+1] * ((600- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
             } 
             if (m_solnd[i][k+1]>1000. && m_solnd[i][k]<=1000.) {
-                m_SOTE100[i] = m_soltmp1[i][k] * ( (m_solnd[i][k+1]-1000) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
-                            + m_soltmp1[i][k+1] * ((1000- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
+                m_SOTE100[i] = m_soilt[i][k] * ( (m_solnd[i][k+1]-1000) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
+                            + m_soilt[i][k+1] * ((1000- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
             }
             if (m_solnd[i][k+1]>2000. && m_solnd[i][k]<=2000.) {
                 
-                m_SOTE200[i] = m_soltmp1[i][k] * ( (m_solnd[i][k+1]-2000) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
-                            + m_soltmp1[i][k+1] * ((2000- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
-            }  
+                m_SOTE200[i] = m_soilt[i][k] * ( (m_solnd[i][k+1]-2000) / (m_solnd[i][k+1]-m_solnd[i][k]) ) 
+                            + m_soilt[i][k+1] * ((2000- m_solnd[i][k]) / (m_solnd[i][k+1]-m_solnd[i][k]) );
+            }                   
         }
     }
     if (errCount > 0) {
@@ -223,7 +233,6 @@ void SoilTemperatureFINPL::SetValue(const char* key, const float value) {
     else if (StringMatch(sk, VAR_TSOIL4)) tsoil4 = value;
     else if (StringMatch(sk, VAR_TSOIL5)) tsoil5 = value;
     else if (StringMatch(sk, VAR_DDEPTH1)) m_ddepth1 = value;  
-    else if (StringMatch(sk, VAR_DDEPTH2)) m_ddepth2 = value; 
     else if (StringMatch(sk, VAR_SNOCOVMX)) m_snowCoverMax = value;
     else if (StringMatch(sk, VAR_SNO50COV)) m_snowCover50 = value; 
     else if (StringMatch(sk, VAR_T_SOIL)) m_tfrozen = value;
@@ -242,6 +251,8 @@ void SoilTemperatureFINPL::Set1DData(const char* key, const int n, float* data) 
     else if (StringMatch(sk, VAR_SOL_SW)) m_solsw = data;
 	else if (StringMatch(sk, VAR_SOLAVBD)) m_soilAVBD = data;
     else if (StringMatch(sk, VAR_TMEAN_ANN)) m_annMeanTemp = data;
+    else if (StringMatch(sk, VAR_TMAX)) m_tMax = data;
+	else if (StringMatch(sk, VAR_TMIN)) m_tMin = data;
     else if (StringMatch(sk, DataType_MaximumMonthlyTemperature)) m_tmpmx = data;
     else if (StringMatch(sk, DataType_MinimumMonthlyTemperature)) m_tmpmn = data;
     else if (StringMatch(sk, VAR_DEM)) m_dem = data;
@@ -272,11 +283,14 @@ void SoilTemperatureFINPL::Get1DData(const char* key, int* n, float** data) {
     else if (StringMatch(sk, VAR_SOTE1)) {
 		*data = m_SOTE1;
 	}
-    else if (StringMatch(sk, VAR_SOTE20)) {
-		*data = m_SOTE20;
+    else if (StringMatch(sk, VAR_SOTE5)) {
+		*data = m_SOTE5;
 	}
-    else if (StringMatch(sk, VAR_SOTE50)) {
-		*data = m_SOTE50;
+    else if (StringMatch(sk, VAR_SOTE15)) {
+		*data = m_SOTE15;
+	}
+    else if (StringMatch(sk, VAR_SOTE30)) {
+		*data = m_SOTE30;
 	}
     else if (StringMatch(sk, VAR_SOTE60)) {
 		*data = m_SOTE60;
@@ -307,8 +321,9 @@ void SoilTemperatureFINPL::InitialOutputs() {
     //ljj++
     if (nullptr == m_SOTE1) {
         Initialize1DArray(m_nCells, m_SOTE1, 0.f);
-        Initialize1DArray(m_nCells, m_SOTE20, 0.f);
-        Initialize1DArray(m_nCells, m_SOTE50, 0.f);
+        Initialize1DArray(m_nCells, m_SOTE5, 0.f);
+        Initialize1DArray(m_nCells, m_SOTE15, 0.f);
+        Initialize1DArray(m_nCells, m_SOTE30, 0.f);
         Initialize1DArray(m_nCells, m_SOTE60, 0.f);
         Initialize1DArray(m_nCells, m_SOTE100, 0.f);
         Initialize1DArray(m_nCells, m_SOTE200, 0.f);
@@ -337,9 +352,11 @@ void SoilTemperatureFINPL::InitialOutputs() {
         Initialize2DArray(m_nCells, newlayer, m_solkd, 0.f);
         Initialize2DArray(m_nCells, newlayer, m_solke, 0.f);
         Initialize2DArray(m_nCells, newlayer, m_solksat, 0.f);
-        Initialize2DArray(m_nCells, newlayer, m_ksol, 100.f);
+        Initialize2DArray(m_nCells, newlayer, m_ksol, 0.f);
         Initialize2DArray(m_nCells, newlayer, m_solthic, 0.f);
+#pragma omp parallel for
         for (int i = 0; i < m_nCells; i++) {
+            m_basedep[i] = m_ddepth1;
             m_effcoe[i] = tsoil1; //50; //calibration air to surface
             m_kcoe[i][0] = tsoil2; //10; //calibration 土壤热导率的乘数
             for (int k = 1; k < CVT_INT(m_nSoilLyrs[i]); k++) {
@@ -347,13 +364,13 @@ void SoilTemperatureFINPL::InitialOutputs() {
             }
             m_kscoe[i] = tsoil4; //1; calibration snow heat conduc.
             m_ccoe[i] = tsoil5;  //1; calibration soil heat capacity
-
             //call soltphys_in  !initialization
             //depth to point k from soil surface mm
             m_solthic[i][0]=m_soildepth[i][0];    
             for (int k = 1; k < CVT_INT(m_nSoilLyrs[i]); k++) {
                 m_solthic[i][k]= m_soildepth[i][k] - m_soildepth[i][k-1];
-            }
+                m_solthic[i][k]= Abs(m_solthic[i][k]);
+            }         
             m_solnd[i][0]=m_soildepth[i][0] / 2;  
             for (int k = 1; k < CVT_INT(m_nSoilLyrs[i]); k++) {
                 m_solnd[i][k]=m_soildepth[i][k-1] + m_solthic[i][k]/2;
@@ -361,6 +378,7 @@ void SoilTemperatureFINPL::InitialOutputs() {
 
             for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
                 m_solpormm[i][k]=m_soilPor[i][k]*m_solthic[i][k];
+                if(m_solpormm[i][k]-m_soilWP[i][k] <= 0.f) m_solpormm[i][k] = m_soilWP[i][k]/0.25f;
                 m_solwc[i][k] = m_soilWP[i][k] - m_solice[i][k]; //ljj change for bug
                 m_solwcv[i][k]  = m_solwc[i][k] / m_solthic[i][k];
                 m_solorg[i][k]  = (m_rsdInitSoil[i]) / (0.5*10000); //note:m_solhum is zero
@@ -368,12 +386,6 @@ void SoilTemperatureFINPL::InitialOutputs() {
                 m_solminv[i][k] = m_soilBD[i][k] / 2.65 - m_solorgv[i][k];
                 m_solicev[i][k] = m_solice[i][k] / m_solthic[i][k];
                 m_solair[i][k]  = m_solpormm[i][k]- m_solwc[i][k]-m_solice[i][k];
-            }
-            if(m_dem[i]<3650) {
-                m_basedep[i] = m_ddepth1;
-            }
-            if(m_dem[i]>=3650) {
-                m_basedep[i] = m_ddepth2;
             }
         }
     }
@@ -397,13 +409,13 @@ void SoilTemperatureFINPL::InitialOutputs() {
     if (nullptr == m_qsno ) Initialize1DArray(m_nCells, m_qsno, 0.f);
     if (nullptr == m_kss ) Initialize1DArray(m_nCells, m_kss, 0.f);
     int newlayer = m_maxSoilLyrs+6; //ljj++
-    if (nullptr == m_kint ) Initialize1DArray(newlayer, m_kint, 0.f);
-    if (nullptr == m_bsol ) Initialize1DArray(newlayer, m_bsol, 0.f);
-    if (nullptr == m_csol ) Initialize1DArray(newlayer, m_csol, 0.f);
-    if (nullptr == m_asol ) Initialize1DArray(newlayer, m_asol, 0.f);
-    if (nullptr == m_dsol ) Initialize1DArray(newlayer, m_dsol, 0.f);
-    if (nullptr == m_psol ) Initialize1DArray(newlayer, m_psol, 0.f);
-    if (nullptr == m_qsol ) Initialize1DArray(newlayer, m_qsol, 0.f);
+    if (nullptr == m_kint ) Initialize2DArray(m_nCells,newlayer, m_kint, 0.f);
+    if (nullptr == m_bsol ) Initialize2DArray(m_nCells,newlayer, m_bsol, 0.f);
+    if (nullptr == m_csol ) Initialize2DArray(m_nCells,newlayer, m_csol, 0.f);
+    if (nullptr == m_asol ) Initialize2DArray(m_nCells,newlayer, m_asol, 0.f);
+    if (nullptr == m_dsol ) Initialize2DArray(m_nCells,newlayer, m_dsol, 0.f);
+    if (nullptr == m_psol ) Initialize2DArray(m_nCells,newlayer, m_psol, 0.f);
+    if (nullptr == m_qsol ) Initialize2DArray(m_nCells,newlayer, m_qsol, 0.f);
     if (nullptr == m_dice) Initialize2DArray(m_nCells, newlayer, m_dice, 0.f);
     if (nullptr == m_dsols) Initialize2DArray(m_nCells, newlayer, m_dsols, 0.f);
     if (nullptr == m_smp) Initialize2DArray(m_nCells, newlayer, m_smp, 0.f);
@@ -432,6 +444,7 @@ void SoilTemperatureFINPL::Set2DData(const char* key, int n, int col, float** da
     else if (StringMatch(sk, VAR_SOL_RSD)) m_soilRsd = data;
     else if (StringMatch(sk, "clay")) m_clay = data;
     else if (StringMatch(sk, "sand"))  m_sand = data;
+    else if (StringMatch(sk, VAR_SOL_UL)) m_soilSat = data;
 }
 
 void SoilTemperatureFINPL::Get2DData(const char* key, int* nrows, int* ncols, float*** data) {
@@ -458,7 +471,6 @@ void SoilTemperatureFINPL::Get2DData(const char* key, int* nrows, int* ncols, fl
 //ljj++
 void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
     for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
-        m_solpormm[i][k]=m_soilPor[i][k]*m_solthic[i][k];
         if(m_solice[i][k] <= m_soilWP[i][k]){
             m_solwc[i][k] = m_soilWtrSto[i][k] + m_soilWP[i][k] - m_solice[i][k];
         } else{
@@ -477,7 +489,7 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
         m_solminv[i][k] = m_soilBD[i][k] / 2.65 - m_solorgv[i][k];
         m_solicev[i][k] = m_solice[i][k] / m_solthic[i][k];
         m_solair[i][k]  = m_solpormm[i][k]- m_solwc[i][k]-m_solice[i][k];
-        
+
     }   
     //subroutine snom1
     //Snow depth
@@ -511,14 +523,14 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
     for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
         m_casol[i][k]=4.1868*( 0.48*m_solminv[i][k] + 0.6*m_solorgv[i][k] + 1*m_solwcv[i][k]+0.45*m_solicev[i][k]);
 	    m_casol[i][k]=m_casol[i][k]*m_ccoe[i];
-    }
-
+    //}
+        
     //soil thermal conductivity  in the frozen and unfrozen states. 
-    for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
+    //for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
         m_solsatu[i][k]= Max((m_solwc[i][k]+m_solice[i][k])/m_solpormm[i][k], 0.0001);
         m_solkd[i][k]=864*((0.135*m_soilBD[i][k]*1000+64.7) / (2700-0.947*m_soilBD[i][k]*1000));
-    }
-    for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
+    //}
+    //for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
         if ((m_solice[i][k] /m_solwc[i][k]) > 1) {
             m_solke[i][k]= m_solsatu[i][k];
             m_solksat[i][k]=pow((864*2.9),(1-m_soilPor[i][k])) * pow((864*2.2),(m_soilPor[i][k]-m_solwcv[i][k])) * pow((0.57*864),m_solwcv[i][k]);
@@ -531,6 +543,7 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
             m_solksat[i][k]=pow((864*0.57),m_soilPor[i][k]) * pow((2.9*864),(1-m_soilPor[i][k]));
         }
         m_ksol[i][k]=(m_solksat[i][k]-m_solkd[i][k])*m_solke[i][k]+m_solkd[i][k] ;
+        m_ksol[i][k]=Max(m_ksol[i][k],m_solkd[i][k]);
         m_ksol[i][k]= m_ksol[i][k]* m_kcoe[i][k];  //Calibration
     }
 
@@ -541,8 +554,8 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
     float d = 0.;
     float dp = 0.;
     f = m_soilAVBD[i] / (m_soilAVBD[i] + 686. * exp(-5.63 * m_soilAVBD[i]));
-    dp = 1000. + 2500. * f; //ljj base depth =1000
-    dp = m_basedep[i] + 2500. * f; 
+    dp = m_basedep[i] + 2500. * f; //ljj base depth =1000
+    //dp = m_basedep[i] + 2500. * f; 
 
     //calculate scaling factor for soil water
     //SWAT manual equation 2.3.7
@@ -608,7 +621,6 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
     }else{ 
         m_ambtmp[i]=m_meanTemp[i];
     }
-    
     //adjust for areal extent of snow cover
     float snocov1 = 0.f;
     float snocov2 = 0.f;
@@ -641,11 +653,15 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
 	}else{
         ralb =m_sr[i]*(1.0 - m_alb[i]);
 	}
-
+    
     //calculate net long-wave radiation--
     //calculate the max solar radiation
     float srMax = 0.f;
-    MaxSolarRadiation(m_dayOfYear, m_cellLat[i], m_dayLen[i], srMax);
+    if(m_cellLat[i]>90.f){
+        MaxSolarRadiation(m_dayOfYear, m_cellLat[i], m_dayLen[i], srMax);
+    }else{
+        MaxSolarRadiation(m_dayOfYear, 30.f, m_dayLen[i], srMax);
+    }
     //calculate net long-wave radiation
     //net emissivity  equation 2.2.20 in SWAT manual
     float satVaporPressure = SaturationVaporPressure(m_meanTemp[i]); //kPa
@@ -660,6 +676,7 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
     float rbo = -(0.34f - 0.139f * sqrt(actualVaporPressure)); //P37 1:1.2.22
     //cloud cover factor equation 2.2.19
     float rto = 0.0f;
+    srMax = Max(srMax,m_sr[i]);
     if (srMax >= 1.0e-4f) {
         rto = 0.9f * (m_sr[i] / srMax) + 0.1f;
     }
@@ -676,45 +693,51 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
 
     float eff_conr=8.1*ralb*(1 - exp(Min(m_maxLai[i],m_lai[i])-6.8))/86400;
     eff_conr=eff_conr*m_effcoe[i];  //calibration
+    eff_conr = Max(eff_conr,0.f);
+   
 	if (m_snowAcc[i] <=0) {
         m_surtmp[i]=m_ambtmp[i]/(1+eff_conr)+eff_conr/(1+eff_conr)*(m_soltmp1[i][0]+rn_pet/(m_ksol[i][0]/((m_solthic[i][0]/10)/2)));
     }else{
         m_surtmp[i]=m_ambtmp[i]/(1+eff_conr)+eff_conr/(1+eff_conr)*(m_snotmp1[i]+rn_pet/(m_ksno[i]/((m_snodep[i]/10)/2)));
 	}
+
     //call soltcal      !土壤内部温度计算
     if (m_snoco[i]>0.5 ){
         m_kss[i]=m_ksno[i]*m_ksol[i][0]*(m_snodep[i]/10/2+m_solthic[i][0]/10/2)/(m_ksno[i]*m_solthic[i][0]/10/2+m_ksol[i][0]*m_snodep[i]/10/2);
     }else{
 	    m_kss[i]=m_ksol[i][0];
     }
+
     for (int k = 0; k < nly1-1; k++) {
-        m_kint[k]=m_ksol[i][k]*m_ksol[i][k+1]*(m_solthic[i][k]/10/2 + m_solthic[i][k+1]/10/2) / (m_ksol[i][k]*m_solthic[i][k+1] / 10/2+m_ksol[i][k+1]*m_solthic[i][k]/10/2);
-        m_bsol[k]=m_kint[k] /(m_solthic[i][k]/10/2+m_solthic[i][k+1]/10/2);
-        m_csol[k+1]=m_kint[k] /(m_solthic[i][k]/10/2+m_solthic[i][k+1]/10/2) ;
+        m_kint[i][k]=m_ksol[i][k]*m_ksol[i][k+1]*(m_solthic[i][k]/10/2 + m_solthic[i][k+1]/10/2) / (m_ksol[i][k]*m_solthic[i][k+1] / 10/2+m_ksol[i][k+1]*m_solthic[i][k]/10/2);
+        m_bsol[i][k]=m_kint[i][k] /(m_solthic[i][k]/10/2+m_solthic[i][k+1]/10/2);
+        m_csol[i][k+1]=m_kint[i][k] /(m_solthic[i][k]/10/2+m_solthic[i][k+1]/10/2) ;
     }
-    m_kint[nly1-1]=m_ksol[i][nly1-1]/(m_solthic[i][nly1-1]/10/2);
-    m_bsol[nly1-1]=m_kint[nly1-1]/(m_solthic[i][nly1-1]/10/2) ;
+    
+    m_kint[i][nly1-1]=m_ksol[i][nly1-1]/(m_solthic[i][nly1-1]/10/2);
+    m_bsol[i][nly1-1]=m_kint[i][nly1-1]/(m_solthic[i][nly1-1]/10/2) ;
 
     if (m_snoco[i]>0.5 ){
-        m_csol[0]=m_kss[i]/(m_snodep[i]/10/2+m_solthic[i][0]/10/2);
+        m_csol[i][0]=m_kss[i]/(m_snodep[i]/10/2+m_solthic[i][0]/10/2);
     }else{
-	    m_csol[0]=m_kint[0]/(m_solthic[i][0]/10/2);
+	    m_csol[i][0]=m_kint[i][0]/(m_solthic[i][0]/10/2);
     }
     int solft=1; //solft=0 no freeze and thaw; solft=1 with freeze and thaw
-    int supercool = 1; //ljj++
+    int supercool = 0; //ljj++
     if(solft==0) {
        for (int k = 0; k < nly1; k++) {
-          m_asol[k]=m_bsol[k]+m_csol[k]+m_casol[i][k]*(m_solthic[i][k]/10)/1 ;
-          m_dsol[k]=m_casol[i][k]*(m_solthic[i][k]/10)*m_soltmp1[i][k]/1;
+          m_asol[i][k]=m_bsol[i][k]+m_csol[i][k]+m_casol[i][k]*(m_solthic[i][k]/10)/1 ;
+          m_dsol[i][k]=m_casol[i][k]*(m_solthic[i][k]/10)*m_soltmp1[i][k]/1;
        }
 	}
+   
     if(solft==1) { 
         for (int k = 0; k <nly1; k++) {
             m_supercool[i][k]= 0.f;
-            m_asol[k]=m_bsol[k]+m_csol[k]+m_casol[i][k]*(m_solthic[i][k]/10)/1 ;
+            m_asol[i][k]=m_bsol[i][k]+m_csol[i][k]+m_casol[i][k]*(m_solthic[i][k]/10)/1 ;
             //call soltfretha(k)!! latent heat source  
             if (k<=m_nSoilLyrs[i]-1) {
-                if (m_soltmp1[i][k]<=m_tfrozen) { //---------------freeziing---------------
+                if (m_soltmp1[i][k]<=0.f) { //---------------freeziing---------------
                     a=0;
 	                b=0;
 	                a=m_casol[i][k]*(m_solthic[i][k]/10)*m_soltmp1[i][k] ;
@@ -726,40 +749,42 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
                     // SUPERCOOL(J) = SUPERCOOL(J)*DZSNSO(J)*1000. 
                     float HFUS = 0.3336e6;
                     float GRAV = 9.80616;
-                    m_smp[i][k]= HFUS*(m_tfrozen-m_soltmp1[i][k])/(GRAV*(m_soltmp1[i][k]+273.15));   //m
+                    m_smp[i][k]= HFUS*(0.f-m_soltmp1[i][k])/(GRAV*(m_soltmp1[i][k]+273.15));   //m
+                    
                     //m_smp[i][k] = Max(0.f,m_smp[i][k]);
                     //BEXP(I)   = 2.91+0.159*myClay(I)
                     float BEXP = 2.91+0.159*m_clay[i][k];
+                    //float BEXP = -3.140-0.00222*m_clay[i][k]*m_clay[i][k]-0.000003484*m_clay[i][k]*m_sand[i][k]*m_sand[i][k];
                     //SMCMAX is porosity of liquid water
                     //PSISAT is saturated soil matric potential 0.01*10**( 1.88-0.0131*mySand(I) )
                     float PSISAT = 0.01*pow(10,( 1.88-0.0131*m_sand[i][k] ));
-                    m_supercool[i][k]= m_soilPor[i][k]*(pow((m_smp[i][k]/PSISAT),(-1./BEXP))); 
-                    // DZSNSO  !snow/soil layer thickness [m]
-                    if(k>0){
-                        m_supercool[i][k]= m_supercool[i][k] *(m_soildepth[i][k] - m_soildepth[i][k-1]);  //mm
-                    }else{
-                        m_supercool[i][k]= m_supercool[i][k] *m_soildepth[i][k];  //mm
-                    }
-                    m_supercool[i][k] = Min(m_supercool[i][k],(m_solice[i][k]));
-                    m_supercool[i][k] = Max(m_supercool[i][k]*0.1, 0.f);
+                    //float PSISAT =(exp(-4.396-0.0715*m_clay[i][k]-0.0004880*m_sand[i][k]*m_sand[i][k]-0.000004285*m_clay[i][k]*m_sand[i][k]*m_sand[i][k]));
+                    PSISAT = Min(PSISAT,1.f);
+                   // m_supercool[i][k]= (m_soilSat[i][k])*(pow((m_smp[i][k]/PSISAT),(-1./BEXP))); 
+                    m_supercool[i][k]= (m_solpormm[i][k])*(pow((m_smp[i][k]/PSISAT),(-1./BEXP))); 
+                    //m_supercool[i][k] = Min(m_supercool[i][k],0.05f*m_soilthick[i][k]*m_soilBD[i][k]);
                     
+                    if(m_soildepth[i][k]>=ddepth[i]) m_supercool[i][k] =0.f;
+
                     //
                     if (m_dsols[i][k]>=0) {
                         m_dice[i][k] = -a/334*10;
                         if(supercool==1 && m_solwc[i][k] - m_dice[i][k] <m_supercool[i][k]) m_dice[i][k] = m_solwc[i][k]-m_supercool[i][k]; 
+                        m_dice[i][k] = Max(m_dice[i][k],0.f);
                         m_dice[i][k] = Min(m_dice[i][k], m_solwc[i][k]);
                         m_solwc[i][k] =m_solwc[i][k] - m_dice[i][k];
                         m_solice[i][k]=m_solice[i][k]+ m_dice[i][k];
-		                m_dsol[k]=0; 
-                        if(supercool==1 && m_solwc[i][k] - m_dice[i][k] <m_supercool[i][k]) m_dsol[k]= (a+334*m_solwc[i][k]/10)/1;  // m_dsol[k]= (a+b)/1;
+		                m_dsol[i][k]=0; 
+                        //if(supercool==1 && m_solwc[i][k] - m_dice[i][k] <m_supercool[i][k]) m_dsol[k]= (a+334*m_solwc[i][k]/10)/1;  // m_dsol[k]= (a+b)/1;
                     }else{
-                        m_dsol[k]= (a+b)/1;    
+                        m_dsol[i][k]= (a+b)/1;    
                         m_dice[i][k]=m_solwc[i][k];
-                        m_dice[i][k] = Min(m_dice[i][k], m_solwc[i][k]);
                         if(supercool==1 && m_solwc[i][k] - m_dice[i][k] <m_supercool[i][k]) m_dice[i][k] = m_solwc[i][k]-m_supercool[i][k];
+                        m_dice[i][k] = Max(m_dice[i][k],0.f);
+                        m_dice[i][k] = Min(m_dice[i][k], m_solwc[i][k]);
                         m_solice[i][k]=m_solice[i][k]+ m_dice[i][k]; 
                         m_solwc[i][k]=m_solwc[i][k] - m_dice[i][k];         
-                        if(supercool==1 && m_solwc[i][k] - m_dice[i][k] <m_supercool[i][k]) m_dsol[k]= (a+334*m_solwc[i][k]/10)/1;
+                        //if(supercool==1 && m_solwc[i][k] - m_dice[i][k] <m_supercool[i][k]) m_dsol[k]= (a+334*m_solwc[i][k]/10)/1;
                     }
                 }else{ //-------------------------thawing--------------------------------
                     a=0;
@@ -771,9 +796,9 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
                         m_dice[i][k]=-a/334*10;
                         m_solwc[i][k] = m_solwc[i][k] - m_dice[i][k];
                         m_solice[i][k]=m_solice[i][k]+ m_dice[i][k];
-		                m_dsol[k]=0;
+		                m_dsol[i][k]=0;
                     }else{
-                        m_dsol[k]=(a-b) /1;
+                        m_dsol[i][k]=(a-b) /1;
 		                m_dice[i][k]=m_solice[i][k];
                         m_solwc[i][k]=m_solwc[i][k]+m_dice[i][k];
 		                m_solice[i][k]=0;
@@ -786,7 +811,7 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
                 }
             }else{
                 //added soil layers without freezing and thaw
-                m_dsol[k]=m_casol[i][k]*(m_solthic[i][k]/10)*m_soltmp1[i][k];
+                m_dsol[i][k]=m_casol[i][k]*(m_solthic[i][k]/10)*m_soltmp1[i][k];
             } 
         }
     }
@@ -806,23 +831,23 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
         m_psno[i]=0;
         m_qsno[i]=0;
     }
-        
+    
     if (m_snoco[i]>0.5 ) {
-        m_psol[0]=m_bsol[0]/(m_asol[0]-m_csol[0]*m_psno[i]);
-        m_qsol[0]=(m_dsol[0]+m_csol[0]*m_qsno[i])/ (m_asol[0]-m_csol[0]*m_psno[i]);
+        m_psol[i][0]=m_bsol[i][0]/(m_asol[i][0]-m_csol[i][0]*m_psno[i]);
+        m_qsol[i][0]=(m_dsol[i][0]+m_csol[i][0]*m_qsno[i])/ (m_asol[i][0]-m_csol[i][0]*m_psno[i]);
     }else{
-	    m_psol[0]=m_bsol[0]/(m_asol[0]);
-        m_qsol[0]=(m_dsol[0]+m_csol[0]*m_surtmp[i])/ (m_asol[0]);
+	    m_psol[i][0]=m_bsol[i][0]/(m_asol[i][0]);
+        m_qsol[i][0]=(m_dsol[i][0]+m_csol[i][0]*m_surtmp[i])/ (m_asol[i][0]);
     }
 
     for (int k = 1; k < nly1; k++) {
-        m_psol[k]=m_bsol[k] / (m_asol[k]-m_csol[k]*m_psol[k-1]);
-        m_qsol[k]=(m_dsol[k]+m_csol[k]*m_qsol[k-1])/(m_asol[k]-m_csol[k]*m_psol[k-1]);
+        m_psol[i][k]=m_bsol[i][k] / (m_asol[i][k]-m_csol[i][k]*m_psol[i][k-1]);
+        m_qsol[i][k]=(m_dsol[i][k]+m_csol[i][k]*m_qsol[i][k-1])/(m_asol[i][k]-m_csol[i][k]*m_psol[i][k-1]);
     }
-    m_soltmp1[i][nly1-1]=m_psol[nly1-1]*m_bottmp[i]+m_qsol[nly1-1];
+    m_soltmp1[i][nly1-1]=m_psol[i][nly1-1]*m_bottmp[i]+m_qsol[i][nly1-1];
 
     for (int k = nly1-2; k > -1; k--) {
-        m_soltmp1[i][k]=m_psol[k]*m_soltmp1[i][k+1]+m_qsol[k];
+        m_soltmp1[i][k]=m_psol[i][k]*m_soltmp1[i][k+1]+m_qsol[i][k];
     }
 
     for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
@@ -855,7 +880,71 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
             m_soilWtrSto[i][k] = m_solwc[i][k];   
         }
         m_soilWtrSto[i][k] = Max(m_soilWtrSto[i][k],0.0); 
-        m_soilWtrSto[i][k] = Min(m_solpormm[i][k]-m_soilWP[i][k] , m_soilWtrSto[i][k]) ; 
+        m_soilWtrSto[i][k] = Min(m_solpormm[i][k]-m_soilWP[i][k] , m_soilWtrSto[i][k]) ;  
     } 
 
+}
+void SoilTemperatureFINPL::SoilTempSWAT(const int i) {
+	float tlag = 0.8f;  ///default is 0.8
+	float xx, zd, df;
+
+	float f = 0.f;
+	float dp = 0.f;
+	f = m_soilAVBD[i] / (m_soilAVBD[i] + 686. * exp(-5.63 * m_soilAVBD[i]));
+	dp = 1000.f + 2500.f * f;
+    //dp = m_basedep[i];
+
+	float ww = 0.f;
+	float wc = 0.f;
+	ww = 0.356f - 0.144f * m_soilAVBD[i];
+	wc = m_solsw[i] / (ww * Max(m_soildepth[i][m_maxSoilLyrs-1],1.e-20f));
+
+	float b = 0.f;
+	f = 0.f;
+	float dd = 0.f;
+	b = log(500.f / dp);
+	f = exp(b * pow(((1.f - wc) / (1.f + wc)), 2.f));
+	dd = f * dp;
+
+	float bcv = 0.f;
+	bcv = m_soilcov[i] / (m_soilcov[i] + exp(7.563 - 1.297e-4 * m_soilcov[i]));
+	if (m_snowAcc[i] > 0.0001f) {
+		if (m_snowAcc[i] <= 120.) {
+			xx = 0.f;
+			xx = m_snowAcc[i] / (m_snowAcc[i] + exp(6.055 - .3002 * m_snowAcc[i]));
+		}
+		else {
+			xx = 1.f;
+		}
+		bcv = Max(xx, bcv);
+	}
+
+	//calculate temperature at soil surface
+	float st0 = 0.f;
+	float tbare = 0.f;
+	float tcov = 0.f;
+	float tmp_srf = 0.f; 
+	st0 = (m_sr[i] * (1. - m_alb[i]) - 14.f) / 20.f;
+	tbare = m_meanTemp[i] + 0.5f * (m_tMax[i] - m_tMin[i]) * st0;
+	tcov = bcv * m_soilt[i][1] + (1.f - bcv) * tbare;
+
+	tmp_srf = 0.5f * (tbare + tcov);
+
+	//calculate temperature for each layer on current day
+	xx = 0.;
+	for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
+		zd = 0.;
+		df = 0.;
+		zd = (xx + m_soildepth[i][k]) / 2.;
+		zd = zd / dd;
+		df = zd / (zd + exp(-.8669 - 2.0775 * zd));
+		
+		m_soilt[i][k] = tlag * m_soilt[i][k] + (1. - tlag) *(df * (m_meanTemp[i] - tmp_srf) + tmp_srf);
+		xx = m_soildepth[i][k];
+		//if (isep_opt(j) /= 0.and.iyr >= isep_iyr(j).and.k >= i_sep(j)) {
+		//	if (m_soilt[i][k] < 10.f) {
+		//		m_soilt[i][k] = 10.f - (10.f - m_soilt[i][k]) * 0.1f;
+		//}
+		//}
+	}
 }

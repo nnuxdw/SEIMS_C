@@ -76,7 +76,7 @@ void ModelMain::StepHillSlope(const time_t t, const int year_idx, const int sub_
     }
     for (auto it = m_hillslopeModules.begin(); it != m_hillslopeModules.end(); ++it) {
         SimulationModule* p_module = m_simulationModules[*it];
-         //cout << "Executing " << m_moduleIDs[*it] << endl; // for debug
+        // cout << "Executing " << m_moduleIDs[*it] << endl; // for debug
         double sub_t1 = TimeCounting();
         if (m_firstRunOverland) {
             m_factory->GetValueFromDependencyModule(*it, m_simulationModules);
@@ -99,7 +99,7 @@ void ModelMain::StepChannel(const time_t t, const int year_idx) {
     }
     for (auto it = m_channelModules.begin(); it != m_channelModules.end(); ++it) {
         SimulationModule* p_module = m_simulationModules[*it];
-        //cout << "Executing " << m_moduleIDs[*it] << endl; // for debug
+        // cout << "Executing " << m_moduleIDs[*it] << endl; // for debug
         if (m_firstRunChannel) {
             m_factory->GetValueFromDependencyModule(*it, m_simulationModules);
         }
@@ -275,6 +275,9 @@ void ModelMain::AppendOutputData(const time_t time) {
                         StringMatch(param->BasicName, VAR_BMC) || 
                         StringMatch(param->BasicName, VAR_HPC) || 
                         StringMatch(param->BasicName, VAR_HSC) || 
+                        StringMatch(param->BasicName, "SOC_OUT") || // groundwater water balance
+                        StringMatch(param->BasicName, "lake_wb") || 
+                        StringMatch(param->BasicName, "lake_ocwb") || 
                         StringMatch(param->BasicName, VAR_SOILT) || 
                         StringMatch(param->BasicName, VAR_SOLICE) || 
                         StringMatch(param->BasicName, VAR_SOLWC) || 

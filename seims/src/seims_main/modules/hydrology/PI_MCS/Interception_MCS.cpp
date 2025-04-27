@@ -90,22 +90,6 @@ void clsPI_MCS::InitialOutputs() {
     if (m_intcpLoss == nullptr) {
         Initialize1DArray(m_nCells, m_intcpLoss, 0.f);
     }
-# ifdef USE_PIHM
-	// Read select_hand_ids.txt
-	if (nullptr == pihm_tools)
-	{
-		project = new char[MAXSTRING];
-		strcpy(project, PIHM_PROJECT);
-		pihm_tools = new PIHM_TOOLS();
-		hru_ids = new vector<int>();
-		hru_ids_file = new char[MAXSTRING];
-		pihm_dir = new char[MAXSTRING];
-		strcpy(pihm_dir, PIHM_DATA_PATH);
-		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
-		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
-		//pihm_tools->test(1, project);
-	}
-#endif
 }
 
 int clsPI_MCS::Execute() {
@@ -116,20 +100,7 @@ int clsPI_MCS::Execute() {
 
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
-		// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行植被截留计算
-# ifdef USE_PIHM
-		bool id_in_hru = pihm_tools->CheckIdInHruIds(i, hru_ids);
-# ifdef USE_PIHM_DEBUG
-		cout << "i: " << i << " m_nCells: " << m_nCells << " id_in_hru: " << id_in_hru << endl;
-#endif
-		if (id_in_hru)
-		{
-			continue;
-		}
-# endif
-
         if (m_pcp[i] > 0.f) {
-			//cout << "m_pcp[" << i << "]: " << m_pcp[i] << endl;
 #ifdef STORM_MODE
             /// correction for slope gradient, water spreads out over larger area
             /// 1. / 3600. = 0.0002777777777777778
@@ -169,7 +140,6 @@ int clsPI_MCS::Execute() {
             m_intcpLoss[i] = 0.f;
             m_netPcp[i] = 0.f;
         }
-		//cout << "m_netPcp[" << i << "]: " << m_netPcp[i] << endl;
 #ifndef STORM_MODE
         //evaporation
         if (m_canSto[i] > m_pet[i]) {

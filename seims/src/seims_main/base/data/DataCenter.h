@@ -77,6 +77,14 @@ public:
      */
     virtual void ReadItpWeightData(const string& remote_filename, int& num, int& stations, float**& data) = 0;
     /*!
+    * \brief Read interpolated weight id data and insert to m_weightDataIdMap by wanghaocheng
+    * \param[in] remote_filename Data file name
+    * \param[out] num Data length
+    * \param[out] stations Number of stations
+    * \param[out] data returned data
+    */
+    virtual void ReadItpWeightIdData(const string& remote_filename, int& num, int& stations, float**& data) = 0;
+    /*!
      * \brief Read 1D array data
      * \param[in] remote_filename Data file name
      * \param[out] num Data length

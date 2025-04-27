@@ -222,6 +222,7 @@ private:
 	float** m_soilWtrSto;	///amount of water stored in the soil layer on current day(mm H2O)
 	float** m_soilPor;	/// porosity mm/mm
     float** m_soilDepth;
+    float** m_soiltemp;
     
     
     float* m_soileroRPOC;
@@ -240,12 +241,31 @@ private:
     float* m_surfRDOCtoCH;
     float* m_IfluRDOCtoCH;
     float* m_soilPercoCbnLowest;
+    float* m_soilPercoDICLowest;
     float* m_soilSurfCbn;
 	
 
     float m_enr_POC;
     float m_kd_oc;
     float m_perco_doc;
+    float m_R10;
+    float m_Q10;
+
+    float* m_brt;
+    float* m_surfrunoff;
+    float* m_landUse;
+    float** m_lag_doc;
+    float** m_lag_dic;
+    float** m_lag_rpoc;
+    float** m_lag_lpoc;
+    float** m_lag_orgn;
+    float** m_lag_orgp;
+    float** m_lag_minpa;
+    float** m_lag_minps;
+
+    float* m_surfdoc;
+    float* m_surfpoc;
+    float** m_subsurfdoc;
     
 };
 #endif /* SEIMS_MODULE_NUTRSED_H */

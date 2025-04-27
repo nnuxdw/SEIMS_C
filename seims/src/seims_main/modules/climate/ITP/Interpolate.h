@@ -51,6 +51,8 @@ private:
     int m_dataType;
     /// count of stations
     int m_nStatioins;
+    /// count of stations used to interpolation wanghaocheng
+    int m_weight_nStations;
     /// data of stations
     float* m_stationData;
     /// count of valid cells
@@ -58,7 +60,8 @@ private:
     /// weights of each sites of all valid cells
     //float* m_itpWeights;
     float** m_itpWeights;
-
+    /// weights id of sites of all valid cells wanghaocheng
+    float** m_itpWeights_id;
     /// whether using vertical interpolation
     bool m_itpVertical;
     /// elevation of stations

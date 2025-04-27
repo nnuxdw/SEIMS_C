@@ -1,3 +1,15 @@
+/*!
+ * \file db_mongoc.cpp
+ * \brief Implementation of utility functions of MongoDB.
+ *
+ * \remarks
+ *   - 1. 2017-12-02 - lj - Add unittest based on gtest/gmock.
+ *   - 2. 2018-05-02 - lj - Make part of CCGL.
+ *   - 3. 2019-08-16 - lj - Add or move detail description in the implementation code.
+ *
+ * \author Liangjun Zhu, zlj(at)lreis.ac.cn
+ * \version 1.2
+ */
 #include "db_mongoc.h"
 
 #include <cassert>
@@ -198,7 +210,8 @@ mongoc_cursor_t* MongoCollection::ExecuteQuery(const bson_t* b) {
 
 mongoc_cursor_t* MongoCollection::ExecuteQueryOpt(const bson_t* filter, const bson_t* opt) {
 
-	mongoc_cursor_t* cursor = mongoc_collection_find_with_opts(collection_, filter, opt, NULL);
+	//mongoc_cursor_t* cursor = mongoc_collection_find_with_opts(collection_, filter, opt, NULL);
+    mongoc_cursor_t* cursor = mongoc_collection_find(collection_, MONGOC_QUERY_NONE, 0, 0, 0, filter, NULL, NULL);
 	return cursor;
 }
 
@@ -241,7 +254,8 @@ mongoc_gridfs_file_t* MongoGridFs::GetFile(string const& gfilename, mongoc_gridf
     // Replace `mongoc_gridfs_find_one_by_filename` by `mongoc_gridfs_find_one_with_opts`
     int count = 0;
     while (count < 10) {
-        gfile = mongoc_gridfs_find_one_with_opts(gfs, &filter, NULL, &err);
+        //gfile = mongoc_gridfs_find_one_with_opts(gfs, &filter, NULL, &err);
+        gfile = mongoc_gridfs_find_one_by_filename(gfs, gfilename.c_str(), &err);
         if (gfile == NULL) {
             SleepMs(1); // Sleep for one millisecond, in case of network blocking. By lj.
             count++;
@@ -276,7 +290,8 @@ void MongoGridFs::GetFileNames(vector<string>& files_existed, mongoc_gridfs_t* g
     //vector<string> filesExisted;
     bson_t* query = bson_new();
     bson_init(query);
-    mongoc_gridfs_file_list_t* glist = mongoc_gridfs_find_with_opts(gfs, query, NULL);
+    //mongoc_gridfs_file_list_t* glist = mongoc_gridfs_find_with_opts(gfs, query, NULL);
+    mongoc_gridfs_file_list_t* glist = mongoc_gridfs_find(gfs, query);
     mongoc_gridfs_file_t* file;
     while ((file = mongoc_gridfs_file_list_next(glist))) {
         files_existed.emplace_back(string(mongoc_gridfs_file_get_filename(file)));

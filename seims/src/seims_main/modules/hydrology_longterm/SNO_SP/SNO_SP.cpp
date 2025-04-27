@@ -11,13 +11,20 @@ SNO_SP::SNO_SP() :
     m_snowCoverMax(NODATA_VALUE), m_snowCover50(NODATA_VALUE),
     m_snowCoverCoef1(NODATA_VALUE), m_snowCoverCoef2(NODATA_VALUE),
     m_meanTemp(nullptr), m_maxTemp(nullptr), m_netPcp(nullptr),
-    m_snowAccum(nullptr), m_SE(nullptr), m_packT(nullptr), m_snowMelt(nullptr), m_SA(nullptr) {
+    m_snowAccum(nullptr), m_SE(nullptr), m_packT(nullptr), m_snowMelt(nullptr), m_SA(nullptr),
+    m_landUse(nullptr),m_snoarea(nullptr),m_area(nullptr),m_snacarea(nullptr),m_snoday(nullptr)
+	// xiaodw comment, don't need glacier now
+	//,Qfg(NULL)
+{
 }
 
 SNO_SP::~SNO_SP() {
     if (m_snowMelt != nullptr) Release1DArray(m_snowMelt);
     if (m_SA != nullptr) Release1DArray(m_SA);
     if (m_packT != nullptr) Release1DArray(m_packT);
+    if (m_snoarea != nullptr) Release1DArray(m_snoarea);
+    if (m_snoday != nullptr) Release1DArray(m_snoday);
+    if (m_snacarea != nullptr) Release1DArray(m_snacarea);
 }
 
 bool SNO_SP::CheckInputData() {
@@ -41,6 +48,9 @@ void SNO_SP::InitialOutputs() {
     if (nullptr == m_snowMelt) Initialize1DArray(m_nCells, m_snowMelt, 0.f);
     if (nullptr == m_SA) Initialize1DArray(m_nCells, m_SA, 0.f);
     if (nullptr == m_packT) Initialize1DArray(m_nCells, m_packT, 0.f);
+    if (nullptr == m_snoarea) Initialize1DArray(m_nCells, m_snoarea, 0.f);
+    if (nullptr == m_snoday) Initialize1DArray(m_nCells, m_snoday, 0);
+    if (nullptr == m_snacarea) Initialize1DArray(m_nCells, m_snacarea,  0.f);
     if (nullptr == m_snowAccum) {
         /// the initialization should be removed when snow redistribution module is accomplished. LJ
         Initialize1DArray(m_nCells, m_snowAccum, 0.f);
@@ -49,22 +59,6 @@ void SNO_SP::InitialOutputs() {
         /// Snow sublimation will be considered in AET_PTH
         Initialize1DArray(m_nCells, m_SE, 0.f);
     }
-# ifdef USE_PIHM
-	// Read select_hand_ids.txt
-	if (nullptr == pihm_tools)
-	{
-		project = new char[MAXSTRING];
-		strcpy(project, PIHM_PROJECT);
-		pihm_tools = new PIHM_TOOLS();
-		hru_ids = new vector<int>();
-		hru_ids_file = new char[MAXSTRING];
-		pihm_dir = new char[MAXSTRING];
-		strcpy(pihm_dir, PIHM_DATA_PATH);
-		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
-		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
-		//pihm_tools->test(1, project);
-	}
-#endif
 }
 
 int SNO_SP::Execute() {
@@ -81,17 +75,15 @@ int SNO_SP::Execute() {
     float cmelt = (m_csnow6 + m_csnow12) * 0.5f + (m_csnow6 - m_csnow12) * 0.5f * sinv;
 #pragma omp parallel for
     for (int rw = 0; rw < m_nCells; rw++) {
-		// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行积雪和融雪计算
-# ifdef USE_PIHM
-		bool id_in_hru = pihm_tools->CheckIdInHruIds(rw, hru_ids);
-# ifdef USE_PIHM_DEBUG
-		cout << "i: " << rw << " m_nCells: " << m_nCells << " id_in_hru: " << id_in_hru << endl;
-#endif
-		if (id_in_hru)
-		{
-			continue;
-		}
-# endif
+		// xiaodw comment, don't need glacier now
+        //if(m_landUse[rw]==LANDUSE_ID_GLC){
+        //    m_netPcp[rw] = Qfg[rw];
+        //    continue;
+        //}
+        if(m_landUse[rw]==LANDUSE_ID_WATR){
+            m_netPcp[rw] = 0.f;
+            continue;
+        }
         /// estimate snow pack temperature
         m_packT[rw] = m_packT[rw] * (1 - m_lagSnow) + m_meanTemp[rw] * m_lagSnow;
         /// calculate snow fall
@@ -129,6 +121,17 @@ int SNO_SP::Execute() {
             }
         }
     }
+    m_snoarea[1] = 0.f;
+    m_snacarea[1] = 0.f;
+    for (int rw = 0; rw < m_nCells; rw++) {
+        m_snoday[rw] = 0.f;
+        if(m_SA[rw]>5.4f) {
+            m_snoarea[1] += m_area[rw];
+            m_snacarea[1] += m_SA[rw] * m_area[rw];
+            m_snoday[rw] = 1;
+        }
+    }
+    if(m_snoarea[1]>0.f) m_snacarea[1] = m_snacarea[1] / m_snoarea[1];
     return 0;
 }
 
@@ -153,6 +156,10 @@ void SNO_SP::Set1DData(const char* key, const int n, float* data) {
     if (StringMatch(s, VAR_TMEAN)) m_meanTemp = data;
     else if (StringMatch(s, VAR_TMAX)) m_maxTemp = data;
     else if (StringMatch(s, VAR_NEPR)) m_netPcp = data;
+    else if (StringMatch(s, VAR_LANDUSE)) m_landUse = data;
+	// xiaodw comment, don't need glacier now
+    //else if (StringMatch(s, "Qfg")) Qfg = data;
+    else if (StringMatch(s, VAR_AHRU)) m_area = data;
     else {
         throw ModelException(MID_SNO_SP, "Set1DData", "Parameter " + s + " does not exist.");
     }
@@ -164,6 +171,9 @@ void SNO_SP::Get1DData(const char* key, int* n, float** data) {
     if (StringMatch(s, VAR_SNME)) *data = m_snowMelt;
     //else if (StringMatch(s, VAR_SNAC)) *data = m_snowAccum;
     else if (StringMatch(s, VAR_SNAC)) *data = m_SA;  //ljj
+    else if (StringMatch(s, "SNO_AREA")) *data = m_snoarea;  //ljj
+    else if (StringMatch(s, "SNAC_AREA")) *data = m_snacarea;  //ljj
+    else if (StringMatch(s, "SNO_DAY")) *data = m_snoday;  //ljj
     else {
         throw ModelException(MID_SNO_SP, "Get1DData", "Result " + s + " does not exist.");
     }

@@ -69,5 +69,7 @@ private:
     float** m_soilNH4;
     /// amount of nitrate in layer (kg/ha)
     float** m_soilNO3;
+
+    float** m_soilDOC;
 };
 #endif /* SEIMS_MODULE_ATMDEP_H */

@@ -5,10 +5,10 @@
 PER_STR::PER_STR() :
     m_maxSoilLyrs(-1), m_nSoilLyrs(nullptr), m_soilThk(nullptr), m_dt(-1),
     m_nCells(-1), m_soilFrozenTemp(NODATA_VALUE), m_ks(nullptr),
-    m_soilSat(nullptr), m_soilFC(nullptr),
+    m_soilSat(nullptr), m_soilFC(nullptr),m_soilAWC(nullptr),
     m_soilWtrSto(nullptr), m_soilWtrStoPrfl(nullptr), m_soilTemp(nullptr), m_infil(nullptr),
     m_surfRf(nullptr), m_potVol(nullptr), m_impoundTrig(nullptr),
-    m_soilPerco(nullptr),m_soilTempprofile(nullptr),
+    m_soilPerco(nullptr),m_soilTempprofile(nullptr),m_soilWP(nullptr),
     m_soilIceSto(nullptr),m_clay(nullptr),m_soilPor(nullptr) {
 }
 
@@ -19,140 +19,115 @@ PER_STR::~PER_STR() {
 void PER_STR::InitialOutputs() {
     CHECK_POSITIVE(MID_PER_STR, m_nCells);
     if (nullptr == m_soilPerco) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilPerco, 0.f);
-# ifdef USE_PIHM
-	// Read select_hand_ids.txt
-	if (nullptr == pihm_tools)
-	{
-		project = new char[MAXSTRING];
-		strcpy(project, PIHM_PROJECT);
-		pihm_tools = new PIHM_TOOLS();
-		hru_ids = new vector<int>();
-		hru_ids_file = new char[MAXSTRING];
-		pihm_dir = new char[MAXSTRING];
-		strcpy(pihm_dir, PIHM_DATA_PATH);
-		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
-		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
-		//pihm_tools->test(1, project);
-	}
-#endif
 }
 
 int PER_STR::Execute() {
     int frez =1;
     CheckInputData();
     InitialOutputs();
-#pragma omp parallel for
-    for (int i = 0; i < m_nCells; i++) {
-		// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行填洼和产流计算
-# ifdef USE_PIHM
-		bool id_in_hru = pihm_tools->CheckIdInHruIds(i, hru_ids);
-# ifdef USE_PIHM_DEBUG
-		cout << "i: " << i << " m_nCells: " << m_nCells << " id_in_hru: " << id_in_hru << endl;
-#endif
-		if (id_in_hru)
-		{
-			continue;
-		}
-# endif
-        // Note that, infiltration, pothole seepage, irrigation etc. have been added to
-        // the first soil layer in other modules. By LJ
-        float excessWater = 0.f, maxSoilWater = 0.f, fcSoilWater = 0.f;
-        for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
-            excessWater = 0.f;
-            maxSoilWater = m_soilSat[i][j];
-            fcSoilWater = m_soilFC[i][j];
-            // determine gravity drained water in layer
-            excessWater += m_soilWtrSto[i][j] - fcSoilWater;
-            //if (i == 100)
-            //	cout<<"lyr: "<<j<<", soil storage: "<<m_soilStorage[i][j]<<", fc: "<<fcSoilWater<<", excess: "<<excessWater<<endl;
-            // for the upper two layers, soil may be frozen
-            // if (j == 0 && m_soilTemp[i] <= m_soilFrozenTemp) {
-            //     continue;
-            // }
-            //ljj++
-            if (frez = 0 && m_soilTempprofile[i][j] <= m_soilFrozenTemp) {
-                continue;
-            }
-                    
-            //ljj++
-            if(frez==1) maxSoilWater -= m_soilIceSto[i][j];//ljj++ frozen
-            maxSoilWater  = Max(0.f,maxSoilWater);
+    // Perocolation move to SSR_DA module
+// #pragma omp parallel for
+//     for (int i = 0; i < m_nCells; i++) {
+//         // Note that, infiltration, pothole seepage, irrigation etc. have been added to
+//         // the first soil layer in other modules. By LJ
+//         float excessWater = 0.f, maxSoilWater = 0.f, fcSoilWater = 0.f;
+//         for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
+//             excessWater = 0.f;
+//             maxSoilWater = m_soilSat[i][j];
+////             fcSoilWater = m_soilFC[i][j];
+//             fcSoilWater = m_soilAWC[i][j];
+//             // determine gravity drained water in layer
+//             excessWater += m_soilWtrSto[i][j] - fcSoilWater;
+//             //if (i == 100)
+//             //	cout<<"lyr: "<<j<<", soil storage: "<<m_soilStorage[i][j]<<", fc: "<<fcSoilWater<<", excess: "<<excessWater<<endl;
+//             // for the upper two layers, soil may be frozen
+//             // if (j == 0 && m_soilTemp[i] <= m_soilFrozenTemp) {
+//             //     continue;
+//             // }
+//             //ljj++
+//             if (frez = 0 && j == 0 && m_soilTempprofile[i][j] <= 0.f) {
+//                 continue;
+//             }
 
-            float FACTR = Max(0.01, (m_soilWtrSto[i][j]+m_soilIceSto[i][j])/(m_soilPor[i][j]*m_soilThk[i][j])) ;
-            FACTR = Min(FACTR,1.f);
-            float BEXP = 2.91+0.159*m_clay[i][j];
-            float EXPON = 2.0*BEXP + 3.0 ;
-            //WCND  = myDKSAT * FACTR ** EXPON
-            float alpha = 3;
-            float f_frozen=exp(-alpha*(1-Min(m_soilIceSto[i][j]/(m_soilPor[i][j]*m_soilThk[i][j]),1)));
-            f_frozen = Max(0.f,f_frozen);
-            f_frozen = f_frozen - exp(-alpha); 
-            float WCND =  (1-f_frozen)*m_ks[i][j] * Min(1.0,pow(FACTR, EXPON));
-            //if(i==11) cout<<m_soilIceSto[i][j]/(m_soilPor[i][j]*m_soilThk[i][j])<<"      "<<FACTR<<"      "<<f_frozen<<"     "<<WCND<<"     "<<m_ks[i][j]<<endl;
-            WCND = Min(WCND,m_ks[i][j]);
-            //
-            
-            m_soilPerco[i][j] = 0.f;
-            // No movement if soil moisture is below field capacity
-            if (excessWater > 1.e-5f) {
-                float maxPerc = maxSoilWater - fcSoilWater;
-                if(frez==1) maxPerc = maxSoilWater - fcSoilWater - m_soilIceSto[i][j];  //ljj++
-                if (maxPerc < 0.f) maxPerc = 0.1f;
-                float tt = 3600.f * maxPerc / m_ks[i][j];                  // secs
-                if(frez==1) tt = 3600.f * maxPerc / WCND ;  //ljj++
-                m_soilPerco[i][j] = excessWater * (1.f - exp(-m_dt / tt)); // secs
+//             //ljj++
+//             float WCND =  m_ks[i][j];
+//             if(frez==1) {
+//                 maxSoilWater = m_soilPor[i][j] * m_soilThk[i][j]-  m_soilIceSto[i][j];
+//                 maxSoilWater  = Max(0.f,maxSoilWater);
 
-                if (m_soilPerco[i][j] > maxPerc) {
-                    m_soilPerco[i][j] = maxPerc;
-                }
-                //Adjust the moisture content in the current layer, and the layer immediately below it
-                m_soilWtrSto[i][j] -= m_soilPerco[i][j];
-                excessWater -= m_soilPerco[i][j];
-                m_soilWtrSto[i][j] = Max(UTIL_ZERO, m_soilWtrSto[i][j]);
-                // redistribute soil water if above field capacity (high water table), rewrite from sat_excess.f of SWAT
-                //float qlyr = m_soilStorage[i][j];
-                if (j < CVT_INT(m_nSoilLyrs[i]) - 1) {
-                    m_soilWtrSto[i][j + 1] += m_soilPerco[i][j];
-                    if (m_soilWtrSto[i][j] - m_soilSat[i][j] > 1.e-4f) {
-                        m_soilWtrSto[i][j + 1] += m_soilWtrSto[i][j] - m_soilSat[i][j];
-                        m_soilWtrSto[i][j] = m_soilSat[i][j];
-                    }
-                } else {
-                    /// for the last soil layer
-                    if (m_soilWtrSto[i][j] - m_soilSat[i][j] > 1.e-4f) {
-                        float ul_excess = m_soilWtrSto[i][j] - m_soilSat[i][j];
-                        m_soilWtrSto[i][j] = m_soilSat[i][j];
-                        for (int ly = CVT_INT(m_nSoilLyrs[i]) - 2; ly >= 0; ly--) {
-                            m_soilWtrSto[i][ly] += ul_excess;
-                            if (m_soilWtrSto[i][ly] > m_soilSat[i][ly]) {
-                                ul_excess = m_soilWtrSto[i][ly] - m_soilSat[i][ly];
-                                m_soilWtrSto[i][ly] = m_soilSat[i][ly];
-                            } else {
-                                ul_excess = 0.f;
-                                break;
-                            }
-                            if (ly == 0 && ul_excess > 0.f) {
-                                // add ul_excess to depressional storage and then to surfq
-                                if (m_potVol != nullptr && FloatEqual(m_impoundTrig[i], 0.f)) {
-                                    m_potVol[i] += ul_excess;
-                                } else {
-                                    m_surfRf[i] += ul_excess;
-                                }
-                                m_infil[i] -= ul_excess;
-                            }
-                        }
-                    }
-                }
-            } else {
-                m_soilPerco[i][j] = 0.f;
-            }
-        }
-        /// update soil profile water
-        m_soilWtrStoPrfl[i] = 0.f;
-        for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[i]); ly++) {
-            m_soilWtrStoPrfl[i] += m_soilWtrSto[i][ly];
-        }
-    }
+//                 float FACTR = Max(0.01, (m_soilWtrSto[i][j])/maxSoilWater) ;
+//                 FACTR = Min(FACTR,1.f);
+//                 float BEXP = 2.91+0.159*m_clay[i][j]*0.01;
+//                 float EXPON = 2.0*BEXP + 3.0 ;
+//                 //WCND  = myDKSAT * FACTR ** EXPON
+//                 float alpha = 3;
+//                 float f_frozen=exp(-alpha*(1-Min(m_soilIceSto[i][j]/(m_soilPor[i][j]*m_soilThk[i][j]),1)));
+//                 f_frozen = Max(0.f,f_frozen);
+//                 f_frozen = f_frozen - exp(-alpha); 
+//                 float WCND =  (1-f_frozen)*m_ks[i][j] * Min(1.0,pow(FACTR, EXPON))*3600;
+//                 WCND = Min(WCND,m_ks[i][j]);
+//             }
+
+//             m_soilPerco[i][j] = 0.f;
+//             // No movement if soil moisture is below field capacity
+//             if (excessWater > 1.e-5f) {
+//                 float maxPerc = maxSoilWater - fcSoilWater;
+//                 if (maxPerc < 0.f) maxPerc = 0.1f;
+//                 float tt = 3600.f * maxPerc / m_ks[i][j];                  // secs
+//                 if(frez==1) tt = 3600.f * maxPerc / WCND ;  //ljj++
+//                 m_soilPerco[i][j] = excessWater * (1.f - exp(-m_dt / tt)); // secs
+
+//                 if (m_soilPerco[i][j] > maxPerc) {
+//                     m_soilPerco[i][j] = maxPerc;
+//                 }
+//                 //Adjust the moisture content in the current layer, and the layer immediately below it
+//                 m_soilWtrSto[i][j] -= m_soilPerco[i][j];
+//                 excessWater -= m_soilPerco[i][j];
+//                 m_soilWtrSto[i][j] = Max(UTIL_ZERO, m_soilWtrSto[i][j]);
+//                 // redistribute soil water if above field capacity (high water table), rewrite from sat_excess.f of SWAT
+//                 //float qlyr = m_soilStorage[i][j];
+//                 if (j < CVT_INT(m_nSoilLyrs[i]) - 1) {
+//                     m_soilWtrSto[i][j + 1] += m_soilPerco[i][j];
+//                     if (m_soilWtrSto[i][j] - m_soilSat[i][j] > 1.e-4f) {
+//                         m_soilWtrSto[i][j + 1] += m_soilWtrSto[i][j] - m_soilSat[i][j];
+//                         m_soilWtrSto[i][j] = m_soilSat[i][j];
+//                     }
+//                 } else {
+//                     /// for the last soil layer
+//                     if (m_soilWtrSto[i][j] - m_soilSat[i][j] > 1.e-4f) {
+//                         float ul_excess = m_soilWtrSto[i][j] - m_soilSat[i][j];
+//                         m_soilWtrSto[i][j] = m_soilSat[i][j];
+//                         for (int ly = CVT_INT(m_nSoilLyrs[i]) - 2; ly >= 0; ly--) {
+//                             m_soilWtrSto[i][ly] += ul_excess;
+//                             if (m_soilWtrSto[i][ly] > m_soilSat[i][ly]) {
+//                                 ul_excess = m_soilWtrSto[i][ly] - m_soilSat[i][ly];
+//                                 m_soilWtrSto[i][ly] = m_soilSat[i][ly];
+//                             } else {
+//                                 ul_excess = 0.f;
+//                                 break;
+//                             }
+//                             if (ly == 0 && ul_excess > 0.f) {
+//                                 // add ul_excess to depressional storage and then to surfq
+//                                 if (m_potVol != nullptr && FloatEqual(m_impoundTrig[i], 0.f)) {
+//                                     m_potVol[i] += ul_excess;
+//                                 } else {
+//                                     m_surfRf[i] += ul_excess;
+//                                 }
+//                                 m_infil[i] -= ul_excess;
+//                             }
+//                         }
+//                     }
+//                 }
+//             } else {
+//                 m_soilPerco[i][j] = 0.f;
+//             }
+//         }
+//         /// update soil profile water
+//         m_soilWtrStoPrfl[i] = 0.f;
+//         for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[i]); ly++) {
+//             m_soilWtrStoPrfl[i] += m_soilWtrSto[i][ly];
+//         }
+//     }
     // DEBUG
     //cout << "PER_STR, cell id 14377, m_soilStorage: ";
     //for (int i = 0; i < (int)m_soilLayers[14377]; i++)
@@ -176,7 +151,7 @@ void PER_STR::Get2DData(const char* key, int* nrows, int* ncols, float*** data) 
 void PER_STR::Set1DData(const char* key, const int nrows, float* data) {
     CheckInputSize(MID_PER_STR, key, nrows, m_nCells);
     string sk(key);
-    if (StringMatch(sk, VAR_SOTE)) m_soilTemp = data;
+    if (StringMatch(sk, VAR_SOTE)) m_soilTemp = data;   
     else if (StringMatch(sk, VAR_INFIL)) m_infil = data;
     else if (StringMatch(sk, VAR_SOILLAYERS)) m_nSoilLyrs = data;
     else if (StringMatch(sk, VAR_SOL_SW)) m_soilWtrStoPrfl = data;
@@ -194,9 +169,10 @@ void PER_STR::Set2DData(const char* key, const int nrows, const int ncols, float
     if (StringMatch(sk, VAR_CONDUCT)) m_ks = data;
     else if (StringMatch(sk, VAR_SOILTHICK)) m_soilThk = data;
     else if (StringMatch(sk, VAR_SOL_UL)) m_soilSat = data;
-    else if (StringMatch(sk, VAR_SOL_AWC)) m_soilFC = data;
+    else if (StringMatch(sk, VAR_SOL_AWC)) m_soilAWC = data; //m_soilFC = data;
     else if (StringMatch(sk, VAR_SOL_ST)) m_soilWtrSto = data;
     //ljj++
+    else if (StringMatch(sk, VAR_SOL_WPMM)) m_soilWP = data;
     else if (StringMatch(sk, VAR_SOILT)) m_soilTempprofile = data;
     else if (StringMatch(sk, VAR_SOLICE)) {
         CheckInputSize2D(MID_SSR_DA, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
@@ -232,11 +208,11 @@ bool PER_STR::CheckInputData() {
     CHECK_POINTER(MID_PER_STR, m_ks);
     CHECK_POINTER(MID_PER_STR, m_soilSat);
     CHECK_NODATA(MID_PER_STR, m_soilFrozenTemp);
-    CHECK_POINTER(MID_PER_STR, m_soilFC);
+    //CHECK_POINTER(MID_PER_STR, m_soilFC);
     CHECK_POINTER(MID_PER_STR, m_soilWtrSto);
     CHECK_POINTER(MID_PER_STR, m_soilWtrStoPrfl);
     CHECK_POINTER(MID_PER_STR, m_soilThk);
-    CHECK_POINTER(MID_PER_STR, m_soilTemp);
+    //CHECK_POINTER(MID_PER_STR, m_soilTemp); // xiaodw comment, don't need soil temperature now
     CHECK_POINTER(MID_PER_STR, m_infil);
     return true;
 }

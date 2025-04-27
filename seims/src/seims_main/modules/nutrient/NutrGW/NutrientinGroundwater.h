@@ -110,5 +110,10 @@ private:
     float* m_subbsnID;
     /// subbasins information
     clsSubbasins* m_subbasinsInfo;
+
+    float gw_delay;
+    float* m_area;
+    float* m_recharge_no3;
+    float* m_recharge_solp;
 };
 #endif /* SEIMS_MODULE_NUTRGW_H */

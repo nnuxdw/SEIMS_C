@@ -474,7 +474,19 @@ void DataCenterMongoDB::ReadItpWeightData(const string& remote_filename, int& nu
     Initialize2DArray(num, stations, data, tmpdata);
     delete weight_data;
 }
-
+//by wang haocheng
+void DataCenterMongoDB::ReadItpWeightIdData(const string& remote_filename, int& num, int& stations, float**& data) {
+    ItpWeightData* weight_data = new ItpWeightData(spatial_gridfs_, remote_filename);
+    if (!weight_data->Initialized()) {
+        delete weight_data;
+        data = nullptr;
+        return;
+    }
+    float** tmpdata = nullptr;
+    weight_data->GetWeightIdData2D(&num, &stations, &tmpdata);
+    Initialize2DArray(num, stations, data, tmpdata);
+    delete weight_data;
+}
 
 void DataCenterMongoDB::Read1DArrayData(const string& remote_filename, int& num, float*& data) {
     char* databuf = nullptr;

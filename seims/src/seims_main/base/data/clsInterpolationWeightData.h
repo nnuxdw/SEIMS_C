@@ -49,13 +49,21 @@ public:
     * \param[out] data data
     */
     void GetWeightData2D(int* n, int* n_stations, float*** data);
-
+    /*!
+* \brief Get the weight data read from mongoDB in form of 2DArray by wanghaocheng
+*
+* \param[out] n Rows
+* \param[out] n_stations Cols
+* \param[out] data data
+*/
+    void GetWeightIdData2D(int* n, int* n_stations, float*** data);
 
     /*!
      * \brief Output the weight data to \a ostream
      *
      * \param[out] fs
      */
+
     void Dump(std::ostream* fs);
 
     /*!
@@ -82,12 +90,17 @@ private:
     string filename_;
     //! iterpolation weight data array
     float* itp_weight_data_;
+    //! interpolation weight id data array by wanghaocheng
+    float* itp_weight_id_data_;
 
     float** itp_weight_data2d_;
     //! row of weight data
     int n_rows_;
     //! column of weight data, i.e., number of stations
     int n_cols_;
+
+    //! column of weight data, i.e., number of stations participation in the calculation of weights by wang haocheng
+    int n_cols_weight_;
     //! load data success?
     bool initialized_;
 };

@@ -53,6 +53,8 @@ public:
 private:
     void SoilTempTSWAT(int i);
 
+    void SoilTempSWAT(int i);
+
 private:
     /// from parameter database
     /// coefficients in the Equation
@@ -77,6 +79,9 @@ private:
     /// output soil temperature
     float* m_soilTemp;
 
+    float* m_tMax;
+    float* m_tMin;
+
     //ljj++
     /// max number of soil layers
     int m_maxSoilLyrs;
@@ -87,7 +92,7 @@ private:
     float tsoil4;
     float tsoil5;
     float m_ddepth1;
-    float m_ddepth2;
+
     float m_snowCoverMax;
     float m_snowCover50;
     float m_tfrozen;
@@ -103,6 +108,7 @@ private:
     float** m_soilRsd;
     float** m_clay;
     float** m_sand;
+    float** m_soilSat;
 
     float** m_solwc;
     float** m_solice;
@@ -150,13 +156,13 @@ private:
     float* m_alb;
 
     float* m_kss;
-    float* m_kint;
-    float* m_bsol;
-    float* m_csol;
-    float* m_asol;
-    float* m_dsol;
-    float* m_psol;
-    float* m_qsol;
+    float** m_kint;
+    float** m_bsol;
+    float** m_csol;
+    float** m_asol;
+    float** m_dsol;
+    float** m_psol;
+    float** m_qsol;
     float* m_asno;
     float* m_bsno;
     float* m_csno;
@@ -184,8 +190,9 @@ private:
     float** m_soilt;
 
     float* m_SOTE1;
-    float* m_SOTE20;
-    float* m_SOTE50;
+    float* m_SOTE5;
+    float* m_SOTE15;
+    float* m_SOTE30;
     float* m_SOTE60;
     float* m_SOTE100;
     float* m_SOTE200;

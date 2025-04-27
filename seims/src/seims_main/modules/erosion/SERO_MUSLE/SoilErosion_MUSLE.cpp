@@ -10,11 +10,11 @@ SERO_MUSLE::SERO_MUSLE() :
     m_detSmAgg(nullptr), m_detLgAgg(nullptr), m_iCfac(1),
     m_aveAnnUsleC(nullptr), m_landCover(nullptr), m_rsdCovSoil(nullptr),
     m_rsdCovCoef(NODATA_VALUE), m_canHgt(nullptr), m_lai(nullptr), m_surfRf(nullptr),
-    m_snowAccum(nullptr), m_usleMult(nullptr), m_cellAreaKM(NODATA_VALUE),
-    m_cellAreaKM1(NODATA_VALUE), m_cellAreaKM2(NODATA_VALUE), m_slopeForPq(nullptr),
+    m_snowAccum(nullptr), m_usleMult(nullptr), m_slopeForPq(nullptr),
     m_usleL(nullptr), m_usleS(nullptr), m_usleC(nullptr),
     m_eroSed(nullptr), m_eroSand(nullptr), m_eroSilt(nullptr), m_eroClay(nullptr),
-    m_eroSmAgg(nullptr), m_eroLgAgg(nullptr) {
+    m_eroSmAgg(nullptr), m_eroLgAgg(nullptr),m_area(nullptr),m_landUse(nullptr),
+    m_dis2Stream(nullptr) {
 }
 
 SERO_MUSLE::~SERO_MUSLE() {
@@ -108,28 +108,38 @@ void SERO_MUSLE::InitialOutputs() {
             //    variation by Desmet and Govers (1996).
             float L = 0.f;
             if (nullptr == m_slpLen) {
-                float up_lambda = m_flowAccm[i] * m_cellWth;
-                float slope_lambda = up_lambda + m_cellWth;
+                // float up_lambda = m_flowAccm[i] * m_cellWth;
+                // float slope_lambda = up_lambda + m_cellWth;
+                float up_lambda = m_flowAccm[i] * sqrt(m_area[i]);
+                float slope_lambda = up_lambda + sqrt(m_area[i]);
                 L = pow(slope_lambda, m + 1.f) - pow(up_lambda, m + 1.f);
-                L /= m_cellWth * pow(22.13f, m);
+                //L /= m_cellWth * pow(22.13f, m);
+                L /= sqrt(m_area[i]) * pow(22.13f, m);
             } else {
                 L = pow(m_slpLen[i] / 22.13f, m);
-            }
+            }     
+            float sls = Min(m_dis2Stream[i],300.f);
+            sls = Max(m_dis2Stream[i],1.f);
+            if(m_slope[i] <= 0.1)   sls = 61; 
+            if(m_slope[i] <= 0.2 && m_slope[i] > 0.1)   sls = 24; 
+            if(m_slope[i] > 0.2)   sls = 9.1; 
+            float L1 = pow(sls / 22.13f, m);
 
             if (m_usleP[i] < 0.f) m_usleP[i] = 0.f;
             if (m_usleP[i] > 1.f) m_usleP[i] = 1.f;
             // line 111-113 of soil_phys.f of SWAT source.
-            m_usleMult[i] = 11.8f * exp(-0.053f * m_soilRock[i][0]) * m_usleK[i][0] * m_usleP[i] * L * S;
+            m_usleMult[i] = 11.8f * exp(-0.053f * m_soilRock[i][0]) * m_usleK[i][0] * m_usleP[i] * L1 * S;
+            //cout<<L<<"   "<<L1<<endl;
             m_slopeForPq[i] = pow(m_slope[i] * 1000.f, 0.16f);
             m_usleL[i] = L;
             m_usleS[i] = S;
         }
     }
-    if (FloatEqual(m_cellAreaKM, NODATA_VALUE)) {
-        m_cellAreaKM = m_cellWth * m_cellWth * 0.000001f;
-        m_cellAreaKM1 = 3.79f * pow(m_cellAreaKM, 0.7f);
-        m_cellAreaKM2 = 0.903f * pow(m_cellAreaKM, 0.017f);
-    }
+    // if (FloatEqual(m_cellAreaKM, NODATA_VALUE)) {
+    //     m_cellAreaKM = m_cellWth * m_cellWth * 0.000001f;
+    //     m_cellAreaKM1 = 3.79f * pow(m_cellAreaKM, 0.7f);
+    //     m_cellAreaKM2 = 0.903f * pow(m_cellAreaKM, 0.017f);
+    // }
     if (nullptr == m_usleC) {
         m_usleC = new(nothrow) float[m_nCells];
 #pragma omp parallel for
@@ -157,7 +167,11 @@ int SERO_MUSLE::Execute() {
     InitialOutputs();
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
-        if (m_surfRf[i] < 0.0001f || m_rchID[i] > 0) {
+        float m_cellAreaKM = m_area[i] * 0.000001f;
+        float m_cellAreaKM1 = 3.79f * pow(m_cellAreaKM, 0.7f);
+        float m_cellAreaKM2 = 0.903f * pow(m_cellAreaKM, 0.017f);
+        //if (m_surfRf[i] < 0.0001f || m_rchID[i] > 0) {
+        if (m_surfRf[i] < 0.0001f || m_landCover[i] == LANDUSE_ID_WATR) {
             m_eroSed[i] = 0.f;
             m_eroSand[i] = 0.f;
             m_eroSilt[i] = 0.f;
@@ -252,6 +266,9 @@ void SERO_MUSLE::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(s, VAR_DETACH_CLAY)) m_detClay = data;
     else if (StringMatch(s, VAR_DETACH_SAG)) m_detSmAgg = data;
     else if (StringMatch(s, VAR_DETACH_LAG)) m_detLgAgg = data;
+    else if (StringMatch(s, VAR_AHRU)) m_area = data;
+    else if (StringMatch(s, VAR_LANDUSE)) m_landUse = data;
+    else if (StringMatch(s, VAR_DISTSTREAM)) m_dis2Stream = data; 
     else {
         throw ModelException(MID_SERO_MUSLE, "Set1DData", "Parameter " + s + " does not exist.");
     }

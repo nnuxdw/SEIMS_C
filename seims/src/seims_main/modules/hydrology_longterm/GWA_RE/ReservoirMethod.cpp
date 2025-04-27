@@ -17,7 +17,7 @@ ReservoirMethod::ReservoirMethod() :
     /// outputs
     m_T_QG(nullptr), m_T_Revap(nullptr), m_T_GWWB(nullptr),
     m_nSubbsns(-1), m_inputSubbsnID(-1), m_subbasinsInfo(nullptr),
-    m_area(nullptr) {
+    m_area(nullptr),curBasinArea(nullptr),m_rchrg(nullptr),gw_delay(NODATA_VALUE) {
 }
 
 ReservoirMethod::~ReservoirMethod() {
@@ -30,6 +30,8 @@ ReservoirMethod::~ReservoirMethod() {
     if (m_petSubbsn != nullptr) Release1DArray(m_petSubbsn);
     if (m_gwSto != nullptr) Release1DArray(m_gwSto);
     if (m_T_GWWB != nullptr) Release2DArray(m_nSubbsns + 1, m_T_GWWB);
+    if (curBasinArea != nullptr) Release1DArray(curBasinArea);
+    if (m_rchrg != nullptr) Release1DArray(m_rchrg);
 }
 
 void ReservoirMethod::InitialOutputs() {
@@ -44,23 +46,8 @@ void ReservoirMethod::InitialOutputs() {
     if (m_gwSto == nullptr) Initialize1DArray(nLen, m_gwSto, m_GW0);
     if (m_revap == nullptr) Initialize1DArray(m_nCells, m_revap, 0.f);
     if (m_T_GWWB == nullptr) Initialize2DArray(nLen, 6, m_T_GWWB, 0.f);
-# ifdef USE_PIHM
-	// Read select_hand_ids.txt
-	if (nullptr == pihm_tools)
-	{
-		project = new char[MAXSTRING];
-		strcpy(project, PIHM_PROJECT);
-		pihm_tools = new PIHM_TOOLS();
-		hru_ids = new vector<int>();
-		hru_ids_file = new char[MAXSTRING];
-		pihm_dir = new char[MAXSTRING];
-		strcpy(pihm_dir, PIHM_DATA_PATH);
-		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
-		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
-		m_subbasin_area = new float[nLen];
-		//pihm_tools->test(1, project);
-	}
-#endif
+    if (curBasinArea == nullptr) Initialize1DArray(nLen, curBasinArea, 0.f);
+    if (m_rchrg == nullptr) Initialize1DArray(nLen, m_rchrg, 0.f);
 }
 
 int ReservoirMethod::Execute() {
@@ -78,50 +65,39 @@ int ReservoirMethod::Execute() {
         float perco = 0.f;
         float fPET = 0.f;
         float revap = 0.f;
-        float curBasinArea =0.f;
+        curBasinArea[subID] =0.f;
+        float rchrg1 = 0.f;
         for (int i = 0; i < curCellsNum; i++) {
-			// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行计算
-# ifdef USE_PIHM
-			bool id_in_hru = pihm_tools->CheckIdInHruIds(curCells[i], hru_ids);
-			if (id_in_hru)
-			{
-				continue;
-			}
-# endif
-			curBasinArea += m_area[curCells[i]];
+			curBasinArea[subID] += m_area[curCells[i]];
 		}
-        total_area += curBasinArea;
-# ifdef USE_PIHM
-		m_subbasin_area[subID] = curBasinArea;
-# endif
+        total_area += curBasinArea[subID];
 #pragma omp parallel for reduction(+:perco, fPET, revap)
         for (int i = 0; i < curCellsNum; i++) {
             int index = curCells[i];
-			// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行计算; 反之HRU的地下水被加入子流域的地下水库
-# ifdef USE_PIHM
-			bool id_in_hru = pihm_tools->CheckIdInHruIds(curCells[i], hru_ids);
-			if (id_in_hru)
-			{
-				continue;
-			}
-# endif
             float tmp_perc = m_soilPerco[index][CVT_INT(m_nSoilLyrs[index]) - 1];
             if (tmp_perc > 0) {
                 //perco += tmp_perc;
-                perco += tmp_perc * (m_area[index] / curBasinArea);
+                perco += tmp_perc * (m_area[index] / curBasinArea[subID]);
             } else {
                 m_soilPerco[index][CVT_INT(m_nSoilLyrs[index]) - 1] = 0.f;
             }
             if (m_pet[index] > 0.f) {
                 //fPET += m_pet[index];
-                fPET += m_pet[index] * (m_area[index] / curBasinArea);
+                fPET += m_pet[index] * (m_area[index] / curBasinArea[subID]);
             }
-            m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_actPltET[index];
+            //m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_actPltET[index];  // xiaodw comment, don't need m_actPltET now
+			m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index];
             m_revap[index] = Max(m_revap[index], 0.f);
-            m_revap[index] = m_revap[index] * m_gwSto[subID] / m_GWMAX;
+            m_revap[index] = m_revap[index] * Min(1.0,m_gwSto[subID] / m_GWMAX);
             //revap += m_revap[index];
-            revap += m_revap[index] * (m_area[index] / curBasinArea);
+            //m_revap[index] = 0.f;
+            revap += m_revap[index] * (m_area[index] / curBasinArea[subID]);
         }
+        rchrg1 = m_rchrg[subID];
+        m_rchrg[subID] = 0.f;
+        float gw_delaye = exp(-1./(gw_delay));
+        m_rchrg[subID] = (1.- gw_delaye) * perco + gw_delaye * rchrg1;
+        perco = m_rchrg[subID];
         // perco /= curCellsNum; // mean mm
         // fPET /= curCellsNum;
         // revap /= curCellsNum;
@@ -145,26 +121,25 @@ int ReservoirMethod::Execute() {
         float slopeCoef = curSub->GetSlopeCoef();
         float kg = m_Kg * slopeCoef;
         float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex); // mm
+        groundRunoff = Min(groundRunoff,m_gwSto[subID]);
         //float groundQ = groundRunoff * curCellsNum * QGConvert;     // groundwater discharge (m3/s)
-        float groundQ = groundRunoff * curBasinArea * QGConvert; 
+        float groundQ = groundRunoff * curBasinArea[subID] * QGConvert; 
         float groundStorage = m_gwSto[subID];
         groundStorage += perco - revap - percoDeep - groundRunoff;
-
         //add the ground water from bank storage, 2011-3-14
         float gwBank = 0.f;
         // at the first time step m_VgroundwaterFromBankStorage is nullptr
         if (m_VgroundwaterFromBankStorage != nullptr) {
             gwBank = m_VgroundwaterFromBankStorage[subID];
         }
-        groundStorage += gwBank / curSub->GetArea() * 1000.f;
-
+        groundStorage += gwBank / curBasinArea[subID] * 1000.f;
         groundStorage = Max(groundStorage, 0.f);
-        if (groundStorage > m_GWMAX) {
-            groundRunoff += groundStorage - m_GWMAX;
-            //groundQ = groundRunoff * curCellsNum * QGConvert; // groundwater discharge (m3/s)
-            groundQ = groundRunoff * curBasinArea * QGConvert; 
-            groundStorage = m_GWMAX;
-        }
+        // if (groundStorage > m_GWMAX) {
+        //     groundRunoff += groundStorage - m_GWMAX;
+        //     //groundQ = groundRunoff * curCellsNum * QGConvert; // groundwater discharge (m3/s)
+        //     groundQ = groundRunoff * curBasinArea[subID] * QGConvert; 
+        //     groundStorage = m_GWMAX;
+        // }
 
         /**** Set values for current subbasin ****/
         curSub->SetPet(fPET);
@@ -251,7 +226,7 @@ bool ReservoirMethod::CheckInputData() {
     CHECK_POINTER(MID_GWA_RE, m_IntcpET);
     CHECK_POINTER(MID_GWA_RE, m_deprStoET);
     CHECK_POINTER(MID_GWA_RE, m_soilET);
-    CHECK_POINTER(MID_GWA_RE, m_actPltET);
+    //CHECK_POINTER(MID_GWA_RE, m_actPltET);
     CHECK_POINTER(MID_GWA_RE, m_pet);
     CHECK_POINTER(MID_GWA_RE, m_slope);
     CHECK_POINTER(MID_GWA_RE, m_soilWtrSto);
@@ -273,6 +248,7 @@ void ReservoirMethod::SetValue(const char* key, const float value) {
     else if (StringMatch(sk, VAR_DF_COEF)) m_dp_co = value;
     else if (StringMatch(sk, VAR_GW0)) m_GW0 = value;
     else if (StringMatch(sk, VAR_GWMAX)) m_GWMAX = value;
+    else if (StringMatch(sk, "gw_delay")) gw_delay = value;
     else {
         throw ModelException(MID_GWA_RE, "SetValue", "Parameter " + sk + " does not exist in current module.");
     }
@@ -353,12 +329,7 @@ void ReservoirMethod::Get1DData(const char* key, int* nrows, float** data) {
     } else if (StringMatch(sk, VAR_SBPET)) {
         *data = m_petSubbsn;
         *nrows = m_nSubbsns + 1;
-    }
-	else if (StringMatch(sk, VAR_GW_SUBBASIN_AREA)) {
-		*data = m_subbasin_area;
-		*nrows = m_nSubbsns + 1;
-	}
-	else {
+    } else {
         throw ModelException(MID_GWA_RE, "Get1DData", "Parameter " + sk + " does not exist.");
     }
 }

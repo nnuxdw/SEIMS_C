@@ -26,13 +26,7 @@
 #define SEIMS_MODULE_NUTR_TF_H
 
 #include "SimulationModule.h"
-# ifdef USE_PIHM
- // xiaodw, for pihm
-#include "pihm_tools.h"
-#ifndef MAXSTRING
-#define MAXSTRING  1024
-#endif
-#endif
+
 /*!
  * \class Nutrient_Transformation
  * \ingroup NUTR_TF
@@ -64,14 +58,7 @@ public:
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
-# ifdef USE_PIHM
-	// xiaodw, for pihm
-	PIHM_TOOLS *pihm_tools = nullptr;
-	vector<int> *hru_ids;
-	char * pihm_dir;
-	char * hru_ids_file;
-	char * project;
-#endif
+
 private:
     /*!
     * \brief estimates daily nitrogen and phosphorus mineralization and immobilization.
@@ -109,6 +96,16 @@ private:
     * \return void
     */
     void CalculatePflux(int i);
+
+    //++ljj
+    void ModifiedMillennial(int i);
+
+    float fSWC2SWP(float forc_sw0, float sol_por);
+
+    float tp_scalar(string sCase, float T0, float Tref);
+
+    /// distributes dead root mass through the soil profile
+    void RootFraction(int i, float*& root_fr);
 
 private:
     /// cell width of grid map (m)
@@ -184,6 +181,7 @@ private:
     float** m_soilWtrSto;
     ///Water content of soil profile at field capacity(mm H2O) (FC-WP)
     float** m_soilFC;
+    float** m_soilAWC;
     ///depth to bottom of soil layer
     float** m_soilDepth;
     ///Percent of clay content
@@ -297,5 +295,77 @@ private:
 
     //ljj++
     float** m_soilTempprofile;
+    float* m_dem;
+    float* m_landUse;
+    float* m_phpSorpIdxBsn_temp;
+
+    float* m_bmdieoff;
+    float* m_biomass;
+    float* m_biomassDelta;
+    float* m_frRoot;
+    float* m_stoSoilRootD;
+    float* m_surfrunoff;
+    float* m_poc_1st;
+    float* m_maoc_1st;
+    float* m_mbc_1st;
+    float* m_doc_1st;
+
+    float** m_soilpH;
+    float** tmp_rtfr;
+    float** m_soilPerco;
+    float** m_subSurfRf;
+    float** f_LM_leach;
+    float** MA;
+    float** MD;
+    float** MIC;
+    float** MAOM;
+    float** POM;
+    float** LMWC;
+    float** SOM;
+    float** soilCO2;
+    float** DOC;
+    float** fDOC;
+    float** m_forc_litter;
+    float** m_forc_npp;
+
+    float** SOL_OUT;
+    float* MIC1;
+    float* MAOM1;
+    float* POM1;
+    float* LMWC1;
+
+    float* kaff_pl;
+    float* Vpl0;
+    float* kaff_ml;
+    float* Vml0;
+    float* kaff_lb;
+    float* Vlb0;
+    float* param_fpl;
+    float* param_p2;
+    float* kaff_des;
+    float* cue_t;
+    float* rate_bd;
+    float* rate_Kbd;
+    float* cue_ref;
+    float* param_pb;
+    float* param_pc;
+    float* r0;
+    float* Ma;
+    float* beta;
+    float* acue;
+    float* param_pi;
+
+    float m_leach;
+    float* m_soilSurfCbn;
+    float* m_olWtrEroSed;
+    float* m_area;
+    float* m_dormFlag;
+    float* m_flowOutIdxD8;
+    float* m_soileroPOC;
+    float* m_soilPercoCbnLowest;
+    float** m_soilIfluCbn;
+    float** m_soilPercoCbn;
+    
+
 };
 #endif /* SEIMS_MODULE_NUTR_TF_H */

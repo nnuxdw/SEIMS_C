@@ -72,7 +72,7 @@ ENDIF ()
 
 ########  Stand-alone libraries/programs   ###########
 SET(BASE_HOME ${CMAKE_CURRENT_SOURCE_DIR}/base)
-SET(BASE_INC ${BASE_HOME} ${BASE_HOME}/common_algorithm ${BASE_HOME}/data ${BASE_HOME}/module_setting ${BASE_HOME}/bmps)
+SET(BASE_INC ${BASE_HOME} ${BASE_HOME}/common_algorithm ${BASE_HOME}/data ${BASE_HOME}/module_setting ${BASE_HOME}/bmps ${BASE_HOME}/WetSpaInterface2)
 SET(MODULE_HOME ${CMAKE_CURRENT_SOURCE_DIR}/modules)
 SET(MAIN_HOME ${CMAKE_CURRENT_SOURCE_DIR}/main)
 ############  Set include directories    #############

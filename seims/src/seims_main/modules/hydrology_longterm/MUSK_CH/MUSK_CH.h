@@ -50,6 +50,8 @@ public:
 
     void Set1DData(const char* key, int n, float* data) OVERRIDE;
 
+    void Set2DData(const char* key, int nrows, int ncols, float** data) OVERRIDE;
+
     void SetScenario(Scenario* sce) OVERRIDE;
 
     void SetReaches(clsReaches* reaches) OVERRIDE;
@@ -68,6 +70,8 @@ public:
     
     //ljj++
     void SetSubbasins(clsSubbasins* subbasins) OVERRIDE;
+
+    void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
 private:
 
     void PointSourceLoading();
@@ -170,15 +174,18 @@ private:
 
     //ljj++
     int m_nCells;
+    int m_maxSoilLyrs;
 
     //! maximum ground water storage
     float m_GWMAX;
+    float m_GWMIN;
     float m_Kg;
     float m_Base_ex;
     float m_evlake; //lake evaporation coefficient
     float m_lakeseep; //m/day; hydraulic conductivity of the lake bottom
     float m_petFactor;
     float m_minvol;
+    float m_lakeb;
 
     float* m_ispermafrost;
     float* m_islake;
@@ -194,19 +201,46 @@ private:
     float* m_ResLn;
     float* m_ResLf;
     float* m_ResAdjust;
+    float* flowoutlength;
 
-    float* gw_height;
+    float* m_A_Va;
+    float* m_A_Vb;
+    float* m_A_a;
+    float* m_A_b;
+
     float* m_netPcp;
+    float* m_PET;
     float* m_prec;
+    float* m_pet;
+    float* m_lakepcp;
+    float* m_lakeperc;
 
-    float* m_gw_sh;
-    
     float* m_qin1;
     float* m_qout1;
 
-    float* m_rch_ht;   //river height
-    float* m_qgsRchOut; ///<shallow groundwater part of channel outflow
+    float* m_resndq;
+    float* m_resminq;
+    float* m_resnormq;
+    float* m_res_normMult;
+
     float* m_lakedp;
+
+    float* m_Ch2GW;
+    float* m_aquifer;
+    float* m_charge;
+    float* m_recharge;
+    float* m_qin;
+
+    float* m_temp1;
+    float* m_temp2;
+    float* m_dem;
+    float* m_slope;
+    float* m_potRfCoef;
+    float* curBasinDem;
+    float** m_soilTempprofile;
+    float** m_T_LKWB;
+
+    float* m_rrtime;
 
     // subbasin IDs
     vector<int> m_subbasinIDs;

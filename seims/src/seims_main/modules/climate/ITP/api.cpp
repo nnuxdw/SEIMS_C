@@ -24,6 +24,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     //from parameter database, e.g., Weight_P, Weight_PET, Weight_T.
     //mdi.AddParameter(Tag_Weight, UNIT_NON_DIM, DESC_WEIGHT_ITP, Source_ParameterDB, DT_Array1D);
     mdi.AddParameter(Tag_Weight[0], UNIT_NON_DIM, Tag_Weight[1], Source_ParameterDB, DT_Array2D);
+    // from parameter database, e.g., Weight_P_ID, Weight_PET_ID, Weight_T_ID. by wanghaocheng
+    mdi.AddParameter(Tag_Weight_ID[0], UNIT_NON_DIM, Tag_Weight_ID[1], Source_ParameterDB, DT_Array2D);
     // from config.fig, e.g. Interpolation_P_1
     mdi.AddParameter(Tag_VerticalInterpolation, UNIT_NON_DIM, DESC_VER_ITP, File_Config, DT_Single);
     // these three parameters are just read when it will do vertical interpolation

@@ -7,12 +7,16 @@ SUR_MR::SUR_MR() :
     m_maxSoilLyrs(-1), m_nSoilLyrs(nullptr),
     m_soilFC(nullptr), m_soilSat(nullptr), m_soilSumSat(nullptr), m_initSoilWtrStoRatio(nullptr),
     m_rfExp(NODATA_VALUE), m_maxPcpRf(NODATA_VALUE), m_deprSto(nullptr), m_meanTemp(nullptr),
-    m_soilFrozenTemp(NODATA_VALUE), m_soilFrozenWtrRatio(NODATA_VALUE), m_soilTemp(nullptr),
+    m_soilFrozenTemp(NODATA_VALUE), m_soilFrozenWtrRatio(NODATA_VALUE),
+
+	//m_soilTemp(nullptr),  // xiaodw comment, don't need soil temperature now
     m_potVol(nullptr), m_impndTrig(nullptr),
     m_exsPcp(nullptr), m_infil(nullptr), m_soilWtrSto(nullptr), m_soilWtrStoPrfl(nullptr),
     //ljj++
-    m_soilIceSto(nullptr),m_soilIceStoPrfl(nullptr),m_soilPor(nullptr),m_soilThk(nullptr)
-     {
+    m_soilIceSto(nullptr),m_soilIceStoPrfl(nullptr),m_soilPor(nullptr),m_soilThk(nullptr),
+    m_dem(nullptr),m_landUse(nullptr),m_soilAWC(nullptr),m_rchID(nullptr),m_pcp(nullptr),m_lakesto(nullptr),
+    m_pet(nullptr)
+    {
 }
 
 SUR_MR::~SUR_MR() {
@@ -21,6 +25,7 @@ SUR_MR::~SUR_MR() {
     if (m_soilWtrSto != nullptr) Release2DArray(m_nCells, m_soilWtrSto);
     if (m_soilWtrStoPrfl != nullptr) Release1DArray(m_soilWtrStoPrfl);
     if (m_soilIceStoPrfl != nullptr) Release1DArray(m_soilIceStoPrfl);
+    if (m_lakesto != nullptr) Release1DArray(m_lakesto);
 }
 
 bool SUR_MR::CheckInputData() {
@@ -33,9 +38,9 @@ bool SUR_MR::CheckInputData() {
     CHECK_NODATA(MID_SUR_MR, m_soilFrozenWtrRatio);
     CHECK_POINTER(MID_SUR_MR, m_initSoilWtrStoRatio);
     CHECK_POINTER(MID_SUR_MR, m_potRfCoef);
-    CHECK_POINTER(MID_SUR_MR, m_soilFC);
+    //CHECK_POINTER(MID_SUR_MR, m_soilFC);
     CHECK_POINTER(MID_SUR_MR, m_meanTemp);
-    CHECK_POINTER(MID_SUR_MR, m_soilTemp);
+    //CHECK_POINTER(MID_SUR_MR, m_soilTemp);  // xiaodw comment, don't need soil temperature now
     CHECK_POINTER(MID_SUR_MR, m_netPcp);
     CHECK_POINTER(MID_SUR_MR, m_deprSto);
     return true;
@@ -50,11 +55,14 @@ void SUR_MR::InitialOutputs() {
         Initialize1DArray(m_nCells, m_soilWtrStoPrfl, 0.f);
         Initialize1DArray(m_nCells, m_soilIceStoPrfl, 0.f);//ljj++
         Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilWtrSto, NODATA_VALUE);
+        Initialize1DArray(m_nCells, m_lakesto, 0.f);
 #pragma omp parallel for
         for (int i = 0; i < m_nCells; i++) {
             for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
-                if (m_initSoilWtrStoRatio[i] >= 0.f && m_initSoilWtrStoRatio[i] <= 1.f && m_soilFC[i][j] >= 0.f) {
-                    m_soilWtrSto[i][j] = m_initSoilWtrStoRatio[i] * m_soilFC[i][j];
+                // if (m_initSoilWtrStoRatio[i] >= 0.f && m_initSoilWtrStoRatio[i] <= 1.f && m_soilFC[i][j] >= 0.f) {
+                //     m_soilWtrSto[i][j] = m_initSoilWtrStoRatio[i] * m_soilFC[i][j];
+                if (m_initSoilWtrStoRatio[i] >= 0.f && m_initSoilWtrStoRatio[i] <= 1.f && m_soilAWC[i][j] >= 0.f) {
+                    m_soilWtrSto[i][j] = m_initSoilWtrStoRatio[i] * m_soilAWC[i][j];
                 } else {
                     m_soilWtrSto[i][j] = 0.f;
                 }
@@ -73,45 +81,29 @@ void SUR_MR::InitialOutputs() {
             }
         }
     }
-# ifdef USE_PIHM
-	// Read select_hand_ids.txt
-	if (nullptr == pihm_tools)
-	{
-		project = new char[MAXSTRING];
-		strcpy(project, PIHM_PROJECT);
-		pihm_tools = new PIHM_TOOLS();
-		hru_ids = new vector<int>();
-		hru_ids_file = new char[MAXSTRING];
-		pihm_dir = new char[MAXSTRING];
-		strcpy(pihm_dir, PIHM_DATA_PATH);
-		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
-		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
-		//pihm_tools->test(1, project);
-	}
-#endif
 }
 
 int SUR_MR::Execute() {
     CheckInputData();
     InitialOutputs();
-    int frez =1;
+    int frez =0;
     m_maxPcpRf *= m_dt * 1.1574074074074073e-05f; /// 1. / 86400. = 1.1574074074074073e-05;
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
-		// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行积雪和融雪计算
-# ifdef USE_PIHM
-		bool id_in_hru = pihm_tools->CheckIdInHruIds(i, hru_ids);
-# ifdef USE_PIHM_DEBUG
-		cout << "i: " << i << " m_nCells: " << m_nCells << " id_in_hru: " << id_in_hru << endl;
-#endif
-		if (id_in_hru)
-		{
-			continue;
-		}
-# endif
+        if(m_landUse[i] ==LANDUSE_ID_WATR && m_rchID[i]<=0.f){
+            //鍧￠潰婀栨硦
+            m_lakesto[i] += m_pcp[i];
+            m_lakesto[i] -= m_pet[i];
+            float m_resday = 31.f;
+            float m_runoff = 1/m_resday  * m_lakesto[i]; // mm
+            m_lakesto[i] -= m_runoff;
+            m_exsPcp[i] = m_runoff;
+            m_infil[i] = 0.f;
+            continue;
+        }
         float hWater = 0.f;
         hWater = m_netPcp[i] + m_deprSto[i];
-        if (hWater > 0.f) {
+        if (hWater > 0.f && m_landUse[i] !=18) {
             /// update total soil water content
             m_soilWtrStoPrfl[i] = 0.f;
             for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[i]); ly++) {
@@ -122,7 +114,7 @@ int SUR_MR::Execute() {
             float soilIcePrfl = 0.f;
             float soilSatPrfl = 0.f;
             for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
-                soilIcePrfl += m_soilIceSto[i][k];
+                //soilIcePrfl += m_soilIceSto[i][k];   // xiaodw, don't need soil ice now
                 soilSatPrfl += m_soilPor[i][k]*m_soilThk[i][k];
             }
             if(frez==1){
@@ -134,14 +126,14 @@ int SUR_MR::Execute() {
                 if (hWater >= m_maxPcpRf) {
                     alpha = 1.f;
                 }
-
                 //runoff percentage
                 float runoffPercentage;
-                if (m_potRfCoef[i] > 0.99f) {
+                if (m_potRfCoef[i] > 0.99f ||  (m_landUse[i] == LANDUSE_ID_GLC)) {
                     runoffPercentage = 1.f;
                 } else {
                     runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
                 }
+                runoffPercentage = Min(runoffPercentage,1.f);
                 float surfq = hWater *runoffPercentage;
                 if (surfq > hWater) surfq = hWater;
                 m_infil[i] = hWater - surfq;
@@ -149,32 +141,58 @@ int SUR_MR::Execute() {
 
             }else{
                 //for frozen soil, no infiltration will occur
-                if (m_soilTemp[i] <= m_soilFrozenTemp && smFraction >= m_soilFrozenWtrRatio) {
-                    m_exsPcp[i] = m_netPcp[i];
-                    m_infil[i] = 0.f;
-                } else {
-                    alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
-                    if (hWater >= m_maxPcpRf) {
-                        alpha = 1.f;
-                    }
+				// xiaodw comment, don't need soil temperature now
+    //            if (m_soilTemp[i] <= m_soilFrozenTemp && smFraction >= m_soilFrozenWtrRatio) {
+    //                m_exsPcp[i] = m_netPcp[i];
+    //                m_infil[i] = 0.f;
+    //            }
+				//else {
+    //                alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
+    //                if (hWater >= m_maxPcpRf) {
+    //                    alpha = 1.f;
+    //                }
 
-                    //runoff percentage
-                    float runoffPercentage;
-                    if (m_potRfCoef[i] > 0.99f) {
-                        runoffPercentage = 1.f;
-                    } else {
-                        runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
-                    }
+    //                //runoff percentage
+    //                float runoffPercentage;
+    //                if (m_potRfCoef[i] > 0.99f ||  (m_landUse[i] == LANDUSE_ID_GLC)) {
+    //                    runoffPercentage = 1.f;
+    //                } else {
+    //                    runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+    //                }
+    //                runoffPercentage = Min(runoffPercentage,1.f);
+    //                float surfq = hWater * runoffPercentage;
+    //                if (surfq > hWater) surfq = hWater;
+    //                m_infil[i] = hWater - surfq;
+    //                m_exsPcp[i] = surfq;
 
-                    float surfq = hWater * runoffPercentage;
-                    if (surfq > hWater) surfq = hWater;
-                    m_infil[i] = hWater - surfq;
-                    m_exsPcp[i] = surfq;
+    //                /// TODO: Why calculate surfq first, rather than infiltration first?
+    //                ///       I think we should calculate infiltration first, until saturation,
+    //                ///       then surface runoff should be calculated. By LJ.
+    //            }
 
-                    /// TODO: Why calculate surfq first, rather than infiltration first?
-                    ///       I think we should calculate infiltration first, until saturation,
-                    ///       then surface runoff should be calculated. By LJ.
-                }
+
+
+				    alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
+	                if (hWater >= m_maxPcpRf) {
+	                    alpha = 1.f;
+	                }
+
+	                //runoff percentage
+	                float runoffPercentage;
+	                if (m_potRfCoef[i] > 0.99f ||  (m_landUse[i] == LANDUSE_ID_GLC)) {
+	                    runoffPercentage = 1.f;
+	                } else {
+	                    runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+	                }
+	                runoffPercentage = Min(runoffPercentage,1.f);
+	                float surfq = hWater * runoffPercentage;
+	                if (surfq > hWater) surfq = hWater;
+	                m_infil[i] = hWater - surfq;
+	                m_exsPcp[i] = surfq;
+
+	                /// TODO: Why calculate surfq first, rather than infiltration first?
+	                ///       I think we should calculate infiltration first, until saturation,
+	                ///       then surface runoff should be calculated. By LJ.
             }
         } else {
             m_exsPcp[i] = 0.f;
@@ -183,7 +201,6 @@ int SUR_MR::Execute() {
         if (m_infil[i] > 0.f) {
             m_soilWtrSto[i][0] += m_infil[i];
         }
-		//cout << "m_exsPcp[" << i << "]: " << m_exsPcp[i] << endl;
     }
     return 0;
 }
@@ -209,10 +226,16 @@ void SUR_MR::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(sk, VAR_MOIST_IN)) m_initSoilWtrStoRatio = data;
     else if (StringMatch(sk, VAR_SOL_SUMSAT)) m_soilSumSat = data;
     else if (StringMatch(sk, VAR_DPST)) m_deprSto = data;
-    else if (StringMatch(sk, VAR_SOTE)) m_soilTemp = data;
+	// xiaodw comment, don't need soil temperature now
+    //else if (StringMatch(sk, VAR_SOTE)) m_soilTemp = data;
     else if (StringMatch(sk, VAR_SOILLAYERS)) m_nSoilLyrs = data;
     else if (StringMatch(sk, VAR_POT_VOL)) m_potVol = data;
     else if (StringMatch(sk, VAR_IMPOUND_TRIG)) m_impndTrig = data;
+    else if (StringMatch(sk, VAR_DEM)) m_dem = data;
+    else if (StringMatch(sk, VAR_LANDUSE)) m_landUse = data;
+    else if (StringMatch(sk, VAR_STREAM_LINK)) m_rchID = data;
+    else if (StringMatch(sk, VAR_PCP)) m_pcp = data;
+    else if (StringMatch(sk, VAR_PET)) m_pet = data;
     else {
         throw ModelException(MID_SUR_MR, "Set1DData", "Parameter " + sk + " does not exist.");
     }
@@ -221,7 +244,7 @@ void SUR_MR::Set1DData(const char* key, const int n, float* data) {
 void SUR_MR::Set2DData(const char* key, const int nrows, const int ncols, float** data) {
     string sk(key);
     CheckInputSize2D(MID_SUR_MR, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
-    if (StringMatch(sk, VAR_SOL_AWC)) m_soilFC = data;
+    if (StringMatch(sk, VAR_SOL_AWC)) m_soilAWC = data; //m_soilFC = data;
     else if (StringMatch(sk, VAR_SOL_UL)) m_soilSat = data;
     else if (StringMatch(sk, VAR_SOLICE)) m_soilIceSto = data;
     else if (StringMatch(sk, VAR_POROST)) m_soilPor = data;

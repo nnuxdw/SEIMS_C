@@ -117,11 +117,11 @@ private:
     //! product of USLE K,P,LS,exp(rock)
     float* m_usleMult;
     //! cell area (A, km^2)
-    float m_cellAreaKM;
-    //! cell area factor (3.79 * A^0.7)
-    float m_cellAreaKM1;
-    //! cell area factor (0.903 * A^0.017)
-    float m_cellAreaKM2;
+    // float m_cellAreaKM;
+    // //! cell area factor (3.79 * A^0.7)
+    // float m_cellAreaKM1;
+    // //! cell area factor (0.903 * A^0.017)
+    // float m_cellAreaKM2;
     //! Slope^0.16
     float* m_slopeForPq;
 
@@ -145,5 +145,10 @@ private:
     float* m_eroSmAgg;
     //! large aggregate yield
     float* m_eroLgAgg;
+
+    //ljj
+    float* m_area;
+    float* m_landUse;
+    float* m_dis2Stream;
 };
 #endif /* SEIMS_MODULE_SERO_MUSLE_H */

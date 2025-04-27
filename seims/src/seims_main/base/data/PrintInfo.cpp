@@ -15,10 +15,10 @@ PrintInfoItem::PrintInfoItem(int scenario_id /* = 0 */, int calibration_id /* = 
       m_nLayers(-1), m_2DData(nullptr), TimeSeriesDataForSubbasinCount(-1), SiteID(-1),
       SiteIndex(-1), SubbasinID(-1), SubbasinIndex(-1),
       StartTime(""), m_startTime(0),
-      EndTime(""), m_endTime(0), Suffix(""), Corename(""),
-      Filename(""),
+      EndTime(""), m_endTime(0), Suffix(""), Corename(""),interval_Unit(""),
+      Filename(""),intervals(-1),
       m_scenarioID(scenario_id), m_calibrationID(calibration_id),
-      m_Counter(-1), m_AggregationType(AT_Unknown) {
+      m_Counter(-1), m_AggregationType(AT_Unknown),m_Counter2(-1) {
     TimeSeriesData.clear();
     TimeSeriesDataForSubbasin.clear();
 }
@@ -26,6 +26,7 @@ PrintInfoItem::PrintInfoItem(int scenario_id /* = 0 */, int calibration_id /* = 
 PrintInfoItem::~PrintInfoItem() {
     StatusMessage(("Start to release PrintInfoItem for " + Filename + " ...").c_str());
     Release2DArray(m_Counter, m_1DDataWithRowCol);
+    Release2DArray(m_Counter2, m_1DDataWithRowCol);
     Release1DArray(m_1DData);
     Release2DArray(m_nRows, m_2DData);
 
@@ -110,7 +111,7 @@ void PrintInfoItem::Flush(const string& projectPath, MongoGridFs* gfs, FloatRast
             m_specificOutput->dump(projectPath + Filename + ".txt");
             StatusMessage(("Create " + projectPath + Filename + " successfully!").c_str());
         }*/
-        return;
+        //return;
     }
     if (!TimeSeriesData.empty() && (SiteID != -1 || SubbasinID != -1)) {
         //time series data
@@ -209,7 +210,8 @@ void PrintInfoItem::Flush(const string& projectPath, MongoGridFs* gfs, FloatRast
             fs.open(filename.c_str(), std::ios::out);
             if (fs.is_open()) {
                 int valid_num = templateRaster->GetValidNumber();
-                int nlyrs = templateRaster->GetLayers();
+                //int nlyrs = templateRaster->GetLayers();
+                int nlyrs = m_nLayers;   //ljj
                 for (int idx = 0; idx < valid_num; idx++) {
                     fs << idx;
                     for (int ilyr = 0; ilyr < nlyrs; ilyr++) {
@@ -328,6 +330,28 @@ void PrintInfoItem::AggregateData(time_t time, int numrows, float* data) {
         {
             m_specificOutput->setData(time,data);
         }		*/
+        if (m_1DData == nullptr) {
+            // create the aggregate array
+            m_nRows = numrows;
+            m_nLayers = 1;
+            Initialize1DArray(m_nRows, m_1DData, NODATA_VALUE);
+            m_Counter2 = 0;
+        }
+        // depending on the type of aggregation
+        if(StringMatch(interval_Unit, "MONTH")){
+            if(GetMonth(time)==intervals){
+#pragma omp parallel for
+                for (int rw = 0; rw < m_nRows; rw++) {
+                    if (!FloatEqual(data[rw], NODATA_VALUE)) {
+                        if (FloatEqual(m_1DData[rw], NODATA_VALUE)) {
+                            m_1DData[rw] = 0.f;
+                        }
+                        m_1DData[rw] = (m_1DData[rw] * m_Counter2 + data[rw]) / (m_Counter2 + 1.f);
+                    }
+                }
+                m_Counter2++;
+            }
+        }
     } else {
         // check to see if there is an aggregate array to add data to
         if (m_1DData == nullptr) {
@@ -620,7 +644,7 @@ string PrintInfo::getOutputTimeSeriesHeader() {
     return oss.str();
 }
 
-void PrintInfo::AddPrintItem(string& start, string& end, string& file, string& sufi) {
+void PrintInfo::AddPrintItem(string& start, string& end, string& file, string& sufi, string& intervalUnit,int interval/* = 1 */) {
     // create a new object instance
     PrintInfoItem* itm = new PrintInfoItem(m_scenarioID, m_calibrationID);
 
@@ -638,7 +662,7 @@ void PrintInfo::AddPrintItem(string& start, string& end, string& file, string& s
     m_PrintItems.emplace_back(itm);
 }
 
-void PrintInfo::AddPrintItem(string& type, string& start, string& end, string& file, string& sufi,
+void PrintInfo::AddPrintItem(string& type, string& start, string& end, string& file, string& sufi, string& intervalUnit,int interval/* = 1 */,
                              int subbasinID /* = 0 */) {
     // create a new object instance
     PrintInfoItem* itm = new PrintInfoItem(m_scenarioID, m_calibrationID);
@@ -651,7 +675,9 @@ void PrintInfo::AddPrintItem(string& type, string& start, string& end, string& f
     itm->Corename = file;
     itm->Filename = subbasinID == 0 || subbasinID == 9999 ? file : file + "_" + ValueToString(subbasinID);
     itm->Suffix = sufi;
-
+    itm->interval_Unit = intervalUnit;
+    itm->intervals = interval;
+    if(StringMatch(type, Tag_SpecificCells)) itm->Filename = itm->Filename + "_" + ValueToString(interval);
     itm->m_startTime = ConvertToTime(start, "%d-%d-%d %d:%d:%d", true);
     itm->m_endTime = ConvertToTime(end, "%d-%d-%d %d:%d:%d", true);
 
@@ -668,7 +694,7 @@ void PrintInfo::AddPrintItem(string& type, string& start, string& end, string& f
 }
 
 void PrintInfo::AddPrintItem(string& start, string& end, string& file, string sitename,
-                             string& sufi, bool isSubbasin) {
+                             string& sufi, string& intervalUnit,int interval/* = 1 */, bool isSubbasin) {
     PrintInfoItem* itm = new PrintInfoItem(m_scenarioID, m_calibrationID);
     char* strend = nullptr;
     errno = 0;

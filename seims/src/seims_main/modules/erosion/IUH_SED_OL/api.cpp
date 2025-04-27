@@ -29,6 +29,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_SUBBSN, UNIT_NON_DIM, DESC_SUBBSN, Source_ParameterDB, DT_Raster1D);
 
     mdi.AddInput(VAR_SOER, UNIT_KG, DESC_SOER, Source_Module, DT_Raster1D);
+    mdi.AddInput("BRT", UNIT_KG, DESC_SOER, Source_Module, DT_Array1D);
 
     mdi.AddOutput(VAR_SED_TO_CH, UNIT_KG, DESC_SED_TO_CH, DT_Array1D);
     mdi.AddOutput(VAR_SEDYLD, UNIT_KG, DESC_SEDYLD, DT_Raster1D);

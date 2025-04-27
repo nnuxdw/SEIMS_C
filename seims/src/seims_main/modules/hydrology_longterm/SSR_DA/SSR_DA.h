@@ -14,13 +14,7 @@
 #define SEIMS_MODULE_SSR_DA_H
 
 #include "SimulationModule.h"
-# ifdef USE_PIHM
- // xiaodw, for pihm
-#include "pihm_tools.h"
-#ifndef MAXSTRING
-#define MAXSTRING  1024
-#endif
-#endif
+
 /*!
  * \defgroup SSR_DA
  * \ingroup Hydrology_longterm
@@ -54,15 +48,6 @@ public:
     void Get1DData(const char *key, int *n, float **data) OVERRIDE;
 
     void Get2DData(const char *key, int *nrows, int *ncols, float ***data) OVERRIDE;
-
-# ifdef USE_PIHM
-	// xiaodw, for pihm
-	PIHM_TOOLS *pihm_tools = nullptr;
-	vector<int> *hru_ids;
-	char * pihm_dir;
-	char * hru_ids_file;
-	char * project;
-#endif
 
 private:
     bool FlowInSoil(int id);
@@ -105,6 +90,7 @@ private:
 
     /// amount of water available to plants in soil layer at field capacity (AWC=FC-WP), mm
     float **m_soilFC;
+    float **m_soilAWC;
     /// water content of soil at -1.5 MPa (wilting point) mm H2O
     float **m_soilWP;
     /// soil water storage (mm)
@@ -158,6 +144,16 @@ private:
 
     //ljj++
     float* m_area;
+    float* m_dis2Stream;
+    float* m_landUse;
+    float* m_slplen;
+    float* m_potVol;
+    float* m_surfRf;
+    float* m_impoundTrig;
+    float** m_soilPerco;
+    float* m_infil;
+    float** m_TTlag;
+    float** m_cellFlow;
     float* m_flowout_length;
     float** m_soilTempprofile;
     float** m_soilIceSto;

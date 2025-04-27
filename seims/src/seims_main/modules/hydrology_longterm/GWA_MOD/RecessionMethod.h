@@ -29,13 +29,7 @@
 
 #include "SimulationModule.h"
 #include "clsSubbasin.h"
-# ifdef USE_PIHM
- // xiaodw, for pihm
-#include "pihm_tools.h"
-#ifndef MAXSTRING
-#define MAXSTRING  1024
-#endif
-#endif
+
 /** \defgroup GWA_MOD
  * \ingroup Hydrology_longterm
  * \brief Reservoir Method to calculate groundwater balance and baseflow of longterm model
@@ -73,17 +67,9 @@ public:
     void Get1DData(const char* key, int* nrows, float** data) OVERRIDE;
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
-	// xiaodw modify, 此模块应该是坡面模块，而非河道模块，因此注释掉此方法，ModelMain会默认判定为坡面模块
-    /*TimeStepType GetTimeStepType() OVERRIDE{ return TIMESTEP_CHANNEL; }*/
 
-# ifdef USE_PIHM
-	// xiaodw, for pihm
-	PIHM_TOOLS *pihm_tools = nullptr;
-	vector<int> *hru_ids;
-	char * pihm_dir;
-	char * hru_ids_file;
-	char * project;
-#endif
+    TimeStepType GetTimeStepType() OVERRIDE{ return TIMESTEP_CHANNEL; }
+
 private:
     //inputs
 
@@ -127,10 +113,7 @@ private:
 
     float* m_petSubbsn; ///< Average PET of each subbasin, mm
     float* m_gwSto;     ///<  Groundwater storage (mm) of the subbasin
-	// xiaodw, output for pihm
-# ifdef USE_PIHM
-	float* m_subbasin_area;
-#endif
+
     /// slope (percent, or drop/distance, or tan) of each cell
     float* m_slope;
 
@@ -173,6 +156,7 @@ private:
     
     //specific yield for shallow aquifer
     float* m_gw_spyld;
+    float* m_ispermafrost;
     
     float* m_area;
     //time required for water leaving the bottom of the root zone to reach the shallow aquife

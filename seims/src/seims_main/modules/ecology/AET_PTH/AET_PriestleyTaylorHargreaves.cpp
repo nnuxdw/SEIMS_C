@@ -14,7 +14,7 @@ AET_PT_H::AET_PT_H() :
     m_snowAccum(nullptr), m_snowSublim(nullptr),
     m_soilWtrSto(nullptr), m_soilWtrStoPrfl(nullptr),
     /// output
-    m_maxPltET(nullptr), m_soilET(nullptr) {
+    m_maxPltET(nullptr), m_soilET(nullptr), m_soilAWC(nullptr) {
 }
 
 AET_PT_H::~AET_PT_H() {
@@ -45,7 +45,7 @@ void AET_PT_H::Set2DData(const char* key, const int n, const int col, float** da
     string sk(key);
     if (StringMatch(sk, VAR_SOILDEPTH)) m_soilDepth = data;
     else if (StringMatch(sk, VAR_SOILTHICK)) m_soilThk = data;
-    else if (StringMatch(sk, VAR_SOL_AWC)) m_solFC = data;
+    else if (StringMatch(sk, VAR_SOL_AWC)) m_soilAWC = data; //m_solFC = data;
     else if (StringMatch(sk, VAR_SOL_NO3)) m_solNo3 = data;
     else if (StringMatch(sk, VAR_SOL_ST)) m_soilWtrSto = data;
     else {
@@ -59,7 +59,7 @@ bool AET_PT_H::CheckInputData() {
     CHECK_POINTER(MID_AET_PTH, m_esco);
     CHECK_POINTER(MID_AET_PTH, m_nSoilLyrs);
     CHECK_POINTER(MID_AET_PTH, m_tMean);
-    CHECK_POINTER(MID_AET_PTH, m_lai);
+    //CHECK_POINTER(MID_AET_PTH, m_lai); // xiaodw comment, don't need LAI now
     CHECK_POINTER(MID_AET_PTH, m_pet);
     CHECK_POINTER(MID_AET_PTH, m_snowAccum);
     /// If m_snowSB is not provided, it will be initialized in  InitialOutputs().
@@ -67,7 +67,7 @@ bool AET_PT_H::CheckInputData() {
     CHECK_POINTER(MID_AET_PTH, m_rsdCovSoil);
     CHECK_POINTER(MID_AET_PTH, m_soilDepth);
     CHECK_POINTER(MID_AET_PTH, m_soilThk);
-    CHECK_POINTER(MID_AET_PTH, m_solFC);
+    //CHECK_POINTER(MID_AET_PTH, m_solFC);
     CHECK_POINTER(MID_AET_PTH, m_solNo3);
     CHECK_POINTER(MID_AET_PTH, m_soilWtrSto);
     CHECK_POINTER(MID_AET_PTH, m_soilWtrStoPrfl);
@@ -79,22 +79,6 @@ void AET_PT_H::InitialOutputs() {
     if (nullptr == m_maxPltET) Initialize1DArray(m_nCells, m_maxPltET, 0.f);
     if (nullptr == m_soilET) Initialize1DArray(m_nCells, m_soilET, 0.f);
     if (nullptr == m_snowSublim) Initialize1DArray(m_nCells, m_snowSublim, 0.f);
-# ifdef USE_PIHM
-	// Read select_hand_ids.txt
-	if (nullptr == pihm_tools)
-	{
-		project = new char[MAXSTRING];
-		strcpy(project, PIHM_PROJECT);
-		pihm_tools = new PIHM_TOOLS();
-		hru_ids = new vector<int>();
-		hru_ids_file = new char[MAXSTRING];
-		pihm_dir = new char[MAXSTRING];
-		strcpy(pihm_dir, PIHM_DATA_PATH);
-		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
-		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
-		//pihm_tools->test(1, project);
-	}
-#endif
 }
 
 int AET_PT_H::Execute() {
@@ -102,14 +86,6 @@ int AET_PT_H::Execute() {
     InitialOutputs();
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
-		// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行计算
-# ifdef USE_PIHM
-		bool id_in_hru = pihm_tools->CheckIdInHruIds(i, hru_ids);
-		if (id_in_hru)
-		{
-			continue;
-		}
-# endif
         /// define intermediate variables
         float esd = 0.f, etco = 0.f, effnup = 0.f;
         float no3up = 0.f, es_max = 0.f, eos1 = 0.f, xx = 0.f;
@@ -126,11 +102,13 @@ int AET_PT_H::Execute() {
             continue;
         }
         /// compute potential plant evapotranspiration (PPT) other than Penman-Monteith method
-        if (m_lai[i] <= 3.f) {
-            m_maxPltET[i] = m_lai[i] * pet * _1div3;
-        } else {
-            m_maxPltET[i] = pet;
-        }
+		 // xiaodw comment, don't need LAI now
+        //if (m_lai[i] <= 3.f) {
+        //    m_maxPltET[i] = m_lai[i] * pet * _1div3;
+        //} else {
+        //    m_maxPltET[i] = pet;
+        //}
+		m_maxPltET[i] = pet;
         if (m_maxPltET[i] < 0.f) m_maxPltET[i] = 0.f;
         /// compute potential soil evaporation
         cej = -5.e-5f;
@@ -187,8 +165,10 @@ int AET_PT_H::Execute() {
                         (m_soilDepth[i][ly] + exp(2.374f - 0.00713f * m_soilDepth[i][ly]));
                 sev = evz - evzp * m_esco[i];
                 evzp = evz;
-                if (m_soilWtrSto[i][ly] < m_solFC[i][ly]) {
-                    xx = 2.5f * (m_soilWtrSto[i][ly] - m_solFC[i][ly]) / m_solFC[i][ly]; /// non dimension
+                //if (m_soilWtrSto[i][ly] < m_solFC[i][ly]) {
+                if (m_soilWtrSto[i][ly] < m_soilAWC[i][ly]) {
+                    //xx = 2.5f * (m_soilWtrSto[i][ly] - m_solFC[i][ly]) / m_solFC[i][ly]; /// non dimension
+                    xx = 2.5f * (m_soilWtrSto[i][ly] - m_soilAWC[i][ly]) / m_soilAWC[i][ly]; /// non dimension
                     sev *= Expo(xx);
                 }
                 sev = Min(sev, m_soilWtrSto[i][ly] * etco);

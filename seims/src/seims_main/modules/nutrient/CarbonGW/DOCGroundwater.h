@@ -63,24 +63,28 @@ private:
 	float* m_area;
 	
 	float m_hlife_docgw;
-	float m_recessionCoefficient;
 	float m_kdoc;
-	float m_delay;
 	float m_dp_co;
+	float gw_delay;
 
 	//input
 	float* m_soilPerco;
-	float* gw_delaye;
+	float* m_soilPercoDIC;
 	float* m_recharge1;
+	float* m_recharge2;
 	float* curBasinArea;
 	float* m_gw_shallow;
 
 	//outputs
-	float* m_gwS_DOCSto; 
-	float* m_gwS_DOCconc;   
-	float* m_gwD_DOCSto;
+	float* m_gw_DOCSto; 
+	float* m_gw_DOCconc;   
 	float* m_Deepgrndwtr_DOC;
-	float* m_DeepDOCtoCH;
+	float* m_gwDOCtoCH;
+	float* m_gw_DICSto;    
+	float* m_Deepgrndwtr_DIC;
+	float* m_gwDICtoCH;
+
+	int m_maxSoilLyrs;
 
 
 };

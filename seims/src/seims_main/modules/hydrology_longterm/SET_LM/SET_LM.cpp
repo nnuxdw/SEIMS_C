@@ -8,7 +8,7 @@ SET_LM::SET_LM() :
     m_pet(nullptr), m_IntcpET(nullptr),
     m_deprStoET(nullptr), m_maxPltET(nullptr), m_soilTemp(nullptr),
     m_soilFrozenTemp(NODATA_VALUE),
-    m_soilET(nullptr) {
+    m_soilET(nullptr),m_soilAWC(nullptr) {
 }
 
 SET_LM::~SET_LM() {
@@ -22,16 +22,19 @@ int SET_LM::Execute() {
 #pragma omp parallel for reduction(+: errCount)
     for (int i = 0; i < m_nCells; i++) {
         m_soilET[i] = 0.0f;
-        if (m_soilTemp[i] <= m_soilFrozenTemp) { continue; }
+        //if (m_soilTemp[i] <= m_soilFrozenTemp) { continue; }    // xiaodw comment, don't need soil temperature now
 
-        float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_maxPltET[i];
+        //float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_maxPltET[i];   // xiaodw comment, don't need plant et now, remove it 
+		float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] ;
         for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
             if (etDeficiency <= 0.f) break;
             float et2d = 0.f;
-            if (m_soilWtrSto[i][j] >= m_soilFC[i][j]) {
+            //if (m_soilWtrSto[i][j] >= m_soilFC[i][j]) {
+            if (m_soilWtrSto[i][j] >= m_soilAWC[i][j]) {
                 et2d = etDeficiency;
             } else if (m_soilWtrSto[i][j] >= 0.f) {
-                et2d = etDeficiency * m_soilWtrSto[i][j] / m_soilFC[i][j];
+                //et2d = etDeficiency * m_soilWtrSto[i][j] / m_soilFC[i][j];
+                et2d = etDeficiency * m_soilWtrSto[i][j] / m_soilAWC[i][j];
             } else {
                 et2d = 0.0f;
             }
@@ -90,7 +93,7 @@ void SET_LM::Set1DData(const char* key, const int nrows, float* data) {
 void SET_LM::Set2DData(const char* key, const int nrows, const int ncols, float** data) {
     string sk(key);
     CheckInputSize2D(MID_SET_LM, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
-    if (StringMatch(sk, VAR_SOL_AWC)) m_soilFC = data;
+    if (StringMatch(sk, VAR_SOL_AWC)) m_soilAWC = data; //m_soilFC = data;
     else if (StringMatch(sk, VAR_SOL_ST)) m_soilWtrSto = data;
     else if (StringMatch(sk, VAR_SOILTHICK)) m_soilThk = data;
     else {
@@ -100,13 +103,13 @@ void SET_LM::Set2DData(const char* key, const int nrows, const int ncols, float*
 
 bool SET_LM::CheckInputData() {
     CHECK_POSITIVE(MID_SET_LM, m_nCells);
-    CHECK_POINTER(MID_SET_LM, m_soilFC);
+    //CHECK_POINTER(MID_SET_LM, m_soilFC);
     CHECK_POINTER(MID_SET_LM, m_IntcpET);
     CHECK_POINTER(MID_SET_LM, m_pet);
     CHECK_POINTER(MID_SET_LM, m_deprStoET);
-    CHECK_POINTER(MID_SET_LM, m_maxPltET);
+    //CHECK_POINTER(MID_SET_LM, m_maxPltET);  // xiaodw comment, don't need plant et now, remove it 
     CHECK_POINTER(MID_SET_LM, m_soilWtrSto);
-    CHECK_POINTER(MID_SET_LM, m_soilTemp);
+    //CHECK_POINTER(MID_SET_LM, m_soilTemp);   // xiaodw comment, don't need soil temperature now, remove it 
     CHECK_NODATA(MID_SET_LM, m_soilFrozenTemp);
     return true;
 }

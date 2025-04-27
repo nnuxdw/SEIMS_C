@@ -50,6 +50,9 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_GWNO3, UNIT_KG, DESC_GWNO3, DT_Array1D);
     mdi.AddOutput(VAR_GWSOLP, UNIT_KG, DESC_GWSOLP_CONC, DT_Array1D);
 
+    mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("gw_delay", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Single);
+
     string res = mdi.GetXMLDocument();
     char* tmp = new char[res.size() + 1];
     strprintf(tmp, res.size() + 1, "%s", res.c_str());

@@ -128,6 +128,47 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_CONV_WT, UNIT_NON_DIM, DESC_CONV_WT, DT_Raster2D);
 
     //ljj++
+    mdi.AddParameter(VAR_LANDUSE, UNIT_NON_DIM, DESC_LANDUSE, Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter(VAR_DEM, UNIT_LEN_M, DESC_DEM, Source_ParameterDB_Optional, DT_Raster1D);
+    mdi.AddParameter(VAR_BM_DIEOFF, UNIT_NON_DIM, DESC_BM_DIEOFF, Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("POC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("DOC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("MAOC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("MBC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    
+    // mdi.AddParameter("KAFF_PL", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("VPL0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("KAFF_ML", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("VML0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("KAFF_LB", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("VLB0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("PARAM_FPL", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("PARAM_P2", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("KAFF_DES", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("CUE_T", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("RATE_BD", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("RATE_KBD", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("cue_ref", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("param_pb", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("param_pc", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("r0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("Ma", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("beta", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("acue", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("param_pi", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    // mdi.AddParameter("param_leach", "TODO", "TODO", Source_ParameterDB, DT_Single);
+    mdi.AddParameter(VAR_AHRU, UNIT_AREA_M2, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter(Tag_FLOWOUT_INDEX_D8, UNIT_NON_DIM, DESC_FLOWOUT_INDEX_D8, Source_ParameterDB, DT_Array1D);
+    
+    mdi.AddInput(VAR_DORMI, UNIT_NON_DIM, DESC_DORMI, Source_Module, DT_Raster1D);
+    mdi.AddInput(VAR_BIOMASS, UNIT_CONT_KGHA, DESC_BIOMASS, Source_Module, DT_Raster1D);
+    mdi.AddInput(VAR_FR_ROOT, UNIT_NON_DIM, DESC_FR_ROOT, Source_Module, DT_Raster1D);
+    mdi.AddInput(VAR_SURU, UNIT_DEPTH_MM, DESC_SURU, Source_Module, DT_Raster1D);
+    mdi.AddInput(VAR_SSRU, UNIT_DEPTH_MM, DESC_SSRU, Source_Module_Optional, DT_Raster2D);   //m_sol_laterq
+    mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module_Optional, DT_Raster2D); //m_sol_perco
+    mdi.AddInput(VAR_LAST_SOILRD, UNIT_DEPTH_MM, DESC_LAST_SOILRD, Source_Module, DT_Raster1D);
+    mdi.AddInput("BIOMASS_DELTA", UNIT_CONT_KGHA, DESC_BIOMASS, Source_Module, DT_Raster1D);
+    mdi.AddInput(VAR_SOER, UNIT_KG, DESC_SEDYLD, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);
     mdi.AddOutput(VAR_LMC, UNIT_NON_DIM, DESC_SOL_LMC, DT_Array2D);
     mdi.AddOutput(VAR_LSC, UNIT_NON_DIM, DESC_SOL_LSC, DT_Array2D);
@@ -135,7 +176,17 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_BMC, UNIT_NON_DIM, DESC_SOL_BMC, DT_Array2D);
     mdi.AddOutput(VAR_HSC, UNIT_NON_DIM, DESC_SOL_HSC, DT_Array2D);
     mdi.AddOutput(VAR_HPC, UNIT_NON_DIM, DESC_SOL_HPC, DT_Array2D);
-    
+
+    mdi.AddOutput("SOC_OUT", UNIT_NON_DIM, DESC_CONV_WT, DT_Array2D);
+    // mdi.AddOutput("DOC", "TODO", "TODO", DT_Raster2D);
+    // mdi.AddOutput("POM1", "TODO", "TODO", DT_Raster1D);
+    // mdi.AddOutput("LMWC1", "TODO", "TODO", DT_Raster1D);
+    // mdi.AddOutput("MIC1", "TODO", "TODO", DT_Raster1D);
+    // mdi.AddOutput("MAOM1", "TODO", "TODO", DT_Raster1D);
+    // mdi.AddOutput("SURFDOC", "TODO", "TODO", DT_Raster1D);
+    // mdi.AddOutput("SURFPOC", "TODO", "TODO", DT_Raster1D);
+    // mdi.AddOutput("SUBSURFDOC", "TODO", "TODO", DT_Raster2D);
+    //mdi.AddOutput(VAR_PERC_LOWEST_DOC, UNIT_KG, DESC_PERC_LOWEST_DOC, DT_Array1D);
 
     string res = mdi.GetXMLDocument();
     char* tmp = new char[res.size() + 1];

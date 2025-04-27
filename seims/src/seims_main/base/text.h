@@ -53,6 +53,8 @@
 #define Tag_DataType                           "DATATYPE"                // m_dataType
 //#define Tag_Weight                             "WEIGHT"                  // m_itpWeights
 CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
+CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolation" };   ///< m_itpWeights by wanghaocheng
+
 ///////  define parameter calibration related string constants  ///////
 #define PARAM_CHANGE_VC                        "VC"  // replace by a value
 #define PARAM_CHANGE_RC                        "RC"  // multiply a ratio, which is diff from SWAT: * (1+ratio)
@@ -268,8 +270,6 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define Tag_Mode                               "MODE"
 #define Tag_Mode_Storm                         "STORM"
 #define Tag_Mode_Daily                         "DAILY"
-//xiaodw , support sub daily calculation, such as 3-hr
-//#define USE_SUBDaily                         "SUBDAILY"
 
 #define Type_Scenario                          "SCENARIO"
 #define Type_Reach                             "REACH"
@@ -497,8 +497,7 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 
 #define MID_NUTRCH_QUAL2E                      "NutrCH_QUAL2E"
 #define MDESC_NUTRCH_QUAL2E                    "In-stream nutrient transformations"
-/// xiaodw,PIHM
-#define MID_PIHM                            "PIHM"
+
 
 //////////////////////////////////////////////////////////////////////////
 /// Define unit names common used in SEIMS, in case of inconsistency /////
@@ -817,7 +816,6 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define VAR_PUPDIS "p_updis" /// m_upTkDistP, Phosphorus uptake distribution parameter
 #define VAR_QCH "QCH"
 #define VAR_OLFLOW "OL_Flow" /// m_surfRf, overland flow in each cell calculated during overland routing
-#define VAR_SURFRFTOTAL "SURFRFTOTAL"
 #define VAR_QG "QG" /// m_qgRchOut, Groundwater discharge at each reach outlet and at each time step
 #define VAR_QI "QI" /// m_qiRchOut, Interflow at each reach outlet and at each time step
 #define VAR_QOVERLAND "QOverland"
@@ -1578,7 +1576,6 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define DESC_PUPDIS "Phosphorus uptake distribution parameter"
 #define DESC_QCH "Flux in the downslope boundary of cells"
 #define DESC_OLFLOW "overland flow in each cell calculated during overland routing"
-#define DESC_SURFRFTOTAL "overland flow in each cell and its direct upstream cell calculated during overland routing"
 #define DESC_QG "Groundwater discharge at each reach outlet"
 #define DESC_QI "Interflow at each reach outlet"
 #define DESC_QOVERLAND "Water discharge in the downslope boundary of cells"
@@ -1628,8 +1625,6 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define DESC_S_FROZEN "Frozen moisture relative to porosity with no infiltration"
 #define DESC_SAND "Percent of sand content"
 #define DESC_SBGS "Groundwater storage of the subbasin"
-// xiaodw
-#define DESC_GW_SUBBASIN_AREA "area of the subbasin"
 #define DESC_SBIF "Subsurface volume (m3) to streams from each subbasin"
 #define DESC_SBOF "overland flow to streams from each subbasin"
 #define DESC_SBPET "the potential evapotranspiration rate of the subbasin"
@@ -1958,6 +1953,8 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define MONG_GRIDFS_FN                         "filename"
 #define MONG_GRIDFS_WEIGHT_CELLS               "NUM_CELLS"
 #define MONG_GRIDFS_WEIGHT_SITES               "NUM_SITES"
+#define MONG_GRIDFS_NUM_SITE_WEIGHT               "NUM_SITE_WEIGHT"//by wanghaocheng
+
 #define MONG_GRIDFS_ID                         "ID"
 #define MONG_GRIDFS_SUBBSN                     "SUBBASIN"
 #define MONG_HYDRO_SITE_TYPE                   "TYPE"
@@ -1977,9 +1974,6 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define MCLSDESC_CarbonGW                        "estimates DOC transport by baseflow to streamflow"
 #define MID_CarbonGW                             "CarbonGW"
 #define MDESC_CarbonGW                           "estimates DOC transport by baseflow to streamflow"
-
-//xiaodw
-#define VAR_GW_SUBBASIN_AREA                             "GW_SUBBASIN_AREA"
 
 #define VAR_GWH                             "GW_HEIGHT"
 #define VAR_GW_SH                           "GW_SH"
@@ -2012,18 +2006,23 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define VAR_DDEPTH1                         "DDEPTH1"
 #define VAR_DDEPTH2                         "DDEPTH2"
 #define VAR_SOTE1                           "SOTE1"
-#define VAR_SOTE20                          "SOTE20"
-#define VAR_SOTE50                          "SOTE50"
+#define VAR_SOTE5                           "SOTE5"
+#define VAR_SOTE15                          "SOTE15"
+#define VAR_SOTE30                          "SOTE30"
 #define VAR_SOTE60                          "SOTE60"
 #define VAR_SOTE100                         "SOTE100"
 #define VAR_SOTE200                         "SOTE200"
 #define VAR_LAKE_EVP                        "LAKE_EVP"
 #define VAR_LAKE_SEEP                       "LAKE_SEEP"
-#define VAR_LAKE_MNVOL                      "LAKE_MNVOL"
+#define VAR_LAKE_MNVOL                      "LAKE_MNLWL"
 #define VAR_ENRPOC                          "enr_poc"
 #define VAR_KDOC                            "kd_oc"
 #define VAR_PERCO_DOC                       "perco_doc"
 #define VAR_HLDOCGW                         "hlife_docgw"
+#define VAR_SURF_DOC                        "SURF_DOC"
+#define VAR_SURF_DIC                        "SURF_DIC"
+#define VAR_ENR_RPOC                        "ENR_RPOC"
+#define VAR_ENR_LPOC                        "ENR_LPOC"
 #define VAR_LPOCtoCH                        "LPOCtoCH"
 #define VAR_RPOCtoCH                        "RPOCtoCH"
 #define VAR_surfDICtoCH                     "surf_DICtoCH"
@@ -2032,9 +2031,10 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define VAR_surfRDOCtoCH                    "surf_RDOCtoCH"
 #define VAR_latRDOCtoCH                     "lat_RDOCtoCH"
 #define VAR_PERC_LOWEST_DOC                 "perco_lowest_DOC"
+#define VAR_PERC_LOWEST_DIC                 "perco_lowest_DIC"
 #define VAR_GWD_RDOCtoCH                    "gwd_RDOCtoCH"
-#define VAR_GWS_RDOCsto                     "gws_RDOCsto"
-#define VAR_GWS_RDOCconc                    "gws_RDOCconc"
+#define VAR_GWD_RDOCsto                     "gws_RDOCsto"
+#define VAR_GWD_RDOCconc                    "gwd_RDOCconc"
 #define VAR_CH_DIC                          "CH_DIC"
 #define VAR_CH_DICConc                      "CH_DICConc"
 #define VAR_CHSTR_DIC                       "CHSTR_DIC"
@@ -2071,14 +2071,22 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define VAR_KRP                             "krp"
 #define VAR_KDRP                            "kd_rp"
 #define VAR_NPOC                            "npoc"
+#define VAR_R10                             "r10"
+#define VAR_KSR                             "ksr"
+#define VAR_qout                            "qout"
+#define VAR_qsurf                            "qsurf"
+#define VAR_qgshallow                             "qsshallow"
+#define VAR_chtotdoc                           "chtotdoc"
+#define VAR_chsurfdoc                           "chsurfdoc"
+#define VAR_chgwsdoc                           "chgwsdoc"
 
-#define REACH_PERMAFORST                    "is_permafrost"
+#define REACH_PERMAFORST                    "Is_permafrost"
 #define REACH_SPYLD                         "GW_SPYLD"
 #define REACH_ISLAKE                        "Is_Lake"
 #define REACH_LAKEAREA                      "Lake_Area"
 #define REACH_LAKEVOL                       "Lake_Vol" 
 #define REACH_LAKEDPINI                     "Lake_Depini"
-#define REACH_LAKEALPHA                     "Lake_Alpha"
+#define REACH_LAKEALPHA                     "LAKE_ALPHA"
 #define REACH_ISRES                         "Is_Res"
 #define REACH_NATURAL_FLOW                  "Nature_Flow"
 #define REACH_RES_LC                        "RES_LC"
@@ -2128,6 +2136,7 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define DESC_surfRDOCtoCH                    "RDOC amount transported by surf runoff in subbasin"
 #define DESC_latRDOCtoCH                     "RDOC amount transported by lateral runoff in subbasin"
 #define DESC_PERC_LOWEST_DOC                 "DOC percolation amount from lowest soil layer to shallow aquifer"
+#define DESC_PERC_LOWEST_DIC                 "DIC percolation amount from lowest soil layer to shallow aquifer"
 #define DESC_HLDOCGW                         "DOC half life (days) in groudwater,calculating DOC decay in groundwater "
 #define DESC_GWS_RDOCsto                     "RDOC amount stroed in shallow groundwater in subbasin"
 #define DESC_GWS_RDOCconc                    "RDOC concentration stroed in shallow groundwater in subbasin"
@@ -2180,8 +2189,26 @@ CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
 #define HEADER_RS_CELLSIZE                     "CELLSIZE"
 #define HEADER_RS_LAYERS                       "LAYERS"
 #define HEADER_RS_SRS                          "SRS"
-////xiaodw, PIHM constant/////////////////
-#define PIHM_PROJECT "gongba_subbasin"
-#define PIHM_DATA_PATH  "G:\\program\\seims\\SEIMS_C\\data\\gongba_subbasin\\pihm"
-//#define USE_PIHM_DEBUG
+
+#define File_ParameterDB "Parameter.db3"
+#define MapWindowRasterExtension ".asc"
+#define File_HydroClimateDB "HydroClimate.db3"
+#define Table_LapseRate "lapse_rate"
+#define DataType_WindDirection "WD"	
+const string TagParameterDescription = "description";
+const string TagParameterSource = "source";
+const string TagParameterDimension = "dimension";
+const string TagOutputVariableName = "name";
+const string TagOutputVariableUnits = "units";
+const string TagOutputVariableDescription = "description";
+const string TagOutputVariableDimension = "dimension";
+const string TagInputVariableName = "name";
+const string TagInputVariableUnits = "units";
+const string TagInputVariableDescription = "description";
+const string TagInputVariableSource = "source";
+const string TagInputVariableDimension = "dimension";
 #endif
+
+
+
+
