@@ -58,6 +58,8 @@ public:
 
     void InitialOutputs() OVERRIDE;
 
+    void SetReaches(clsReaches* reaches) OVERRIDE;
+
     void GetValue(const char* key, float* value) OVERRIDE;
 
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
@@ -101,6 +103,17 @@ private:
     // overland flow in each cell (mm) //added by Gao, as intermediate variable, 29 Jul 2016
     float* m_OL_Flow;
 
-    float * m_area;
+    int m_nreach;
+    float* m_area;
+    
+    float m_surlag;
+    float* m_chLen;
+    float* m_chMan;
+    float* m_chSlope;
+    float* m_brt;
+    float* m_slope;
+    float* m_ManningN;
+    float* m_dis2Stream;
+    float* tconc;
 };
 #endif /* SEIMS_MODULE_IUH_OL_H */

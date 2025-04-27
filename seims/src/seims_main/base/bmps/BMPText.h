@@ -337,7 +337,7 @@
 
 #define LANDUSE_ID_WATR                    18
 #define LANDUSE_ID_PADDY                   33
-
+#define LANDUSE_ID_GLC                     3000
 /// irrigation source code:
 #define IRR_SRC_RCH                    1 /// divert water from reach
 #define IRR_SRC_RES                    2 /// divert water from reservoir

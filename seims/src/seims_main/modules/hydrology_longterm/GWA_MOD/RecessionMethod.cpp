@@ -19,10 +19,8 @@ ReservoirMethod::ReservoirMethod() :
     m_nSubbsns(-1), m_inputSubbsnID(-1), m_subbasinsInfo(nullptr),
     //ljj++
     m_GWMIN(NODATA_VALUE),m_alpha_bf(NODATA_VALUE),m_delay(NODATA_VALUE),m_gw_spyld(nullptr),
-    gw_delaye(nullptr),gw_height(nullptr),m_gw_shallow(nullptr),
+    gw_delaye(nullptr),gw_height(nullptr),m_gw_shallow(nullptr),m_ispermafrost(nullptr),
     m_gw_q(nullptr),m_area(nullptr), m_soilSat(nullptr)
-
-	
     {
 }
 
@@ -60,23 +58,6 @@ void ReservoirMethod::InitialOutputs() {
     if (gw_height == nullptr) Initialize1DArray(nLen, gw_height, 1.f);
     if (m_gw_q == nullptr) Initialize1DArray(nLen, m_gw_q, 0.f);
     if (m_gw_shallow == nullptr) Initialize1DArray(nLen, m_gw_shallow, 0.f);
-# ifdef USE_PIHM
-	// Read select_hand_ids.txt
-	if (nullptr == pihm_tools)
-	{
-		project = new char[MAXSTRING];
-		strcpy(project, PIHM_PROJECT);
-		pihm_tools = new PIHM_TOOLS();
-		hru_ids = new vector<int>();
-		hru_ids_file = new char[MAXSTRING];
-		pihm_dir = new char[MAXSTRING];
-		strcpy(pihm_dir, PIHM_DATA_PATH);
-		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
-		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
-		m_subbasin_area = new float[nLen];
-		//pihm_tools->test(1, project);
-	}
-#endif
 }
 
 
@@ -101,37 +82,17 @@ int ReservoirMethod::Execute() {
         //amount of water entering shallow aquifer on previous day
         float rchrg1 = 0.f;
         if (curSub->GetPerco() > 0.f) rchrg1 = curSub->GetPerco();
-		// ×ÓÁ÷ÓòÄÚËùÓÐHRUµÄÃæ»ýÏà¼Ó
         for (int i = 0; i < curCellsNum; i++) {
-			// xiaodw, Ìí¼ÓÅÐ¶Ï£¬Èç¹ûµ±Ç°HRUÊÇ¾«Ï¸»¯Ä£ÄâµÄHRU£¬²»½øÐÐ¼ÆËã
-# ifdef USE_PIHM
-			bool id_in_hru = pihm_tools->CheckIdInHruIds(curCells[i], hru_ids);
-			if (id_in_hru)
-			{
-				continue;
-			}
-# endif
 			curBasinArea += m_area[curCells[i]];
 		}
-# ifdef USE_PIHM
-		m_subbasin_area[subID] = curBasinArea;
-# endif
         total_area += curBasinArea;
-		// ¼ÆËãËùÓÐHRUÍÁÈÀË®Ïò×ÓÁ÷ÓòµØÏÂË®µÄÉøÂ©
 //#pragma omp parallel for reduction(+:perco, fPET, revap)
         for (int i = 0; i < curCellsNum; i++) {
             int index = curCells[i];
-			// xiaodw, Ìí¼ÓÅÐ¶Ï£¬Èç¹ûµ±Ç°HRUÊÇ¾«Ï¸»¯Ä£ÄâµÄHRU£¬²»½øÐÐ¼ÆËã; ·´Ö®HRUµÄµØÏÂË®±»¼ÓÈë×ÓÁ÷ÓòµÄµØÏÂË®¿â
-# ifdef USE_PIHM
-			bool id_in_hru = pihm_tools->CheckIdInHruIds(curCells[i], hru_ids);
-			if (id_in_hru)
-			{
-				continue;
-			}
-# endif
             float tmp_perc = m_soilPerco[index][CVT_INT(m_nSoilLyrs[index]) - 1];
             if (tmp_perc > 0) {
-                perco += tmp_perc * (m_area[index] / curBasinArea)*(1-gw_delaye[subID])+rchrg1* (m_area[index] / curBasinArea)*gw_delaye[subID];// + rchrg1*gw_delaye[subID];
+                //perco += tmp_perc * (m_area[index] / curBasinArea)*(1-gw_delaye[subID])+rchrg1* (m_area[index] / curBasinArea)*gw_delaye[subID];// + rchrg1*gw_delaye[subID];
+                perco += tmp_perc * (m_area[index] / curBasinArea);
             } else {
                 m_soilPerco[index][CVT_INT(m_nSoilLyrs[index]) - 1] = 0.f;
             }
@@ -141,7 +102,10 @@ int ReservoirMethod::Execute() {
 
             m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_actPltET[index];
             m_revap[index] = Max(m_revap[index], 0.f);
-            m_revap[index] = m_revap[index] * m_gwSto[subID] / m_GWMAX;
+            if(m_gwSto[subID] / curBasinArea >1.e-6){
+                m_revap[index] = m_revap[index] * (m_gwSto[subID] / curBasinArea / m_GWMAX*1000.f);
+            }
+           // m_revap[index] = 0.f;
             revap += m_revap[index] * (m_area[index] / curBasinArea);
         }
         perco1 = perco;
@@ -162,44 +126,52 @@ int ReservoirMethod::Execute() {
         //     revap = m_gwSto[subID];
         // }
 
-        float groundStorage = m_gwSto[subID];
-        groundStorage += percoDeep;
 
-        //add the ground water from bank storage, 2011-3-14
-        float gwBank = 0.f;
-        // at the first time step m_VgroundwaterFromBankStorage is nullptr
-        // seepage from secondary channels, ponds, and wetlands is karst
-        if (m_VgroundwaterFromBankStorage != nullptr) {
-            gwBank = m_VgroundwaterFromBankStorage[subID]*(1-gw_delaye[subID]);
-        }
-        perco += gwBank / curBasinArea * 1000.f;
+        // //add the ground water from bank storage, 2011-3-14
+        // float gwBank = 0.f;
+        // // at the first time step m_VgroundwaterFromBankStorage is nullptr
+        // // seepage from secondary channels, ponds, and wetlands is karst
+        // if (m_VgroundwaterFromBankStorage != nullptr) {
+        //     gwBank = m_VgroundwaterFromBankStorage[subID]*(1-gw_delaye[subID]);
+        // }
+        // perco += gwBank / curBasinArea * 1000.f;
 
         float alpha_bfe = exp(-1*m_alpha_bf);
         // groundwater runoff (mm)
         float slopeCoef = curSub->GetSlopeCoef();
         float kg = m_Kg * slopeCoef;
-        float groundRunoff = 0.f;
-        //compute groundwater contribution to streamflow for day
-        if (groundStorage > m_GWMIN) {
-            m_gw_q[subID] = m_gw_q[subID] * alpha_bfe + (percoDeep) * (1. - alpha_bfe);
+        float groundRunoff = kg * pow(m_gwSto[subID]/curBasinArea*1000.f, m_Base_ex); // mm
+        groundRunoff = Min(groundRunoff,m_gwSto[subID]/curBasinArea*1000.f);
+        //å¤šå¹´å†»åœŸåŒºæ­£å¸¸è®¡ç®— 
+        if(subID==14  || subID==4  || subID==5   || subID==6  || subID==8  || subID==9 || 
+           subID==10  || subID==11 || subID==13  || subID==15 || subID==17){
+            groundRunoff = groundRunoff;
+            if (m_gwSto[subID] > m_GWMAX/1000.f*curBasinArea) {
+                groundRunoff += (m_gwSto[subID] - (m_GWMAX/1000.f*curBasinArea))/curBasinArea*1000.f;
+            }
         }else{
-            m_gw_q[subID] = 0.;
+            groundRunoff = 0.f;
         }
-        //m_gw_q[subID] = 0.;
 
-        groundRunoff = m_gw_q[subID];
+        //float groundQ = groundRunoff * curCellsNum * QGConvert;     // groundwater discharge (m3/s)
+        float groundQ = groundRunoff * curBasinArea * QGConvert; 
+        float groundStorage = m_gwSto[subID];
+        groundStorage += (perco - revap - percoDeep - groundRunoff)*0.001f*curBasinArea;
+        groundStorage = Max(groundStorage, 0.f);
+        //cout<<subID<<"  "<<groundQ<<endl;
 
-        float groundQ = groundRunoff * curBasinArea * QGConvert;     // groundwater discharge (m3/s)
-        groundStorage = (groundStorage- groundRunoff);
+        // if (groundStorage > m_GWMAX/1000.f*curBasinArea) {
+        //     groundRunoff += groundStorage - (m_GWMAX/1000.f*curBasinArea);
+        //     //groundQ = groundRunoff * curCellsNum * QGConvert; // groundwater discharge (m3/s)
+        //     groundQ = groundRunoff * curBasinArea * QGConvert; 
+        //     groundStorage =  m_GWMAX/1000.f*curBasinArea;
+        // }
 
-        //gw_height[subID] = gw_height[subID]* alpha_bfe + ((perco - percoDeep -revap) * (1. - alpha_bfe)) / (800. * m_gw_spyld[subID] * m_alpha_bf+ 1.e-6);
         m_gw_shallow[subID] += (perco - percoDeep -revap)* curBasinArea / 1000.f;
         m_gw_shallow[subID] = Max(1.e-6, m_gw_shallow[subID]);
-        gw_height[subID] = m_gw_shallow[subID]/ curBasinArea * 1000.f / (800. * m_gw_spyld[subID] + 1.e-6);  //m
+        gw_height[subID] = m_gwSto[subID]/ curBasinArea;  //m
         gw_height[subID] = Max(1.e-6, gw_height[subID]);
-        //compute deep aquifer level for day
 
-        groundStorage = Max(groundStorage, 0.f);
         // if (groundStorage > m_GWMAX) {
         //     groundRunoff += groundStorage - m_GWMAX;
         //     groundQ = groundRunoff * curCellsNum * QGConvert; // groundwater discharge (m3/s)
@@ -276,10 +248,15 @@ int ReservoirMethod::Execute() {
         int* cells = sub->GetCells();
         int nCells = sub->GetCellCount();
         int index = 0;
+        float curBasinArea = 0.f;
+        int curCellsNum = sub->GetCellCount();
+        for (int i = 0; i < curCellsNum; i++) {
+			curBasinArea += m_area[cells[i]];
+		}
 #pragma omp parallel for
         for (int i = 0; i < nCells; i++) {
             index = cells[i];
-            m_soilWtrSto[cells[i]][CVT_INT(m_nSoilLyrs[cells[i]]) - 1] += m_revap[index]/nCells;  //ljj averaged by nCells
+            m_soilWtrSto[cells[i]][CVT_INT(m_nSoilLyrs[cells[i]]) - 1] += m_revap[cells[i]]*m_area[cells[i]]/curBasinArea;  //ljj averaged by nCells
             int j = CVT_INT(m_nSoilLyrs[cells[i]]) - 1;
             if (m_soilWtrSto[cells[i]][j] - m_soilSat[cells[i]][j] > 1.e-4f) {
                 float ul_excess = m_soilWtrSto[cells[i]][j] - m_soilSat[cells[i]][j];
@@ -352,6 +329,7 @@ void ReservoirMethod::SetReaches(clsReaches* reaches) {
     }
 
     if (nullptr == m_gw_spyld) reaches->GetReachesSingleProperty(REACH_SPYLD, &m_gw_spyld);
+    if (nullptr == m_ispermafrost) reaches->GetReachesSingleProperty(REACH_PERMAFORST, &m_ispermafrost);
 }
 void ReservoirMethod::Set1DData(const char* key, const int n, float* data) {
     string sk(key);
@@ -438,12 +416,8 @@ void ReservoirMethod::Get1DData(const char* key, int* nrows, float** data) {
         *nrows = m_nSubbsns + 1;
     } else if (StringMatch(sk, VAR_GW_SH)) {
         *data = m_gw_shallow;
-        *nrows = m_nSubbsns + 1; 
-    }
-	else if (StringMatch(sk, VAR_GW_SUBBASIN_AREA)) {
-		*data = m_subbasin_area;
-		*nrows = m_nSubbsns + 1; 
-	}
+        *nrows = m_nSubbsns + 1;
+    } 
     else {
         throw ModelException(MID_GWA_RE, "Get1DData", "Parameter " + sk + " does not exist.");
     }

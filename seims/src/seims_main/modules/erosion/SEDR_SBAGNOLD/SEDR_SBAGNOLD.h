@@ -197,8 +197,10 @@ private:
     float* m_lakevol;
     float* m_res_d50;
     float* m_isres;
-    float* m_ResLc;
-    float* m_ResLf;
+    float* m_A_b;
+    float* m_A_a;
+    float* m_A_Vb;
+    float* m_A_Va;
     float* m_resnsed;
 };
 #endif /* SEIMS_MODULE_SEDR_SBAGNOLD_H */

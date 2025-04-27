@@ -200,7 +200,7 @@ void DataCenter::LoadAdjustRasterData(const string& para_name, const string& rem
 void DataCenter::LoadAdjust1DArrayData(const string& para_name, const string& remote_filename,
                                        const bool is_optional /* = false */) {
     int n;
-    float* data = nullptr;
+    float* data = nullptr;    float* tmpdata = nullptr;
     string upper_name = GetUpper(para_name);
     // if (StringMatch(upper_name, Tag_Weight)) {
     //     /// 1. IF Weight data. `data` will be nullptr if load Weight data failed.
@@ -215,9 +215,10 @@ void DataCenter::LoadAdjust1DArrayData(const string& para_name, const string& re
                                  " is not the same as the template.");
         }
     } else if (StringMatch(upper_name, Tag_Elevation_Meteorology)) {
-        /// 3. IF Meteorology sites data
+        /// 3. IF Meteorology sites data by wanghaocheng
         n = clim_station_->NumberOfSites(DataType_Meteorology);
-        Initialize1DArray(n, data, clim_station_->GetElevation(DataType_Meteorology));
+        tmpdata = clim_station_->GetElevation(DataType_Meteorology);
+        Initialize1DArray(n, data, tmpdata);
     } else if (StringMatch(upper_name, Tag_Elevation_Precipitation)) {
         /// 4. IF Precipitation sites data
         n = clim_station_->NumberOfSites(DataType_Precipitation);
@@ -261,7 +262,10 @@ void DataCenter::LoadAdjust2DArrayData(const string& para_name, const string& re
     } 
     else if (StringMatch(upper_name, Tag_Weight[0])) 
     {
-        ReadItpWeightData(remote_filename, n_rows, n_cols, data);
+        ReadItpWeightIdData(remote_filename, n_rows, n_cols, data);// by wanghaocheng
+    }
+    else if (StringMatch(upper_name, Tag_Weight_ID[0])) {// by wanghaocheng
+        ReadItpWeightIdData(remote_filename, n_rows, n_cols, data);
     }
     else {
         // Including: Tag_ROUTING_LAYERS, Tag_ROUTING_LAYERS_DINF,
@@ -330,7 +334,7 @@ void DataCenter::SetData(SEIMSModuleSetting* setting, ParamInfo* param,
         oss << name;
     }
     //if (StringMatch(name, Tag_Weight)) {
-    if (StringMatch(name, Tag_Weight[0])) {
+    if (StringMatch(name, Tag_Weight[0])|| StringMatch(name, Tag_Weight_ID[0])) {//by wanghaocheng
         if (setting->dataTypeString() == DataType_Precipitation) {
             oss << "_P";
         } else {
@@ -385,13 +389,8 @@ void DataCenter::SetValue(ParamInfo* param, SimulationModule* p_module) {
         //cell size
         param->Value = CVT_FLT(mask_raster_->GetCellWidth());
     } else if (StringMatch(param->Name, Tag_TimeStep)) {
-		// xiaodw modify , if USE_SUBDaily mode is used, let  Tag_TimeStep = Tag_HillSlopeTimeStep
-#ifdef USE_SUBDAILY
-		param->Value = CVT_FLT(input_->getDtHillslope());
-#else
-		param->Value = CVT_FLT(input_->getDtDaily()); // return 86400 secs
-#endif
-    } else if (StringMatch(param->Name, Tag_HillSlopeTimeStep)) {		
+        param->Value = CVT_FLT(input_->getDtDaily()); // return 86400 secs
+    } else if (StringMatch(param->Name, Tag_HillSlopeTimeStep)) {
         param->Value = CVT_FLT(input_->getDtHillslope());
     } else if (StringMatch(param->Name, Tag_ChannelTimeStep)) {
         param->Value = CVT_FLT(input_->getDtChannel());

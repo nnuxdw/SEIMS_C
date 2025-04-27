@@ -67,7 +67,7 @@ MGTOpt_SWAT::MGTOpt_SWAT() :
     m_nGrazDays(nullptr), m_grazFlag(nullptr), m_impndTrig(nullptr), m_potVol(nullptr),
     m_potVolMax(nullptr),
     m_potVolLow(nullptr), m_potNo3(nullptr), m_potNH4(nullptr), m_potSolP(nullptr),
-    m_soilFC(nullptr),
+    m_soilFC(nullptr),m_soilAWC(nullptr),
     m_soilSat(nullptr), m_soilWtrSto(nullptr),
     /// Temporary parameters
     m_soilWtrStoPrfl(nullptr), m_initialized(false),
@@ -374,7 +374,8 @@ void MGTOpt_SWAT::Set2DData(const char* key, const int n, const int col, float**
     } else if (StringMatch(sk, VAR_SOL_RSD)) {
         m_soilRsd = data;
     } else if (StringMatch(sk, VAR_SOL_AWC)) {
-        m_soilFC = data;
+        //m_soilFC = data;
+        m_soilAWC = data;
     } else if (StringMatch(sk, VAR_SOL_UL)) {
         m_soilSat = data;
     } else if (StringMatch(sk, VAR_SOL_ST)) {
@@ -1717,7 +1718,8 @@ void MGTOpt_SWAT::ExecuteReleaseImpoundOperation(const int i, const int factoryI
         /// force the soil water storage to field capacity
         for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[i]); ly++) {
             // float dep2cap = m_sol_sat[i][ly] - m_soilStorage[i][ly];
-            float dep2cap = m_soilFC[i][ly] - m_soilWtrSto[i][ly];
+            //float dep2cap = m_soilFC[i][ly] - m_soilWtrSto[i][ly];
+            float dep2cap = m_soilAWC[i][ly] - m_soilWtrSto[i][ly];
             if (dep2cap > 0.f) {
                 dep2cap = Min(dep2cap, m_potVol[i]);
                 m_soilWtrSto[i][ly] += dep2cap;
@@ -1806,14 +1808,6 @@ int MGTOpt_SWAT::Execute() {
 
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
-		// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行计算
-# ifdef USE_PIHM
-		bool id_in_hru = pihm_tools->CheckIdInHruIds(i, hru_ids);
-		if (id_in_hru)
-		{
-			continue;
-		}
-# endif
         int curLanduseID = CVT_INT(m_landUse[i]);
         int curMgtField = CVT_INT(m_mgtFields[i]);
         /// 1. Is there any plant management operations are suitable to current cell.
@@ -2012,22 +2006,6 @@ void MGTOpt_SWAT::InitialOutputs() {
     if (nullptr == tmp_soilNotMixedMass) Initialize2DArray(m_nCells, m_maxSoilLyrs, tmp_soilNotMixedMass, 0.f);
     if (nullptr == tmp_smix) Initialize2DArray(m_nCells, 22 + 12, tmp_smix, 0.f);
     m_initialized = true;
-# ifdef USE_PIHM
-	// Read select_hand_ids.txt
-	if (nullptr == pihm_tools)
-	{
-		project = new char[MAXSTRING];
-		strcpy(project, PIHM_PROJECT);
-		pihm_tools = new PIHM_TOOLS();
-		hru_ids = new vector<int>();
-		hru_ids_file = new char[MAXSTRING];
-		pihm_dir = new char[MAXSTRING];
-		strcpy(pihm_dir, PIHM_DATA_PATH);
-		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
-		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
-		//pihm_tools->test(1, project);
-	}
-#endif
 }
 
 float MGTOpt_SWAT::Erfc(const float xx) {

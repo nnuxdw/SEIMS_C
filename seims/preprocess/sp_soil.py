@@ -388,11 +388,42 @@ class SoilProperty(object):
             raise IndexError("Saturated conductivity must have a size equal to soil layers number!")
         elif not self.CONDUCTIVITY or DEFAULT_NODATA in self.CONDUCTIVITY:
             tmp_k = list()
+            # SEIMS原方法注释
+            # for i in range(self.SOILLAYERS):
+            #     lamda = self.POREINDEX[i]
+            #     fc = tmp_fc[i]
+            #     sat = tmp_sat[i]
+            #     tmp_k.append(1930. * pow(sat - fc, 3. - lamda))
             for i in range(self.SOILLAYERS):
                 lamda = self.POREINDEX[i]
                 fc = tmp_fc[i]
                 sat = tmp_sat[i]
-                tmp_k.append(1930. * pow(sat - fc, 3. - lamda))
+                # SEIMS
+                xx1 = 1930. * pow(sat - fc, 3. - lamda) * 24 / 1000.
+                # cosby 1984
+                xx2 = 60.96 * pow(10, -0.884 + 0.0153 * self.SAND[i])
+                # cosby 1984
+                xx3 = 60.96 * pow(10, -0.6 + 0.0126 * self.SAND[i] - 0.0064 * self.CLAY[i])
+                # saxton 1986
+                xx4 = 24 * numpy.exp(
+                    12.012 - 0.0755 * self.SAND[i] + ((-3.895 + 0.03671 * self.SAND[i] - 0.1103 * self.CLAY[i] \
+                                                       + 0.00087546 * self.CLAY[i] * self.CLAY[i]) / (
+                                                              0.332 - 0.0007251 * self.SAND[
+                                                              i] + 0.1276 * numpy.log10(self.CLAY[i]))))
+                # saxton and rawls
+                dg = numpy.exp(0.01 * (
+                        numpy.log(1.025) * self.SAND[i] + numpy.log(0.026) * self.SILT[i] + numpy.log(0.001) *
+                        self.CLAY[i]))
+                gg = numpy.exp(0.01 * (
+                        numpy.log(1.025) * numpy.log(1.025) * self.SAND[i] + numpy.log(0.026) * numpy.log(0.026) *
+                        self.SILT[i] + \
+                        numpy.log(0.001) * numpy.log(0.001) * self.CLAY[i])) - pow(numpy.log(dg) * numpy.log(dg),
+                                                                                   0.5)
+                nn = 1. / (pow(dg, -0.5) + 0.2 * gg)
+                xx5 = 339 * pow(1.3 / self.DENSITY[i], 1.3 * nn) * numpy.exp(
+                    -0.0688 * self.CLAY[i] - 0.0363 * self.SILT[i] - 0.025)
+                # cm/day -> mm/hr *1000./24
+                tmp_k.append(numpy.median([xx2, xx3, xx4, xx5]) * 10. / 24)  # from the theory of swat
             if not self.CONDUCTIVITY:
                 self.CONDUCTIVITY = tmp_k[:]
             elif DEFAULT_NODATA in self.CONDUCTIVITY:

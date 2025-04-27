@@ -51,6 +51,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(DataType_MinimumMonthlyTemperature, UNIT_TEMP_DEG, DESC_TMEAN, Source_Module, DT_Raster1D);
     mdi.AddInput(DataType_SolarRadiation, UNIT_SR, DESC_SR, Source_Module, DT_Raster1D);
     mdi.AddInput(DataType_RelativeAirMoisture, UNIT_PERCENT, DESC_RM, Source_Module, DT_Raster1D);
+    mdi.AddInput(VAR_TMAX, UNIT_TEMP_DEG, DESC_TMAX, Source_Module, DT_Raster1D);
+    mdi.AddInput(VAR_TMIN, UNIT_TEMP_DEG, DESC_TMIN, Source_Module, DT_Raster1D);
 
     mdi.AddParameter(VAR_SOILDEPTH, UNIT_DEPTH_MM, DESC_SOILDEPTH, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_SOILTHICK, UNIT_DEPTH_MM, DESC_SOILTHICK, Source_ParameterDB, DT_Raster2D);
@@ -60,6 +62,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_SOLAVBD, UNIT_DENSITY, DESC_SOL_BD, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter("Clay", "%", "Percent of clay content", Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter("Sand", "%", "Percent of sand content", Source_ParameterDB, DT_Raster2D);
+    mdi.AddParameter(VAR_SOL_UL, UNIT_DEPTH_MM, DESC_SOL_UL, Source_ParameterDB, DT_Raster2D);   // m_sat
 
     mdi.AddParameter(VAR_TSOIL1, UNIT_NON_DIM, DESC_TSOIL1, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_TSOIL2, UNIT_NON_DIM, DESC_TSOIL2, Source_ParameterDB, DT_Single);
@@ -67,7 +70,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_TSOIL4, UNIT_NON_DIM, DESC_TSOIL4, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_TSOIL5, UNIT_NON_DIM, DESC_TSOIL5, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_DDEPTH1, UNIT_NON_DIM, DESC_TSOIL1, Source_ParameterDB, DT_Single);
-    mdi.AddParameter(VAR_DDEPTH2, UNIT_NON_DIM, DESC_TSOIL1, Source_ParameterDB, DT_Single);
+
     mdi.AddParameter(VAR_SNOCOVMX, UNIT_DEPTH_MM, DESC_SNOCOVMX, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_SNO50COV, UNIT_NON_DIM, DESC_SNO50COV, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_T_SOIL, UNIT_TEMP_DEG, DESC_T_SOIL, Source_ParameterDB, DT_Single);
@@ -90,8 +93,9 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 
     mdi.AddOutput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, DT_Array2D);
     mdi.AddOutput(VAR_SOTE1, UNIT_TEMP_DEG, DESC_SOTE, DT_Array1D);
-    mdi.AddOutput(VAR_SOTE20, UNIT_TEMP_DEG, DESC_SOTE, DT_Array1D);
-    mdi.AddOutput(VAR_SOTE50, UNIT_TEMP_DEG, DESC_SOTE, DT_Array1D);
+    mdi.AddOutput(VAR_SOTE5, UNIT_TEMP_DEG, DESC_SOTE, DT_Array1D);
+    mdi.AddOutput(VAR_SOTE15, UNIT_TEMP_DEG, DESC_SOTE, DT_Array1D);
+    mdi.AddOutput(VAR_SOTE30, UNIT_TEMP_DEG, DESC_SOTE, DT_Array1D);
     mdi.AddOutput(VAR_SOTE60, UNIT_TEMP_DEG, DESC_SOTE, DT_Array1D);
     mdi.AddOutput(VAR_SOTE100, UNIT_TEMP_DEG, DESC_SOTE, DT_Array1D);
     mdi.AddOutput(VAR_SOTE200, UNIT_TEMP_DEG, DESC_SOTE, DT_Array1D);

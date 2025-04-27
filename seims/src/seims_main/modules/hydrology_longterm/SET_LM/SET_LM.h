@@ -52,6 +52,7 @@ private:
 
     float** m_soilWtrSto; ///< soil moisture, mm
     float** m_soilFC;     ///< field capacity (FC-WP, same as SWAT), mm
+    float** m_soilAWC; 
     float* m_pet;         ///< Potential evapotranspiration
     float* m_IntcpET;     ///< Evaporation from interception
     float* m_deprStoET;   ///< Evaporation from depression storage

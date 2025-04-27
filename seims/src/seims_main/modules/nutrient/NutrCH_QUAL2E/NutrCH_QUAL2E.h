@@ -63,6 +63,8 @@ public:
     
     void SetSubbasins(clsSubbasins* subbasins) OVERRIDE;
 
+    void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
+  
 private:
     bool CheckInputCellSize(const char* key, int n);
 
@@ -71,6 +73,8 @@ private:
     void RouteOut(int i);
 
     void NutrientTransform(int i);
+
+    void swat_rtmp(int i);
 
     /*!
     * \brief Corrects rate constants for temperature.
@@ -318,7 +322,7 @@ private:
     /// mean solar radiation of each channel
     float* m_chSr;
     /// valid cell numbers of each channel
-    int* m_chCellCount;
+    float* m_chCellCount;
 
     //ljj+
 	//parameters
@@ -328,6 +332,10 @@ private:
 	/// subbasins information
 	clsSubbasins* m_subbasinsInfo;
 	/// subbasin grid (subbasins ID)
+
+    float* m_islake;
+    float* m_isres;
+    float* m_lakevol;
 
 	float m_klrd;
 	float m_kld;
@@ -340,17 +348,18 @@ private:
 	float m_krp;
 	float m_kd_rp;
     float m_npoc;
+    float m_FRAC;
+    float m_intercpt;
     
-    float* m_seepage;
-    float* m_gws_RDOCconc;
-    float* m_gws_RDOCsto;
+    float* m_chDOCcon;
     float* m_sedst;
     float* m_area;
     float* curBasinArea;
 
     float* m_surfRDOCToCH;
     float* m_latRDOCToCH;
-    float* m_gwdRDOCToCH;
+    float* m_gwRDOCToCH;
+    float* m_gwDICToCH;
     float* m_latDICToCH;
     float* m_surfDICToCH;
     float* m_LPOCToCH;
@@ -364,7 +373,7 @@ private:
     float* m_chRDOC;
     float* m_chsurfRDOC;
     float* m_chlatRDOC;
-    float* m_chgwdRDOC;
+    float* m_chgwRDOC;
 
     float* m_chOutDIC;
     float* m_chOutLDOC;
@@ -372,10 +381,10 @@ private:
     float* m_chOutLPOC;
     float* m_chOutRPOC;
     float* m_chOutTotDOC;
+    float* m_chOutTotPOC;
     float* m_chOutsurfRDOC;
     float* m_chOutlatRDOC;
-    float* m_chOutgwdRDOC;
-    float* m_chOutgwsRDOC;
+    float* m_chOutgwRDOC;
    
     float* m_chOutDICConc;
     float* m_chOutLDOCConc;
@@ -383,6 +392,7 @@ private:
     float* m_chOutLPOCConc;
     float* m_chOutRPOCConc;
     float* m_chOutTotDOCConc;
+    float* m_chOutTotPOCConc;
 
     float* m_INb;
 	float* m_IPb;
@@ -393,6 +403,40 @@ private:
 	float* m_AbDeath;
 	float* m_AbINb;
 	float* m_AbIPb;
+    float* m_chSlope;
+    float* m_chArea;
+
+    float* m_A_b;
+    float* m_A_a;
+    float* m_A_Vb;
+    float* m_A_Va;
+
+    float* m_airtemp;
+    float* m_rrtime;
+    float* m_ws;
+    float* m_rhd;
+    float* m_chAirTemp;
+    float* m_chAirTemp_pre;
+    float* m_chTemp_pre;
+    float* m_chSto_pre;
+    float* m_chWS;
+    float* m_chRH;
+    float* m_snowMelt;
+    float* m_qsRchOut;
+    float* m_qiRchOut;
+    float* m_qgRchOut;
+    float* m_subsnow;
+    float* m_GlacierMelt;
+    float* m_subglacier;
+    float* m_ch_Temp;
+    float* m_olQ2Rch;   ///< overland flow to streams from each subbasin (m^3/s)
+    float* m_ifluQ2Rch; ///< interflow to streams from each subbasin (m^3/s)
+    float* m_gndQ2Rch;  ///< groundwater flow out of the subbasin (m^3/s)
+
+    float* m_lakepcp;
+    float* m_lakeperc;
+    float* m_gwdoc_sto;
+    float** m_T_LKWB;
 };
 
 #endif /* SEIMS_MODULE_NUTRCH_QUAL2E_H */

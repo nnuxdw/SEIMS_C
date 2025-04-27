@@ -13,13 +13,6 @@
 #define SEIMS_MODULE_PI_MCS_H
 
 #include "SimulationModule.h"
-# ifdef USE_PIHM
- // xiaodw, for pihm
-#include "pihm_tools.h"
-#ifndef MAXSTRING
-#define MAXSTRING  1024
-#endif
-#endif
 
 /** \defgroup PI_MCS
  * \ingroup Hydrology
@@ -48,15 +41,6 @@ public:
     int Execute() OVERRIDE;
 
     void Get1DData(const char* key, int* nrows, float** data) OVERRIDE;
-
-# ifdef USE_PIHM
-	// xiaodw, for pihm
-	PIHM_TOOLS *pihm_tools = nullptr;
-	vector<int> *hru_ids;
-	char * pihm_dir;
-	char * hru_ids_file;
-	char * project;
-#endif
 
 private:
     /* Parameters from database */
@@ -111,7 +95,5 @@ private:
 
     //!  number of valid cells
     int m_nCells;
-
-
 };
 #endif /* SEIMS_MODULE_PI_MCS_H */

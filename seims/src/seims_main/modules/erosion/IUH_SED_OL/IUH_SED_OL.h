@@ -84,5 +84,7 @@ private:
     float* m_sedtoCh;
     /// sediment to channel at each cell at current time step
     float* m_olWtrEroSed;
+
+    float* m_brt;
 };
 #endif /* SEIMS_MODULE_IUH_SED_OL_H */

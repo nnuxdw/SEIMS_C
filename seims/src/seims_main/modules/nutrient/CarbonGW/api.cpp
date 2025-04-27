@@ -27,17 +27,17 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddParameter(Tag_CellSize, UNIT_NON_DIM, DESC_CellSize, Source_ParameterDB, DT_Single);
 	mdi.AddParameter(VAR_HLDOCGW, UNIT_DAY, DESC_HLDOCGW, Source_ParameterDB, DT_Single);
 	mdi.AddParameter(VAR_AHRU, UNIT_AREA_M2, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
-	mdi.AddParameter(VAR_DELAY, UNIT_DAY, DESC_DELAY, Source_ParameterDB, DT_Single);
 	mdi.AddParameter(VAR_DF_COEF, UNIT_NON_DIM, DESC_DF_COEF, Source_ParameterDB, DT_Single);
+	mdi.AddParameter("gw_delay", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Single);
 	
 	// from other module
 	mdi.AddInput(VAR_PERC_LOWEST_DOC, UNIT_CONT_KGHA, DESC_PERC_LOWEST_DOC, Source_Module, DT_Array1D);
-	mdi.AddInput(VAR_GW_SH, UNIT_VOL_M3, DESC_GW_SH, Source_Module_Optional, DT_Array1D);
+	//mdi.AddInput(VAR_PERC_LOWEST_DIC, UNIT_CONT_KGHA, DESC_PERC_LOWEST_DIC, Source_Module, DT_Array1D);
 
 	// output
-	mdi.AddOutput(VAR_GWS_RDOCsto, UNIT_CONT_KGHA, DESC_GWS_RDOCsto, DT_Array1D);
-	mdi.AddOutput(VAR_GWS_RDOCconc, UNIT_CONT_KGHA, DESC_GWS_RDOCconc, DT_Array1D);
-	mdi.AddOutput(VAR_GWD_RDOCtoCH, UNIT_KG, DESC_GWD_RDOCtoCH, DT_Array1D);
+	mdi.AddOutput("gw_RDOCtoCH", UNIT_KG, DESC_GWD_RDOCtoCH, DT_Array1D);
+	mdi.AddOutput("gw_DOCsto", UNIT_KG, "TODO", DT_Array1D);
+	//mdi.AddOutput("gw_DICtoCH", UNIT_KG, "TODO", DT_Array1D);
 
 
     string res = mdi.GetXMLDocument();

@@ -16,13 +16,7 @@
 #define SEIMS_MODULE_SNO_SP_H
 
 #include "SimulationModule.h"
-# ifdef USE_PIHM
- // xiaodw, for pihm
-#include "pihm_tools.h"
-#ifndef MAXSTRING
-#define MAXSTRING  1024
-#endif
-#endif
+
 /*!
  * \defgroup SNO_SP
  * \ingroup Hydrology_longterm
@@ -55,15 +49,6 @@ public:
     int Execute() OVERRIDE;
 
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
-
-# ifdef USE_PIHM
-	// xiaodw, for pihm
-	PIHM_TOOLS *pihm_tools = nullptr;
-	vector<int> *hru_ids;
-	char * pihm_dir;
-	char * hru_ids_file;
-	char * project;
-#endif
 
 private:
     //! Valid cells number
@@ -123,5 +108,12 @@ private:
     float* m_snowMelt;
     //! snow accumulation, sno_hru in SWAT
     float* m_SA;
+
+    float* m_landUse;
+    float* Qfg;
+    float* m_snoarea;
+    float* m_snacarea;
+    float* m_area;
+    float* m_snoday;
 };
 #endif /* SEIMS_MODULE_SNO_SP_H */

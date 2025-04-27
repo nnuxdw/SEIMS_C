@@ -104,6 +104,9 @@ public:
     string Suffix;
     //! output filename without suffix, core name without subbasin ID
     string Corename;
+
+    string interval_Unit;
+    int intervals;
     //! output filename without suffix, and contain subbasin ID as prefix for MPI version
     string Filename;
     //! Aggregation type string
@@ -142,6 +145,7 @@ private:
     int m_calibrationID;
     //! Counter of time series data, i.e., how many data has been aggregated.
     int m_Counter;
+    int m_Counter2;
     //! Aggregation type of current print item
     AggregationType m_AggregationType;
 };
@@ -211,13 +215,13 @@ public:
     string getIntervalUnits() const { return m_IntervalUnits; };
 
     //! Add an output item with the given start time, end time and file name
-    void AddPrintItem(string& start, string& end, string& file, string& sufi);
+    void AddPrintItem(string& start, string& end, string& file, string& sufi, string& intervalUnit,int interval=1);
 
     //! Add an output item with the given aggregate type, start time, end time, file name and subbasin ID
-    void AddPrintItem(string& type, string& start, string& end, string& file, string& sufi, int subbasinID = 0);
+    void AddPrintItem(string& type, string& start, string& end, string& file, string& sufi, string& intervalUnit,int interval, int subbasinID = 0);
 
     //! Add an output item with the given start time (string), end time (string) and file name, Overloaded method
-    void AddPrintItem(string& start, string& end, string& file, string sitename, string& sufi, bool isSubbasin);
+    void AddPrintItem(string& start, string& end, string& file, string sitename, string& sufi, string& intervalUnit,int interval, bool isSubbasin);
 
     //! Get a reference to the output item located at the given index position
     PrintInfoItem* getPrintInfoItem(int index);

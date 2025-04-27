@@ -54,6 +54,9 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 
     // set the input variables
     mdi.AddInput(DataType_SolarRadiation, UNIT_SR, DESC_SR, Source_Module, DT_Raster1D);
+    mdi.AddInput(DataType_MeanTemperature, UNIT_TEMP_DEG, DESC_TMEAN, Source_Module, DT_Raster1D);
+    mdi.AddInput(DataType_RelativeAirMoisture, UNIT_PERCENT, DESC_RM, Source_Module, DT_Raster1D);
+    mdi.AddInput(DataType_WindSpeed, UNIT_SPEED_MS, DESC_WS, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_DAYLEN, UNIT_HOUR, DESC_DAYLEN, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_SOTE, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Raster1D);
 
@@ -62,23 +65,23 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_RTE_WTRIN, UNIT_VOL_M3, DESC_RTE_WTRIN, Source_Module, DT_Array1D);
     mdi.AddInput(VAR_RTE_WTROUT, UNIT_VOL_M3, DESC_RTE_WTROUT, Source_Module, DT_Array1D);
     mdi.AddInput(VAR_CHWTRDEPTH, UNIT_LEN_M, DESC_CHWTDEPTH, Source_Module, DT_Array1D);
-    /// input from hillslope
-    //nutrient from surface water
-    mdi.AddInput(VAR_SUR_NO3_TOCH, UNIT_KG, DESC_SUR_NO3_ToCH, Source_Module, DT_Array1D);
-    mdi.AddInput(VAR_SUR_NH4_TOCH, UNIT_KG, DESC_SUR_NH4_ToCH, Source_Module, DT_Array1D);
-    mdi.AddInput(VAR_SUR_SOLP_TOCH, UNIT_KG, DESC_SUR_SOLP_ToCH, Source_Module, DT_Array1D);
-    mdi.AddInput(VAR_SUR_COD_TOCH, UNIT_KG, DESC_SUR_COD_ToCH, Source_Module, DT_Array1D);
-    mdi.AddInput(VAR_SEDORGN_TOCH, UNIT_KG, DESC_SEDORGN_CH, Source_Module, DT_Array1D);
-    mdi.AddInput(VAR_SEDORGP_TOCH, UNIT_KG, DESC_SEDORGP_CH, Source_Module, DT_Array1D);
-    mdi.AddInput(VAR_SEDMINPA_TOCH, UNIT_KG, DESC_SEDMINPA_CH, Source_Module, DT_Array1D);
-    mdi.AddInput(VAR_SEDMINPS_TOCH, UNIT_KG, DESC_SEDMINPS_CH, Source_Module, DT_Array1D);
-    //nutrient from interflow
-    mdi.AddInput(VAR_LATNO3_TOCH, UNIT_KG, DESC_LATNO3_CH, Source_Module, DT_Array1D);
-    //nutrient from ground water
-    mdi.AddInput(VAR_NO3GW_TOCH, UNIT_KG, DESC_NO3GW_CH, Source_Module, DT_Array1D);
-    mdi.AddInput(VAR_MINPGW_TOCH, UNIT_KG, DESC_MINPGW_CH, Source_Module, DT_Array1D);
-    // channel erosion
-    mdi.AddInput(VAR_RCH_DEG, UNIT_KG, DESC_RCH_DEG, Source_Module_Optional, DT_Array1D);
+    // /// input from hillslope
+    // //nutrient from surface water
+    // mdi.AddInput(VAR_SUR_NO3_TOCH, UNIT_KG, DESC_SUR_NO3_ToCH, Source_Module, DT_Array1D);
+    // mdi.AddInput(VAR_SUR_NH4_TOCH, UNIT_KG, DESC_SUR_NH4_ToCH, Source_Module, DT_Array1D);
+    // mdi.AddInput(VAR_SUR_SOLP_TOCH, UNIT_KG, DESC_SUR_SOLP_ToCH, Source_Module, DT_Array1D);
+    // mdi.AddInput(VAR_SUR_COD_TOCH, UNIT_KG, DESC_SUR_COD_ToCH, Source_Module, DT_Array1D);
+    // mdi.AddInput(VAR_SEDORGN_TOCH, UNIT_KG, DESC_SEDORGN_CH, Source_Module, DT_Array1D);
+    // mdi.AddInput(VAR_SEDORGP_TOCH, UNIT_KG, DESC_SEDORGP_CH, Source_Module, DT_Array1D);
+    // mdi.AddInput(VAR_SEDMINPA_TOCH, UNIT_KG, DESC_SEDMINPA_CH, Source_Module, DT_Array1D);
+    // mdi.AddInput(VAR_SEDMINPS_TOCH, UNIT_KG, DESC_SEDMINPS_CH, Source_Module, DT_Array1D);
+    // //nutrient from interflow
+    // mdi.AddInput(VAR_LATNO3_TOCH, UNIT_KG, DESC_LATNO3_CH, Source_Module, DT_Array1D);
+    // //nutrient from ground water
+    // mdi.AddInput(VAR_NO3GW_TOCH, UNIT_KG, DESC_NO3GW_CH, Source_Module, DT_Array1D);
+    // mdi.AddInput(VAR_MINPGW_TOCH, UNIT_KG, DESC_MINPGW_CH, Source_Module, DT_Array1D);
+    // // channel erosion
+    // mdi.AddInput(VAR_RCH_DEG, UNIT_KG, DESC_RCH_DEG, Source_Module_Optional, DT_Array1D);
     // set the output variables
     /// 1. Amount (kg) outputs
     mdi.AddInOutput(VAR_CH_ALGAE, UNIT_KG, DESC_CH_ALGAE, DT_Array1D, TF_SingleValue);
@@ -129,21 +132,30 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_KRP, UNIT_NON_DIM, DESC_KRP, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_KDRP, UNIT_NON_DIM, DESC_KDRP, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_NPOC, UNIT_CONCENTRATION, DESC_NPOC, Source_ParameterDB, DT_Single);
-    mdi.AddParameter(VAR_AHRU, UNIT_AREA_M2, DESC_AHRU, Source_ParameterDB, DT_Raster1D);   
+    mdi.AddParameter(VAR_AHRU, UNIT_AREA_M2, DESC_AHRU, Source_ParameterDB, DT_Raster1D);  
+    mdi.AddInput(VAR_SNME, UNIT_DEPTH_MM, DESC_SNME, Source_Module, DT_Raster1D);  
+    mdi.AddInput("GL_RO", UNIT_DEPTH_MM, DESC_SNME, Source_Module, DT_Array1D);  
 
-    mdi.AddInput(VAR_CHSEEPAGE, UNIT_VOL_M3, DESC_SEEPAGE, Source_Module, DT_Array1D);
-    mdi.AddInput(VAR_GWS_RDOCconc, UNIT_VOL_M3, DESC_GWS_RDOCconc, Source_Module, DT_Array1D);
-    mdi.AddInput(VAR_GWS_RDOCsto, UNIT_VOL_M3, DESC_GWS_RDOCsto, Source_Module, DT_Array1D);
-
-	mdi.AddInput(VAR_surfDICtoCH, UNIT_KG, DESC_surfDICtoCH, Source_Module, DT_Array1D);
-	mdi.AddInput(VAR_latDICtoCH, UNIT_KG, DESC_latDICtoCH, Source_Module, DT_Array1D);
-	mdi.AddInput(VAR_LDOCtoCH, UNIT_KG, DESC_LDOCtoCH, Source_Module, DT_Array1D);
+	// mdi.AddInput(VAR_surfDICtoCH, UNIT_KG, DESC_surfDICtoCH, Source_Module, DT_Array1D);
+	// mdi.AddInput(VAR_latDICtoCH, UNIT_KG, DESC_latDICtoCH, Source_Module, DT_Array1D);
+	// mdi.AddInput(VAR_LDOCtoCH, UNIT_KG, DESC_LDOCtoCH, Source_Module, DT_Array1D);
 	mdi.AddInput(VAR_surfRDOCtoCH, UNIT_KG, DESC_surfRDOCtoCH, Source_Module, DT_Array1D);
 	mdi.AddInput(VAR_latRDOCtoCH, UNIT_KG, DESC_latRDOCtoCH, Source_Module, DT_Array1D);
-	mdi.AddInput(VAR_GWD_RDOCtoCH, UNIT_KG, DESC_GWD_RDOCtoCH, Source_Module, DT_Array1D);
-	mdi.AddInput(VAR_LPOCtoCH, UNIT_KG, DESC_LPOCtoCH, Source_Module, DT_Array1D);
+	mdi.AddInput("gw_RDOCtoCH", UNIT_KG, DESC_GWD_RDOCtoCH, Source_Module, DT_Array1D);
+    // mdi.AddInput("gw_DICtoCH", UNIT_KG, DESC_GWD_RDOCtoCH, Source_Module, DT_Array1D);
+	// mdi.AddInput(VAR_LPOCtoCH, UNIT_KG, DESC_LPOCtoCH, Source_Module, DT_Array1D);
 	mdi.AddInput(VAR_RPOCtoCH, UNIT_KG, DESC_RPOCtoCH, Source_Module, DT_Array1D);
     mdi.AddInput(VAR_SEDSTO_CH, UNIT_KG, DESC_SEDSTO_CH, Source_Module, DT_Array1D);
+    mdi.AddInput(VAR_QS, UNIT_NON_DIM, DESC_QI,Source_Module, DT_Array1D);
+    mdi.AddInput(VAR_QI, UNIT_NON_DIM, DESC_QI,Source_Module, DT_Array1D);
+    mdi.AddInput(VAR_QG, UNIT_NON_DIM, DESC_QI,Source_Module, DT_Array1D);
+    mdi.AddInput(VAR_SBOF, UNIT_FLOW_CMS, DESC_SBOF, Source_Module, DT_Array1D);
+    mdi.AddInput(VAR_SBIF, UNIT_FLOW_CMS, DESC_SBIF, Source_Module, DT_Array1D);
+    mdi.AddInput(VAR_SBQG, UNIT_FLOW_CMS, DESC_SBQG, Source_Module, DT_Array1D);
+    mdi.AddInput("rrtime", UNIT_DAY, "TODO", Source_Module, DT_Array1D);
+    mdi.AddInput("LAKE_P", UNIT_DAY, "TODO", Source_Module, DT_Raster1D);
+    mdi.AddInput("LAKE_E", UNIT_DAY, "TODO", Source_Module, DT_Raster1D);
+    mdi.AddInput("gw_DOCsto", UNIT_DAY, "TODO", Source_Module, DT_Array1D);
 
 	mdi.AddInOutput(VAR_CH_DIC, UNIT_KG, DESC_CH_DIC, DT_Array1D, TF_SingleValue);
 	mdi.AddInOutput(VAR_CH_LDOC, UNIT_KG, DESC_CH_LDOC, DT_Array1D, TF_SingleValue);
@@ -151,10 +163,18 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddInOutput(VAR_CH_LPOC, UNIT_KG, DESC_CH_LPOC, DT_Array1D, TF_SingleValue);
 	mdi.AddInOutput(VAR_CH_RPOC, UNIT_KG, DESC_CH_RPOC, DT_Array1D, TF_SingleValue);
     mdi.AddInOutput(VAR_CH_TOTDOC, UNIT_KG, DESC_CH_TOTDOC, DT_Array1D, TF_SingleValue);
+    mdi.AddInOutput("CH_TOTPOC", UNIT_KG, DESC_CH_TOTDOC, DT_Array1D, TF_SingleValue);
     mdi.AddInOutput(VAR_CH_SURFRDOC, UNIT_KG, DESC_CH_SURFRDOC, DT_Array1D, TF_SingleValue);
     mdi.AddInOutput(VAR_CH_LATRDOC, UNIT_KG, DESC_CH_LATRDOC, DT_Array1D, TF_SingleValue);
-    mdi.AddInOutput(VAR_CH_GWDRDOC, UNIT_KG, DESC_CH_GWDRDOC, DT_Array1D, TF_SingleValue);
-    mdi.AddInOutput(VAR_CH_GWSRDOC, UNIT_KG, DESC_CH_GWSRDOC, DT_Array1D, TF_SingleValue);
+    mdi.AddInOutput("CH_GWRDOC", UNIT_KG, DESC_CH_GWSRDOC, DT_Array1D, TF_SingleValue);
+
+    mdi.AddOutput(VAR_chtotdoc, UNIT_KG, DESC_CHSTR_LDOC, DT_Raster1D);
+    mdi.AddOutput(VAR_chsurfdoc, UNIT_KG, DESC_CHSTR_LDOC, DT_Raster1D);
+    mdi.AddOutput("chlatdoc", UNIT_KG, DESC_CHSTR_LDOC, DT_Raster1D);
+    mdi.AddOutput("chgwdoc", UNIT_KG, DESC_CHSTR_LDOC, DT_Raster1D);
+    mdi.AddOutput("chdoc", UNIT_KG, DESC_CHSTR_LDOC, DT_Array1D);
+    mdi.AddOutput("chtemp", UNIT_TEMP_DEG, "TODO", DT_Array1D);
+    mdi.AddOutput("lake_ocwb", UNIT_NON_DIM, DESC_NONE, DT_Array2D);
 
 	mdi.AddOutput(VAR_CH_DICConc, UNIT_CONCENTRATION, DESC_CH_DICConc, DT_Array1D, TF_SingleValue);
 	mdi.AddOutput(VAR_CH_LPOCConc, UNIT_CONCENTRATION, DESC_CH_LPOCConc, DT_Array1D, TF_SingleValue);
@@ -162,8 +182,9 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddOutput(VAR_CH_LDOCConc, UNIT_CONCENTRATION, DESC_CH_LDOCConc, DT_Array1D, TF_SingleValue);
 	mdi.AddOutput(VAR_CH_RDOCConc, UNIT_CONCENTRATION, DESC_CH_RDOCConc, DT_Array1D, TF_SingleValue);
     mdi.AddOutput(VAR_CH_TOTDOCConc, UNIT_CONCENTRATION, DESC_CH_TOTDOCConc, DT_Array1D, TF_SingleValue);
+    mdi.AddOutput("CH_TOTPOCConc", UNIT_CONCENTRATION, DESC_CH_TOTDOCConc, DT_Array1D, TF_SingleValue);
 
-	mdi.AddInOutput(VAR_CHSTR_DIC, UNIT_KG, DESC_CHSTR_DIC, DT_Array1D, TF_SingleValue);
+    mdi.AddInOutput(VAR_CHSTR_DIC, UNIT_KG, DESC_CHSTR_DIC, DT_Array1D, TF_SingleValue);
 	mdi.AddInOutput(VAR_CHSTR_LDOC, UNIT_KG, DESC_CHSTR_LDOC, DT_Array1D, TF_SingleValue);
 	mdi.AddInOutput(VAR_CHSTR_RDOC, UNIT_KG, DESC_CHSTR_RDOC, DT_Array1D, TF_SingleValue);
 	mdi.AddInOutput(VAR_CHSTR_LPOC, UNIT_KG, DESC_CHSTR_LPOC, DT_Array1D, TF_SingleValue);
@@ -171,6 +192,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInOutput(VAR_CHSTR_SURFRDOC, UNIT_KG, DESC_CHSTR_SURFRDOC, DT_Array1D, TF_SingleValue);
     mdi.AddInOutput(VAR_CHSTR_LATRDOC, UNIT_KG, DESC_CHSTR_LATRDOC, DT_Array1D, TF_SingleValue);
     mdi.AddInOutput(VAR_CHSTR_GWDRDOC, UNIT_KG, DESC_CHSTR_GWDRDOC, DT_Array1D, TF_SingleValue);
+
 
     string res = mdi.GetXMLDocument();
     char* tmp = new char[res.size() + 1];

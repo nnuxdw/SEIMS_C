@@ -46,7 +46,7 @@ Biomass_EPIC::Biomass_EPIC() :
     m_frStrsP(nullptr), m_frStrsTmp(nullptr), m_frStrsWtr(nullptr),
     m_biomassDelta(nullptr), m_biomass(nullptr),
     //ljj++
-    m_bmdieoff(nullptr),
+    m_bmdieoff(nullptr),m_soilAWC(nullptr), m_landuse(nullptr),
     m_soilLMN(nullptr), m_soilLSC(nullptr), m_soilLSN(nullptr), m_soilLS(nullptr),
     m_soilLSL(nullptr),m_soilNH4(nullptr),m_soilFrshOrgN(nullptr), m_soilFrshOrgP(nullptr),
     m_soilLSLC(nullptr), m_soilLSLNC(nullptr){
@@ -156,14 +156,10 @@ void Biomass_EPIC::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(sk, VAR_BIOINIT)) m_initBiom = data;
     else if (StringMatch(sk, VAR_PHUPLT)) m_phuPlt = data;
     else if (StringMatch(sk, VAR_CHT)) m_canHgt = data;
-    else if (StringMatch(sk, VAR_DORMI)) {
-        m_dormFlag = data;
-        //ljj test for dormant
-        //for (int i = 0; i < m_nCells; i++) {m_dormFlag[i] = 0;}
-    }
-    
+    else if (StringMatch(sk, VAR_DORMI)) m_dormFlag = data;
     //ljj++
     else if (StringMatch(sk, VAR_BM_DIEOFF)) m_bmdieoff = data;
+    else if (StringMatch(sk, VAR_LANDUSE)) m_landuse = data;
     else {
         throw ModelException(MID_PG_EPIC, "Set1DData", "Parameter " + sk + " does not exist.");
     }
@@ -175,7 +171,7 @@ void Biomass_EPIC::Set2DData(const char* key, const int nrows, const int ncols, 
     if (StringMatch(sk, VAR_SOILDEPTH)) m_soilDepth = data;
     else if (StringMatch(sk, VAR_SOILTHICK)) m_soilThk = data;
     else if (StringMatch(sk, VAR_SOL_RSD)) m_soilRsd = data;
-    else if (StringMatch(sk, VAR_SOL_AWC)) m_soilFC = data;
+    else if (StringMatch(sk, VAR_SOL_AWC)) m_soilAWC = data; //m_soilFC = data;
     else if (StringMatch(sk, VAR_SOL_ST)) m_soilWtrSto = data;
     else if (StringMatch(sk, VAR_SOL_NO3)) m_soilNO3 = data;
     else if (StringMatch(sk, VAR_SOL_SOLP)) m_soilSolP = data;
@@ -277,7 +273,7 @@ bool Biomass_EPIC::CheckInputData() {
     /// DT_Raster2D
     CHECK_POINTER(MID_PG_EPIC, m_soilDepth);
     CHECK_POINTER(MID_PG_EPIC, m_soilThk);
-    CHECK_POINTER(MID_PG_EPIC, m_soilFC);
+    //CHECK_POINTER(MID_PG_EPIC, m_soilFC);
     CHECK_POINTER(MID_PG_EPIC, m_soilWtrSto);
     CHECK_POINTER(MID_PG_EPIC, m_soilNO3);
     CHECK_POINTER(MID_PG_EPIC, m_soilSolP);
@@ -405,22 +401,6 @@ void Biomass_EPIC::InitialOutputs() {
             Initialize1DArray(m_nCells, m_biomass, 0.f);
         }
     }
-# ifdef USE_PIHM
-	// Read select_hand_ids.txt
-	if (nullptr == pihm_tools)
-	{
-		project = new char[MAXSTRING];
-		strcpy(project, PIHM_PROJECT);
-		pihm_tools = new PIHM_TOOLS();
-		hru_ids = new vector<int>();
-		hru_ids_file = new char[MAXSTRING];
-		pihm_dir = new char[MAXSTRING];
-		strcpy(pihm_dir, PIHM_DATA_PATH);
-		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
-		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
-		//pihm_tools->test(1, project);
-	}
-#endif
 }
 
 void Biomass_EPIC::DistributePlantET(const int i) {
@@ -501,12 +481,15 @@ void Biomass_EPIC::DistributePlantET(const int i) {
         } else {
             sum = m_maxPltET[i] * (1.f - exp(-ubw * gx / m_pltRootD[i])) / uobw;
         }
+        m_epco[i] = Min(m_epco[i],1.0f);
         m_wuse[i][j] = sum - sump + 1.f * m_epco[i];
         m_wuse[i][j] = sum - sump + (sump - xx) * m_epco[i];
         sump = sum;
         /// adjust uptake if sw is less than 25% of plant available water
-        if (m_soilWtrSto[i][j] < m_soilFC[i][j] * 0.25f) {
-            reduc = exp(5.f * (4.f * m_soilWtrSto[i][j] / m_soilFC[i][j] - 1.f));
+        //if (m_soilWtrSto[i][j] < m_soilFC[i][j] * 0.25f) {
+        if (m_soilWtrSto[i][j] < m_soilAWC[i][j] * 0.25f) {
+            //reduc = exp(5.f * (4.f * m_soilWtrSto[i][j] / m_soilFC[i][j] - 1.f));
+            reduc = exp(5.f * (4.f * m_soilWtrSto[i][j] / m_soilAWC[i][j] - 1.f));
         } else {
             reduc = 1.f;
         }
@@ -614,6 +597,7 @@ void Biomass_EPIC::AdjustPlantGrowth(const int i) {
             m_biomassDelta[i] *= (m_biomTrgt[i] - m_biomass[i]) / m_biomTrgt[i];
         }
         m_biomass[i] += m_biomassDelta[i] * reg;
+        m_biomassDelta[i] = m_biomassDelta[i] * reg;
         float rto = 1.f;
         if (idc == CROP_IDC_TREES) {
             if (m_matYrs[i] > 0.) {
@@ -869,7 +853,7 @@ void Biomass_EPIC::CheckDormantStatus(const int i) {
             sol_min_n = m_soilNO3[i][0] + m_soilNH4[i][0];
 
             resnew = m_biomass[i] * m_biomDropFr[i];
-            resnew_n = resnew * m_pltN[i];
+            resnew_n = resnew * m_frPltN[i];
             resnew_ne = resnew_n + sf * sol_min_n;
 
             RLN = resnew * CLG / (resnew_n + 1.e-5f);
@@ -892,6 +876,8 @@ void Biomass_EPIC::CheckDormantStatus(const int i) {
                 m_soilLSN[i][0] += resnew_ne;
                 m_soilLMN[i][0] += 1.e-25f;
             }
+            m_soilLSN[i][0] = Max(m_soilLSN[i][0],0.f);
+            m_soilLMN[i][0] = Max(m_soilLMN[i][0],0.f);
             m_soilLMC[i][0] += 0.42f * LMF * resnew;
 
             /// update no3 and nh4 in soil
@@ -1012,14 +998,7 @@ int Biomass_EPIC::Execute() {
     InitialOutputs();
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
-		// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行计算
-# ifdef USE_PIHM
-		bool id_in_hru = pihm_tools->CheckIdInHruIds(i, hru_ids);
-		if (id_in_hru)
-		{
-			continue;
-		}
-# endif
+        if(m_landuse[i]==LANDUSE_ID_WATR && m_landuse[i]==LANDUSE_ID_GLC) continue;
         if(0<m_dormFlag[i] && m_dormFlag[i]<1) m_dormFlag[i] = 1;  //ljj for averged parameter in HRU
         /// calculate albedo in current day, albedo.f of SWAT
         float cej = -5.e-5f;
@@ -1077,6 +1056,7 @@ void Biomass_EPIC::Get1DData(const char* key, int* n, float** data) {
     else if (StringMatch(sk, VAR_SOL_COV)) *data = m_rsdCovSoil;
     else if (StringMatch(sk, VAR_SOL_SW)) *data = m_soilWtrStoPrfl;
     else if (StringMatch(sk, VAR_BIOMS)) *data = m_biomass;
+    else if (StringMatch(sk, "BIOMASS_DELTA")) *data = m_biomassDelta;
     else {
         throw ModelException(MID_PG_EPIC, "Get1DData", "Result " + sk + " does not exist.");
     }

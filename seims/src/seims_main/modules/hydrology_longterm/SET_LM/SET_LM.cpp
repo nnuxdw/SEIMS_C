@@ -8,7 +8,7 @@ SET_LM::SET_LM() :
     m_pet(nullptr), m_IntcpET(nullptr),
     m_deprStoET(nullptr), m_maxPltET(nullptr), m_soilTemp(nullptr),
     m_soilFrozenTemp(NODATA_VALUE),
-    m_soilET(nullptr) {
+    m_soilET(nullptr),m_soilAWC(nullptr) {
 }
 
 SET_LM::~SET_LM() {
@@ -28,10 +28,12 @@ int SET_LM::Execute() {
         for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
             if (etDeficiency <= 0.f) break;
             float et2d = 0.f;
-            if (m_soilWtrSto[i][j] >= m_soilFC[i][j]) {
+            //if (m_soilWtrSto[i][j] >= m_soilFC[i][j]) {
+            if (m_soilWtrSto[i][j] >= m_soilAWC[i][j]) {
                 et2d = etDeficiency;
             } else if (m_soilWtrSto[i][j] >= 0.f) {
-                et2d = etDeficiency * m_soilWtrSto[i][j] / m_soilFC[i][j];
+                //et2d = etDeficiency * m_soilWtrSto[i][j] / m_soilFC[i][j];
+                et2d = etDeficiency * m_soilWtrSto[i][j] / m_soilAWC[i][j];
             } else {
                 et2d = 0.0f;
             }
@@ -90,7 +92,7 @@ void SET_LM::Set1DData(const char* key, const int nrows, float* data) {
 void SET_LM::Set2DData(const char* key, const int nrows, const int ncols, float** data) {
     string sk(key);
     CheckInputSize2D(MID_SET_LM, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
-    if (StringMatch(sk, VAR_SOL_AWC)) m_soilFC = data;
+    if (StringMatch(sk, VAR_SOL_AWC)) m_soilAWC = data; //m_soilFC = data;
     else if (StringMatch(sk, VAR_SOL_ST)) m_soilWtrSto = data;
     else if (StringMatch(sk, VAR_SOILTHICK)) m_soilThk = data;
     else {
@@ -100,7 +102,7 @@ void SET_LM::Set2DData(const char* key, const int nrows, const int ncols, float*
 
 bool SET_LM::CheckInputData() {
     CHECK_POSITIVE(MID_SET_LM, m_nCells);
-    CHECK_POINTER(MID_SET_LM, m_soilFC);
+    //CHECK_POINTER(MID_SET_LM, m_soilFC);
     CHECK_POINTER(MID_SET_LM, m_IntcpET);
     CHECK_POINTER(MID_SET_LM, m_pet);
     CHECK_POINTER(MID_SET_LM, m_deprStoET);

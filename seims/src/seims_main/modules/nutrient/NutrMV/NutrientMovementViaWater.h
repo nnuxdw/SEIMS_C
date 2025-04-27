@@ -215,5 +215,14 @@ private:
     /* CENTURY C/N cycling model related */
     /// amount of Carbon lost with sediment, kg/ha, input from NUTRSED module
     float* m_sedLossCbn;
+
+    float* m_area;
+    float* m_landUse;
+    float* m_brt;
+
+    float** m_lag_NO3;
+    float** m_lag_NH4;
+    float** m_lag_Cod;
+    float** m_lag_SolP;
 };
 #endif /* SEIMS_MODULE_NUTRMV_H */

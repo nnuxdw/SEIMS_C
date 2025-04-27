@@ -36,7 +36,7 @@ SEDR_SBAGNOLD::SEDR_SBAGNOLD() :
     m_sagSto(nullptr), m_lagSto(nullptr), m_gravelSto(nullptr),
     //ljj++
     m_islake(nullptr),m_isres(nullptr),m_lakevol(nullptr),m_res_d50(nullptr),m_lakearea(nullptr),
-    m_ResLc(nullptr),m_ResLf(nullptr),m_resnsed(nullptr) {
+    m_A_b(nullptr),m_A_a(nullptr),m_resnsed(nullptr),m_A_Vb(nullptr),m_A_Va(nullptr) {
 }
 
 SEDR_SBAGNOLD::~SEDR_SBAGNOLD() {
@@ -201,20 +201,20 @@ int SEDR_SBAGNOLD::Execute() {
         for (int i = 0; i < nReaches; i++) {
             int reachIndex = it->second[i]; // index in the array, which is equal to reach ID
             if (m_inputSubbsnID == 0 || m_inputSubbsnID == reachIndex) {
-                // // for OpenMP version, all reaches will be executed,
-                // // for MPI version, only the current reach will be executed.
-                // SedChannelRouting(reachIndex);
-                // // compute changes in channel dimensions caused by downcutting and widening
-                // ChannelDowncuttingWidening(reachIndex);
-                if(m_islake[reachIndex] == 0 && m_isres[reachIndex] == 0 ){ 
-                    //ChannelFlow(reachIndex);
-                    SedChannelRouting(reachIndex);
-                    // compute changes in channel dimensions caused by downcutting and widening
-                    ChannelDowncuttingWidening(reachIndex);
-                }
-                else{
-                    SedResRouting(reachIndex);
-                }
+                // for OpenMP version, all reaches will be executed,
+                // for MPI version, only the current reach will be executed.
+                SedChannelRouting(reachIndex);
+                // compute changes in channel dimensions caused by downcutting and widening
+                ChannelDowncuttingWidening(reachIndex);
+                // if(m_islake[reachIndex] == 0 && m_isres[reachIndex] == 0 ){ 
+                //     //ChannelFlow(reachIndex);
+                //     SedChannelRouting(reachIndex);
+                //     // compute changes in channel dimensions caused by downcutting and widening
+                //     ChannelDowncuttingWidening(reachIndex);
+                // }
+                // else{
+                //     SedResRouting(reachIndex);
+                // }
             }
         }
     }
@@ -392,10 +392,12 @@ void SEDR_SBAGNOLD::SetReaches(clsReaches* reaches) {
     if (nullptr == m_islake) reaches->GetReachesSingleProperty(REACH_ISLAKE, &m_islake);
     if (nullptr == m_lakevol) reaches->GetReachesSingleProperty(REACH_LAKEVOL, &m_lakevol);
     if (nullptr == m_res_d50) reaches->GetReachesSingleProperty(REACH_BNKD50, &m_res_d50);
-    if (nullptr == m_ResLc) reaches->GetReachesSingleProperty(REACH_RES_LC, &m_ResLc);
-    if (nullptr == m_ResLf) reaches->GetReachesSingleProperty(REACH_RES_LF, &m_ResLf);
     if (nullptr == m_lakearea) reaches->GetReachesSingleProperty(REACH_LAKEAREA, &m_lakearea);
     if (nullptr == m_resnsed) reaches->GetReachesSingleProperty(REACH_NSED, &m_resnsed);
+    if (nullptr == m_A_Va) reaches->GetReachesSingleProperty("A_Va", &m_A_Va);
+    if (nullptr == m_A_Vb) reaches->GetReachesSingleProperty("A_Vb", &m_A_Vb);
+    if (nullptr == m_A_a) reaches->GetReachesSingleProperty("A_a", &m_A_a);
+    if (nullptr == m_A_b) reaches->GetReachesSingleProperty("A_b", &m_A_b);
    
 }
 
@@ -414,36 +416,11 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
     float qdin = m_chSto[i] + m_rteWtrOut[i]; ///< water in reach during time step, m^3
 
     // calculate shape parameters for surface area equation
-    float resdif = 0.;
-    float ConservativeStorageLimit = m_ResLc[i] * m_lakevol[i];
-    float FloodStorageLimitCC = m_ResLf[i] * m_lakevol[i];  
-    resdif = FloodStorageLimitCC - ConservativeStorageLimit;  //res_evol(i) - res_pvol(i)
-    float res_esa = m_lakearea[i] * m_ResLf[i];  //reservoir surface area when reservoir is filled to emergency spillway 
-    float res_psa = m_lakearea[i] * m_ResLc[i];  //reservoir surface area when reservoir is filled to principal spillway
-    float br1 = 0.f;
-    float br2 = 0.f;
-    if ((res_esa - res_psa) > 0. & resdif > 0.) {	
-        float lnvol = 0.;
-        lnvol = log10(FloodStorageLimitCC) - log10(ConservativeStorageLimit);
-        if (lnvol > 1.e-4) {
-            br2 = (log10(res_esa) - log10(res_psa)) / lnvol;
-        }   
-        else {
-            br2 = (log10(res_esa) - log10(res_psa)) / 0.001;
-        }
-        if (br2 > 0.9) {
-            br2 = 0.9;
-            br1 = res_psa/(pow(ConservativeStorageLimit, 0.9));
-        }else{
-            br1 = res_esa/ pow(FloodStorageLimitCC, br2);
-        } 
-    }else{
-        br2 = 0.9;
-        br1 = res_psa/(pow(ConservativeStorageLimit, 0.9));
-    }
+    float depth =  pow(m_chSto[i]*1.e-9f/ m_A_Va[i],1.0/m_A_Vb[i]) ;
+    float A1 = m_A_a[i]*pow(depth,m_A_b[i]);  //km2
 
     //calculate surface area for day
-    float ressa = br1* pow((m_chSto[i]+m_rteWtrOut[i]), br2); //ha
+    float ressa = A1*1.e2f; //ha
     float velofl = (m_rteWtrOut[i] / ressa) / 10000.;  //m3/d / ha * 10000. = m/d
     float trapres =0.f;
     float susp =0.f;
@@ -489,7 +466,7 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
         sedin += m_ptSub[i]* susp;
     }
 
-    float res_sed = 0.f;
+    float res_sed = 0.f; //kg/L (ton/m^3)
     float res_san = 0.f;
     float res_sil = 0.f;
     float res_cla = 0.f;
@@ -497,13 +474,13 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
     float res_lag = 0.f;
     float res_gra = 0.f;
     if ((m_chSto[i]+m_rteWtrOut[i]) > 0.){
-        res_sed = sedin / (m_chSto[i]+m_rteWtrOut[i]);  //sedin including the sedsto
-        res_san = sandin / (m_chSto[i]+m_rteWtrOut[i]);
-        res_sil = siltin / (m_chSto[i]+m_rteWtrOut[i]);
-        res_cla = clayin / (m_chSto[i]+m_rteWtrOut[i]);
-        res_sag = sagin / (m_chSto[i]+m_rteWtrOut[i]);
-        res_lag = lagin / (m_chSto[i]+m_rteWtrOut[i]);
-        res_gra = gravelin / (m_chSto[i]+m_rteWtrOut[i]);
+        res_sed = (sedin + m_sedSto[i])  / (m_chSto[i]+m_rteWtrOut[i]) /1000.;  //sedin including the sedsto
+        res_san = sandin / (m_chSto[i]+m_rteWtrOut[i]) /1000.;
+        res_sil = siltin / (m_chSto[i]+m_rteWtrOut[i]) /1000.;
+        res_cla = clayin / (m_chSto[i]+m_rteWtrOut[i]) /1000.;
+        res_sag = sagin / (m_chSto[i]+m_rteWtrOut[i]) /1000.;
+        res_lag = lagin / (m_chSto[i]+m_rteWtrOut[i]) /1000.;
+        res_gra = gravelin / (m_chSto[i]+m_rteWtrOut[i]) /1000.;
 
         res_sed = Max(1.e-6,res_sed);
         res_san = Max(1.e-6,res_san);
@@ -582,13 +559,14 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
             }
         }
     }
-    sedin -= res_sed*(m_chSto[i]+m_rteWtrOut[i]);
-    gravelin -= res_gra*(m_chSto[i]+m_rteWtrOut[i]);
-    lagin -= res_lag*(m_chSto[i]+m_rteWtrOut[i]);
-    sandin -= res_san*(m_chSto[i]+m_rteWtrOut[i]);
-    sagin -= res_sag*(m_chSto[i]+m_rteWtrOut[i]);
-    siltin -= res_sil*(m_chSto[i]+m_rteWtrOut[i]);
-    clayin -= res_cla*(m_chSto[i]+m_rteWtrOut[i]);
+
+    sedin = res_sed*(m_chSto[i]+m_rteWtrOut[i])*1000.f;
+    gravelin = res_gra*(m_chSto[i]+m_rteWtrOut[i])*1000.f;
+    lagin = res_lag*(m_chSto[i]+m_rteWtrOut[i])*1000.f;
+    sandin = res_san*(m_chSto[i]+m_rteWtrOut[i])*1000.f;
+    sagin = res_sag*(m_chSto[i]+m_rteWtrOut[i])*1000.f;
+    siltin = res_sil*(m_chSto[i]+m_rteWtrOut[i])*1000.f;
+    clayin = res_cla*(m_chSto[i]+m_rteWtrOut[i])*1000.f;
 
     // Routing out sediment (kg)
     float outfract = m_rteWtrOut[i] / qdin;
@@ -601,6 +579,8 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
     m_lagRchOut[i] = lagin * outfract;                    // rch_lag in SWAT
     m_gravelRchOut[i] = gravelin * outfract;              // rch_gra in SWAT
 
+    m_sedRchOut[i] = Min(m_sedRchOut[i],sedin + m_sedSto[i]);  
+    
     if (m_sedRchOut[i] < UTIL_ZERO) {
         m_sedRchOut[i] = 0.f;
         m_sedConcRchOut[i] = 0.f;
@@ -613,12 +593,12 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
     }
 
     // Channel storage (kg)
-    m_sedSto[i] += sedin - m_sedRchOut[i];
-    m_sandSto[i] += sandin - m_sandRchOut[i];
-    m_siltSto[i] += siltin - m_siltRchOut[i];
-    m_claySto[i] += clayin - m_clayRchOut[i];
-    m_sagSto[i] += sagin - m_sagRchOut[i];
-    m_lagSto[i] += lagin - m_lagRchOut[i];
+    m_sedSto[i] = sedin - m_sedRchOut[i];
+    m_sandSto[i] = sandin - m_sandRchOut[i];
+    m_siltSto[i] = siltin - m_siltRchOut[i];
+    m_claySto[i] = clayin - m_clayRchOut[i];
+    m_sagSto[i] = sagin - m_sagRchOut[i];
+    m_lagSto[i] = lagin - m_lagRchOut[i];
     m_gravelSto[i] += gravelin - m_gravelRchOut[i];
     if (m_sedSto[i] < UTIL_ZERO) {
         m_sedSto[i] = 0.f;
@@ -630,6 +610,7 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
         m_gravelSto[i] = 0.f;
     }
 }
+
 void SEDR_SBAGNOLD::SedChannelRouting(const int i) {
     // Reset part of output variables for the current timestep
     m_sedRchOut[i] = 0.f;

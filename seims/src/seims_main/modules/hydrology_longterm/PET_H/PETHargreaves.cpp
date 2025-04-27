@@ -8,7 +8,7 @@ PETHargreaves::PETHargreaves() :
     m_nCells(-1), m_HCoef_pet(0.0023f), m_petFactor(1.f),
     m_cellLat(nullptr), m_phuAnn(nullptr),
     m_meanTemp(nullptr), m_maxTemp(nullptr), m_minTemp(nullptr), m_rhd(nullptr),
-    m_dayLen(nullptr), m_phuBase(nullptr), m_pet(nullptr), m_vpd(nullptr){
+    m_dayLen(nullptr), m_phuBase(nullptr), m_pet(nullptr), m_vpd(nullptr) {
 }
 
 PETHargreaves::~PETHargreaves() {
@@ -61,22 +61,6 @@ void PETHargreaves::InitialOutputs() {
     if (nullptr == m_vpd) Initialize1DArray(m_nCells, m_vpd, 0.f);
     if (nullptr == m_dayLen) Initialize1DArray(m_nCells, m_dayLen, 0.f);
     if (nullptr == m_phuBase) Initialize1DArray(m_nCells, m_phuBase, 0.f);
-# ifdef USE_PIHM
-	// Read select_hand_ids.txt
-	if (nullptr == pihm_tools)
-	{
-		project = new char[MAXSTRING];
-		strcpy(project, PIHM_PROJECT);
-		pihm_tools = new PIHM_TOOLS();
-		hru_ids = new vector<int>();
-		hru_ids_file = new char[MAXSTRING];
-		pihm_dir = new char[MAXSTRING];
-		strcpy(pihm_dir, PIHM_DATA_PATH);
-		sprintf(hru_ids_file, "%s/input/%s/select_hand_ids.txt", pihm_dir, project);
-		pihm_tools->read_ids_from_file(hru_ids_file, hru_ids);
-		//pihm_tools->test(1, project);
-	}
-#endif
 }
 
 int PETHargreaves::Execute() {
@@ -89,18 +73,6 @@ int PETHargreaves::Execute() {
         if (tmpav(j) > 0. .and. phutot(hru_sub(j)) > 0.01) then
             phubase(j) = phubase(j) + tmpav(j) / phutot(hru_sub(j))
         end if*/
-		// xiaodw, 添加判断，如果当前HRU是精细化模拟的HRU，不进行地表蒸散计算
-# ifdef USE_PIHM
-
-		bool id_in_hru = pihm_tools->CheckIdInHruIds(i, hru_ids);
-# ifdef USE_PIHM_DEBUG
-		cout << "i: " << i << " m_nCells: " << m_nCells << " id_in_hru: " << id_in_hru << endl;
-#endif
-		if (id_in_hru)
-		{
-			continue;
-		}
-# endif
         if (m_dayOfYear == 1) {
             m_phuBase[i] = 0.f;
         }

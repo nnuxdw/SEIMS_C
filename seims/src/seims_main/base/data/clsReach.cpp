@@ -11,7 +11,7 @@ using namespace utils_array;
 using namespace utils_string;
 using namespace utils_math;
 
-const int REACH_PARAM_NUM = 70; /// Numerical parameters, except GROUP related
+const int REACH_PARAM_NUM = 78; /// Numerical parameters, except GROUP related
 const char* REACH_PARAM_NAME[] = {
     REACH_SUBBASIN, REACH_NUMCELLS,                           // 0-1
     REACH_DOWNSTREAM, REACH_UPDOWN_ORDER, REACH_DOWNUP_ORDER, // 2-4
@@ -31,7 +31,8 @@ const char* REACH_PARAM_NAME[] = {
     REACH_PERMAFORST,REACH_SPYLD,
     REACH_ISLAKE,REACH_LAKEAREA,REACH_LAKEVOL,REACH_LAKEDPINI,REACH_LAKEALPHA,
     REACH_ISRES,REACH_NATURAL_FLOW,REACH_RES_LC,REACH_RES_LN,REACH_RES_LF,REACH_RES_ADJUST,
-    REACH_NSED,
+    REACH_NSED,"flowoutlength","A_Va","A_Vb","A_a","A_b",
+    "RES_minq","RES_normq","RES_ndq","RES_normMult",
     REACH_DIC, REACH_LDOC, REACH_RDOC, REACH_LPOC, REACH_RPOC,
     REACH_SURFRDOC,REACH_LATRDOC,REACH_GWDRDOC
 };

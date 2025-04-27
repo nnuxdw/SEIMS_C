@@ -27,13 +27,6 @@
 #define SEIMS_MODULE_SUR_MR_H
 
 #include "SimulationModule.h"
-# ifdef USE_PIHM
- // xiaodw, for pihm
-#include "pihm_tools.h"
-#ifndef MAXSTRING
-#define MAXSTRING  1024
-#endif
-#endif
 
 /** \defgroup SUR_MR
  * \ingroup Hydrology_longterm
@@ -69,14 +62,6 @@ public:
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
 
-# ifdef USE_PIHM
-	// xiaodw, for pihm
-	PIHM_TOOLS *pihm_tools = nullptr;
-	vector<int> *hru_ids;
-	char * pihm_dir;
-	char * hru_ids_file;
-	char * project;
-#endif
 private:
     /// Hillslope time step (second)
     float m_dt;
@@ -94,6 +79,7 @@ private:
 
     /// mm H2O: (sol_fc) amount of water available to plants in soil layer at field capacity (fc - wp)
     float** m_soilFC;
+    float** m_soilAWC;
     /// mm H2O: (sol_ul) amount of water held in the soil layer at saturation (sat - wp water)
     float** m_soilSat;
     /// amount of water held in the soil layer at saturation (sat - wp water), mm H2O, sol_sumul of SWAT
@@ -137,7 +123,12 @@ private:
     float** m_soilIceSto;
     float** m_soilPor;
     float** m_soilThk;
-    
+    float* m_dem;
     float* m_soilIceStoPrfl;
+    float* m_landUse;
+    float* m_rchID;
+    float* m_pcp;
+    float* m_lakesto;
+    float* m_pet;
 };
 #endif /* SEIMS_MODULE_SUR_MR_H */

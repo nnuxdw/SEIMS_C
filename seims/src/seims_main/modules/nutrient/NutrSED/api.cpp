@@ -100,6 +100,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_SOILDEPTH, UNIT_DEPTH_MM, DESC_SOILDEPTH, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(Tag_ROUTING_LAYERS, UNIT_NON_DIM, DESC_ROUTING_LAYERS, Source_ParameterDB, DT_Array2D);
 	mdi.AddParameter(Tag_FLOWOUT_INDEX_D8, UNIT_NON_DIM, DESC_FLOWOUT_INDEX_D8, Source_ParameterDB, DT_Array1D);
+    mdi.AddParameter(VAR_LANDUSE, UNIT_NON_DIM, DESC_LANDUSE, Source_ParameterDB, DT_Raster1D);
 
     mdi.AddOutput(VAR_LPOCtoCH, UNIT_KG, DESC_LPOCtoCH, DT_Array1D);
 	mdi.AddOutput(VAR_RPOCtoCH, UNIT_KG, DESC_RPOCtoCH, DT_Array1D);
@@ -109,9 +110,17 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_surfRDOCtoCH, UNIT_KG, DESC_surfRDOCtoCH, DT_Array1D);
 	mdi.AddOutput(VAR_latRDOCtoCH, UNIT_KG, DESC_latRDOCtoCH, DT_Array1D);
     mdi.AddOutput(VAR_PERC_LOWEST_DOC, UNIT_KG, DESC_PERC_LOWEST_DOC, DT_Array1D);
+    mdi.AddOutput(VAR_PERC_LOWEST_DIC, UNIT_KG, DESC_PERC_LOWEST_DIC, DT_Array1D);
 
+    mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);
     mdi.AddInput(VAR_SOL_RSPC, UNIT_CONT_KGHA, DESC_SOL_RSPC, Source_Module_Optional, DT_Raster2D);
 	mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Raster2D);
+    mdi.AddInput("BRT", "none", "fraction of surface runoff that takes one day or less to reach the subbasin", Source_Module, DT_Array1D);
+    mdi.AddInput(VAR_SURU, UNIT_DEPTH_MM, DESC_SURU, Source_Module, DT_Raster1D);
+
+    // mdi.AddInput("SURFDOC", UNIT_KG, DESC_SEDYLD, Source_Module, DT_Raster1D);
+    // mdi.AddInput("SURFPOC", UNIT_KG, DESC_SEDYLD, Source_Module, DT_Raster1D);
+    // mdi.AddInput("SUBSURFDOC", UNIT_KG, DESC_SEDYLD, Source_Module, DT_Raster2D);
 
     string res = mdi.GetXMLDocument();
     char* tmp = new char[res.size() + 1];

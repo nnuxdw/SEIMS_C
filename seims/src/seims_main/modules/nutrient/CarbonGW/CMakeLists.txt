@@ -1,4 +1,4 @@
-MESSAGE(STATUS "        Compiling nutrient_subdir: CarbonGW...")
+MESSAGE(STATUS "        Compiling nutrient_subdir: CARBONGW...")
 SET(MODNAME CarbonGW)
 PROJECT(SEIMS_MODULE_${MODNAME})
 FILE(GLOB SRC_LIST *.cpp *.h)

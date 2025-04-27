@@ -91,6 +91,11 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_SUR_SOLP_TOCH, UNIT_KG, DESC_SUR_SOLP_ToCH, DT_Array1D);
     mdi.AddOutput(VAR_SUR_COD_TOCH, UNIT_KG, DESC_SUR_COD_ToCH, DT_Array1D);
 
+    mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter(VAR_LANDUSE, UNIT_NON_DIM, DESC_LANDUSE, Source_ParameterDB, DT_Raster1D);
+
+    mdi.AddInput("BRT", "none", "fraction of surface runoff that takes one day or less to reach the subbasin", Source_Module, DT_Array1D);
+
     string res = mdi.GetXMLDocument();
     char* tmp = new char[res.size() + 1];
     strprintf(tmp, res.size() + 1, "%s", res.c_str());

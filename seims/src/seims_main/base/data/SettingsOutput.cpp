@@ -22,13 +22,15 @@ SettingsOutput::SettingsOutput(const int subbasinNum, const int outletID, const 
 
         bool isRaster = false;
         if (StringMatch(suffix, string(GTiffExtension))) {
-            if (m_subbasinID == 9999) {
-                /// For field-version model, all spatial outputs should be text!
-                (*iter).outFileName = coreFileName + "." + TextExtension;
-                suffix = TextExtension;
-            } else {
-                isRaster = true;
-            }
+            // if (m_subbasinID == 9999) {
+            //     /// For field-version model, all spatial outputs should be text!
+            //     (*iter).outFileName = coreFileName + "." + TextExtension;
+            //     suffix = TextExtension;
+            // } else {
+            //     isRaster = true;
+            // }
+            (*iter).outFileName = coreFileName + "." + TextExtension;
+            suffix = TextExtension;
         }
         /// Check Tag_OutputSubbsn first
         if (StringMatch((*iter).subBsn, Tag_Outlet)) {
@@ -38,13 +40,13 @@ SettingsOutput::SettingsOutput(const int subbasinNum, const int outletID, const 
                 pi->setInterval((*iter).interval);
                 pi->setIntervalUnits((*iter).intervalUnit);
                 pi->AddPrintItem((*iter).sTimeStr, (*iter).eTimeStr, coreFileName,
-                                 ValueToString(m_outletID), suffix, true);
+                                 ValueToString(m_outletID), suffix, (*iter).intervalUnit, (*iter).interval, true);
             }
-        } else if (StringMatch((*iter).subBsn, Tag_AllSubbsn) && (isRaster || m_subbasinID == 9999)) {
+        } else if (StringMatch((*iter).subBsn, Tag_AllSubbsn) && (isRaster || m_subbasinID == 0)) {
             vector<string> aggTypes = SplitString((*iter).aggType, '-');
             /// Output of all subbasins of DT_Raster1D and DT_Raster2D or DT_Array1D and DT_Array2D (field-version)
             for (auto it = aggTypes.begin(); it != aggTypes.end(); ++it) {
-                pi->AddPrintItem(*it, (*iter).sTimeStr, (*iter).eTimeStr, coreFileName, suffix, m_subbasinID);
+                pi->AddPrintItem(*it, (*iter).sTimeStr, (*iter).eTimeStr, coreFileName, suffix, (*iter).intervalUnit, (*iter).interval, m_subbasinID);
             }
         } else {
             // subbasin IDs is provided
@@ -66,7 +68,7 @@ SettingsOutput::SettingsOutput(const int subbasinNum, const int outletID, const 
                     newCoreFileName += "_" + ValueToString(m_subbasinID);
                 }
                 if (m_subbasinID == 0 || StringMatch(*it, ValueToString(m_subbasinID))) {
-                    pi->AddPrintItem((*iter).sTimeStr, (*iter).eTimeStr, newCoreFileName, *it, suffix, true);
+                    pi->AddPrintItem((*iter).sTimeStr, (*iter).eTimeStr, newCoreFileName, *it, suffix, (*iter).intervalUnit, (*iter).interval, true);
                 }
             }
         }
