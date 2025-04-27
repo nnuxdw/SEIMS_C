@@ -22,7 +22,7 @@ SUR_MR::~SUR_MR() {
     if (m_infil != nullptr) Release1DArray(m_infil);
     if (m_soilWtrSto != nullptr) Release2DArray(m_nCells, m_soilWtrSto);
     if (m_soilWtrStoPrfl != nullptr) Release1DArray(m_soilWtrStoPrfl);
-    if (m_soilIceStoPrfl != nullptr) Release1DArray(m_soilIceStoPrfl);
+    //if (m_soilIceStoPrfl != nullptr) Release1DArray(m_soilIceStoPrfl);   // xiaodw comment, don't need soil temperature now
     if (m_lakesto != nullptr) Release1DArray(m_lakesto);
 }
 
@@ -38,7 +38,7 @@ bool SUR_MR::CheckInputData() {
     CHECK_POINTER(MID_SUR_MR, m_potRfCoef);
     //CHECK_POINTER(MID_SUR_MR, m_soilFC);
     CHECK_POINTER(MID_SUR_MR, m_meanTemp);
-    CHECK_POINTER(MID_SUR_MR, m_soilTemp);
+    //CHECK_POINTER(MID_SUR_MR, m_soilTemp);   // xiaodw comment, don't need soil temperature now
     CHECK_POINTER(MID_SUR_MR, m_netPcp);
     CHECK_POINTER(MID_SUR_MR, m_deprSto);
     return true;
@@ -112,7 +112,7 @@ int SUR_MR::Execute() {
             float soilIcePrfl = 0.f;
             float soilSatPrfl = 0.f;
             for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
-                soilIcePrfl += m_soilIceSto[i][k];
+                //soilIcePrfl += m_soilIceSto[i][k];  // xiaodw, don't need soil ice now
                 soilSatPrfl += m_soilPor[i][k]*m_soilThk[i][k];
             }
             if(frez==1){
@@ -139,32 +139,56 @@ int SUR_MR::Execute() {
 
             }else{
                 //for frozen soil, no infiltration will occur
-                if (m_soilTemp[i] <= m_soilFrozenTemp && smFraction >= m_soilFrozenWtrRatio) {
-                    m_exsPcp[i] = m_netPcp[i];
-                    m_infil[i] = 0.f;
-                } else {
-                    alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
-                    if (hWater >= m_maxPcpRf) {
-                        alpha = 1.f;
-                    }
+				// xiaodw comment, don't need soil temperature now
+                //if (m_soilTemp[i] <= m_soilFrozenTemp && smFraction >= m_soilFrozenWtrRatio) {
+                //    m_exsPcp[i] = m_netPcp[i];
+                //    m_infil[i] = 0.f;
+                //} else {
+                //    alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
+                //    if (hWater >= m_maxPcpRf) {
+                //        alpha = 1.f;
+                //    }
 
-                    //runoff percentage
-                    float runoffPercentage;
-                    if (m_potRfCoef[i] > 0.99f ||  (m_landUse[i] == LANDUSE_ID_GLC)) {
-                        runoffPercentage = 1.f;
-                    } else {
-                        runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
-                    }
-                    runoffPercentage = Min(runoffPercentage,1.f);
-                    float surfq = hWater * runoffPercentage;
-                    if (surfq > hWater) surfq = hWater;
-                    m_infil[i] = hWater - surfq;
-                    m_exsPcp[i] = surfq;
+                //    //runoff percentage
+                //    float runoffPercentage;
+                //    if (m_potRfCoef[i] > 0.99f ||  (m_landUse[i] == LANDUSE_ID_GLC)) {
+                //        runoffPercentage = 1.f;
+                //    } else {
+                //        runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+                //    }
+                //    runoffPercentage = Min(runoffPercentage,1.f);
+                //    float surfq = hWater * runoffPercentage;
+                //    if (surfq > hWater) surfq = hWater;
+                //    m_infil[i] = hWater - surfq;
+                //    m_exsPcp[i] = surfq;
 
-                    /// TODO: Why calculate surfq first, rather than infiltration first?
-                    ///       I think we should calculate infiltration first, until saturation,
-                    ///       then surface runoff should be calculated. By LJ.
-                }
+                //    /// TODO: Why calculate surfq first, rather than infiltration first?
+                //    ///       I think we should calculate infiltration first, until saturation,
+                //    ///       then surface runoff should be calculated. By LJ.
+
+				alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
+				if (hWater >= m_maxPcpRf) {
+					alpha = 1.f;
+				}
+
+				//runoff percentage
+				float runoffPercentage;
+				if (m_potRfCoef[i] > 0.99f || (m_landUse[i] == LANDUSE_ID_GLC)) {
+					runoffPercentage = 1.f;
+				}
+				else {
+					runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+				}
+				runoffPercentage = Min(runoffPercentage, 1.f);
+				float surfq = hWater * runoffPercentage;
+				if (surfq > hWater) surfq = hWater;
+				m_infil[i] = hWater - surfq;
+				m_exsPcp[i] = surfq;
+
+				/// TODO: Why calculate surfq first, rather than infiltration first?
+				///       I think we should calculate infiltration first, until saturation,
+				///       then surface runoff should be calculated. By LJ.
+                
             }
         } else {
             m_exsPcp[i] = 0.f;

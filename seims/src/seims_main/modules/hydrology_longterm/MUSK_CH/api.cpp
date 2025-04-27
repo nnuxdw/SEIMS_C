@@ -79,7 +79,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 
     mdi.AddInput(VAR_PCP, UNIT_DEPTH_MM, DESC_PCP, Source_Module, DT_Raster1D); 
     mdi.AddInput(VAR_PET, UNIT_WTRDLT_MMD, DESC_PET, Source_Module, DT_Raster1D);
-    mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);
+    //mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);   // xiaodw comment, don't need soil temperature now
 
     mdi.AddOutput(VAR_qout, UNIT_NON_DIM, DESC_QRECH, DT_Raster1D);
     mdi.AddOutput(VAR_qsurf, UNIT_NON_DIM, DESC_QS, DT_Raster1D);

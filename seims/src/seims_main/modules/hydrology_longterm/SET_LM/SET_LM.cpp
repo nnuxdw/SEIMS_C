@@ -22,9 +22,10 @@ int SET_LM::Execute() {
 #pragma omp parallel for reduction(+: errCount)
     for (int i = 0; i < m_nCells; i++) {
         m_soilET[i] = 0.0f;
-        if (m_soilTemp[i] <= m_soilFrozenTemp) { continue; }
+        //if (m_soilTemp[i] <= m_soilFrozenTemp) { continue; }     // xiaodw comment, don't need soil temperature now
+		//float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_maxPltET[i];   // xiaodw comment, don't need plant et now, remove it 
 
-        float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_maxPltET[i];
+        float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i];
         for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
             if (etDeficiency <= 0.f) break;
             float et2d = 0.f;
@@ -106,9 +107,9 @@ bool SET_LM::CheckInputData() {
     CHECK_POINTER(MID_SET_LM, m_IntcpET);
     CHECK_POINTER(MID_SET_LM, m_pet);
     CHECK_POINTER(MID_SET_LM, m_deprStoET);
-    CHECK_POINTER(MID_SET_LM, m_maxPltET);
+    //CHECK_POINTER(MID_SET_LM, m_maxPltET);    // xiaodw comment, don't need plant et now, remove it 
     CHECK_POINTER(MID_SET_LM, m_soilWtrSto);
-    CHECK_POINTER(MID_SET_LM, m_soilTemp);
+    //CHECK_POINTER(MID_SET_LM, m_soilTemp);     // xiaodw comment, don't need soil temperature now, remove it 
     CHECK_NODATA(MID_SET_LM, m_soilFrozenTemp);
     return true;
 }

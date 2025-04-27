@@ -85,7 +85,8 @@ int ReservoirMethod::Execute() {
                 //fPET += m_pet[index];
                 fPET += m_pet[index] * (m_area[index] / curBasinArea[subID]);
             }
-            m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_actPltET[index];
+			//m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_actPltET[index];  // xiaodw comment, don't need m_actPltET now
+            m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index];
             m_revap[index] = Max(m_revap[index], 0.f);
             m_revap[index] = m_revap[index] * Min(1.0,m_gwSto[subID] / m_GWMAX);
             //revap += m_revap[index];
@@ -225,7 +226,7 @@ bool ReservoirMethod::CheckInputData() {
     CHECK_POINTER(MID_GWA_RE, m_IntcpET);
     CHECK_POINTER(MID_GWA_RE, m_deprStoET);
     CHECK_POINTER(MID_GWA_RE, m_soilET);
-    CHECK_POINTER(MID_GWA_RE, m_actPltET);
+    //CHECK_POINTER(MID_GWA_RE, m_actPltET);
     CHECK_POINTER(MID_GWA_RE, m_pet);
     CHECK_POINTER(MID_GWA_RE, m_slope);
     CHECK_POINTER(MID_GWA_RE, m_soilWtrSto);

@@ -54,7 +54,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput("SNO_DAY", UNIT_DEPTH_MM, DESC_SNME, DT_Raster1D);
 
     mdi.AddParameter(VAR_LANDUSE, UNIT_NON_DIM, DESC_LANDUSE, Source_ParameterDB, DT_Raster1D);
-    mdi.AddInput("Qfg", UNIT_TEMP_DEG, DESC_TMAX, Source_Module, DT_Array1D);
+    //mdi.AddInput("Qfg", UNIT_TEMP_DEG, DESC_TMAX, Source_Module, DT_Array1D);    // xiaodw comment, don't need glacier now
     // write out the XML file.
     string res = mdi.GetXMLDocument();
     char* tmp = new char[res.size() + 1];

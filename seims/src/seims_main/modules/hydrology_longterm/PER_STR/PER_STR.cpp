@@ -212,7 +212,7 @@ bool PER_STR::CheckInputData() {
     CHECK_POINTER(MID_PER_STR, m_soilWtrSto);
     CHECK_POINTER(MID_PER_STR, m_soilWtrStoPrfl);
     CHECK_POINTER(MID_PER_STR, m_soilThk);
-    CHECK_POINTER(MID_PER_STR, m_soilTemp);
+    //CHECK_POINTER(MID_PER_STR, m_soilTemp);   // xiaodw comment, don't need soil temperature now
     CHECK_POINTER(MID_PER_STR, m_infil);
     return true;
 }

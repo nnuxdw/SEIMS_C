@@ -72,10 +72,11 @@ int SNO_SP::Execute() {
     float cmelt = (m_csnow6 + m_csnow12) * 0.5f + (m_csnow6 - m_csnow12) * 0.5f * sinv;
 #pragma omp parallel for
     for (int rw = 0; rw < m_nCells; rw++) {
-        if(m_landUse[rw]==LANDUSE_ID_GLC){
-            m_netPcp[rw] = Qfg[rw];
-            continue;
-        }
+		// xiaodw comment, don't need glacier now
+        //if(m_landUse[rw]==LANDUSE_ID_GLC){
+        //    m_netPcp[rw] = Qfg[rw];
+        //    continue;
+        //}
         if(m_landUse[rw]==LANDUSE_ID_WATR){
             m_netPcp[rw] = 0.f;
             continue;
@@ -153,7 +154,7 @@ void SNO_SP::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(s, VAR_TMAX)) m_maxTemp = data;
     else if (StringMatch(s, VAR_NEPR)) m_netPcp = data;
     else if (StringMatch(s, VAR_LANDUSE)) m_landUse = data;
-    else if (StringMatch(s, "Qfg")) Qfg = data;
+    else if (StringMatch(s, "Qfg")) Qfg = data;   
     else if (StringMatch(s, VAR_AHRU)) m_area = data;
     else {
         throw ModelException(MID_SNO_SP, "Set1DData", "Parameter " + s + " does not exist.");

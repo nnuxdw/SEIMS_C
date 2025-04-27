@@ -105,9 +105,10 @@ bool SSR_DA::FlowInSoil(const int id) {
         // if (j == 0 && m_soilTemp[id] <= m_soilFrozenTemp && qUp <= 0.f) {
         //     continue;
         // }
-        if (frez = 0 && m_soilTempprofile[id][j] <= m_soilFrozenTemp) {
-            continue;
-        }
+		 // xiaodw comment, don't need soil temperature now
+        //if (frez = 0 && m_soilTempprofile[id][j] <= m_soilFrozenTemp) {
+        //    continue;
+        //}
 
         float k = 0.f, maxSoilWater = 0.f, soilWater = 0.f, fcSoilWater = 0.f;
         soilWater = m_soilWtrSto[id][j];
@@ -460,7 +461,7 @@ bool SSR_DA::CheckInputData() {
     CHECK_POINTER(MID_SSR_DA, m_soilWP);
     CHECK_POINTER(MID_SSR_DA, m_soilWtrSto);
     CHECK_POINTER(MID_SSR_DA, m_soilWtrStoPrfl);
-    CHECK_POINTER(MID_SSR_DA, m_soilTemp);
+    //CHECK_POINTER(MID_SSR_DA, m_soilTemp);     //  xiaodw comment, don't need soil temperature now
     CHECK_POINTER(MID_SSR_DA, m_chWidth);
     CHECK_POINTER(MID_SSR_DA, m_rchID);
     CHECK_POINTER(MID_SSR_DA, m_flowInIdxD8);
