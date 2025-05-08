@@ -163,9 +163,11 @@ private:
     float* m_qgRchOut; ///< groundwater part of channel outflow
 
     float* m_chSto;     ///< reach storage (m^3), rchstor in SWAT
+	float* m_chStoLastStep;   ///< reach storage (m^3) of last step, rchstor in SWAT(xiaodw add, for calculating hand water level change)
     float* m_rteWtrIn;  ///< Water flowing in reach on day before channel routing, m^3
     float* m_rteWtrOut; ///< Water leaving reach on day after channel routing, m^3, rtwtr in SWAT
     float* m_bankSto;   ///< bank storage (m^3), bankst in SWAT
+	float* m_bankStoLastStep;   ///< bank storage (m^3) of last step, bankst in SWAT(xiaodw add, for calculating hand water level change)
 
     float* m_chWtrDepth;  ///< channel water depth (m), rchdep in SWAT
     float* m_chWtrWth;    ///< channel water width (m), topw in SWAT

@@ -1,4 +1,4 @@
-MESSAGE(STATUS "        Compiling test_subdir: OL_HAND...")
+MESSAGE(STATUS "        Compiling hydrology_subdir: OL_HAND...")
 SET(MODNAME OL_HAND)
 PROJECT(SEIMS_MODULE_${MODNAME})
 FILE(GLOB SRC_LIST *.cpp *.h)

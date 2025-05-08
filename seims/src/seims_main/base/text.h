@@ -444,6 +444,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_IKW_OL                           "Overland routing using 4-point implicit finite difference method."
 #define MID_IUH_OL                             "IUH_OL"
 #define MDESC_IUH_OL                           "IUH overland method to calculate overland flow routing."
+#define MID_OL_HAND                             "OL_HAND"
+#define MDESC_OL_HAND                           "Use HAND to calculate floodplain inundation."
 /// Channel routing related modules
 #define MCLS_CH_ROUTING                        "Channel routing"
 #define MCLSDESC_CH_ROUTING                    "Channel routing modules"
@@ -552,6 +554,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_BIOMASS "BIOMASS" /// m_biomass, land cover/crop biomass (dry weight), bio_ms in SWAT
 #define VAR_BIOTARG "biotarg" /// m_biomTrgt, Biomass target
 #define VAR_BKST "BKST"                             /// bank storage
+#define VAR_BKST_LAST_STEP "BKST_LAST_STEP"                             /// bank storage of last time step
 #define VAR_BLAI "BLAI" /// m_maxLai, maximum (potential) leaf area index (BLAI in cropLookup db)
 #define VAR_BMX_TREES "BMX_TREES" /// m_maxBiomTree, Maximum biomass for a forest (metric tons/ha), BMX_TREES in SWAT
 #define VAR_BN1 "BN1" /// m_biomNFr1, nitrogen uptake parameter #1: normal fraction of N in crop biomass at emergence
@@ -584,6 +587,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_CHS0_PERC "chs0_perc" /// ,
 #define VAR_CHSB "CHSB"
 #define VAR_CHST "CHST" /// m_chStorage, channel storage
+#define VAR_CHST_LAST_STEP "channel storage for last time step"
 #define VAR_CHT "CHT" /// m_canHgt, canopy height for the day(m)
 #define VAR_CHTMX "CHTMX" /// m_maxCanHgt, maximum canopy height (m)
 #define VAR_CHWTRWIDTH "chwtrwidth" /// m_chWtrWth, channel water width
@@ -816,6 +820,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_PUPDIS "p_updis" /// m_upTkDistP, Phosphorus uptake distribution parameter
 #define VAR_QCH "QCH"
 #define VAR_OLFLOW "OL_Flow" /// m_surfRf, overland flow in each cell calculated during overland routing
+#define VAR_OL_HAND_WTRDEP "OL_Hand_WTRDEP" /// m_surfRf, overland flow in each cell calculated during overland routing
 #define VAR_QG "QG" /// m_qgRchOut, Groundwater discharge at each reach outlet and at each time step
 #define VAR_QI "QI" /// m_qiRchOut, Interflow at each reach outlet and at each time step
 #define VAR_QOVERLAND "QOverland"
@@ -1306,6 +1311,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_BIOMASS "land cover/crop biomass (dry weight)"
 #define DESC_BIOTARG "Biomass (dry weight) target (kg/ha), defined in plant management operation"
 #define DESC_BKST "bank storage"
+#define DESC_BKST_LAST_STEP "bank storage for last time step"
 #define DESC_BLAI "maximum leaf area index"
 #define DESC_BMX_TREES "Maximum biomass for a forest (metric tons/ha)"
 #define DESC_BN1 "the normal fraction of nitrogen in the plant biomass at emergence"
@@ -1348,6 +1354,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_CHS0_PERC "initial percentage of channel volume"
 #define DESC_CHSB "Channel sediment balance for each reach and at each time step"
 #define DESC_CHST "channel storage"
+#define DESC_CHST_LAST_STEP "channel storage of last time step"
 #define DESC_PRECHST "channel storage at previous timestep"
 #define DESC_CHT "canopy height for the day (m)"
 #define DESC_CHTMX "maximum canopy height (m)"

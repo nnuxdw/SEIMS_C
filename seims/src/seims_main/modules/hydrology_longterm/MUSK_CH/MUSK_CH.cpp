@@ -135,9 +135,11 @@ void MUSK_CH::InitialOutputs() {
     m_qgRchOut = new(nothrow) float[m_nreach + 1];
 
     m_chSto = new(nothrow) float[m_nreach + 1];
+	m_chStoLastStep = new(nothrow) float[m_nreach + 1];
     m_rteWtrIn = new(nothrow) float[m_nreach + 1];
     m_rteWtrOut = new(nothrow) float[m_nreach + 1];
     m_bankSto = new(nothrow) float[m_nreach + 1];
+	m_bankStoLastStep = new(nothrow) float[m_nreach + 1];
     m_Ch2GW = new(nothrow) float[m_nreach + 1];
     m_aquifer = new(nothrow) float[m_nreach + 1];
 
@@ -177,6 +179,7 @@ void MUSK_CH::InitialOutputs() {
         m_charge[i] = 0.f;
         m_recharge[i] = 0.f;
         m_bankSto[i] = m_Bnk0 * m_chLen[i];
+		m_bankStoLastStep[i] = m_bankSto[i];
         m_chBtmWth[i] = ChannleBottomWidth(m_chWth[i], m_chSideSlope[i], m_chDepth[i]);
         m_chCrossArea[i] = ChannelCrossSectionalArea(m_chBtmWth[i], m_chDepth[i], m_chSideSlope[i]);
         m_chWtrDepth[i] = m_chDepth[i] * m_Chs0_perc;
@@ -465,7 +468,10 @@ void MUSK_CH::Get1DData(const char* key, int* n, float** data) {
     } else if (StringMatch(sk, VAR_CHST)) {
         m_chSto[0] = m_chSto[m_outletID];
         *data = m_chSto;
-    } else if (StringMatch(sk, VAR_RTE_WTRIN)) {
+    }else if (StringMatch(sk, VAR_CHST_LAST_STEP)) {
+		m_chStoLastStep[0] = m_chStoLastStep[m_outletID];
+		*data = m_chStoLastStep;
+	}else if (StringMatch(sk, VAR_RTE_WTRIN)) {
         m_rteWtrIn[0] = m_rteWtrIn[m_outletID];
         *data = m_rteWtrIn;
     } else if (StringMatch(sk, VAR_RTE_WTROUT)) {
@@ -474,7 +480,10 @@ void MUSK_CH::Get1DData(const char* key, int* n, float** data) {
     } else if (StringMatch(sk, VAR_BKST)) {
         m_bankSto[0] = m_bankSto[m_outletID];
         *data = m_bankSto;
-    } else if (StringMatch(sk, VAR_CHWTRDEPTH)) {
+    } else if (StringMatch(sk, VAR_BKST_LAST_STEP)) {
+		m_bankStoLastStep[0] = m_bankStoLastStep[m_outletID];
+		*data = m_bankStoLastStep;
+	}else if (StringMatch(sk, VAR_CHWTRDEPTH)) {
         m_chWtrDepth[0] = m_chWtrDepth[m_outletID];
         *data = m_chWtrDepth;
     } else if (StringMatch(sk, VAR_CHWTRWIDTH)) {
@@ -636,6 +645,8 @@ bool MUSK_CH::ChannelFlow(const int i) {
         ", UPsurfaceQ: " << qsUp << ", UPsubsurface: " << qiUp << ", UPground: " << qgUp << endl;
 #endif
     // 1.3. water from bank storage
+	// xiaodw add, for calculating hand water lavel, with no effect on other modules
+	m_bankStoLastStep[i] = m_bankSto[i];   
     float bankOut = m_bankSto[i] * (1.f - exp(-m_aBank));
     m_bankSto[i] -= bankOut;
     qIn += bankOut / m_dt;
@@ -954,7 +965,7 @@ bool MUSK_CH::LakeBudget(const int i) {
         if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
     }
     qIn += qsUp + qiUp + qgUp;   
-    
+	m_chStoLastStep[i] = m_chSto[i];
     float pre_Sto = m_chSto[i];
     //add precipitation
     qIn += m_prec[i];   

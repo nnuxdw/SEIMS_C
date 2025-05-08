@@ -1,6 +1,6 @@
 #include "api.h"
 
-#include "ol_hand.h"
+#include "OL_HAND.h"
 #include "text.h"
 #include "MetadataInfo.h"
 
@@ -12,26 +12,37 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     MetadataInfo mdi;
     string res;
 
-    mdi.SetAuthor("Liangjun Zhu");
-    mdi.SetClass("TEST", "Base functionality test!");
-    mdi.SetDescription("Module test.");
-    mdi.SetID("IO_TEST");
-    mdi.SetName("IO_TEST");
+    mdi.SetAuthor("Dawei Xiao");
+    mdi.SetClass(MCLS_OL_ROUTING, MCLSDESC_OL_ROUTING);
+    mdi.SetDescription(MDESC_OL_HAND);
+    mdi.SetID(MID_OL_HAND);
+    mdi.SetName(MID_OL_HAND);
     mdi.SetVersion("1.0");
     mdi.SetEmail(SEIMS_EMAIL);
     mdi.SetWebsite(SEIMS_SITE);
     mdi.SetHelpfile("");
+	
+	mdi.AddParameter(Tag_TimeStep, UNIT_HOUR, DESC_TIMESTEP, File_Input, DT_Single);
+	//mdi.AddParameter(Tag_CellWidth, UNIT_LEN_M, DESC_CellWidth, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_AHRU, UNIT_AREA_M2, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(Tag_SubbasinId, UNIT_NON_DIM, Tag_SubbasinId, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_SUBBSN, UNIT_NON_DIM, DESC_SUBBSN, Source_ParameterDB, DT_Raster1D);
+	mdi.AddInput(VAR_BKST, UNIT_VOL_M3, DESC_BKST, Source_Module,DT_Array1D);
+	mdi.AddInput(VAR_BKST_LAST_STEP, UNIT_VOL_M3, DESC_BKST_LAST_STEP, Source_Module, DT_Array1D);
+	mdi.AddInput(VAR_CHST, UNIT_VOL_M3, DESC_CHST, Source_Module, DT_Array1D);
+	mdi.AddInput(VAR_CHST_LAST_STEP, UNIT_VOL_M3, DESC_CHST_LAST_STEP, Source_Module, DT_Array1D);
+	mdi.AddInput(VAR_CHWTRDEPTH, UNIT_LEN_M, DESC_CHWTDEPTH, Source_Module, DT_Array1D);
+	mdi.AddInput(VAR_CHWTRWIDTH, UNIT_LEN_M, DESC_CHWTWIDTH, Source_Module, DT_Array1D);
 
-    mdi.AddParameter(VAR_CN2, UNIT_NON_DIM, DESC_CN2, Source_ParameterDB, DT_Raster1D);
-    mdi.AddParameter(VAR_CONDUCT, UNIT_WTRDLT_MMH, DESC_CONDUCT, Source_ParameterDB, DT_Raster2D);
-    mdi.AddParameter(VAR_SOILLAYERS, UNIT_NON_DIM, DESC_SOILLAYERS, Source_ParameterDB, DT_Raster2D);
-    ///test add scenario data
-    mdi.AddParameter(VAR_SCENARIO, UNIT_NON_DIM, DESC_SCENARIO, Source_ParameterDB, DT_Scenario);
-    ///test reaches information
-    mdi.AddParameter(VAR_REACH_PARAM, UNIT_NON_DIM, DESC_REACH_PARAM, Source_ParameterDB, DT_Reach);
-    /// set the output variables
-    mdi.AddOutput("CN2_M", UNIT_NON_DIM, DESC_CN2, DT_Raster1D);
-    mdi.AddOutput("K_M", UNIT_WTRDLT_MMH, DESC_CONDUCT, DT_Raster2D);
+	
+
+	
+	// add reach information
+	mdi.AddParameter(VAR_REACH_PARAM, UNIT_NON_DIM, DESC_REACH_PARAM, Source_ParameterDB, DT_Reach);
+
+
+	mdi.AddOutput(VAR_OL_HAND_WTRDEP, UNIT_DEPTH_MM, DESC_OLFLOW, DT_Raster1D);
+
     /// write out the XML file.
     res = mdi.GetXMLDocument();
 
