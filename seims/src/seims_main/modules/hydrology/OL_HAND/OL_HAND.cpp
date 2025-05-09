@@ -129,6 +129,7 @@ void OL_HAND::InitialOutputs() {
 				m_Hands[sbid].levels[lev].m_levelHandSumVol = m_Hands[sbid].levels[lev].m_levelHandSumArea * m_Hands[sbid].levels[lev].m_levelHandDepth;
 				// for test
 				m_Hands[sbid].volToAdd = 0.0;
+				//m_Hands[sbid].volToAdd += m_Hands[sbid].levels[lev].m_levelHandSumVol;
 				// don't need to initialize water depth if use the new HandInundation function? and initialize it to zero is ok
 				m_Hands[sbid].levels[lev].m_levelWtrDep = 0.0;
 				
@@ -194,9 +195,11 @@ int OL_HAND::Execute() {
 
 			if (m_inputSubbsnID == 0 || m_inputSubbsnID == reachIndex) {
 				// 防止越界：确认层级存在
-				int maxLev = m_Hands[reachIndex].n_levels;
 				int curLev = m_Hands[reachIndex].m_CurInundationLevel;
 				m_Hands[reachIndex].volToAdd += 0.5f * m_Hands[reachIndex].levels[curLev].m_levelHandSumVol;
+				if (m_Hands[reachIndex].volToAdd < 0.0) {
+					m_Hands[reachIndex].volToAdd = 0.0;
+				}
 
 				if (m_islake[reachIndex] == 1) {
 					m_chSto[reachIndex] = m_Hands[reachIndex].volToAdd;
@@ -247,7 +250,7 @@ void OL_HAND::Get2DData(const char* key, int* n, int* col, float*** data) {
     //}
 }
 
-void OL_HAND::updateLowerHandsWtrDep(const int reachId, const int lev) {
+void OL_HAND::updateLowerHandsWtrDep(const int reachId) {
 
 	//m_Hands[reachId].levels[lev].m_levelWtrDep = 0.0;
 	for (int ll = 1; ll <= m_Hands[reachId].m_CurInundationLevel; ll++)
@@ -258,6 +261,48 @@ void OL_HAND::updateLowerHandsWtrDep(const int reachId, const int lev) {
 			m_handWtrDep[handId] = m_Hands[reachId].levels[ll].m_levelWtrDep;
 		}
 	}
+	return;
+}
+
+void OL_HAND::updateAllHandsWtrDep(const int reachId) {
+
+	//m_Hands[reachId].levels[lev].m_levelWtrDep = 0.0;
+	for (int ll = 1; ll <= m_Hands[reachId].n_levels; ll++)
+	{
+		for (int idx = 0; idx < m_Hands[reachId].levels[ll].m_levelHandNum; idx++)
+		{
+			int handId = m_Hands[reachId].levels[ll].handIds[idx];
+			m_handWtrDep[handId] = m_Hands[reachId].levels[ll].m_levelWtrDep;
+		}
+	}
+	return;
+}
+
+void OL_HAND::updateUpperHandsWtrDep(const int reachId) {
+
+	if (m_Hands[reachId].m_CurInundationLevel < m_Hands[reachId].n_levels)
+	{
+		for (int ll = m_Hands[reachId].m_CurInundationLevel + 1; ll <= m_Hands[reachId].n_levels; ll++)
+		{
+			for (int idx = 0; idx < m_Hands[reachId].levels[ll].m_levelHandNum; idx++)
+			{
+				int handId = m_Hands[reachId].levels[ll].handIds[idx];
+				m_handWtrDep[handId] = 0.0;
+			}
+		}
+	}
+	return;
+}
+
+void OL_HAND::updateUpperLevelsWtrDep(const int reachId, int lev, float val) {
+	if (lev <= m_Hands[reachId].n_levels)
+	{
+		for (int ll = lev; ll <= m_Hands[reachId].n_levels; ll++)
+		{
+			m_Hands[reachId].levels[ll].m_levelWtrDep = val;
+		}
+	}
+
 	return;
 }
 
@@ -277,39 +322,42 @@ bool OL_HAND::HandInundation(const int reachId, float sto) {
 		// water depth is reset to zero, and calculate it by sto each time step
 		m_Hands[reachId].levels[lev].m_levelWtrDep = 0.0;
 		
+		//cout << reachId << " " << lev << endl;
+		if (residualWtrVol > m_Hands[reachId].levels[lev].m_levelHandSumVol)
+		{
+			for (int ll = 1; ll <= lev; ll++)
+			{
+				m_Hands[reachId].levels[ll].m_levelWtrDep += m_Hands[reachId].levels[lev].m_levelHandDepth;
+			}
+			updateUpperLevelsWtrDep(reachId, lev + 1, 0.0);
+			residualWtrVol -= m_Hands[reachId].levels[lev].m_levelHandSumVol;
+			m_Hands[reachId].m_CurInundationLevel++;
+
+		}
+		else {
+			for (int ll = 1; ll <= lev; ll++)
+			{
+				m_Hands[reachId].levels[ll].m_levelWtrDep += residualWtrVol / m_Hands[reachId].levels[lev].m_levelHandSumArea;
+			}
+			updateUpperLevelsWtrDep(reachId,lev+1,0.0);
+			residualWtrVol = 0.0;
+		}
+
 		if (residualWtrVol <= 0.0)
 		{
 			//m_Hands[reachId].levels[lev].m_levelWtrDep = 0.0;
-			updateLowerHandsWtrDep(reachId, lev);
+			//updateLowerHandsWtrDep(reachId);
 			// set upper levels' hand water depth to zero
-			if (m_Hands[reachId].m_CurInundationLevel < m_Hands[reachId].n_levels)
-			{
-				for (int ll = m_Hands[reachId].m_CurInundationLevel + 1; ll <= m_Hands[reachId].n_levels; ll++)
-				{
-					for (int idx = 0; idx < m_Hands[reachId].levels[ll].m_levelHandNum; idx++)
-					{
-						int handId = m_Hands[reachId].levels[ll].handIds[idx];
-						m_handWtrDep[handId] = 0.0;
-					}
-				}
-			}
+			//updateUpperHandsWtrDep(reachId);
+			updateAllHandsWtrDep(reachId);
 			break;
-		}
-		if (residualWtrVol > m_Hands[reachId].levels[lev].m_levelHandSumVol)
-		{
-			m_Hands[reachId].levels[lev].m_levelWtrDep += m_Hands[reachId].levels[lev].m_levelHandDepth;
-			residualWtrVol -= m_Hands[reachId].levels[lev].m_levelHandSumVol;
-			m_Hands[reachId].m_CurInundationLevel++;
-		}
-		else {
-			m_Hands[reachId].levels[lev].m_levelWtrDep += residualWtrVol / m_Hands[reachId].levels[lev].m_levelHandSumArea;
-			residualWtrVol = 0.0;
 		}
 
 		if (m_Hands[reachId].m_CurInundationLevel > m_Hands[reachId].n_levels && residualWtrVol > 0.0)
 		{
 			m_Hands[reachId].m_CurInundationLevel--;
-			updateLowerHandsWtrDep(reachId, lev);
+			//updateLowerHandsWtrDep(reachId);
+			updateAllHandsWtrDep(reachId);
 			//
 			updateSbExcessWater(reachId, &residualWtrVol);
 

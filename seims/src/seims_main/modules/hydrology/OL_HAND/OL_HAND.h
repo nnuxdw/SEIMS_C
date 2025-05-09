@@ -72,10 +72,14 @@ public:
 	void InitialOutputs() OVERRIDE;
 
 private:
-	bool OL_HAND::HandInundation(const int reachId, float sto);
+	bool HandInundation(const int reachId, float sto);
 	bool HandInundation(const int reachId, float sto, float stoLastStep);
 	void LoadHandIdsToChHandLevels(const std::string& filename);
-	void updateLowerHandsWtrDep(const int reachId, const int lev);
+	void updateLowerHandsWtrDep(const int reachId);
+	void updateUpperHandsWtrDep(const int reachId);
+	void updateAllHandsWtrDep(const int reachId);
+	void updateUpperLevelsWtrDep(const int reachId, int lev, float val);
+
 	void updateSbExcessWater(const int reachId, float* vol);
 
 	int m_dt;            ///< time step (sec)
