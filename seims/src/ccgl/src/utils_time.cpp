@@ -2,7 +2,7 @@
 
 #include <ctime>
 #include <iostream>
-
+#include <string>
 #include "utils_string.h"
 
 using std::cout;
@@ -26,6 +26,39 @@ double TimeCounting() {
     return CVT_DBL(tv.tv_sec) + CVT_DBL(tv.tv_usec) / 1000000.;
 #endif /* WINDOWS */
 }
+
+
+bool ShouldOutputByInterval(const time_t start_time,
+	const time_t current_time,
+	int intervals,
+	const string& interval_unit) {
+	if (intervals <= 0 || current_time < start_time) return false;
+
+	if (interval_unit == "DAY") {
+		time_t delta_sec = current_time - start_time;
+		return (delta_sec % (intervals * 86400)) == 0;
+	}
+	else if (interval_unit == "HOUR") {
+		time_t delta_sec = current_time - start_time;
+		return (delta_sec % (intervals * 3600)) == 0;
+	}
+	else if (interval_unit == "MONTH") {
+		// 使用 localtime (线程不安全，但兼容性高)
+		struct tm* tm_start = localtime(&start_time);
+		struct tm* tm_now = localtime(&current_time);
+		if (!tm_start || !tm_now) return false;
+
+		int start_months = tm_start->tm_year * 12 + tm_start->tm_mon;
+		int now_months = tm_now->tm_year * 12 + tm_now->tm_mon;
+
+		return ((now_months - start_months) % intervals) == 0 &&
+			tm_now->tm_mday == tm_start->tm_mday;
+	}
+
+	return false;
+}
+
+
 
 string ConvertToString(const time_t date, const bool utc_time /* = true */) {
     struct tm* date_info = new tm();
@@ -71,6 +104,43 @@ string ConvertToString2(const time_t date, const bool utc_time /* = true */) {
     string s(date_string);
     delete date_info;
     return s;
+}
+/// format: 2022_11_17_092000
+string ConvertToString3(const time_t date, const bool utc_time /* = true */) {
+	static int month_days[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+	struct tm* date_info = new tm();
+	GetDateTime(date, date_info, utc_time);
+	if (date_info->tm_isdst > 0) {
+		if (date_info->tm_hour != 0) {
+			date_info->tm_hour -= 1;
+		}
+		else {
+			date_info->tm_hour = 23;
+			date_info->tm_mday -= 1;
+			if (date_info->tm_mday == 0) {
+				date_info->tm_mon -= 1;
+
+				if (date_info->tm_mon == 0) {
+					date_info->tm_year -= 1;
+					date_info->tm_mon = 12;
+					date_info->tm_mday = 31;
+				}
+				else {
+					if (IsLeapYear(date_info->tm_year)) {
+						date_info->tm_mday = month_days[date_info->tm_mon] + 1;
+					}
+					else {
+						date_info->tm_mday = month_days[date_info->tm_mon];
+					}
+				}
+			}
+		}
+	}
+	char date_string[30];
+	strftime(date_string, 30, "%Y_%m_%d_%H%M%S", date_info);
+	string s(date_string);
+	delete date_info;
+	return s;
 }
 
 time_t ConvertToTime(const string& str_date, string const& format, const bool include_hour,

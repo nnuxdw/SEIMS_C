@@ -57,7 +57,14 @@ void PrintInfoItem::add1DTimeSeriesResult(time_t t, int n, const float* data) {
     TimeSeriesDataForSubbasin[t] = temp;
     TimeSeriesDataForSubbasinCount = n;
 }
-
+void PrintInfoItem::add1DRasterTimeSeriesResult(time_t t, int n, const float* data) {
+	float* temp = new float[n];
+	for (int i = 0; i < n; i++) {
+		temp[i] = data[i];
+	}
+	TimeSeriesDataForRaster[t] = temp;
+	TimeSeriesDataForRasterCount = n;
+}
 void PrintInfoItem::Flush(const string& projectPath, MongoGridFs* gfs, FloatRaster* templateRaster, string header) {
     // For MPI version, 1) Output to MongoDB, then 2) combined to tiff
     /*   Currently, I cannot find a way to store GridFS files with the same filename but with
@@ -135,6 +142,38 @@ void PrintInfoItem::Flush(const string& projectPath, MongoGridFs* gfs, FloatRast
         }
         return;
     }
+	if (!TimeSeriesDataForRaster.empty() && SubbasinID != -1)
+	{
+		//time series data for .tif
+		for (auto it = TimeSeriesDataForRaster.begin(); it != TimeSeriesDataForRaster.end(); ++it) {
+			//for (int i = 0; i < TimeSeriesDataForRasterCount; i++) {}
+			string filename = projectPath + Filename + "_" + ConvertToString3(it->first) + "." + Suffix;
+			// xiaodw, support output txt and tif timeseries for 1DRaster, set TYPE to TS and FILENAME to XXX.tif if you want to output tif timeseries,  set TYPE to TS and FILENAME to XXX.txt if you want to output txt timeseries
+			
+			if (StringMatch(Suffix, TextExtension))
+			{
+				float* tsTxtData = it->second;
+				/// For field-version models, the Suffix is TextExtension
+				std::ofstream fs;
+				//string filename = projectPath + Filename + "." + TextExtension;
+				DeleteExistedFile(filename);
+				fs.open(filename.c_str(), std::ios::out);
+				if (fs.is_open()) {
+					int valid_num = templateRaster->GetValidNumber();
+					for (int idx = 0; idx < valid_num; idx++) {
+						fs << idx << ", " << setprecision(8) << tsTxtData[idx] << endl;
+					}
+					fs.close();
+					StatusMessage(("Create " + filename + " successfully!").c_str());
+				}
+
+			}
+			else {
+				FloatRaster(templateRaster, it->second).OutputToFile(projectPath + filename + "." + Suffix);
+			}
+			
+		}
+	}
     if (!TimeSeriesDataForSubbasin.empty() && SubbasinID != -1) {
         //time series data for subbasin
         std::ofstream fs;
@@ -405,6 +444,14 @@ void PrintInfoItem::AggregateData(time_t time, int numrows, float* data) {
                 default: break;
             }
         }
+		if (m_AggregationType == AT_RasterTimeSeries)
+		{
+			time_t startTime = getStartTime();
+			if (ShouldOutputByInterval(startTime, time, intervals, interval_Unit))
+			{
+				add1DRasterTimeSeriesResult(time, m_nRows, data);
+			}			
+		}
         m_Counter++;
     }
 }
@@ -515,6 +562,9 @@ AggregationType PrintInfoItem::MatchAggregationType(string type) {
     if (StringMatch(type, Tag_SpecificCells)) {
         res = AT_SpecificCells;
     }
+	if (StringMatch(type, Tag_TimeSeries)) {
+		res = AT_RasterTimeSeries;
+	}
     return res;
 }
 

@@ -29,8 +29,11 @@ SettingsOutput::SettingsOutput(const int subbasinNum, const int outletID, const 
             // } else {
             //     isRaster = true;
             // }
-            (*iter).outFileName = coreFileName + "." + TextExtension;
-            suffix = TextExtension;
+			// xiaodw, support tif file
+			(*iter).outFileName = coreFileName + "." + GTiffExtension;
+			suffix = GTiffExtension;
+            //(*iter).outFileName = coreFileName + "." + TextExtension;
+            //suffix = TextExtension;
         }
         /// Check Tag_OutputSubbsn first
         if (StringMatch((*iter).subBsn, Tag_Outlet)) {

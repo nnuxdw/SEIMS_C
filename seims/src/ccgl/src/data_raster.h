@@ -1714,8 +1714,10 @@ bool clsRasterData<T, MASK_T>::OutputToFile(const string& filename) {
 #ifdef USE_GDAL
     if (StringMatch(filetype, GTiffExtension)) {
         return OutputFileByGdal(filename);
-    }
-    return OutputFileByGdal(ReplaceSuffix(filename, GTiffExtension));
+	}
+	return OutputFileByGdal(ReplaceSuffix(filename, GTiffExtension));
+	
+   
 #else
     cout << "Warning: Without GDAL, ASC file will be exported as default!" << endl;
     return OutputAscFile(ReplaceSuffix(filename, ASCIIExtension));
