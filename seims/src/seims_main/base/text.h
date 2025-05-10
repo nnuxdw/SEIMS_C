@@ -2110,7 +2110,11 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define REACH_SURFRDOC                      "SURFRDOC"
 #define REACH_LATRDOC                       "LATRDOC"
 #define REACH_GWDRDOC                       "GWDRDOC"
-#define REACH_BED_ELEV                       "Bed_Elev"
+#define REACH_BED_MEAN_ELEV                       "Bed_Mean_Elev"
+#define REACH_BED_MAX_ELEV                       "Bed_Max_Elev"
+#define REACH_BED_MIN_ELEV                       "Bed_Min_Elev"
+#define REACH_BED_START_ELEV                       "Bed_Start_Elev"
+#define REACH_BED_END_ELEV                       "Bed_End_Elev"
 
 #define DESC_GWH                             "groundwater height"
 #define DESC_GW_SH                           "shallow groundwater stroage"

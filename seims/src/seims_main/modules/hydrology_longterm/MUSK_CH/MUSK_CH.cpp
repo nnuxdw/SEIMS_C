@@ -35,7 +35,7 @@ MUSK_CH::MUSK_CH() :
     m_dem(nullptr),curBasinDem(nullptr),m_charge(nullptr),m_qin(nullptr),m_recharge(nullptr),
     m_potRfCoef(nullptr),m_slope(nullptr),flowoutlength(nullptr),m_T_LKWB(nullptr),
     m_resminq(nullptr),m_resndq(nullptr),m_resnormq(nullptr),m_res_normMult(nullptr),m_rrtime(nullptr),
-    m_lakeperc(nullptr),m_lakepcp(nullptr)
+    m_lakeperc(nullptr),m_lakepcp(nullptr), m_chBedMeanElev(nullptr), m_chBedStartElev(nullptr), m_chBedEndElev(nullptr)
 {
 }
 
@@ -81,6 +81,11 @@ MUSK_CH::~MUSK_CH() {
     if (m_T_LKWB != nullptr) Release2DArray(m_nreach + 1, m_T_LKWB);
     if (nullptr != m_lakepcp) Release1DArray(m_lakepcp);
     if (nullptr != m_lakeperc) Release1DArray(m_lakeperc);
+
+	// xiaodw
+	if (nullptr != m_chBedMeanElev) Release1DArray(m_chBedMeanElev);
+	if (nullptr != m_chBedStartElev) Release1DArray(m_chBedStartElev);
+	if (nullptr != m_chBedEndElev) Release1DArray(m_chBedEndElev);
 }
 
 bool MUSK_CH::CheckInputData() {
@@ -584,7 +589,9 @@ void MUSK_CH::SetReaches(clsReaches* reaches) {
     if (nullptr == m_ResLn) reaches->GetReachesSingleProperty(REACH_RES_LN, &m_ResLn);
     if (nullptr == m_ResLf) reaches->GetReachesSingleProperty(REACH_RES_LF, &m_ResLf);
     if (nullptr == m_ResAdjust) reaches->GetReachesSingleProperty(REACH_RES_ADJUST, &m_ResAdjust);
-	if (nullptr == m_chBedElev) reaches->GetReachesSingleProperty(REACH_BED_ELEV, &m_chBedElev);
+	if (nullptr == m_chBedMeanElev) reaches->GetReachesSingleProperty(REACH_BED_MEAN_ELEV, &m_chBedMeanElev);
+	if (nullptr == m_chBedStartElev) reaches->GetReachesSingleProperty(REACH_BED_START_ELEV, &m_chBedStartElev);
+	if (nullptr == m_chBedEndElev) reaches->GetReachesSingleProperty(REACH_BED_END_ELEV, &m_chBedEndElev);
 
     m_reachUpStream = reaches->GetUpStreamIDs();
     m_rteLyrs = reaches->GetReachLayers();
@@ -635,7 +642,12 @@ bool MUSK_CH::ChannelFlow(const int i) {
             qgUp += m_gndQ2Rch[*upRchID];
         }
         if (m_qsRchOut[*upRchID] > 0.f) qsUp += m_qsRchOut[*upRchID];
-        if (m_qiRchOut[*upRchID] > 0.f) qiUp += m_qiRchOut[*upRchID];
+        //if (m_qiRchOut[*upRchID] > 0.f) qiUp += m_qiRchOut[*upRchID];
+		// xiaodw,  qin is allowed when upstream channel's water elevation is higher than lake's water elevation
+		if (m_qiRchOut[*upRchID] > 0.f && (m_chBedMeanElev[*upRchID] + m_chWtrDepth[*upRchID]) ) {
+
+			qiUp += m_qiRchOut[*upRchID];
+		}
         if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
         //cout<<i<<"   "<<*upRchID<<"   "<< m_Ch2GW[*upRchID]<<endl;
     }

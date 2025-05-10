@@ -173,7 +173,9 @@ private:
     float* m_chWtrWth;    ///< channel water width (m), topw in SWAT
     float* m_chBtmWth;    ///< bottom width of channel (m), phi(6,:) in SWAT
     float* m_chCrossArea; ///< cross-sectional area (m^2), rcharea in SWAT
-	float* m_chBedElev;   /// channel bed elevation (m)
+	float* m_chBedMeanElev;   /// channel bed mean elevation (m)
+	float* m_chBedStartElev;   /// channel bed start point elevation (m)
+	float* m_chBedEndElev;   /// channel bed end point elevation (m)
 
     //ljj++
     int m_nCells;

@@ -5,7 +5,7 @@
 
 OL_HAND::OL_HAND() :
 	m_dt(-1), m_inputSubbsnID(-1), m_nCells(-1), m_nSubbsns(-1),
-	m_chWth(nullptr), m_chDepth(nullptr), m_chLen(nullptr), m_islake(nullptr), m_handWtrDep(nullptr), m_chBedElev(nullptr),
+	m_chWth(nullptr), m_chDepth(nullptr), m_chLen(nullptr), m_islake(nullptr), m_handWtrDep(nullptr), m_chBedMeanElev(nullptr), m_isres(nullptr),
 	curLev(1), levCounter(0){
 }
 
@@ -79,7 +79,8 @@ void OL_HAND::SetReaches(clsReaches* reaches) {
 	if (nullptr == m_chDepth) reaches->GetReachesSingleProperty(REACH_DEPTH, &m_chDepth);
 	if (nullptr == m_chLen) reaches->GetReachesSingleProperty(REACH_LENGTH, &m_chLen);
 	if (nullptr == m_islake) reaches->GetReachesSingleProperty(REACH_ISLAKE, &m_islake);
-	if (nullptr == m_chBedElev) reaches->GetReachesSingleProperty(REACH_BED_ELEV, &m_chBedElev);
+	if (nullptr == m_isres) reaches->GetReachesSingleProperty(REACH_ISRES, &m_isres);
+	if (nullptr == m_chBedMeanElev) reaches->GetReachesSingleProperty(REACH_BED_MEAN_ELEV, &m_chBedMeanElev);
 	
 }
 
@@ -203,7 +204,7 @@ int OL_HAND::Execute() {
 					m_Hands[reachIndex].volToAdd = 0.0;
 				}
 
-				if (m_islake[reachIndex] == 1) {
+				if (m_islake[reachIndex] == 1 || m_isres[reachIndex] == 1) {
 					m_chSto[reachIndex] = m_Hands[reachIndex].volToAdd;
 					HandInundation(reachIndex, m_chSto[reachIndex]);
 				}
@@ -320,7 +321,7 @@ bool OL_HAND::HandInundation(const int reachId, float sto) {
 	m_Hands[reachId].m_CurInundationLevel = 1;
 	float residualWtrVol = sto;
 	int lev = 1;
-	float bed_elev = m_chBedElev[reachId];
+	float bed_elev = m_chBedMeanElev[reachId];
 	while (lev <= m_Hands[reachId].n_levels) {
 		// water depth is reset to zero, and calculate it by sto each time step
 		m_Hands[reachId].levels[lev].m_levelWtrDep = 0.0;
