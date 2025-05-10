@@ -113,6 +113,7 @@ private:
 	float* m_chStoLastStep;  ///< reach storage (m^3) of last time step, rchstor in SWAT
 	float* m_chWtrDepth;  ///< channel water depth (m), rchdep in SWAT
 	float* m_chWtrWth;    ///< channel water width (m), topw in SWAT
+	float* m_chBedElev;   /// channel bed elevation (m)
 	//float* m_chOverHeadWth;    ///< channel top width
 	map<int, vector<int> > m_reachLayers;   	/// channels
 

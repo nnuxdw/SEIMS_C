@@ -584,6 +584,7 @@ void MUSK_CH::SetReaches(clsReaches* reaches) {
     if (nullptr == m_ResLn) reaches->GetReachesSingleProperty(REACH_RES_LN, &m_ResLn);
     if (nullptr == m_ResLf) reaches->GetReachesSingleProperty(REACH_RES_LF, &m_ResLf);
     if (nullptr == m_ResAdjust) reaches->GetReachesSingleProperty(REACH_RES_ADJUST, &m_ResAdjust);
+	if (nullptr == m_chBedElev) reaches->GetReachesSingleProperty(REACH_BED_ELEV, &m_chBedElev);
 
     m_reachUpStream = reaches->GetUpStreamIDs();
     m_rteLyrs = reaches->GetReachLayers();
