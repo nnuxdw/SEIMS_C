@@ -6,7 +6,7 @@
 OL_HAND::OL_HAND() :
 	m_dt(-1), m_inputSubbsnID(-1), m_nCells(-1), m_nSubbsns(-1),
 	m_chWth(nullptr), m_chDepth(nullptr), m_chLen(nullptr), m_islake(nullptr), m_handWtrDep(nullptr), m_chBedMeanElev(nullptr), m_isres(nullptr),
-	curLev(1), levCounter(0){
+	curLev(0), levCounter(0){
 }
 
 OL_HAND::~OL_HAND() {
@@ -101,79 +101,23 @@ void OL_HAND::InitialOutputs() {
 	{
 		m_handWtrDep = new(nothrow) float[m_nCells];
 		// load floodstep
-		string filename = "G:\\program\\seims\\data\\Ammersee\\Ammerse_data\\rundata\\FloodStep.txt";
-		LoadHandIdsToChHandLevels(filename);
-		// initialize each level's sum area and vol
-		for (int sbid = 1; sbid <= m_nreach; ++sbid) {
-			
-			for (int lev = 1; lev <= m_Hands[sbid].n_levels; lev++) {
-
-				int m_levelHandNum = m_Hands[sbid].levels[lev].m_levelHandNum; 
-				//  sum area of each level's hands should contain channel's area
-				if (lev <= 1)
-				{
-					// for test
-					//m_Hands[sbid].levels[lev].m_levelHandSumArea = 1.0;
-					m_Hands[sbid].levels[lev].m_levelHandSumArea =  m_chWth[sbid] * m_chLen[sbid];
-				}
-				// sum area of each level's hands should contain all lower hand's area
-				else
-				{
-					m_Hands[sbid].levels[lev].m_levelHandSumArea =  m_Hands[sbid].levels[lev-1].m_levelHandSumArea;
-				}
-				// sum area of each level's hands should contain this level's hands area
-				for (int idx = 0; idx < m_levelHandNum; idx++)
-				{
-					int hand_id = m_Hands[sbid].levels[lev].handIds[idx];
-					// for test
-					//m_Hands[sbid].levels[lev].m_levelHandSumArea += 1.0;
-					m_Hands[sbid].levels[lev].m_levelHandSumArea += m_handArea[hand_id];
-				}
-				m_Hands[sbid].levels[lev].m_levelHandSumVol = m_Hands[sbid].levels[lev].m_levelHandSumArea * m_Hands[sbid].levels[lev].m_levelHandDepth;
-				// for test
-				m_Hands[sbid].volToAdd = 0.0;
-				//m_Hands[sbid].volToAdd += m_Hands[sbid].levels[lev].m_levelHandSumVol;
-				// don't need to initialize water depth if use the new HandInundation function? and initialize it to zero is ok
-				m_Hands[sbid].levels[lev].m_levelWtrDep = 0.0;
-				
-			}
-		}
+		string txt_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\11.159084_48.120933\\rundata\\FloodStep.txt";
+		LoadHandIdsToChHandLevels(txt_filename, m_Hands);
+		// load 
+		string csv_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\11.159084_48.120933\\rundata\\InundationMap.csv";
+		loadHandFromCSVIntoVector(csv_filename,m_Hands);
+		
 		// initialize water depth of each level
 		// don't need to initialize water depth if use the new HandInundation function?
 		for (int sbid = 1; sbid <= m_nreach; ++sbid) {
 			//HandInundation(sbid, m_bankSto[sbid]);
 			m_Hands[sbid].m_CurInundationLevel = 1;
-			/*m_Hands[sbid].m_CurInundationLevel = 1;
-			float residualWtrVol = m_bankSto[sbid];
-			for (int lev = 1; lev <= m_Hands[sbid].n_levels; lev++) {
-				if (residualWtrVol <= 0.0)
-				{
-					m_Hands[sbid].levels[lev].m_levelWtrDep = 0.0;
-					continue;
-				}
 
-				if (residualWtrVol > m_Hands[sbid].levels[lev].m_levelHandSumVol)
-				{
-					m_Hands[sbid].m_CurInundationLevel++;
-					m_Hands[sbid].levels[lev].m_levelWtrDep += m_Hands[sbid].levels[lev].m_levelHandDepth;
-					residualWtrVol -= m_Hands[sbid].levels[lev].m_levelHandSumVol;
-				}
-				else {
-					m_Hands[sbid].levels[lev].m_levelWtrDep += residualWtrVol / m_Hands[sbid].levels[lev].m_levelHandSumArea;
-					residualWtrVol = 0.0;
-				}
-
-			}*/
 		}
 		// todo: m_handOvFlow 和m_Hands[sbid].levels[lev].m_levelWtrDep初始值是否相等？关键是VAR_OLFLOW在其它模块算出来的意义，是否涵盖了河道泛滥的淹水？
 
 
 	}
-	//if (nullptr == m_handWtrDep) {
-	//	Initialize1DArray(m_nCells, m_handWtrDep, 0.f);
-	//}
-
-
 }
 
 int OL_HAND::Execute() {
@@ -186,6 +130,12 @@ int OL_HAND::Execute() {
 	CheckInputData();
 
 	InitialOutputs();
+
+	if (levCounter % 5 == 0)
+	{
+		curLev++;
+	}
+	levCounter++;
 	//Output1DArray(m_nCells, m_prec, "f:\\p2.txt");
 	for (auto it = m_reachLayers.begin(); it != m_reachLayers.end(); it++) {
 		// There are not any flow relationship within each routing layer.
@@ -198,41 +148,34 @@ int OL_HAND::Execute() {
 
 			if (m_inputSubbsnID == 0 || m_inputSubbsnID == reachIndex) {
 				// 防止越界：确认层级存在
-				int curLev = m_Hands[reachIndex].m_CurInundationLevel;
-				m_Hands[reachIndex].volToAdd += 0.5f * m_Hands[reachIndex].levels[curLev].m_levelHandSumVol;
+
+				///******************** for test**************
+				//int curLev = m_Hands[reachIndex].m_CurInundationLevel;
+				int le = curLev;
+				if (le <= m_Hands[reachIndex].n_levels)
+				{
+					m_Hands[reachIndex].volToAdd += 0.2f * m_Hands[reachIndex].levels[le].m_levelSumVol;
+				}
+				//m_Hands[reachIndex].volToAdd += 1000;
+				//cout << "reachIndex: " << reachIndex << "  volToAdd: " << m_Hands[reachIndex].volToAdd << endl;
 				if (m_Hands[reachIndex].volToAdd < 0.0) {
 					m_Hands[reachIndex].volToAdd = 0.0;
 				}
+				///********************end for test**************
 
 				if (m_islake[reachIndex] == 1 || m_isres[reachIndex] == 1) {
 					m_chSto[reachIndex] = m_Hands[reachIndex].volToAdd;
-					HandInundation(reachIndex, m_chSto[reachIndex]);
+					HandInundation_BinarySearch(reachIndex, m_chSto[reachIndex]);
 				}
 				else {
 					m_bankSto[reachIndex] = m_Hands[reachIndex].volToAdd;
-					HandInundation(reachIndex, m_bankSto[reachIndex]);
+					HandInundation_BinarySearch(reachIndex, m_bankSto[reachIndex]);
 				}
-
-				//levCounter++;
-				//if (levCounter == 2) {
-				//	curLev++;        // 每两次进入下一层
-				//	levCounter = 0;  // 重置计数器
-				//}
 				
 			}
 		}
 	}
 
-    /// Execute function
-//#pragma omp parallel for
-//    for (int i = 0; i < m_nCells; i++) {
-//        m_output1Draster[i] = m_raster1D[i] * 0.5f;
-//        for (int j = 0; j < m_nSoilLyrs[i]; j++) {
-//            m_output2Draster[i][j] = m_raster2D[i][j] + 2.f;
-//        }
-//    }
-//
-//    int nReaches = m_reaches->GetReachNumber();
     return 0;
 }
 
@@ -317,7 +260,68 @@ void OL_HAND::updateSbExcessWater(const int reachId,  float* vol) {
 	return;
 }
 
-bool OL_HAND::HandInundation(const int reachId, float sto) {
+
+bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
+	if (sto <= 0.0f) return false;
+
+	Hand& hand = m_Hands[reachId];
+	const int n = hand.n_levels;
+	vector<Level>& levels = hand.levels;
+
+	// 二分查找：找到 sto 落在哪一层（第一个 AccVol >= sto）
+	int left = 1, right = n, target_level = n;
+
+	while (left <= right) {
+		int mid = (left + right) / 2;
+		if (sto <= levels[mid].m_levelAccVol) {
+			target_level = mid;
+			right = mid - 1;
+		}
+		else {
+			left = mid + 1;
+		}
+	}
+
+	hand.m_CurInundationLevel = target_level;  // 层编号从 1 开始
+	float remaining = 0.0;
+	if (target_level == 1)
+	{
+		remaining = sto;
+	}
+	else {
+		remaining = sto - levels[target_level-1].m_levelAccVol;
+	}
+	if (remaining < 0.0)
+	{
+		cout <<  "reachId: " << reachId << " target_level-1: " << target_level - 1 <<  " sto: " << sto << " AccVol: " << levels[target_level - 1].m_levelAccVol << " remaining: " << remaining << endl;
+		exit(0);
+	}
+
+	//  target_level 层之下的水深  加上 target_level 层中当前未填满的那一小截水深
+	float partial_depth = (levels[target_level].m_levelSumArea > 0.0f) ? remaining / levels[target_level].m_levelSumArea : 0.0f;
+	for (int i = 1; i <= target_level; ++i) {
+		levels[i].m_levelWtrDep = levels[i].m_levelLowerAccDepth[target_level] + partial_depth;
+	}
+
+	// 后面所有层水深为 0
+	for (int i = target_level + 1; i <= n; ++i) {
+		levels[i].m_levelWtrDep = 0.0f;
+	}
+
+	// 若超出最大体积，则剩余部分作为超额水
+	float maxVolume = levels[n].m_levelAccVol;
+	if (sto > maxVolume) {
+		hand.excessWtrVol = sto - maxVolume;
+	}
+	
+	updateAllHandsWtrDep(reachId);
+	
+
+	return true;
+}
+
+
+bool OL_HAND::HandInundationV2(const int reachId, float sto) {
 	m_Hands[reachId].m_CurInundationLevel = 1;
 	float residualWtrVol = sto;
 	int lev = 1;
@@ -327,21 +331,21 @@ bool OL_HAND::HandInundation(const int reachId, float sto) {
 		m_Hands[reachId].levels[lev].m_levelWtrDep = 0.0;
 		
 		//cout << reachId << " " << lev << endl;
-		if (residualWtrVol > m_Hands[reachId].levels[lev].m_levelHandSumVol)
+		if (residualWtrVol > m_Hands[reachId].levels[lev].m_levelSumVol)
 		{
 			for (int ll = 1; ll <= lev; ll++)
 			{
-				m_Hands[reachId].levels[ll].m_levelWtrDep += m_Hands[reachId].levels[lev].m_levelHandDepth;
+				m_Hands[reachId].levels[ll].m_levelWtrDep += m_Hands[reachId].levels[lev].m_levelAvgDepth;
 			}
 			updateUpperLevelsWtrDep(reachId, lev + 1, 0.0);
-			residualWtrVol -= m_Hands[reachId].levels[lev].m_levelHandSumVol;
+			residualWtrVol -= m_Hands[reachId].levels[lev].m_levelSumVol;
 			m_Hands[reachId].m_CurInundationLevel++;
 
 		}
 		else {
 			for (int ll = 1; ll <= lev; ll++)
 			{
-				m_Hands[reachId].levels[ll].m_levelWtrDep += residualWtrVol / m_Hands[reachId].levels[lev].m_levelHandSumArea;
+				m_Hands[reachId].levels[ll].m_levelWtrDep += residualWtrVol / m_Hands[reachId].levels[lev].m_levelSumArea;
 			}
 			updateUpperLevelsWtrDep(reachId,lev+1,0.0);
 			residualWtrVol = 0.0;
@@ -369,20 +373,16 @@ bool OL_HAND::HandInundation(const int reachId, float sto) {
 		}
 		lev++;
 	}
-	//for (int lev = 1; lev <= m_Hands[reachId].n_levels; lev++) {
-	//	
 
-
-	//}
 
 	return true;
 }
 
-bool OL_HAND::HandInundation(const int reachId, float sto, float stoLastStep) {
+bool OL_HAND::HandInundationV1(const int reachId, float sto, float stoLastStep) {
 	int curInundationLev = m_Hands[reachId].m_CurInundationLevel;
 	
 	float curLevHandDepth = 0.0;   
-	float curLevHandSumVol = 0.0; // cooresponding to m_levelHandSumArea
+	float curLevHandSumVol = 0.0; // cooresponding to m_levelSumArea
 	//float bankSto = m_bankSto[reachId];
 	//float bankStoLastStep = m_bankStoLastStep[reachId];
 	//float deltaBankSto = bankStoLastStep - bankSto;
@@ -402,10 +402,10 @@ bool OL_HAND::HandInundation(const int reachId, float sto, float stoLastStep) {
 	{
 		nextLev = curInundationLev + 1;
 		curLevWtrDep = m_Hands[reachId].levels[curInundationLev].m_levelWtrDep;  // 
-		curLevHandSumArea = m_Hands[reachId].levels[curInundationLev].m_levelHandSumArea;   // sum area of each level's hands should contain all lower hand's area
+		curLevHandSumArea = m_Hands[reachId].levels[curInundationLev].m_levelSumArea;   // sum area of each level's hands should contain all lower hand's area
 		curLevWtrVol = curLevWtrDep * curLevHandSumArea;
-		curLevHandDepth = m_Hands[reachId].levels[curInundationLev].m_levelHandDepth;
-		curLevHandSumVol = m_Hands[reachId].levels[curInundationLev].m_levelHandSumVol; // cooresponding to m_levelHandSumArea
+		curLevHandDepth = m_Hands[reachId].levels[curInundationLev].m_levelAvgDepth;
+		curLevHandSumVol = m_Hands[reachId].levels[curInundationLev].m_levelSumVol; // cooresponding to m_levelSumArea
 
 		// if water excess current level hand sum volume, add extral water to next level
 		if (curLevWtrVol + residualWtrVol > curLevHandSumVol)
@@ -433,10 +433,10 @@ bool OL_HAND::HandInundation(const int reachId, float sto, float stoLastStep) {
 	{
 		nextLev = curInundationLev - 1;
 		curLevWtrDep = m_Hands[reachId].levels[curInundationLev].m_levelWtrDep;  // 
-		curLevHandSumArea = m_Hands[reachId].levels[curInundationLev].m_levelHandSumArea;   // sum area of each level's hands should contain all lower hand's area
+		curLevHandSumArea = m_Hands[reachId].levels[curInundationLev].m_levelSumArea;   // sum area of each level's hands should contain all lower hand's area
 		curLevWtrVol = curLevWtrDep * curLevHandSumArea;
-		curLevHandDepth = m_Hands[reachId].levels[curInundationLev].m_levelHandDepth;
-		curLevHandSumVol = m_Hands[reachId].levels[curInundationLev].m_levelHandSumVol; // cooresponding to m_levelHandSumArea
+		curLevHandDepth = m_Hands[reachId].levels[curInundationLev].m_levelAvgDepth;
+		curLevHandSumVol = m_Hands[reachId].levels[curInundationLev].m_levelSumVol; // cooresponding to m_levelSumArea
 
 		// if water excess current level hand sum volume, add extral water to next level
 		if (curLevWtrVol + deltaBankSto < 0.0)
@@ -474,7 +474,87 @@ bool OL_HAND::HandInundation(const int reachId, float sto, float stoLastStep) {
 	return true;
 }
 
-void OL_HAND::LoadHandIdsToChHandLevels(const string& filename) {
+vector<float> OL_HAND::parseAccDepthArray(const std::string& str) {
+	std::vector<float> values;
+	std::string s = str;
+
+	// 去掉前后中括号
+	if (!s.empty() && s.front() == '[') s.erase(0, 1);              // 删除第一个字符
+	if (!s.empty() && s.back() == ']') s.erase(s.size() - 1);       // 删除最后一个字符
+
+
+	std::stringstream ss(s);
+	std::string token;
+
+	while (getline(ss, token, ',')) {
+		try {
+			values.push_back(std::stof(token));
+		}
+		catch (...) {
+			values.push_back(0.0f); // 防御错误
+		}
+	}
+	return values;
+}
+
+void OL_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_Hands) {
+	ifstream file(csvPath);
+	if (!file.is_open()) {
+		cerr << "Failed to open file: " << csvPath << endl;
+		return;
+	}
+
+	string line;
+	getline(file, line);  // 跳过表头
+
+	while (getline(file, line)) {
+		stringstream ss(line);
+		string token;
+		vector<string> tokens;
+
+		// 取前7个字段
+		for (int i = 0; i < 7 && getline(ss, token, ','); ++i) {
+			tokens.push_back(token);
+		}
+
+		// 第8列：AccDepth，会包含整个 "[0.0, ..., ...]" 的字符串
+		string accDepthStr;
+		getline(ss, accDepthStr, '"');  // 先跳过前引号
+		getline(ss, accDepthStr, '"');  // 获取中间数组字符串
+
+
+		// 解析基本字段
+		int subbasin = stoi(tokens[0]);
+		int lev = stoi(tokens[1]);
+
+		// 你的 vector 和结构校验逻辑
+		Hand& hand = m_Hands[subbasin];
+		if (lev >= hand.levels.size()) {
+			hand.levels.resize(lev + 1);
+		}
+
+		Level& level = hand.levels[lev];
+		level.m_levelDepth = stof(tokens[2]);
+		level.m_levelSumArea = stof(tokens[3]);
+		level.m_levelSumVol = stod(tokens[4]);
+		level.m_levelAvgDepth = stof(tokens[5]);
+		level.m_levelAccVol = stod(tokens[6]);
+
+		// 解析 AccDepth 数组
+		vector<float> accDepthVec = parseAccDepthArray(accDepthStr);
+		level.m_levelLowerAccDepth = new float[accDepthVec.size()];
+		for (size_t i = 0; i < accDepthVec.size(); ++i) {
+			level.m_levelLowerAccDepth[i] = accDepthVec[i];
+		}
+
+		hand.n_levels = max(hand.n_levels, lev);
+	}
+
+	file.close();
+}
+
+
+void OL_HAND::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_Hands) {
 	ifstream infile(filename);
 	if (!infile.is_open()) {
 		cerr << "Failed to open file: " << filename << endl;
@@ -526,8 +606,8 @@ void OL_HAND::LoadHandIdsToChHandLevels(const string& filename) {
 
 		m_Hands[sbid].levels[level].m_levelHandNum = count;
 		m_Hands[sbid].levels[level].handIds = new(nothrow) int[count];
-		m_Hands[sbid].levels[level].m_chOverHeadVol = 0.0f;
-		m_Hands[sbid].levels[level].m_levelHandDepth = 0.0f;
+		//m_Hands[sbid].levels[level].m_chOverHeadVol = 0.0f;
+		m_Hands[sbid].levels[level].m_levelAvgDepth = 0.0f;
 	}
 
 	infile.clear();
@@ -553,9 +633,9 @@ void OL_HAND::LoadHandIdsToChHandLevels(const string& filename) {
 
 		m_Hands[sbid].levels[level].handIds[idx] = hru_id_f;
 
-		if (idx == 0) {
-			m_Hands[sbid].levels[level].m_levelHandDepth = depth_f;
-		}
+		//if (idx == 0) {
+		//	m_Hands[sbid].levels[level].m_levelAvgDepth = depth_f;
+		//}
 
 	}
 

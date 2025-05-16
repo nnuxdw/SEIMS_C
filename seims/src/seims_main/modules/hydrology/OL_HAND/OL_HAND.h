@@ -20,20 +20,19 @@ struct Level {
 	//vector<float> handHeights;   // index is hand id
 	int* handIds;   // index is layer 0,1,2,3..., value is hand id
 	
-	float m_chOverHeadVol;      /// represents the physical space between the top of the channel banks and the upper boundary, index represents subbasin id for dim 1, index represents layer for dim 2 cooresponding to each HAND height
+	//float m_chOverHeadVol;      /// represents the physical space between the top of the channel banks and the upper boundary, index represents subbasin id for dim 1, index represents layer for dim 2 cooresponding to each HAND height
 	/*float* m_handArea;					/// area of each hand
 	float* m_handWtrDep;			    /// water depth of each hand, initialized by m_bankSto*/
-	float m_levelHandSumArea;   /// area of each hand level, contains all levels' area lower than this level
-	float m_levelHandDepth;        /// depth of each hand layer
-	float m_levelHandSumVol;   /// area of each hand level, cooresponding to m_levelHandSumArea
-	float m_levelHandNum;          /// n layers of hand for each level
-	float m_levelWtrDep;              /// water depth of each level,mm. contains all water above than the level
+	float m_levelDepth;                 /// depth of each level, eg. the level is from 0~5m, so the depth is 5-0=5m.
+	double m_levelSumArea;   /// area of each hand level, contains all levels' area lower than this level
+	float m_levelAvgDepth; /// average depth of each layer's all hands, equals (channel's overhead area + lower level's sum area * this level's depth + SUM(this level's hand's area * dem's avg depth in hand))
+	double m_levelSumVol;    /// area of each hand level, cooresponding to m_levelSumArea
+	double m_levelAccVol;              /// contains a level's vol and all lower level's vol
+	float* m_levelLowerAccDepth;
 
+	int m_levelHandNum;          /// n layers of hand for each level
+	float m_levelWtrDep;              /// water depth of each level,mm. contains all water above  the level
 
-
-	// 可扩展：该层的面积、体积、其他属性
-	// float layerArea;
-	// float layerVolume;
 };
 
 // 表示每个子流域下的所有 HAND 层
@@ -72,13 +71,17 @@ public:
 	void InitialOutputs() OVERRIDE;
 
 private:
-	bool HandInundation(const int reachId, float sto);
-	bool HandInundation(const int reachId, float sto, float stoLastStep);
-	void LoadHandIdsToChHandLevels(const std::string& filename);
+
+	bool HandInundationV1(const int reachId, float sto, float stoLastStep);
+	bool HandInundationV2(const int reachId, float sto);
+	bool HandInundation_BinarySearch(const int reachId, float sto);
+	void LoadHandIdsToChHandLevels(const std::string& filename, vector<Hand>& m_Hands);
 	void updateLowerHandsWtrDep(const int reachId);
 	void updateUpperHandsWtrDep(const int reachId);
 	void updateAllHandsWtrDep(const int reachId);
 	void updateUpperLevelsWtrDep(const int reachId, int lev, float val);
+	void loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_Hands);
+	vector<float> parseAccDepthArray(const std::string& str);
 
 	void updateSbExcessWater(const int reachId, float* vol);
 
@@ -120,7 +123,7 @@ private:
 
 
 	// test
-	int curLev = 1;               // 初始从第1层开始
+	int curLev = 0;               // 初始从第1层开始
 	int levCounter = 0;           // 计数器，用于控制每两次进入下一层
 
 	
