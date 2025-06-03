@@ -1348,6 +1348,10 @@ struct DamData {
 	int *DamYear;
 };
 
+
+
+void AllocateRoutingDynamicList(int rows, int grid_cols_padded, RouteDynamicList * route_dynamic_list);
+
 //-------------------------------------------
 /* QID7_Store // CCS for temp storage of trib boundary condition info when (Q_Ident_tmp[i]==7) in LoadRiver. A vector containing these
 structures is built in LoadRiver function and used in UpdateChannelsVector function. */

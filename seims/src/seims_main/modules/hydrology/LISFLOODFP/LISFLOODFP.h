@@ -72,23 +72,23 @@ private:
 	//int verbosemode;
 	
 
-	Arrays *Arrptr;
-	Files* FpsPtr;
-	Fnames *Fnameptr;
-	States *Statesptr;
-	Pars *Parptr;
-	Solver *Solverptr;
-	Pois *Poisptr;
-	BoundCs *BCptr;
-	Stage *Stageptr;
-	SGCprams *SGCptr;
-	DamData *Damptr;
-	Stage *Locptr;
+	struct Arrays *Arrptr;
+	struct Files* FpsPtr;
+	struct Fnames *Fnameptr;
+	struct States *Statesptr;
+	struct Pars *Parptr;
+	struct Solver *Solverptr;
+	struct Pois *Poisptr;
+	struct BoundCs *BCptr;
+	struct Stage *Stageptr;
+	struct SGCprams *SGCptr;
+	struct DamData *Damptr;
+	struct Stage *Locptr;
 	char* tmpFileNamePtr;
 	char* tmpSysCmdPtr;
-	vector<ChannelSegmentType> *ChannelSegmentsVecPtr;
-	SuperGridLinksList *Super_linksptr;
-	LISFLOODFPContext* LFPContextPtr;
+	vector<struct ChannelSegmentType> *ChannelSegmentsVecPtr;
+	struct SuperGridLinksList *Super_linksptr;
+	struct LISFLOODFPContext* LFPContextPtr;
 
 	
 
