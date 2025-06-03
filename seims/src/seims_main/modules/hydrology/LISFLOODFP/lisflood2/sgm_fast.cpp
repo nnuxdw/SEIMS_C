@@ -1,4 +1,4 @@
-﻿/*
+/*
 * sgm_fast.cpp
 *
 *  Created on: 14 May 2014

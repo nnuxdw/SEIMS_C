@@ -5,7 +5,7 @@ FILE(GLOB SRC_LIST
 	*.cpp 
 	*.h
 	lisflood2/*.cpp
-	lisflood2/*.cpp
+	lisflood2/*.h
 	rain/*.cpp
 	rain/*.h
 	swe/*.cpp

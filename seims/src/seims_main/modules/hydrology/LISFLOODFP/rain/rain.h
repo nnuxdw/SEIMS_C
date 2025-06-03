@@ -1,7 +1,7 @@
 #pragma once
 #include "../lisflood.h"
 #include "../geometry.h"
-#include "../lisflood2/DataTypes.h"
+//#include "../lisflood2/DataTypes.h"
 
 template<class Allocator = std::allocator<NUMERIC_TYPE>>
 class DynamicRain
