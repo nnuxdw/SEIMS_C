@@ -177,7 +177,9 @@ void PrintInfoItem::Flush(const string& projectPath, MongoGridFs* gfs, FloatRast
     if (!TimeSeriesDataForSubbasin.empty() && SubbasinID != -1) {
         //time series data for subbasin
         std::ofstream fs;
+
         string filename = projectPath + Filename + "." + TextExtension;
+	
         fs.open(filename.c_str(), std::ios::out | std::ios::app);
         if (fs.is_open()) {
             fs << endl;
@@ -361,6 +363,18 @@ void PrintInfoItem::AggregateData2D(time_t time, int nRows, int nCols, float** d
         default: break;
     }
     m_Counter++;
+}
+
+void PrintInfoItem::Aggregate1DArrayData(time_t time, int numrows, float* data) {
+	time_t startTime = getStartTime();
+	if (ShouldOutputByInterval(startTime, time, intervals, interval_Unit)) {
+		float* temp = new float[numrows];
+		for (int i = 0; i < numrows; i++) {
+			temp[i] = data[i];
+		}
+		TimeSeriesDataForSubbasin[time] = temp;
+		TimeSeriesDataForSubbasinCount = numrows;
+	}
 }
 
 void PrintInfoItem::AggregateData(time_t time, int numrows, float* data) {

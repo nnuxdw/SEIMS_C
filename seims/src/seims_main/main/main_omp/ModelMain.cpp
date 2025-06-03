@@ -255,7 +255,22 @@ void ModelMain::AppendOutputData(const time_t time) {
                     int n;
                     float* data;
                     module->Get1DData(keyName, &n, &data);
-                    item->TimeSeriesData[time] = data[index];
+					
+					// xiaodw add, if AggType is TS, means you want to output all subbasin's or reach's data, else means you only output one specific subbasin's or reach's data
+					if (StringMatch(item->AggType ,"TS"))
+					{
+						item->Aggregate1DArrayData(time, n, data);
+						/*float* temp = new float[n];
+						for (int i = 0; i < n; i++) {
+							temp[i] = data[i];
+						}
+						item->TimeSeriesDataForSubbasin[time] = temp;
+						item->TimeSeriesDataForSubbasinCount = n;*/
+						//item->AggregateData(time, n, data);
+					}
+					else {
+						item->TimeSeriesData[time] = data[index];
+					}
                 } else if (param->Dimension == DT_Array2D) {
                     //time series data for subbasins
                     //some modules will calculate result for all subbasins or all reaches,

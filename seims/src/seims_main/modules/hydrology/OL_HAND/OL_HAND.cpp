@@ -113,6 +113,12 @@ void OL_HAND::InitialOutputs() {
 			//HandInundation(sbid, m_bankSto[sbid]);
 			m_Hands[sbid].m_CurInundationLevel = 1;
 
+			for (int i = 1; i <= m_Hands[sbid].n_levels; ++i) {
+				m_Hands[sbid].levels[i].m_levelWtrDep = 0.0;
+			}
+		}
+		for (int sbid = 1; sbid <= m_nreach; ++sbid) {
+			updateAllHandsWtrDep(sbid);
 		}
 		// todo: m_handOvFlow 和m_Hands[sbid].levels[lev].m_levelWtrDep初始值是否相等？关键是VAR_OLFLOW在其它模块算出来的意义，是否涵盖了河道泛滥的淹水？
 
@@ -131,11 +137,11 @@ int OL_HAND::Execute() {
 
 	InitialOutputs();
 
-	if (levCounter % 5 == 0)
-	{
-		curLev++;
-	}
-	levCounter++;
+	//if (levCounter % 5 == 0)
+	//{
+	//	curLev++;
+	//}
+	//levCounter++;
 	//Output1DArray(m_nCells, m_prec, "f:\\p2.txt");
 	for (auto it = m_reachLayers.begin(); it != m_reachLayers.end(); it++) {
 		// There are not any flow relationship within each routing layer.
@@ -150,25 +156,24 @@ int OL_HAND::Execute() {
 				// 防止越界：确认层级存在
 
 				///******************** for test**************
-				//int curLev = m_Hands[reachIndex].m_CurInundationLevel;
-				int le = curLev;
-				if (le <= m_Hands[reachIndex].n_levels)
-				{
-					m_Hands[reachIndex].volToAdd += 0.2f * m_Hands[reachIndex].levels[le].m_levelSumVol;
-				}
+				//int le = curLev;
+				//if (le <= m_Hands[reachIndex].n_levels)
+				//{
+				//	m_Hands[reachIndex].volToAdd += 0.2f * m_Hands[reachIndex].levels[le].m_levelSumVol;
+				//}
 				//m_Hands[reachIndex].volToAdd += 1000;
 				//cout << "reachIndex: " << reachIndex << "  volToAdd: " << m_Hands[reachIndex].volToAdd << endl;
-				if (m_Hands[reachIndex].volToAdd < 0.0) {
-					m_Hands[reachIndex].volToAdd = 0.0;
-				}
+				//if (m_Hands[reachIndex].volToAdd < 0.0) {
+				//	m_Hands[reachIndex].volToAdd = 0.0;
+				//}
 				///********************end for test**************
 
 				if (m_islake[reachIndex] == 1 || m_isres[reachIndex] == 1) {
-					m_chSto[reachIndex] = m_Hands[reachIndex].volToAdd;
+					//m_chSto[reachIndex] = m_Hands[reachIndex].volToAdd;
 					HandInundation_BinarySearch(reachIndex, m_chSto[reachIndex]);
 				}
 				else {
-					m_bankSto[reachIndex] = m_Hands[reachIndex].volToAdd;
+					//m_bankSto[reachIndex] = m_Hands[reachIndex].volToAdd;
 					HandInundation_BinarySearch(reachIndex, m_bankSto[reachIndex]);
 				}
 				

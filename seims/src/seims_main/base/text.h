@@ -447,6 +447,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_IUH_OL                           "IUH overland method to calculate overland flow routing."
 #define MID_OL_HAND                             "OL_HAND"
 #define MDESC_OL_HAND                           "Use HAND to calculate floodplain inundation."
+#define MID_LISFLOODFP                             "LISFLOODFP"
+#define MDESC_LISFLOODFP                           "Use LISFLOODFP to calculate floodplain inundation."
 /// Channel routing related modules
 #define MCLS_CH_ROUTING                        "Channel routing"
 #define MCLSDESC_CH_ROUTING                    "Channel routing modules"
@@ -500,6 +502,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 
 #define MID_NUTRCH_QUAL2E                      "NutrCH_QUAL2E"
 #define MDESC_NUTRCH_QUAL2E                    "In-stream nutrient transformations"
+
 
 
 //////////////////////////////////////////////////////////////////////////

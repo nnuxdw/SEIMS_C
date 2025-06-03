@@ -28,6 +28,12 @@ double TimeCounting() {
 }
 
 
+bool IsSameDayOrEndOfMonth(const struct tm* base, const struct tm* now) {
+	return now->tm_mday == base->tm_mday ||
+		(base->tm_mday > 28 && now->tm_mday >= 28 &&
+			now->tm_mon != (now - 1)->tm_mon); // 粗略处理月末逻辑
+}
+
 bool ShouldOutputByInterval(const time_t start_time,
 	const time_t current_time,
 	int intervals,
@@ -43,16 +49,23 @@ bool ShouldOutputByInterval(const time_t start_time,
 		return (delta_sec % (intervals * 3600)) == 0;
 	}
 	else if (interval_unit == "MONTH") {
-		// 使用 localtime (线程不安全，但兼容性高)
-		struct tm* tm_start = localtime(&start_time);
-		struct tm* tm_now = localtime(&current_time);
-		if (!tm_start || !tm_now) return false;
+		struct tm tm_start = *localtime(&start_time);
+		struct tm tm_now = *localtime(&current_time);
 
-		int start_months = tm_start->tm_year * 12 + tm_start->tm_mon;
-		int now_months = tm_now->tm_year * 12 + tm_now->tm_mon;
+		int start_months = tm_start.tm_year * 12 + tm_start.tm_mon;
+		int now_months = tm_now.tm_year * 12 + tm_now.tm_mon;
 
-		return ((now_months - start_months) % intervals) == 0 &&
-			tm_now->tm_mday == tm_start->tm_mday;
+		if (((now_months - start_months) % intervals) != 0)
+			return false;
+
+		// 构造应输出的“当月目标日”
+		struct tm expected = tm_start;
+		expected.tm_mon += (now_months - start_months);
+		mktime(&expected); // 规范化，处理越界月份如 13 月
+
+		return (tm_now.tm_year == expected.tm_year &&
+			tm_now.tm_mon == expected.tm_mon &&
+			tm_now.tm_mday == expected.tm_mday);
 	}
 
 	return false;

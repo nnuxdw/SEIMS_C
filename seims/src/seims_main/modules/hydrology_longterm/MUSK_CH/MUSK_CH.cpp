@@ -642,12 +642,11 @@ bool MUSK_CH::ChannelFlow(const int i) {
             qgUp += m_gndQ2Rch[*upRchID];
         }
         if (m_qsRchOut[*upRchID] > 0.f) qsUp += m_qsRchOut[*upRchID];
-        //if (m_qiRchOut[*upRchID] > 0.f) qiUp += m_qiRchOut[*upRchID];
 		// xiaodw,  qin is allowed when upstream channel's water elevation is higher than lake's water elevation
-		if (m_qiRchOut[*upRchID] > 0.f && (m_chBedMeanElev[*upRchID] + m_chWtrDepth[*upRchID]) ) {
+		//if (m_qiRchOut[*upRchID] > 0.f && (m_chBedMeanElev[*upRchID] + m_chWtrDepth[*upRchID]) ) {
 
-			qiUp += m_qiRchOut[*upRchID];
-		}
+		//	qiUp += m_qiRchOut[*upRchID];
+		//}
         if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
         //cout<<i<<"   "<<*upRchID<<"   "<< m_Ch2GW[*upRchID]<<endl;
     }
