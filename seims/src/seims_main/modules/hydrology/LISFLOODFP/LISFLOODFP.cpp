@@ -1,3 +1,4 @@
+#pragma once
 #include "LISFLOODFP.h"
 
 
@@ -88,6 +89,7 @@ void LISFLOODFP::InitialOutputs() {
 	memset(&OutLocs, 0, sizeof(Stage));
 	memset(&SGCchanprams, 0, sizeof(SGCprams));
 	memset(&DamDataprams, 0, sizeof(DamData));
+	//memset(&superGridLinksList, 0, sizeof(SuperGridLinksList));
 	
 	Arrptr = &Raster;
 	FpsPtr = &Fps;
@@ -100,13 +102,16 @@ void LISFLOODFP::InitialOutputs() {
 	Stageptr = &OutLocs;
 	SGCptr = &SGCchanprams;
 	Damptr = &DamDataprams;
+	//Super_linksptr = &superGridLinksList;
 	tmpFileNamePtr = new char[255];
 	tmpSysCmdPtr = new char[255];
-	Super_linksptr = new SuperGridLinksList();
-
-	LisFloodFP_Initilize(argc, argv,Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr,Stageptr, SGCptr, Damptr,ChannelSegmentsVecPtr, LFPContextPtr, Super_linksptr, tmpFileNamePtr, tmpSysCmdPtr);
-
 	
+	counter = 0;
+
+	//LisFloodFP_Initilize(argc, argv,Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr,Stageptr, SGCptr, Damptr,ChannelSegmentsVecPtr, LFPContextPtr, Super_linksptr, tmpFileNamePtr, tmpSysCmdPtr);
+
+	LisFloodFP_Initilize(argc, argv, Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Stageptr, SGCptr, Damptr, ChannelSegmentsVecPtr, LFPContextPtr,  tmpFileNamePtr, tmpSysCmdPtr);
+
 	
 }
 
@@ -120,9 +125,14 @@ int LISFLOODFP::Execute() {
 	CheckInputData();
 
 	InitialOutputs();
-	m_dt;
-	while (LFPContextPtr->curr_time < Solverptr->Sim_Time && LFPContextPtr->curr_time < Solverptr->Sim_Time) {
-		Fast_RunStep(Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, SGCptr, Damptr, Locptr, LFPContextPtr, Super_linksptr);
+
+	counter++;
+	//int last_sim_time = LFPContextPtr->processing_start_time + (counter - 1) * m_dt;
+	NUMERIC_TYPE seims_cur_step_end_time = LFPContextPtr->processing_start_time + counter * m_dt;
+	NUMERIC_TYPE current_timestamp = LFPContextPtr->curr_time + LFPContextPtr->processing_start_time;
+	// current time < the end of seims's current step and  current time < lisfloodfp's end loop time
+	while (current_timestamp < seims_cur_step_end_time && LFPContextPtr->curr_time < Solverptr->Sim_Time) {
+		Fast_RunStep(Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, SGCptr, Damptr, Locptr, LFPContextPtr);
 	}
 	
 

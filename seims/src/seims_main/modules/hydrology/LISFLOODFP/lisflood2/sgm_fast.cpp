@@ -4,7 +4,7 @@
 *  Created on: 14 May 2014
 *      Author: td14281
 */
-
+#pragma once
 #include "../lisflood.h"
 #include "../utility.h"
 #include "sgm_fast.h"
@@ -7806,7 +7806,6 @@ void SGC2_DomainVolumeAndFloodArea_block(const int block_index, const int grid_c
 }
 
 
-
 //#pragma optimize("", off)
 void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_padded,
 	const NUMERIC_TYPE delta_time, const NUMERIC_TYPE curr_time, const NUMERIC_TYPE depth_thresh, const NUMERIC_TYPE g,
@@ -7827,7 +7826,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 
 	TimeSeries * evap_time_series,
 	NetCDFVariable * evap_grid,
-	TimeSeries * rain_time_series, 
+	TimeSeries * rain_time_series,
 	TimeSeries * temperature_time_series,
 	const NUMERIC_TYPE *rain_grid,
 	const NUMERIC_TYPE *dist_infil_grid,
@@ -7848,7 +7847,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	Files *Fptr,
 	Stage *Locptr,
 	DamData *Damptr,
-	SuperGridLinksList *Super_linksptr,
+	//SuperGridLinksList *Super_linksptr,
 	//DynamicRain<> & dynamic_rain, removed JCN
 	NUMERIC_TYPE ** tmp_thread_data, NUMERIC_TYPE ** tmp_thread_data_ch,
 	const int verbose, NUMERIC_TYPE last_gw_time)
@@ -7932,7 +7931,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			}
 			//cout << "loop " << itCount << " debug " << 5 << endl;
 
-			
+
 			bool not_last_row = (j < grid_rows - 1);
 			// PFU: this is processing Qy
 			//skip last row
@@ -7997,7 +7996,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 #if _SGM_BY_BLOCKS == 0
 			// 计算sub grid河道上的流量，包含河道内+河道上底之上且范围在河道宽度内
 			ProcessSubGridQBlock(j, grid_cols_padded, depth_thresh, delta_time, g, sub_grid_layout_rows, sub_grid_state_rows, SGCptr, h_grid,
-				wet_dry_bounds, Qx_grid, Qy_grid, Qx_old_grid, Qy_old_grid, Parptr->max_Froude, Poisptr->Q_Ch, Parptr->sgcStartH, Statesptr,row_cell_area);
+				wet_dry_bounds, Qx_grid, Qy_grid, Qx_old_grid, Qy_old_grid, Parptr->max_Froude, Poisptr->Q_Ch, Parptr->sgcStartH, Statesptr, row_cell_area);
 			if (curr_time >= Parptr->SaveTotal && Statesptr->SGCvoutput == ON)
 			{
 				SGC2_UpdateVelocitySubGrid_block(j, grid_cols_padded, depth_thresh, delta_time, sub_grid_layout_rows, sub_grid_state_rows, SGCptr, h_grid);
@@ -8029,10 +8028,10 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 				SGC2_UpdateVelocitySubGrid_block(j, grid_cols_padded, depth_thresh, delta_time, sub_grid_layout_blocks, sub_grid_state_blocks, SGCptr, h_grid);
 			}
 		}
-	}	
 	}
-	{
-		
+}
+{
+
 #endif
 
 	// this block of code is executed by the first thread that finishes it's updateQ (with nowait clause) 
@@ -8082,27 +8081,27 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			Statesptr, Parptr, boundary_cond, SGCptr, Parptr->max_Froude);
 
 		if (Statesptr->calc_evap == ON)
-		  {
-		    // evap_deltaH_step = InterpolateTimeSeries(evap_time_series, curr_time); //constant rate across whole floodplain
-		    for (int j = 0; j < evap_time_series->count; j++) {
-		      if (evap_time_series->time[j] > curr_time) {
-			evap_deltaH_step = evap_time_series->value[j];
-			break;
-		      }
-		    }
-		    evap_deltaH_step *= delta_time;
-		    for (int j = 0; j < grid_cols_padded * grid_rows; j++) {
-		      evap_grid->data[j] = evap_deltaH_step;
-		    }
-		  }
+		{
+			// evap_deltaH_step = InterpolateTimeSeries(evap_time_series, curr_time); //constant rate across whole floodplain
+			for (int j = 0; j < evap_time_series->count; j++) {
+				if (evap_time_series->time[j] > curr_time) {
+					evap_deltaH_step = evap_time_series->value[j];
+					break;
+				}
+			}
+			evap_deltaH_step *= delta_time;
+			for (int j = 0; j < grid_cols_padded * grid_rows; j++) {
+				evap_grid->data[j] = evap_deltaH_step;
+			}
+		}
 		else if (Statesptr->calc_evap == TIME_SPACE)
-		  {
-		    for (int j =0; j < grid_cols_padded * grid_rows; j++) {
-		      evap_grid->data[j] *= delta_time;
-		      if (evap_grid->data[j] > 0.0)
-			evap_deltaH_step = evap_grid->data[j];
-		    }
-		  }
+		{
+			for (int j = 0; j < grid_cols_padded * grid_rows; j++) {
+				evap_grid->data[j] *= delta_time;
+				if (evap_grid->data[j] > 0.0)
+					evap_deltaH_step = evap_grid->data[j];
+			}
+		}
 		// 下渗累积量
 		//if (Statesptr->calc_evap == ON)
 		//{
@@ -8132,9 +8131,9 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			{
 				if (Statesptr->use_temperature == OFF)
 				{
-					cout << "You have to specify a temperature timeseries file when using glacier and melt model. Please set 'temperature' file in par file."  << endl;
+					cout << "You have to specify a temperature timeseries file when using glacier and melt model. Please set 'temperature' file in par file." << endl;
 				}
-				
+
 				if (temperature_step <= Parptr->melt_temperature)
 				{
 					snow_deltaH_step = rain_deltaH_step;
@@ -8151,7 +8150,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 
 	// Toby suggest DamFlowVolume go here!!! FEOL
 #pragma omp barrier // ensure all threads have finished their updateQ (nowait) and single section
-	
+
 	if (Statesptr->DamMode == ON)
 	{
 #pragma omp single
@@ -8161,6 +8160,8 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		}
 		//End Dam FEOL
 	}
+	// xiaodw.................................................
+	SuperGridLinksList *Super_linksptr = new SuperGridLinksList();
 	// supergrid channel links... currently in OMP single section
 	if (Statesptr->ChanMaskRead == ON)
 	{
@@ -8209,8 +8210,8 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		}
 	}
 
-	
-	
+
+
 	//cout << "*********************************333*********************************** " << endl;
 	if (Statesptr->routing_mass_check == ON || weir_bridges->row_cols_padded > 0 || Statesptr->hazard == ON)
 	{
@@ -8275,7 +8276,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		{
 
 			//#pragma omp barrier
-			#pragma omp single
+#pragma omp single
 			{
 				int padding_count = grid_cols_padded - grid_cols;
 				int padding = sizeof(NUMERIC_TYPE) * padding_count;
@@ -8297,7 +8298,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							Parptr->satFlow2NeiborPD[index] = 0.0;
 							Parptr->PercExcess2SurfPD[index] = 0.0;
 
-							
+
 							Parptr->waterLevelPD[index] = dem_grid[index] - Parptr->tableDepthPD[index];
 							if (Statesptr->save_poi == ON) {
 								/*Poisptr->Rain_Grid[index] = 0.0;
@@ -8316,7 +8317,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 									//Poisptr->soil_lat_flowout_Grid[lyr][index] = 0.0;
 									//Poisptr->soil_perc_Grid[lyr][index] = 0.0;
 									Poisptr->soil_water_depth_Grid[lyr][index] = 0.0;
-									
+
 								}
 
 							}
@@ -8326,9 +8327,9 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			}
 
 			// ----------------------------------------地下水多线程版----------------------------------
-			#pragma omp barrier
+#pragma omp barrier
 			{
-				#pragma omp for schedule(static)
+#pragma omp for schedule(static)
 				//#pragma omp for schedule(static) nowait
 				for (int block_index = 0; block_index < wet_dry_bounds->block_count; block_index++)
 				{
@@ -8350,7 +8351,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 						}
 
 
-						
+
 					}
 				}
 			}
@@ -8369,7 +8370,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 						int infilt_row_end = wet_dry_bounds->dem_data[j].end;
 						int grid_row_index = j * grid_cols_padded;
 						HeadSlopeAspect(Parptr, Solverptr, Arrptr, grid_row_index, j, grid_rows, grid_cols, dem_grid + grid_row_index, infilt_row_start, infilt_row_end, grid_cols_padded, dx_col[j], dy_col[j], wet_dry_bounds);
-				
+
 					}
 				}
 			}
@@ -8391,7 +8392,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 						RouteSubSurface(infilt_row_start, infilt_row_end, Parptr, Solverptr, Arrptr, Statesptr, grid_row_index, j, grid_rows, grid_cols,
 							dem_grid + grid_row_index, cell_area_col[j], grid_cols_padded, volume_grid, dx_col[j], dy_col[j], wet_dry_bounds, Poisptr,
 							sub_grid_layout_rows->cell_info.sg_cell_cell_area, j,
-							sub_grid_layout_rows->cell_row_count[j], sg_row_start, sg_cell_grid_index_lookup, sub_grid_layout_rows->cell_info.sg_cell_SGC_BankFullHeight, 
+							sub_grid_layout_rows->cell_row_count[j], sg_row_start, sg_cell_grid_index_lookup, sub_grid_layout_rows->cell_info.sg_cell_SGC_BankFullHeight,
 							sub_grid_layout_rows->cell_info.sg_cell_SGC_BankFullVolume, sub_grid_layout_rows->cell_info.sg_cell_SGC_c, sub_grid_layout_rows->flow_info.sg_cell_flow_lookup);
 					}
 				}
@@ -8450,35 +8451,35 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	// xiaodw, calculate sumNCells(all valuable dem cells) and sumNSgcCells at first time once
 #pragma omp single nowait 
 	{
-	if (Parptr->sumNSgcCells == 0) {
-		int sumNCells = 0;
-		NUMERIC_TYPE sum_cell_area = 0.f;
-		const int start_y = 0;
-		const int end_y = Parptr->ysz;
-		int count = 0;
-		for (int j = start_y; j < end_y; j++)
-		{
-			int infilt_row_start = wet_dry_bounds->dem_data[j].start;
-			int infilt_row_end = wet_dry_bounds->dem_data[j].end;
-			int grid_row_index = j * grid_cols_padded;
-			sumNCells += (infilt_row_end - infilt_row_start);
-			sum_cell_area += cell_area_col[j] * (infilt_row_end - infilt_row_start);
-		}
-		Parptr->sumNCells = sumNCells;
-		Parptr->avgCellArea = sum_cell_area / sumNCells;
-
-		int sumNSgcCells = 0;
 		if (Parptr->sumNSgcCells == 0) {
+			int sumNCells = 0;
+			NUMERIC_TYPE sum_cell_area = 0.f;
+			const int start_y = 0;
+			const int end_y = Parptr->ysz;
+			int count = 0;
+			for (int j = start_y; j < end_y; j++)
+			{
+				int infilt_row_start = wet_dry_bounds->dem_data[j].start;
+				int infilt_row_end = wet_dry_bounds->dem_data[j].end;
+				int grid_row_index = j * grid_cols_padded;
+				sumNCells += (infilt_row_end - infilt_row_start);
+				sum_cell_area += cell_area_col[j] * (infilt_row_end - infilt_row_start);
+			}
+			Parptr->sumNCells = sumNCells;
+			Parptr->avgCellArea = sum_cell_area / sumNCells;
 
-		for (int j = start_y; j < end_y; j++)
-		{
-			const int cell_count = sub_grid_layout_rows->cell_row_count[j];
-			sumNSgcCells += cell_count;
+			int sumNSgcCells = 0;
+			if (Parptr->sumNSgcCells == 0) {
+
+				for (int j = start_y; j < end_y; j++)
+				{
+					const int cell_count = sub_grid_layout_rows->cell_row_count[j];
+					sumNSgcCells += cell_count;
+				}
+
+				Parptr->sumNSgcCells = sumNSgcCells;
+			}
 		}
-			
-			Parptr->sumNSgcCells = sumNSgcCells;
-		}
-	}
 	}
 #pragma omp barrier
 #pragma omp single
@@ -8523,7 +8524,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							Parptr->subSurfaceLatFlow2ChTotal += Parptr->satFlow2ChPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 							// 来自洪泛区地表的水
 							Parptr->surfaceFlow2ChTotal += Parptr->surflow2ChPD[index];
-							
+
 							// 来自自身降雨扣除入渗后的水
 							Parptr->surfaceHydro2ChTotal += Parptr->hydro2ChPD[index];
 
@@ -8538,19 +8539,19 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							//}
 
 						}
-						
+
 
 						if (Parptr->satFlow2SurfPD[index] > 0.0) {
 							//volume_grid[index] += Parptr->satFlow2SurfPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 							Parptr->subSurfaceLatFlow2SurfTotal += Parptr->satFlow2SurfPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 						}
-						
+
 						// 渗漏造成的地表溢流
 						if (Parptr->PercExcess2SurfPD[index] > 0.0)
 						{
 							Parptr->subSurfacePerc2SurfTotal += Parptr->PercExcess2SurfPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 						}
-						
+
 						for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
 						{
 							// cm
@@ -8561,7 +8562,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							}
 
 						}
-						
+
 
 
 
@@ -8571,7 +8572,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 
 			}
 
-	
+
 
 
 			if (curr_time - last_gw_time >= Parptr->gwTstep)
@@ -8600,7 +8601,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							}
 						}
 					}
-					
+
 				}
 				Parptr->PercolationDepth /= Parptr->sumNCells;
 
@@ -8629,7 +8630,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 				//const int * sg_cell_grid_index_lookup = sub_grid_layout_rows->cell_info.sg_cell_grid_index_lookup;
 				Parptr->gwQPerSgcCell = Parptr->sumGndQ2Rch / Parptr->sumNSgcCells;    // m3/s
 
-				
+
 				/*Parptr->subSurfaceLatFlow2Channel_rate = (Parptr->subSurfaceLatFlow2ChTotal - Parptr->subSurfaceLatFlowTotal2Ch_Last) / Parptr->gwTstep;
 				Parptr->subSurfaceLatFlowTotal2Ch_Last = Parptr->subSurfaceLatFlow2ChTotal;
 				Parptr->subSurfaceLatFlow2Surf_rate = (Parptr->subSurfaceLatFlow2SurfTotal - Parptr->subSurfaceLatFlowTotal2Surf_Last) / Parptr->gwTstep;
@@ -8645,7 +8646,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		}
 	}
 
-	
+
 	//cout << "*********************************555*********************************** " << endl;
 
 
@@ -8653,7 +8654,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	//each thread clears the tmp_row, before using in SGC2_UpdateVolumeHeight_block
 	memset(tmp_row, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
 	//memset(tmp_row_ch, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
-	
+
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #pragma omp for reduction (+:reduce_evap_loss, reduce_rain_total,reduce_infil_loss,reduce_Qpoint_timestep_pos, reduce_Qpoint_timestep_neg,infil,infilCount) schedule(static)
 	//#pragma omp for reduction (+:reduce_evap_loss, reduce_rain_total,reduce_infil_loss,reduce_Qpoint_timestep_pos, reduce_Qpoint_timestep_neg,infil,infilCount) schedule(static)
@@ -8673,7 +8674,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		block_Hmax = SGC2_UpdateVolumeHeight_block(block_index, grid_cols, grid_rows, grid_cols_padded,
 			curr_time, delta_time, depth_thresh, g,
 			evap_deltaH_step, evap_grid, rain_deltaH_step, snow_deltaH_step, rain_grid, dist_infil_grid,
-			wet_dry_bounds, tmp_row, 
+			wet_dry_bounds, tmp_row,
 			Qx_grid, Qy_grid,
 			cell_area_col, dx_col, dy_col,
 			dem_grid,
@@ -8718,7 +8719,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		{
 			for (int i = 0; i < grid_cols; i++)
 			{
-				int index = i + j*grid_cols_padded;
+				int index = i + j * grid_cols_padded;
 				initHtm_grid[index] = (NULLVAL);
 			}
 		}
@@ -8775,516 +8776,566 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	//return reduce_Hmax;
 }
 
-
 void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, SGCprams * SGCptr, DamData *Damptr, Stage *Locptr,
-	LISFLOODFPContext *LFPContext, SuperGridLinksList *Super_linksptr)
+	LISFLOODFPContext *LFPContext)
+//void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, SGCprams * SGCptr, DamData *Damptr, Stage *Locptr,
+//	LISFLOODFPContext *LFPContext, SuperGridLinksList *Super_linksptr)
 {
 
 #if (_NETCDF == 1)			
-		//#pragma omp barrier  // xiaodw
+	//#pragma omp barrier  // xiaodw
 #pragma omp single
+	{
+		// read in evaporation grid
+		// xiaodw comment, we don't need to read evap netcdf now. Let's support it in future
+		if (Statesptr->calc_evap == TIME_SPACE) {
+			read_file_netCDF(LFPContext->evap_grid, LFPContext->curr_time);
+			for (int j = 0; j < LFPContext->grid_cols_padded * LFPContext->grid_rows; j++)
+				LFPContext->evap_grid->data[j] /= (86400. * 1000.);  // convert from mm/day to m/s
+		}
+
+		// read dynamic rain grid and write to rain grid
+		if (Statesptr->rainfallmask)
 		{
-			// read in evaporation grid
-			// xiaodw comment, we don't need to read evap netcdf now. Let's support it in future
-			if (Statesptr->calc_evap == TIME_SPACE) {
-				read_file_netCDF(LFPContext->evap_grid, LFPContext->curr_time);
-				for (int j = 0; j < LFPContext->grid_cols_padded * LFPContext->grid_rows; j++)
-					LFPContext->evap_grid->data[j] /= (86400. * 1000.);  // convert from mm/day to m/s
-			}
-
-			// read dynamic rain grid and write to rain grid
-			if (Statesptr->rainfallmask)
+			// xiaodw 
+			int current_timestamp = LFPContext->curr_time + LFPContext->rain_begin_timestamp;
+			if (current_timestamp >= LFPContext->last_rain_time && current_timestamp <= LFPContext->rain_end_timestamp)
 			{
-				// xiaodw 
-				int current_timestamp = LFPContext->curr_time + LFPContext->rain_begin_timestamp;
-				if (current_timestamp >= LFPContext->last_rain_time && current_timestamp <= LFPContext->rain_end_timestamp)
+				// read a new rain tif file
+				LFPContext->nextRainTifName = createTifFilename(LFPContext->last_rain_time);
+				buildFullFilePath(LFPContext->nextRainTifPath, Fnameptr->rainTifFolder, LFPContext->nextRainTifName);
+				readTIFByGdal(LFPContext->nextRainTifPath, LFPContext->rainfall_no_padding);
+
+				for (int j = 0; j < Parptr->ysz; j++)
 				{
-					// read a new rain tif file
-					LFPContext->nextRainTifName = createTifFilename(LFPContext->last_rain_time);
-					buildFullFilePath(LFPContext->nextRainTifPath, Fnameptr->rainTifFolder, LFPContext->nextRainTifName);
-					readTIFByGdal(LFPContext->nextRainTifPath, LFPContext->rainfall_no_padding);
+					int source_row_index = j * LFPContext->grid_cols;
+					int dest_row_index = j * LFPContext->grid_cols_padded;
 
-					for (int j = 0; j < Parptr->ysz; j++)
-					{
-						int source_row_index = j * LFPContext->grid_cols;
-						int dest_row_index = j * LFPContext->grid_cols_padded;
+					int padding_count = LFPContext->grid_cols_padded - LFPContext->grid_cols;
 
-						int padding_count = LFPContext->grid_cols_padded - LFPContext->grid_cols;
-
-						int source_bytes_per_row = sizeof(NUMERIC_TYPE) * LFPContext->grid_cols;
-						int dest_bytes_per_row = sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded;
-						int padding = sizeof(NUMERIC_TYPE) * padding_count;
-						// make padding rainfall
-						memcpy(LFPContext->rain_grid + dest_row_index, LFPContext->rainfall_no_padding + source_row_index, source_bytes_per_row);
-						memset(LFPContext->rain_grid + dest_row_index + LFPContext->grid_cols, 0, padding);
-					}
-					// update last_rain_time
-					LFPContext->last_rain_time += Solverptr->rain_time_step;
+					int source_bytes_per_row = sizeof(NUMERIC_TYPE) * LFPContext->grid_cols;
+					int dest_bytes_per_row = sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded;
+					int padding = sizeof(NUMERIC_TYPE) * padding_count;
+					// make padding rainfall
+					memcpy(LFPContext->rain_grid + dest_row_index, LFPContext->rainfall_no_padding + source_row_index, source_bytes_per_row);
+					memset(LFPContext->rain_grid + dest_row_index + LFPContext->grid_cols, 0, padding);
 				}
+				// update last_rain_time
+				LFPContext->last_rain_time += Solverptr->rain_time_step;
 			}
 		}
+	}
 #endif
 
-		// sub grid floodplain models
-		NUMERIC_TYPE delta_time;
-		delta_time = Solverptr->SGCtmpTstep;
-		// *******************xiaodw, dhsvm time
-		//Parptr->gwTstep = Solverptr->SGCtmpTstep;
+	// sub grid floodplain models
+	NUMERIC_TYPE delta_time;
+	delta_time = Solverptr->SGCtmpTstep;
+	// *******************xiaodw, dhsvm time
+	//Parptr->gwTstep = Solverptr->SGCtmpTstep;
 
-		//cout << "*********************************begin do_update*********************************** "<< endl;
-		Do_Update(LFPContext->grid_cols, LFPContext->grid_rows, LFPContext->grid_cols_padded, delta_time,
-			LFPContext->curr_time, LFPContext->depth_thresh, Solverptr->g, LFPContext->h_grid, LFPContext->volume_grid, LFPContext->Qx_grid, LFPContext->Qy_grid, LFPContext->Qx_old_grid, LFPContext->Qy_old_grid,
-			LFPContext->initHtm_grid, LFPContext->maxHtm_grid, LFPContext->totalHtm_grid, LFPContext->maxH_grid,
-			LFPContext->maxVc_grid, LFPContext->maxVc_height_grid, LFPContext->maxHazard_grid,
-			LFPContext->Vx_grid, LFPContext->Vy_grid, LFPContext->Vx_max_grid, LFPContext->Vy_max_grid,
-			LFPContext->SGC_BankFullHeight_grid,
-			LFPContext->dem_grid, LFPContext->g_friction_sq_x_grid, LFPContext->g_friction_sq_y_grid,
-			LFPContext->friction_x_grid, LFPContext->friction_y_grid,
-			LFPContext->dx_col, LFPContext->dy_col, LFPContext->cell_area_col,
-			LFPContext->Fp_xwidth, LFPContext->Fp_ywidth,
-			LFPContext->sub_grid_layout_rows, LFPContext->sub_grid_state_rows, LFPContext->sub_grid_layout_blocks, LFPContext->sub_grid_state_blocks,
-			LFPContext->evap_time_series, LFPContext->evap_grid, LFPContext->rain_time_series, LFPContext->temperature_time_series, LFPContext->rain_grid, LFPContext->dist_infil_grid, LFPContext->wet_dry_bounds, LFPContext->ps_layout, LFPContext->boundary_cond,
-			LFPContext->weirs_weirs, LFPContext->weirs_bridges,
-			LFPContext->route_dynamic_list, LFPContext->route_V_ratio_per_sec_qx, LFPContext->route_V_ratio_per_sec_qy,
-			Statesptr, Parptr, Fnameptr, Solverptr, Poisptr, Arrptr, SGCptr, Fptr, Locptr, Damptr, Super_linksptr,
-			LFPContext->tmp_thread_data, LFPContext->tmp_thread_data_ch,
-			LFPContext->verbose, LFPContext->last_gw_time);
+	//cout << "*********************************begin do_update*********************************** "<< endl;
+	Do_Update(LFPContext->grid_cols, LFPContext->grid_rows, LFPContext->grid_cols_padded, delta_time,
+		LFPContext->curr_time, LFPContext->depth_thresh, Solverptr->g, LFPContext->h_grid, LFPContext->volume_grid, LFPContext->Qx_grid, LFPContext->Qy_grid, LFPContext->Qx_old_grid, LFPContext->Qy_old_grid,
+		LFPContext->initHtm_grid, LFPContext->maxHtm_grid, LFPContext->totalHtm_grid, LFPContext->maxH_grid,
+		LFPContext->maxVc_grid, LFPContext->maxVc_height_grid, LFPContext->maxHazard_grid,
+		LFPContext->Vx_grid, LFPContext->Vy_grid, LFPContext->Vx_max_grid, LFPContext->Vy_max_grid,
+		LFPContext->SGC_BankFullHeight_grid,
+		LFPContext->dem_grid, LFPContext->g_friction_sq_x_grid, LFPContext->g_friction_sq_y_grid,
+		LFPContext->friction_x_grid, LFPContext->friction_y_grid,
+		LFPContext->dx_col, LFPContext->dy_col, LFPContext->cell_area_col,
+		LFPContext->Fp_xwidth, LFPContext->Fp_ywidth,
+		LFPContext->sub_grid_layout_rows, LFPContext->sub_grid_state_rows, LFPContext->sub_grid_layout_blocks, LFPContext->sub_grid_state_blocks,
+		LFPContext->evap_time_series, LFPContext->evap_grid, LFPContext->rain_time_series, LFPContext->temperature_time_series, LFPContext->rain_grid, LFPContext->dist_infil_grid, LFPContext->wet_dry_bounds, LFPContext->ps_layout, LFPContext->boundary_cond,
+		LFPContext->weirs_weirs, LFPContext->weirs_bridges,
+		LFPContext->route_dynamic_list, LFPContext->route_V_ratio_per_sec_qx, LFPContext->route_V_ratio_per_sec_qy,
+		Statesptr, Parptr, Fnameptr, Solverptr, Poisptr, Arrptr, SGCptr, Fptr, Locptr, Damptr, 
+		LFPContext->tmp_thread_data, LFPContext->tmp_thread_data_ch,
+		LFPContext->verbose, LFPContext->last_gw_time);
 #pragma omp barrier
 #pragma omp single
-		{
+	{
 
-			Solverptr->Tstep = delta_time;
+		Solverptr->Tstep = delta_time;
 #if _DISABLE_WET_DRY == 1
-			for (int j = 0; j < grid_rows; j++)
-			{
-				wet_dry_bounds->fp_h[j].start = 0;
-				wet_dry_bounds->fp_h[j].end = grid_cols;
-			}
+		for (int j = 0; j < grid_rows; j++)
+		{
+			wet_dry_bounds->fp_h[j].start = 0;
+			wet_dry_bounds->fp_h[j].end = grid_cols;
+		}
 #endif
+		for (int j = 0; j < LFPContext->grid_rows; j++)
+		{
+			LFPContext->wet_dry_bounds->fp_vol[j].start = LFPContext->wet_dry_bounds->fp_h[j].start;
+			LFPContext->wet_dry_bounds->fp_vol[j].end = LFPContext->wet_dry_bounds->fp_h[j].end;
+		}
+		Parptr->EvapTotalLoss += reduce_evap_loss;
+		Parptr->InfilTotalLoss += reduce_infil_loss;
+		Parptr->RainTotalLoss += reduce_rain_total;
+		LFPContext->ps_layout->Qpoint_pos = reduce_Qpoint_timestep_pos / delta_time;
+		LFPContext->ps_layout->Qpoint_neg = reduce_Qpoint_timestep_neg / delta_time;
+
+		// Point sources
+		// xiaodw，关键：这里才是point source作为输入和输出流量边界，汇总到boundary_cond。
+		// Qpoint_pos的最终来源是SGC2_PointSources_Vol_row和SGC2_PointSources_H_row，专门计算点源输入和输出
+		LFPContext->boundary_cond->Qin += LFPContext->ps_layout->Qpoint_pos;
+		// Qout 是所有出水口的流量，输出的时候，打印的是对应时刻的流量，不是massint内对应的平均流量或总流量
+		LFPContext->boundary_cond->Qout -= LFPContext->ps_layout->Qpoint_neg;
+
+		// calculate volume in and volume out
+		LFPContext->boundary_cond->VolInMT += LFPContext->boundary_cond->Qin*delta_time;
+		LFPContext->boundary_cond->VolOutMT += LFPContext->boundary_cond->Qout*delta_time;
+
+		Solverptr->vol2 = reduce_domain_volume;
+		Solverptr->FArea = reduce_flood_area;
+
+		// xdw modify, 不用自适应时间步长，改用固定时间步长试试
+		Solverptr->SGCtmpTstep = getmin(Solverptr->cfl*Parptr->min_dx_dy*Parptr->SGC_m / (SQRT(Solverptr->g * getmax(reduce_Hmax, Damptr->DamMaxH))), Solverptr->InitTstep);
+		//Solverptr->SGCtmpTstep = Solverptr->InitTstep;
+
+		// xdw add, 在这里输出POI的降雨、流量、下渗、水量
+		if (LFPContext->curr_time >= Parptr->PoiSaveTotal && Statesptr->save_poi == ON)
+		{
+			// todo 
+			int x, y, poi_index, poi_index_no_padding;
+			for (int k = 0; k < Poisptr->num; k++)
+			{
+				// 第k个poi点就对应编号为k的pois文件
+				x = Poisptr->xpi[k];
+				y = Poisptr->ypi[k];
+				poi_index = y * LFPContext->grid_cols_padded + x;
+				poi_index_no_padding = y * LFPContext->grid_cols + x;
+				// m->mm/h
+				NUMERIC_TYPE rain_rate = Poisptr->Rain_Grid[poi_index] * 1000 * 3600 / Parptr->PoiSaveInt;
+				//Poisptr->Rain_Grid[poi_index] = 0.0;
+				if (Statesptr->use_snow_glacier == ON)
+				{
+					NUMERIC_TYPE snow_rate = Poisptr->Snow_Grid[poi_index] * 1000 * 3600 / delta_time;
+					NUMERIC_TYPE freeze_rate = Poisptr->Freeze_Grid[poi_index] * 1000 * 3600 / delta_time;
+					NUMERIC_TYPE snow_melt_rate = Poisptr->SnowMelt_Grid[poi_index] * 1000 * 3600 / delta_time;
+					NUMERIC_TYPE snow_thickness = Parptr->snow[poi_index_no_padding] * 1000;
+					NUMERIC_TYPE glacier_melt_rate = Poisptr->GlacierMelt_Grid[poi_index] * 1000 * 3600 / delta_time;
+					NUMERIC_TYPE glacier_thickness = Parptr->glacier[poi_index_no_padding] * 1000;
+				}
+				NUMERIC_TYPE infilt_rate = Poisptr->Infilt_Grid[poi_index] * 0.1 * 3600 / Parptr->PoiSaveInt;   // mm -> cm/h 
+				//Poisptr->Infilt_Grid[poi_index] = 0.0;
+				//NUMERIC_TYPE soilWaterDepth = Parptr->soilWaterDepth[poi_index] * 1000;
+				NUMERIC_TYPE soilWaterDepth = 0.0;
+				NUMERIC_TYPE soil_moisture;
+				if (Statesptr->use_green_ampt_singlelayer == ON)
+				{
+					soil_moisture = Parptr->soilMoisturePD[poi_index];
+				}
+				else {
+					soil_moisture = 0.0;
+				}
+				if (Statesptr->use_snow_glacier == ON) {
+					// with snow and glacier
+
+					fprintf(Fptr->pois_fp[k], "%-12.3" NUM_FMT" %-10.4" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT "\n",
+						LFPContext->curr_time, delta_time, Poisptr->Rain_Grid[poi_index], Poisptr->Snow_Grid[poi_index] * 1000, Poisptr->Freeze_Grid[poi_index] * 1000, Poisptr->SnowMelt_Grid[poi_index] * 1000, Poisptr->GlacierMelt_Grid[poi_index] * 1000, Poisptr->Infilt_Grid[poi_index] * 1000,
+						soilWaterDepth, Poisptr->Qx_Grid[poi_index], (LFPContext->h_grid[poi_index] + LFPContext->SGC_BankFullHeight_grid[poi_index]) * 1000, Poisptr->Vol_Grid[poi_index]);
+				}
+				else if (Statesptr->use_dhsvm) {
+					NUMERIC_TYPE Rain_Grid = Poisptr->Rain_Grid[poi_index] - Poisptr->Rain_Grid_Last[poi_index];
+					NUMERIC_TYPE Infilt_Grid = Poisptr->Infilt_Grid[poi_index] - Poisptr->Infilt_Grid_Last[poi_index];
+					NUMERIC_TYPE InfiltCh_Grid = Poisptr->InfiltCh_Grid[poi_index] - Poisptr->InfiltCh_Grid_Last[poi_index];
+					NUMERIC_TYPE Evap_Grid = Poisptr->Evap_Grid[poi_index] - Poisptr->Evap_Grid_Last[poi_index];
+					NUMERIC_TYPE Qx_Grid = Poisptr->Qx_Grid[poi_index] - Poisptr->Qx_Grid_Last[poi_index];
+					NUMERIC_TYPE Qy_Grid = Poisptr->Qy_Grid[poi_index] - Poisptr->Qy_Grid_Last[poi_index];
+					NUMERIC_TYPE Q_Ch = Poisptr->Q_Ch[poi_index] - Poisptr->Q_Ch_Last[poi_index];
+					NUMERIC_TYPE surf_water_depth_Grid_delta = Poisptr->surf_water_depth_Grid[poi_index] - Poisptr->surf_water_depth_Grid_Last[poi_index];
+					NUMERIC_TYPE soil_lat_flowin_Grid_allLyr = Poisptr->soil_lat_flowin_Grid_allLyr[poi_index] - Poisptr->soil_lat_flowin_Grid_allLyr_Last[poi_index];
+					NUMERIC_TYPE soil_lat_flowout_Grid_allLyr = Poisptr->soil_lat_flowout_Grid_allLyr[poi_index] - Poisptr->soil_lat_flowout_Grid_allLyr_Last[poi_index];
+					fprintf(Fptr->pois_fp[k], "%-13.3" NUM_FMT"%-12.3" NUM_FMT"%-14.6" NUM_FMT"%-13.6" NUM_FMT"%-13.6" NUM_FMT"%-13.6" NUM_FMT"%-13.6" NUM_FMT"%-13.6" NUM_FMT"%-15.6" NUM_FMT "%-15.6" NUM_FMT "%-15.6" NUM_FMT " %-14.6" NUM_FMT" %-14.6" NUM_FMT" %-14.6" NUM_FMT,
+						LFPContext->curr_time, delta_time, Rain_Grid, Infilt_Grid, InfiltCh_Grid, Evap_Grid, Qx_Grid, Qy_Grid, Q_Ch, LFPContext->h_grid[poi_index] * 1000, Poisptr->Vol_Grid[poi_index], surf_water_depth_Grid_delta, soil_lat_flowin_Grid_allLyr, soil_lat_flowout_Grid_allLyr);
+					/*fprintf(Fptr->pois_fp[k], "%-13.3" NUM_FMT"%-12.3" NUM_FMT"%-14.3" NUM_FMT"%-13.5" NUM_FMT"%-13.5" NUM_FMT"%-13.3" NUM_FMT"%-13.3" NUM_FMT "%-13.3" NUM_FMT "%-13.3" NUM_FMT " %-14.3" NUM_FMT" %-14.6" NUM_FMT" %-14.6" NUM_FMT,
+						curr_time, delta_time, Poisptr->Rain_Grid[poi_index], Poisptr->Infilt_Grid[poi_index], Poisptr->Evap_Grid[poi_index], Poisptr->Qx_Grid[poi_index], Poisptr->Q_Ch[poi_index], h_grid[poi_index] * 1000, Poisptr->Vol_Grid[poi_index], Poisptr->surf_water_depth_Grid[poi_index], soil_lat_flowin_Grid_allLyr, soil_lat_flowout_Grid_allLyr);*/
+
+					Poisptr->Rain_Grid_Last[poi_index] = Poisptr->Rain_Grid[poi_index];
+					Poisptr->Infilt_Grid_Last[poi_index] = Poisptr->Infilt_Grid[poi_index];
+					Poisptr->InfiltCh_Grid_Last[poi_index] = Poisptr->InfiltCh_Grid[poi_index];
+					Poisptr->Evap_Grid_Last[poi_index] = Poisptr->Evap_Grid[poi_index];
+					Poisptr->Qx_Grid_Last[poi_index] = Poisptr->Qx_Grid[poi_index];
+					Poisptr->Qy_Grid_Last[poi_index] = Poisptr->Qy_Grid[poi_index];
+					Poisptr->Q_Ch_Last[poi_index] = Poisptr->Q_Ch[poi_index];
+					Poisptr->surf_water_depth_Grid_Last[poi_index] = Poisptr->surf_water_depth_Grid[poi_index];
+					Poisptr->soil_lat_flowin_Grid_allLyr_Last[poi_index] = Poisptr->soil_lat_flowin_Grid_allLyr[poi_index];
+					Poisptr->soil_lat_flowout_Grid_allLyr_Last[poi_index] = Poisptr->soil_lat_flowout_Grid_allLyr[poi_index];
+					// 每一层
+					for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
+					{
+						NUMERIC_TYPE soil_lat_flowin_Grid_lyr = Poisptr->soil_lat_flowin_Grid[lyr][poi_index] - Poisptr->soil_lat_flowin_Grid_Last[lyr][poi_index];
+						NUMERIC_TYPE soil_lat_flowout_Grid_lyr = Poisptr->soil_lat_flowout_Grid[lyr][poi_index] - Poisptr->soil_lat_flowout_Grid_Last[lyr][poi_index];
+						NUMERIC_TYPE soil_perco_Grid_lyr = Poisptr->soil_perc_Grid[lyr][poi_index] - Poisptr->soil_perc_Grid_Last[lyr][poi_index];
+						NUMERIC_TYPE soil_water_depth_delta = Poisptr->soil_water_depth_Grid[lyr][poi_index] - Poisptr->soil_water_depth_Grid_Last[lyr][poi_index];
+						fprintf(Fptr->pois_fp[k], "%-16.6" NUM_FMT"%-18.6" NUM_FMT"%-18.6" NUM_FMT"%-20.6" NUM_FMT "%-20.6" NUM_FMT, soil_perco_Grid_lyr, soil_lat_flowin_Grid_lyr, soil_lat_flowout_Grid_lyr, Poisptr->soil_water_depth_Grid[lyr][poi_index], soil_water_depth_delta);
+						Poisptr->soil_lat_flowin_Grid_Last[lyr][poi_index] = Poisptr->soil_lat_flowin_Grid[lyr][poi_index];
+						Poisptr->soil_lat_flowout_Grid_Last[lyr][poi_index] = Poisptr->soil_lat_flowout_Grid[lyr][poi_index];
+						Poisptr->soil_perc_Grid_Last[lyr][poi_index] = Poisptr->soil_perc_Grid[lyr][poi_index];
+						Poisptr->soil_water_depth_Grid_Last[lyr][poi_index] = Poisptr->soil_water_depth_Grid[lyr][poi_index];
+
+					}
+
+					fprintf(Fptr->pois_fp[k], "\n");
+				}
+				else {
+					fprintf(Fptr->pois_fp[k], "%-12.3" NUM_FMT" %-10.4" NUM_FMT" %-10.4" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT "\n",
+						LFPContext->curr_time, delta_time, rain_rate, infilt_rate,
+						soilWaterDepth, soil_moisture, Poisptr->Qx_Grid[poi_index], LFPContext->h_grid[poi_index] * 1000, Poisptr->Vol_Grid[poi_index]);
+				}
+
+				fflush(Fptr->pois_fp[k]);
+			}
+			// 每个时间步长结束之后，将格网的值重置为0
+
 			for (int j = 0; j < LFPContext->grid_rows; j++)
 			{
-				LFPContext->wet_dry_bounds->fp_vol[j].start = LFPContext->wet_dry_bounds->fp_h[j].start;
-				LFPContext->wet_dry_bounds->fp_vol[j].end = LFPContext->wet_dry_bounds->fp_h[j].end;
+				int dest_row_index = j * LFPContext->grid_cols_padded;
+				int padding_count = LFPContext->grid_cols_padded - LFPContext->grid_cols;
+				int padding = sizeof(NUMERIC_TYPE) * padding_count;
+				if (Statesptr->use_snow_glacier == ON) {
+					memset(Poisptr->Snow_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded);
+					memset(Poisptr->SnowMelt_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded);
+					memset(Poisptr->GlacierMelt_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded);
+					memset(Poisptr->Freeze_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded);
+					memset(Poisptr->Snow_Grid + dest_row_index + LFPContext->grid_cols, -1, padding);
+					memset(Poisptr->SnowMelt_Grid + dest_row_index + LFPContext->grid_cols, -1, padding);
+					memset(Poisptr->GlacierMelt_Grid + dest_row_index + LFPContext->grid_cols, -1, padding);
+					memset(Poisptr->Freeze_Grid + dest_row_index + LFPContext->grid_cols, -1, padding);
+				}
+
+				memset(Poisptr->Vol_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded);
+				memset(Poisptr->Vol_Grid + dest_row_index + LFPContext->grid_cols, -1, padding);
 			}
-			Parptr->EvapTotalLoss += reduce_evap_loss;
-			Parptr->InfilTotalLoss += reduce_infil_loss;
-			Parptr->RainTotalLoss += reduce_rain_total;
-			LFPContext->ps_layout->Qpoint_pos = reduce_Qpoint_timestep_pos / delta_time;
-			LFPContext->ps_layout->Qpoint_neg = reduce_Qpoint_timestep_neg / delta_time;
+			Parptr->PoiSaveTotal += Parptr->PoiSaveInt;
+		}
+		// Calculate mass balance error (very rare)
+		if (LFPContext->curr_time >= Parptr->MassTotal)
+		{
+			// calc losses for this mass interval
+			NUMERIC_TYPE loss = (Parptr->InfilTotalLoss - Parptr->InfilLoss) + (Parptr->EvapTotalLoss - Parptr->EvapLoss) - (Parptr->RainTotalLoss - Parptr->RainLoss);
 
-			// Point sources
-			// xiaodw，关键：这里才是point source作为输入和输出流量边界，汇总到boundary_cond。
-			// Qpoint_pos的最终来源是SGC2_PointSources_Vol_row和SGC2_PointSources_H_row，专门计算点源输入和输出
-			LFPContext->boundary_cond->Qin += LFPContext->ps_layout->Qpoint_pos;
-			// Qout 是所有出水口的流量，输出的时候，打印的是对应时刻的流量，不是massint内对应的平均流量或总流量
-			LFPContext->boundary_cond->Qout -= LFPContext->ps_layout->Qpoint_neg;
+			//Solverptr->Qerror=boundary_cond->Qin-boundary_cond->Qout-(Solverptr->vol2+loss-Solverptr->vol1)/Parptr->MassInt;
+			// New version using VolInMT and VolOutMT
+			// volume error
 
-			// calculate volume in and volume out
-			LFPContext->boundary_cond->VolInMT += LFPContext->boundary_cond->Qin*delta_time;
-			LFPContext->boundary_cond->VolOutMT += LFPContext->boundary_cond->Qout*delta_time;
+			Solverptr->Verror = LFPContext->boundary_cond->VolInMT - LFPContext->boundary_cond->VolOutMT - (Solverptr->vol2 + loss - Solverptr->vol1) + Damptr->DamLoss;
 
-			Solverptr->vol2 = reduce_domain_volume;
-			Solverptr->FArea = reduce_flood_area;
+			// Q error
+			Solverptr->Qerror = Solverptr->Verror / Parptr->MassInt;
+			// reset to 0.0
+			LFPContext->boundary_cond->VolInMT = C(0.0);
+			LFPContext->boundary_cond->VolOutMT = C(0.0);
+			Damptr->DamLoss = C(0.0);
+			double infil_rate = (Parptr->InfilTotalLoss - Parptr->InfilLoss) / Parptr->MassInt;  // m3/s
+			double evap_rate = (Parptr->EvapTotalLoss - Parptr->EvapLoss) / Parptr->MassInt;  // m3/s
+			double rain_rate = (Parptr->RainTotalLoss - Parptr->RainLoss) / Parptr->MassInt;// m3/s
+			double rain_depth_rate_per_cell = rain_rate / Parptr->sumNCells / Parptr->avgCellArea * 1000.0 * 3600;  //mm/h
+			double infil_depth_rate_per_cell = infil_rate / Parptr->sumNCells / Parptr->avgCellArea * 1000.0 * 3600;  //mm/h
+			double evap_depth_rate_per_cell = evap_rate / Parptr->sumNCells / Parptr->avgCellArea * 1000.0 * 3600;  //mm/h
 
-			// xdw modify, 不用自适应时间步长，改用固定时间步长试试
-			Solverptr->SGCtmpTstep = getmin(Solverptr->cfl*Parptr->min_dx_dy*Parptr->SGC_m / (SQRT(Solverptr->g * getmax(reduce_Hmax, Damptr->DamMaxH))), Solverptr->InitTstep);
-			//Solverptr->SGCtmpTstep = Solverptr->InitTstep;
+			double interflow_gen_rate = 0.0;
+			double interflow_runoff_rate = 0.0;
+			double interflow_2ch_rate = 0.0;
 
-			// xdw add, 在这里输出POI的降雨、流量、下渗、水量
-			if (LFPContext->curr_time >= Parptr->PoiSaveTotal && Statesptr->save_poi == ON)
+			double interflow_gen_rate_lyr = 0.0;
+			double interflow_runoff_rate_lyr = 0.0;
+			double interflow_2ch_rate_lyr = 0.0;
+
+			double subSurfaceLatFlow2Channel_rate = 0.0;
+			double subSurfaceLatFlow2Surf_rate = 0.0;
+
+			double interflow_2ch_depth_rate_per_cell = 0.0;
+			if (Statesptr->use_interflow_singlelayer == ON)
 			{
-				// todo 
-				int x, y, poi_index, poi_index_no_padding;
-				for (int k = 0; k < Poisptr->num; k++)
-				{
-					// 第k个poi点就对应编号为k的pois文件
-					x = Poisptr->xpi[k];
-					y = Poisptr->ypi[k];
-					poi_index = y * LFPContext->grid_cols_padded + x;
-					poi_index_no_padding = y * LFPContext->grid_cols + x;
-					// m->mm/h
-					NUMERIC_TYPE rain_rate = Poisptr->Rain_Grid[poi_index] * 1000 * 3600 / Parptr->PoiSaveInt;
-					//Poisptr->Rain_Grid[poi_index] = 0.0;
-					if (Statesptr->use_snow_glacier == ON)
-					{
-						NUMERIC_TYPE snow_rate = Poisptr->Snow_Grid[poi_index] * 1000 * 3600 / delta_time;
-						NUMERIC_TYPE freeze_rate = Poisptr->Freeze_Grid[poi_index] * 1000 * 3600 / delta_time;
-						NUMERIC_TYPE snow_melt_rate = Poisptr->SnowMelt_Grid[poi_index] * 1000 * 3600 / delta_time;
-						NUMERIC_TYPE snow_thickness = Parptr->snow[poi_index_no_padding] * 1000;
-						NUMERIC_TYPE glacier_melt_rate = Poisptr->GlacierMelt_Grid[poi_index] * 1000 * 3600 / delta_time;
-						NUMERIC_TYPE glacier_thickness = Parptr->glacier[poi_index_no_padding] * 1000;
-					}
-					NUMERIC_TYPE infilt_rate = Poisptr->Infilt_Grid[poi_index] * 0.1 * 3600 / Parptr->PoiSaveInt;   // mm -> cm/h 
-					//Poisptr->Infilt_Grid[poi_index] = 0.0;
-					//NUMERIC_TYPE soilWaterDepth = Parptr->soilWaterDepth[poi_index] * 1000;
-					NUMERIC_TYPE soilWaterDepth = 0.0;
-					NUMERIC_TYPE soil_moisture;
-					if (Statesptr->use_green_ampt_singlelayer == ON)
-					{
-						soil_moisture = Parptr->soilMoisturePD[poi_index];
-					}
-					else {
-						soil_moisture = 0.0;
-					}
-					if (Statesptr->use_snow_glacier == ON) {
-						// with snow and glacier
-
-						fprintf(Fptr->pois_fp[k], "%-12.3" NUM_FMT" %-10.4" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT "\n",
-							LFPContext->curr_time, delta_time, Poisptr->Rain_Grid[poi_index], Poisptr->Snow_Grid[poi_index] * 1000, Poisptr->Freeze_Grid[poi_index] * 1000, Poisptr->SnowMelt_Grid[poi_index] * 1000, Poisptr->GlacierMelt_Grid[poi_index] * 1000, Poisptr->Infilt_Grid[poi_index] * 1000,
-							soilWaterDepth, Poisptr->Qx_Grid[poi_index], (LFPContext->h_grid[poi_index] + LFPContext->SGC_BankFullHeight_grid[poi_index]) * 1000, Poisptr->Vol_Grid[poi_index]);
-					}
-					else if (Statesptr->use_dhsvm) {
-						NUMERIC_TYPE Rain_Grid = Poisptr->Rain_Grid[poi_index] - Poisptr->Rain_Grid_Last[poi_index];
-						NUMERIC_TYPE Infilt_Grid = Poisptr->Infilt_Grid[poi_index] - Poisptr->Infilt_Grid_Last[poi_index];
-						NUMERIC_TYPE InfiltCh_Grid = Poisptr->InfiltCh_Grid[poi_index] - Poisptr->InfiltCh_Grid_Last[poi_index];
-						NUMERIC_TYPE Evap_Grid = Poisptr->Evap_Grid[poi_index] - Poisptr->Evap_Grid_Last[poi_index];
-						NUMERIC_TYPE Qx_Grid = Poisptr->Qx_Grid[poi_index] - Poisptr->Qx_Grid_Last[poi_index];
-						NUMERIC_TYPE Qy_Grid = Poisptr->Qy_Grid[poi_index] - Poisptr->Qy_Grid_Last[poi_index];
-						NUMERIC_TYPE Q_Ch = Poisptr->Q_Ch[poi_index] - Poisptr->Q_Ch_Last[poi_index];
-						NUMERIC_TYPE surf_water_depth_Grid_delta = Poisptr->surf_water_depth_Grid[poi_index] - Poisptr->surf_water_depth_Grid_Last[poi_index];
-						NUMERIC_TYPE soil_lat_flowin_Grid_allLyr = Poisptr->soil_lat_flowin_Grid_allLyr[poi_index] - Poisptr->soil_lat_flowin_Grid_allLyr_Last[poi_index];
-						NUMERIC_TYPE soil_lat_flowout_Grid_allLyr = Poisptr->soil_lat_flowout_Grid_allLyr[poi_index] - Poisptr->soil_lat_flowout_Grid_allLyr_Last[poi_index];
-						fprintf(Fptr->pois_fp[k], "%-13.3" NUM_FMT"%-12.3" NUM_FMT"%-14.6" NUM_FMT"%-13.6" NUM_FMT"%-13.6" NUM_FMT"%-13.6" NUM_FMT"%-13.6" NUM_FMT"%-13.6" NUM_FMT"%-15.6" NUM_FMT "%-15.6" NUM_FMT "%-15.6" NUM_FMT " %-14.6" NUM_FMT" %-14.6" NUM_FMT" %-14.6" NUM_FMT,
-							LFPContext->curr_time, delta_time, Rain_Grid, Infilt_Grid, InfiltCh_Grid, Evap_Grid, Qx_Grid, Qy_Grid, Q_Ch, LFPContext->h_grid[poi_index] * 1000, Poisptr->Vol_Grid[poi_index], surf_water_depth_Grid_delta, soil_lat_flowin_Grid_allLyr, soil_lat_flowout_Grid_allLyr);
-						/*fprintf(Fptr->pois_fp[k], "%-13.3" NUM_FMT"%-12.3" NUM_FMT"%-14.3" NUM_FMT"%-13.5" NUM_FMT"%-13.5" NUM_FMT"%-13.3" NUM_FMT"%-13.3" NUM_FMT "%-13.3" NUM_FMT "%-13.3" NUM_FMT " %-14.3" NUM_FMT" %-14.6" NUM_FMT" %-14.6" NUM_FMT,
-							curr_time, delta_time, Poisptr->Rain_Grid[poi_index], Poisptr->Infilt_Grid[poi_index], Poisptr->Evap_Grid[poi_index], Poisptr->Qx_Grid[poi_index], Poisptr->Q_Ch[poi_index], h_grid[poi_index] * 1000, Poisptr->Vol_Grid[poi_index], Poisptr->surf_water_depth_Grid[poi_index], soil_lat_flowin_Grid_allLyr, soil_lat_flowout_Grid_allLyr);*/
-
-						Poisptr->Rain_Grid_Last[poi_index] = Poisptr->Rain_Grid[poi_index];
-						Poisptr->Infilt_Grid_Last[poi_index] = Poisptr->Infilt_Grid[poi_index];
-						Poisptr->InfiltCh_Grid_Last[poi_index] = Poisptr->InfiltCh_Grid[poi_index];
-						Poisptr->Evap_Grid_Last[poi_index] = Poisptr->Evap_Grid[poi_index];
-						Poisptr->Qx_Grid_Last[poi_index] = Poisptr->Qx_Grid[poi_index];
-						Poisptr->Qy_Grid_Last[poi_index] = Poisptr->Qy_Grid[poi_index];
-						Poisptr->Q_Ch_Last[poi_index] = Poisptr->Q_Ch[poi_index];
-						Poisptr->surf_water_depth_Grid_Last[poi_index] = Poisptr->surf_water_depth_Grid[poi_index];
-						Poisptr->soil_lat_flowin_Grid_allLyr_Last[poi_index] = Poisptr->soil_lat_flowin_Grid_allLyr[poi_index];
-						Poisptr->soil_lat_flowout_Grid_allLyr_Last[poi_index] = Poisptr->soil_lat_flowout_Grid_allLyr[poi_index];
-						// 每一层
-						for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
-						{
-							NUMERIC_TYPE soil_lat_flowin_Grid_lyr = Poisptr->soil_lat_flowin_Grid[lyr][poi_index] - Poisptr->soil_lat_flowin_Grid_Last[lyr][poi_index];
-							NUMERIC_TYPE soil_lat_flowout_Grid_lyr = Poisptr->soil_lat_flowout_Grid[lyr][poi_index] - Poisptr->soil_lat_flowout_Grid_Last[lyr][poi_index];
-							NUMERIC_TYPE soil_perco_Grid_lyr = Poisptr->soil_perc_Grid[lyr][poi_index] - Poisptr->soil_perc_Grid_Last[lyr][poi_index];
-							NUMERIC_TYPE soil_water_depth_delta = Poisptr->soil_water_depth_Grid[lyr][poi_index] - Poisptr->soil_water_depth_Grid_Last[lyr][poi_index];
-							fprintf(Fptr->pois_fp[k], "%-16.6" NUM_FMT"%-18.6" NUM_FMT"%-18.6" NUM_FMT"%-20.6" NUM_FMT "%-20.6" NUM_FMT, soil_perco_Grid_lyr, soil_lat_flowin_Grid_lyr, soil_lat_flowout_Grid_lyr, Poisptr->soil_water_depth_Grid[lyr][poi_index], soil_water_depth_delta);
-							Poisptr->soil_lat_flowin_Grid_Last[lyr][poi_index] = Poisptr->soil_lat_flowin_Grid[lyr][poi_index];
-							Poisptr->soil_lat_flowout_Grid_Last[lyr][poi_index] = Poisptr->soil_lat_flowout_Grid[lyr][poi_index];
-							Poisptr->soil_perc_Grid_Last[lyr][poi_index] = Poisptr->soil_perc_Grid[lyr][poi_index];
-							Poisptr->soil_water_depth_Grid_Last[lyr][poi_index] = Poisptr->soil_water_depth_Grid[lyr][poi_index];
-
-						}
-
-						fprintf(Fptr->pois_fp[k], "\n");
-					}
-					else {
-						fprintf(Fptr->pois_fp[k], "%-12.3" NUM_FMT" %-10.4" NUM_FMT" %-10.4" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT " %-13.6" NUM_FMT "\n",
-							LFPContext->curr_time, delta_time, rain_rate, infilt_rate,
-							soilWaterDepth, soil_moisture, Poisptr->Qx_Grid[poi_index], LFPContext->h_grid[poi_index] * 1000, Poisptr->Vol_Grid[poi_index]);
-					}
-
-					fflush(Fptr->pois_fp[k]);
-				}
-				// 每个时间步长结束之后，将格网的值重置为0
-
-				for (int j = 0; j < LFPContext->grid_rows; j++)
-				{
-					int dest_row_index = j * LFPContext->grid_cols_padded;
-					int padding_count = LFPContext->grid_cols_padded - LFPContext->grid_cols;
-					int padding = sizeof(NUMERIC_TYPE) * padding_count;
-					if (Statesptr->use_snow_glacier == ON) {
-						memset(Poisptr->Snow_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded);
-						memset(Poisptr->SnowMelt_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded);
-						memset(Poisptr->GlacierMelt_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded);
-						memset(Poisptr->Freeze_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded);
-						memset(Poisptr->Snow_Grid + dest_row_index + LFPContext->grid_cols, -1, padding);
-						memset(Poisptr->SnowMelt_Grid + dest_row_index + LFPContext->grid_cols, -1, padding);
-						memset(Poisptr->GlacierMelt_Grid + dest_row_index + LFPContext->grid_cols, -1, padding);
-						memset(Poisptr->Freeze_Grid + dest_row_index + LFPContext->grid_cols, -1, padding);
-					}
-
-					memset(Poisptr->Vol_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded);
-					memset(Poisptr->Vol_Grid + dest_row_index + LFPContext->grid_cols, -1, padding);
-				}
-				Parptr->PoiSaveTotal += Parptr->PoiSaveInt;
+				interflow_gen_rate = (Parptr->InterflowGenTotal - Parptr->InterflowGen) / Parptr->MassInt;  // m3/s
+				interflow_runoff_rate = (Parptr->InterflowRunoffTotal - Parptr->InterflowRunoff) / Parptr->MassInt;  // m3/s
+				interflow_2ch_rate = (Parptr->Interflow2ChTotal - Parptr->Interflow2Ch) / Parptr->MassInt;  // m3/s
+				interflow_2ch_depth_rate_per_cell = interflow_2ch_rate / Parptr->sumNCells / Parptr->avgCellArea * 1000.0 * 3600;  //mm/h
+				Parptr->InterflowGen = Parptr->InterflowGenTotal;
+				Parptr->InterflowRunoff = Parptr->InterflowRunoffTotal;
+				Parptr->Interflow2Ch = Parptr->Interflow2ChTotal;
 			}
-			// Calculate mass balance error (very rare)
-			if (LFPContext->curr_time >= Parptr->MassTotal)
+			double perclation_rate_vol = 0.0;
+			double perclation_rate_depth = 0.0;
+			if (Statesptr->use_percolation_singlelayer == ON)
 			{
-				// calc losses for this mass interval
-				NUMERIC_TYPE loss = (Parptr->InfilTotalLoss - Parptr->InfilLoss) + (Parptr->EvapTotalLoss - Parptr->EvapLoss) - (Parptr->RainTotalLoss - Parptr->RainLoss);
+				perclation_rate_vol = Parptr->PercolationVol / Parptr->gwTstep;  //m3/s
+				perclation_rate_depth = Parptr->PercolationDepth / Parptr->gwTstep * 3600;   //mm/h
+			}
+			double multi_soilWaterDepthOFLyr = 0.0;
+			double multi_soilMoistureOfLyr = 0.0;
+			double multi_soilPercoVolOfLyr = 0.0;
+			double multi_soilPercoDepOfLyr = 0.0;
 
-				//Solverptr->Qerror=boundary_cond->Qin-boundary_cond->Qout-(Solverptr->vol2+loss-Solverptr->vol1)/Parptr->MassInt;
-				// New version using VolInMT and VolOutMT
-				// volume error
-
-				Solverptr->Verror = LFPContext->boundary_cond->VolInMT - LFPContext->boundary_cond->VolOutMT - (Solverptr->vol2 + loss - Solverptr->vol1) + Damptr->DamLoss;
-
-				// Q error
-				Solverptr->Qerror = Solverptr->Verror / Parptr->MassInt;
-				// reset to 0.0
-				LFPContext->boundary_cond->VolInMT = C(0.0);
-				LFPContext->boundary_cond->VolOutMT = C(0.0);
-				Damptr->DamLoss = C(0.0);
-				double infil_rate = (Parptr->InfilTotalLoss - Parptr->InfilLoss) / Parptr->MassInt;  // m3/s
-				double evap_rate = (Parptr->EvapTotalLoss - Parptr->EvapLoss) / Parptr->MassInt;  // m3/s
-				double rain_rate = (Parptr->RainTotalLoss - Parptr->RainLoss) / Parptr->MassInt;// m3/s
-				double rain_depth_rate_per_cell = rain_rate / Parptr->sumNCells / Parptr->avgCellArea * 1000.0 * 3600;  //mm/h
-				double infil_depth_rate_per_cell = infil_rate / Parptr->sumNCells / Parptr->avgCellArea * 1000.0 * 3600;  //mm/h
-				double evap_depth_rate_per_cell = evap_rate / Parptr->sumNCells / Parptr->avgCellArea * 1000.0 * 3600;  //mm/h
-
-				double interflow_gen_rate = 0.0;
-				double interflow_runoff_rate = 0.0;
-				double interflow_2ch_rate = 0.0;
-
-				double interflow_gen_rate_lyr = 0.0;
-				double interflow_runoff_rate_lyr = 0.0;
-				double interflow_2ch_rate_lyr = 0.0;
-
-				double subSurfaceLatFlow2Channel_rate = 0.0;
-				double subSurfaceLatFlow2Surf_rate = 0.0;
-
-				double interflow_2ch_depth_rate_per_cell = 0.0;
-				if (Statesptr->use_interflow_singlelayer == ON)
-				{
-					interflow_gen_rate = (Parptr->InterflowGenTotal - Parptr->InterflowGen) / Parptr->MassInt;  // m3/s
-					interflow_runoff_rate = (Parptr->InterflowRunoffTotal - Parptr->InterflowRunoff) / Parptr->MassInt;  // m3/s
-					interflow_2ch_rate = (Parptr->Interflow2ChTotal - Parptr->Interflow2Ch) / Parptr->MassInt;  // m3/s
-					interflow_2ch_depth_rate_per_cell = interflow_2ch_rate / Parptr->sumNCells / Parptr->avgCellArea * 1000.0 * 3600;  //mm/h
-					Parptr->InterflowGen = Parptr->InterflowGenTotal;
-					Parptr->InterflowRunoff = Parptr->InterflowRunoffTotal;
-					Parptr->Interflow2Ch = Parptr->Interflow2ChTotal;
-				}
-				double perclation_rate_vol = 0.0;
-				double perclation_rate_depth = 0.0;
-				if (Statesptr->use_percolation_singlelayer == ON)
-				{
-					perclation_rate_vol = Parptr->PercolationVol / Parptr->gwTstep;  //m3/s
-					perclation_rate_depth = Parptr->PercolationDepth / Parptr->gwTstep * 3600;   //mm/h
-				}
-				double multi_soilWaterDepthOFLyr = 0.0;
-				double multi_soilMoistureOfLyr = 0.0;
-				double multi_soilPercoVolOfLyr = 0.0;
-				double multi_soilPercoDepOfLyr = 0.0;
-
-				// record cumulative loss for next time.
-				Parptr->InfilLoss = Parptr->InfilTotalLoss;
-				Parptr->EvapLoss = Parptr->EvapTotalLoss;
-				Parptr->RainLoss = Parptr->RainTotalLoss;
+			// record cumulative loss for next time.
+			Parptr->InfilLoss = Parptr->InfilTotalLoss;
+			Parptr->EvapLoss = Parptr->EvapTotalLoss;
+			Parptr->RainLoss = Parptr->RainTotalLoss;
 
 
 #ifdef _DEBUGxx
-				fprintf(Fptr->mass_fp, "%-12.3" NUM_FMT" %-10.4" NUM_FMT" %-10.4" NUM_FMT" %-10ld %12.4" NUM_FMT" %12.4" NUM_FMT"  %-11.3" NUM_FMT" %-10.3" NUM_FMT" %-11.3" NUM_FMT" %12.4" NUM_FMT" %12.4" NUM_FMT" %12.4" NUM_FMT"\n",
-					curr_time,
-					delta_time,
-					Solverptr->MinTstep,
-					Solverptr->itCount,
-					fix_small_negative(Solverptr->FArea),
-					fix_small_negative(Solverptr->vol2),
-					fix_small_negative(boundary_cond->Qin),
-					fix_small_negative(Solverptr->Hds),
-					fix_small_negative(boundary_cond->Qout),
-					fix_small_negative(Solverptr->Qerror),
-					fix_small_negative(Solverptr->Verror),
-					fix_small_negative(Parptr->RainTotalLoss - (Parptr->InfilTotalLoss + Parptr->EvapTotalLoss)));
+			fprintf(Fptr->mass_fp, "%-12.3" NUM_FMT" %-10.4" NUM_FMT" %-10.4" NUM_FMT" %-10ld %12.4" NUM_FMT" %12.4" NUM_FMT"  %-11.3" NUM_FMT" %-10.3" NUM_FMT" %-11.3" NUM_FMT" %12.4" NUM_FMT" %12.4" NUM_FMT" %12.4" NUM_FMT"\n",
+				curr_time,
+				delta_time,
+				Solverptr->MinTstep,
+				Solverptr->itCount,
+				fix_small_negative(Solverptr->FArea),
+				fix_small_negative(Solverptr->vol2),
+				fix_small_negative(boundary_cond->Qin),
+				fix_small_negative(Solverptr->Hds),
+				fix_small_negative(boundary_cond->Qout),
+				fix_small_negative(Solverptr->Qerror),
+				fix_small_negative(Solverptr->Verror),
+				fix_small_negative(Parptr->RainTotalLoss - (Parptr->InfilTotalLoss + Parptr->EvapTotalLoss)));
 #else
-				fprintf(Fptr->mass_fp, "%-12.3" NUM_FMT" %-10.4" NUM_FMT" %-10.4" NUM_FMT" %-10li %12.4e %12.4e  %-11.3" NUM_FMT" %-10.3" NUM_FMT" %-15.6" NUM_FMT" %12.4e %12.4e %12.4e       %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e ",
-					LFPContext->curr_time, delta_time, Solverptr->MinTstep, Solverptr->itCount, Solverptr->FArea, Solverptr->vol2, LFPContext->boundary_cond->Qin,
-					Solverptr->Hds, LFPContext->boundary_cond->Qout, Solverptr->Qerror, Solverptr->Verror, Parptr->RainTotalLoss - (Parptr->InfilTotalLoss + Parptr->EvapTotalLoss),
-					rain_rate, rain_depth_rate_per_cell, infil_rate, infil_depth_rate_per_cell, evap_rate, evap_depth_rate_per_cell);
-				if (Statesptr->use_interflow_singlelayer == ON)
+			fprintf(Fptr->mass_fp, "%-12.3" NUM_FMT" %-10.4" NUM_FMT" %-10.4" NUM_FMT" %-10li %12.4e %12.4e  %-11.3" NUM_FMT" %-10.3" NUM_FMT" %-15.6" NUM_FMT" %12.4e %12.4e %12.4e       %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e ",
+				LFPContext->curr_time, delta_time, Solverptr->MinTstep, Solverptr->itCount, Solverptr->FArea, Solverptr->vol2, LFPContext->boundary_cond->Qin,
+				Solverptr->Hds, LFPContext->boundary_cond->Qout, Solverptr->Qerror, Solverptr->Verror, Parptr->RainTotalLoss - (Parptr->InfilTotalLoss + Parptr->EvapTotalLoss),
+				rain_rate, rain_depth_rate_per_cell, infil_rate, infil_depth_rate_per_cell, evap_rate, evap_depth_rate_per_cell);
+			if (Statesptr->use_interflow_singlelayer == ON)
+			{
+				//Parptr->GroundWaterQ2RiverTotal = Parptr->GroundWaterQ2RiverTotal / Parptr->MassInt;
+				fprintf(Fptr->mass_fp, " %12.3" NUM_FMT" %12.3" NUM_FMT" %16.3" NUM_FMT" %16.3" NUM_FMT, interflow_gen_rate, Parptr->InterflowRunoffTotal, interflow_runoff_rate, interflow_2ch_rate);
+			}
+			if (Statesptr->use_interflow_multilayer == ON)
+			{
+				// 每一层
+				for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
 				{
-					//Parptr->GroundWaterQ2RiverTotal = Parptr->GroundWaterQ2RiverTotal / Parptr->MassInt;
-					fprintf(Fptr->mass_fp, " %12.3" NUM_FMT" %12.3" NUM_FMT" %16.3" NUM_FMT" %16.3" NUM_FMT, interflow_gen_rate, Parptr->InterflowRunoffTotal, interflow_runoff_rate, interflow_2ch_rate);
+					// 每一时步壤中流产生的量
+					interflow_gen_rate_lyr = (Parptr->multi_interflowGenVolOfLyr[lyr] - Parptr->multi_interflowGenVolOfLyr_Last[lyr]) / Parptr->MassInt;
+					// 每一时步壤中流产生的地表径流进入河道的径流量
+					interflow_2ch_rate_lyr = (Parptr->multi_interflow2ChVolOfLyr[lyr] - Parptr->multi_interflow2ChVolOfLyr_Last[lyr]) / Parptr->MassInt;
+					// 每一时步由于壤中流导致的地表径流总量 的变化率
+					interflow_runoff_rate_lyr = (Parptr->multi_interflowRunoffVolOfLyr[lyr] - Parptr->multi_interflowRunoffVolOfLyr_Last[lyr]) / Parptr->MassInt;
+					fprintf(Fptr->mass_fp, "%18.5" NUM_FMT"%16.5" NUM_FMT"%18.5" NUM_FMT"%18.5" NUM_FMT, interflow_gen_rate_lyr, Parptr->multi_interflowRunoffVolOfLyr[lyr], interflow_runoff_rate_lyr, interflow_2ch_rate_lyr);
 				}
-				if (Statesptr->use_interflow_multilayer == ON)
+				// 所有层总的
+				interflow_gen_rate = (Parptr->InterflowGenTotal - Parptr->InterflowGen) / Parptr->MassInt;  // m3/s
+				interflow_runoff_rate = (Parptr->InterflowRunoffTotal - Parptr->InterflowRunoff) / Parptr->MassInt;  // m3/s
+				interflow_2ch_rate = (Parptr->Interflow2ChTotal - Parptr->Interflow2Ch) / Parptr->MassInt;  // m3/s
+				fprintf(Fptr->mass_fp, "%16.3" NUM_FMT"%14.3" NUM_FMT"%16.3" NUM_FMT"%16.3" NUM_FMT, interflow_gen_rate, Parptr->InterflowRunoffTotal, interflow_runoff_rate, interflow_2ch_rate);
+				Parptr->InterflowGen = Parptr->InterflowGenTotal;
+				Parptr->InterflowRunoff = Parptr->InterflowRunoffTotal;
+				Parptr->Interflow2Ch = Parptr->Interflow2ChTotal;
+				for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
 				{
-					// 每一层
-					for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
-					{
-						// 每一时步壤中流产生的量
-						interflow_gen_rate_lyr = (Parptr->multi_interflowGenVolOfLyr[lyr] - Parptr->multi_interflowGenVolOfLyr_Last[lyr]) / Parptr->MassInt;
-						// 每一时步壤中流产生的地表径流进入河道的径流量
-						interflow_2ch_rate_lyr = (Parptr->multi_interflow2ChVolOfLyr[lyr] - Parptr->multi_interflow2ChVolOfLyr_Last[lyr]) / Parptr->MassInt;
-						// 每一时步由于壤中流导致的地表径流总量 的变化率
-						interflow_runoff_rate_lyr = (Parptr->multi_interflowRunoffVolOfLyr[lyr] - Parptr->multi_interflowRunoffVolOfLyr_Last[lyr]) / Parptr->MassInt;
-						fprintf(Fptr->mass_fp, "%18.5" NUM_FMT"%16.5" NUM_FMT"%18.5" NUM_FMT"%18.5" NUM_FMT, interflow_gen_rate_lyr, Parptr->multi_interflowRunoffVolOfLyr[lyr], interflow_runoff_rate_lyr, interflow_2ch_rate_lyr);
-					}
-					// 所有层总的
-					interflow_gen_rate = (Parptr->InterflowGenTotal - Parptr->InterflowGen) / Parptr->MassInt;  // m3/s
-					interflow_runoff_rate = (Parptr->InterflowRunoffTotal - Parptr->InterflowRunoff) / Parptr->MassInt;  // m3/s
-					interflow_2ch_rate = (Parptr->Interflow2ChTotal - Parptr->Interflow2Ch) / Parptr->MassInt;  // m3/s
-					fprintf(Fptr->mass_fp, "%16.3" NUM_FMT"%14.3" NUM_FMT"%16.3" NUM_FMT"%16.3" NUM_FMT, interflow_gen_rate, Parptr->InterflowRunoffTotal, interflow_runoff_rate, interflow_2ch_rate);
-					Parptr->InterflowGen = Parptr->InterflowGenTotal;
-					Parptr->InterflowRunoff = Parptr->InterflowRunoffTotal;
-					Parptr->Interflow2Ch = Parptr->Interflow2ChTotal;
-					for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
-					{
-						Parptr->multi_interflowGenVolOfLyr_Last[lyr] = Parptr->multi_interflowGenVolOfLyr[lyr];
-						Parptr->multi_interflow2ChVolOfLyr_Last[lyr] = Parptr->multi_interflow2ChVolOfLyr[lyr];
-						Parptr->multi_interflowRunoffVolOfLyr_Last[lyr] = Parptr->multi_interflowRunoffVolOfLyr[lyr];
-					}
+					Parptr->multi_interflowGenVolOfLyr_Last[lyr] = Parptr->multi_interflowGenVolOfLyr[lyr];
+					Parptr->multi_interflow2ChVolOfLyr_Last[lyr] = Parptr->multi_interflow2ChVolOfLyr[lyr];
+					Parptr->multi_interflowRunoffVolOfLyr_Last[lyr] = Parptr->multi_interflowRunoffVolOfLyr[lyr];
 				}
+			}
 
-				if (Statesptr->use_percolation_singlelayer == ON)
+			if (Statesptr->use_percolation_singlelayer == ON)
+			{
+				//Parptr->GroundWaterQ2RiverTotal = Parptr->GroundWaterQ2RiverTotal / Parptr->MassInt;
+				fprintf(Fptr->mass_fp, " %12.3" NUM_FMT" %12.3" NUM_FMT" %12.3" NUM_FMT" %12.3" NUM_FMT, Parptr->soilMoisAvgPerCell, Parptr->soilWaterDepthAvgPerCell, perclation_rate_vol, perclation_rate_depth);
+				Parptr->PercolationVol = 0.f;
+				Parptr->PercolationDepth = 0.f;
+			}
+			if (Statesptr->use_percolation_multilayer == ON)
+			{
+				// 每一层
+				for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
 				{
-					//Parptr->GroundWaterQ2RiverTotal = Parptr->GroundWaterQ2RiverTotal / Parptr->MassInt;
-					fprintf(Fptr->mass_fp, " %12.3" NUM_FMT" %12.3" NUM_FMT" %12.3" NUM_FMT" %12.3" NUM_FMT, Parptr->soilMoisAvgPerCell, Parptr->soilWaterDepthAvgPerCell, perclation_rate_vol, perclation_rate_depth);
-					Parptr->PercolationVol = 0.f;
-					Parptr->PercolationDepth = 0.f;
+					// 每一层的平均土壤水深
+					multi_soilWaterDepthOFLyr = (Parptr->multi_soilWaterDepthOfLyr[lyr]) / Parptr->sumNCells;
+					// 当前MassInt时步内，每一层内平均每个栅格渗漏水量的速率
+					multi_soilPercoVolOfLyr = (Parptr->multi_soilPercoVolOfLyr[lyr] - Parptr->multi_soilPercoVolOfLyr_Last[lyr]) / Parptr->MassInt / Parptr->sumNCells;
+					// 当前MassInt时步内，每一层渗漏水深的速率
+					multi_soilPercoDepOfLyr = (Parptr->multi_soilPercoDepOfLyr[lyr] - Parptr->multi_soilPercoDepOfLyr_Last[lyr]) / Parptr->MassInt / Parptr->sumNCells;
+					// 每一层的平均土壤湿度
+					multi_soilMoistureOfLyr = (Parptr->multi_soilMoistureOfLyr[lyr]) / Parptr->sumNCells;
+					fprintf(Fptr->mass_fp, "%15.3" NUM_FMT"%14.3" NUM_FMT"%16.3" NUM_FMT"%16.3" NUM_FMT"%14.3" NUM_FMT"%18.3" NUM_FMT,
+						multi_soilMoistureOfLyr, multi_soilWaterDepthOFLyr, multi_soilPercoVolOfLyr, multi_soilPercoDepOfLyr, Parptr->multi_soilFcOfLyr[lyr], Parptr->multi_soilProsityOfLyr[lyr]);
 				}
-				if (Statesptr->use_percolation_multilayer == ON)
+				multi_soilMoistureOfLyr = 0.0;
+				multi_soilPercoVolOfLyr = 0.0;
+				multi_soilPercoDepOfLyr = 0.0;
+				multi_soilWaterDepthOFLyr = 0.0;
+				multi_soilWaterDepthOFLyr = 0.0;
+
+				for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
 				{
-					// 每一层
-					for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
-					{
-						// 每一层的平均土壤水深
-						multi_soilWaterDepthOFLyr = (Parptr->multi_soilWaterDepthOfLyr[lyr]) / Parptr->sumNCells;
-						// 当前MassInt时步内，每一层内平均每个栅格渗漏水量的速率
-						multi_soilPercoVolOfLyr = (Parptr->multi_soilPercoVolOfLyr[lyr] - Parptr->multi_soilPercoVolOfLyr_Last[lyr]) / Parptr->MassInt / Parptr->sumNCells;
-						// 当前MassInt时步内，每一层渗漏水深的速率
-						multi_soilPercoDepOfLyr = (Parptr->multi_soilPercoDepOfLyr[lyr] - Parptr->multi_soilPercoDepOfLyr_Last[lyr]) / Parptr->MassInt / Parptr->sumNCells;
-						// 每一层的平均土壤湿度
-						multi_soilMoistureOfLyr = (Parptr->multi_soilMoistureOfLyr[lyr]) / Parptr->sumNCells;
-						fprintf(Fptr->mass_fp, "%15.3" NUM_FMT"%14.3" NUM_FMT"%16.3" NUM_FMT"%16.3" NUM_FMT"%14.3" NUM_FMT"%18.3" NUM_FMT,
-							multi_soilMoistureOfLyr, multi_soilWaterDepthOFLyr, multi_soilPercoVolOfLyr, multi_soilPercoDepOfLyr, Parptr->multi_soilFcOfLyr[lyr], Parptr->multi_soilProsityOfLyr[lyr]);
-					}
-					multi_soilMoistureOfLyr = 0.0;
-					multi_soilPercoVolOfLyr = 0.0;
-					multi_soilPercoDepOfLyr = 0.0;
-					multi_soilWaterDepthOFLyr = 0.0;
-					multi_soilWaterDepthOFLyr = 0.0;
-
-					for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
-					{
-						Parptr->multi_soilPercoVolOfLyr_Last[lyr] = Parptr->multi_soilPercoVolOfLyr[lyr];
-						Parptr->multi_soilPercoDepOfLyr_Last[lyr] = Parptr->multi_soilPercoDepOfLyr[lyr];
-					}
-
-				}
-
-				if (Statesptr->use_groundwater == ON)
-				{
-					fprintf(Fptr->mass_fp, "%14.3" NUM_FMT"%14.3" NUM_FMT"%14.5" NUM_FMT"%14.5" NUM_FMT, Parptr->GwStorageVol, Parptr->GwStorageDepth, Parptr->sumGndQ2Rch, Parptr->gwQPerSgcCell);
-					Parptr->PercolationVol = 0.f;
-					Parptr->PercolationDepth = 0.f;
-				}
-
-				if (Statesptr->use_dhsvm == ON)
-				{
-					//if (curr_time - last_gw_time >= Parptr->gwTstep) {
-					//	last_gw_time = curr_time;
-					Parptr->subSurfaceLatFlow2Channel_rate = (Parptr->subSurfaceLatFlow2ChTotal - Parptr->subSurfaceLatFlowTotal2Ch_Last) / Parptr->MassInt;
-					Parptr->subSurfaceLatFlowTotal2Ch_Last = Parptr->subSurfaceLatFlow2ChTotal;
-					Parptr->subSurfaceLatFlow2Surf_rate = (Parptr->subSurfaceLatFlow2SurfTotal - Parptr->subSurfaceLatFlowTotal2Surf_Last) / Parptr->MassInt;
-					Parptr->subSurfaceLatFlowTotal2Surf_Last = Parptr->subSurfaceLatFlow2SurfTotal;
-					Parptr->subSurfacePerc2Surf_rate = (Parptr->subSurfacePerc2SurfTotal - Parptr->subSurfacePercTotal2Surf_Last) / Parptr->MassInt;
-					Parptr->subSurfacePercTotal2Surf_Last = Parptr->subSurfacePerc2SurfTotal;
-					for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
-					{
-						Parptr->multi_soilPercoDepOfLyr_rate[lyr] = (Parptr->multi_soilPercoDepOfLyr[lyr] - Parptr->multi_soilPercoDepOfLyr_Last[lyr]) * 3600.0 / Parptr->MassInt;
-						//Parptr->multi_soilPercoDepOfLyr_rate[lyr] = (Parptr->multi_soilPercoDepOfLyr[lyr] - Parptr->multi_soilPercoDepOfLyr_Last[lyr])  / Parptr->MassInt;
-						Parptr->multi_soilPercoDepOfLyr_Last[lyr] = Parptr->multi_soilPercoDepOfLyr[lyr];
-					}
-					//}
-
-					Parptr->surfaceFlow2Ch_rate = (Parptr->surfaceFlow2ChTotal - Parptr->surfaceFlow2ChTotal_Last) / Parptr->MassInt;
-					Parptr->surfaceFlow2ChTotal_Last = Parptr->surfaceFlow2ChTotal;
-
-					Parptr->surfaceHydro2Ch_rate = (Parptr->surfaceHydro2ChTotal - Parptr->surfaceHydro2ChTotal_Last) / Parptr->MassInt;
-					Parptr->surfaceHydro2ChTotal_Last = Parptr->surfaceHydro2ChTotal;
-
-					fprintf(Fptr->mass_fp, " %17.3" NUM_FMT" %19.3" NUM_FMT" %19.3" NUM_FMT" %19.3" NUM_FMT" %19.3" NUM_FMT,
-						Parptr->subSurfaceLatFlow2Channel_rate, Parptr->subSurfaceLatFlow2Surf_rate, Parptr->subSurfacePerc2Surf_rate, Parptr->surfaceFlow2Ch_rate, Parptr->surfaceHydro2Ch_rate);
-					// 每一层
-					for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
-					{
-						multi_soilWaterDepthOFLyr = (Parptr->multi_soilWaterDepthOfLyr[lyr]) / Parptr->sumNCells;
-						multi_soilPercoDepOfLyr = (Parptr->multi_soilPercoDepOfLyr_rate[lyr]) / Parptr->sumNCells;
-						fprintf(Fptr->mass_fp, "%18.3" NUM_FMT "%18.5" NUM_FMT, multi_soilWaterDepthOFLyr, multi_soilPercoDepOfLyr);
-					}
-				}
-
-				if (Statesptr->use_green_ampt_singlelayer == ON)
-				{
-					Parptr->InfilRateGA = C(0.0);
-				}
-				fprintf(Fptr->mass_fp, "\n");
-#endif
-
-				fflush(Fptr->mass_fp); // force program to flush buffer to file - keeps file in sync with writes - user sometimes tracks progress through the file.
-				if (Statesptr->DamMode == ON)
-				{
-					// Dam Output
-					fprintf(Fptr->dam_fp, "%-12.3" NUM_FMT" %-10.4" NUM_FMT"", LFPContext->curr_time, delta_time);
-					for (int i = 0; i < Damptr->NumDams; i++)
-					{
-						fprintf(Fptr->dam_fp, "%-10.3" NUM_FMT" %-10.3" NUM_FMT" %-10.3" NUM_FMT" %-10.3" NUM_FMT" %-10.3" NUM_FMT" %-10.4" NUM_FMT" %-10.4" NUM_FMT" %-10.4" NUM_FMT"\n", Damptr->DamArea[i], Damptr->DamVol[i], Damptr->DamVin[i], Damptr->InitialHeight[i], Damptr->DamTotalQ[i] * delta_time, Damptr->SpillQ[i], Damptr->DamOperationQ[i], C(0.0));
-					}
-					fflush(Fptr->dam_fp);
-				}
-				Solverptr->vol1 = Solverptr->vol2;
-				Parptr->MassTotal += Parptr->MassInt;
-
-
-				//stage output
-				if (Statesptr->save_stages == ON)
-				{
-					fprintf(Fptr->stage_fp, "%12.3" NUM_FMT"", LFPContext->curr_time);
-					for (int i = 0; i < Locptr->Nstages; i++)
-					{
-						if (Locptr->stage_check[i] == 1)
-						{
-							int grid_index = Locptr->stage_grid_x[i] + Locptr->stage_grid_y[i] * LFPContext->grid_cols_padded;
-							fprintf(Fptr->stage_fp, "%10.4" NUM_FMT"", LFPContext->h_grid[grid_index] + LFPContext->SGC_BankFullHeight_grid[grid_index]);
-						}
-						else
-							fprintf(Fptr->stage_fp, "-\t");
-					}
-					fprintf(Fptr->stage_fp, "\n");
-					fflush(Fptr->stage_fp); // force program to flush buffer to file - keeps file in sync with writes - user sometimes tracks progress through the file.
-					// added to export scalar velocity
-					// velocity moved to do_update - between update q and update h
-				}
-
-				//virtual gauge output
-				if (Statesptr->gsection == ON)
-				{
-					fprintf(Fptr->gau_fp, "%12.2" NUM_FMT"", LFPContext->curr_time); // print tiem to file
-					for (int i = 0; i < Locptr->Ngauges; i++) // loop through each virtual gauge
-					{
-						// call discharge calculation function
-						NUMERIC_TYPE discharge = CalcVirtualGauge(i, LFPContext->grid_cols_padded, LFPContext->Qx_grid, LFPContext->Qy_grid, Locptr);
-						fprintf(Fptr->gau_fp, " %10.3" NUM_FMT"", discharge); // Print discharge to file
-					}
-					fprintf(Fptr->gau_fp, "\n"); // print end of line
-					fflush(Fptr->gau_fp); // force program to flush buffer to file - keeps file in sync with writes - user sometimes tracks progress through the file.
+					Parptr->multi_soilPercoVolOfLyr_Last[lyr] = Parptr->multi_soilPercoVolOfLyr[lyr];
+					Parptr->multi_soilPercoDepOfLyr_Last[lyr] = Parptr->multi_soilPercoDepOfLyr[lyr];
 				}
 
 			}
-			// xiaodw, for groundwater timestep calculation
-			// export maximum depth interval
-			if (Statesptr->maxint == ON && LFPContext->curr_time >= Parptr->maxintTotal)
+
+			if (Statesptr->use_groundwater == ON)
 			{
-				// update h to be 'depth' above sub-grid-channel
-				for (int j = 0; j < LFPContext->grid_rows; j++)
+				fprintf(Fptr->mass_fp, "%14.3" NUM_FMT"%14.3" NUM_FMT"%14.5" NUM_FMT"%14.5" NUM_FMT, Parptr->GwStorageVol, Parptr->GwStorageDepth, Parptr->sumGndQ2Rch, Parptr->gwQPerSgcCell);
+				Parptr->PercolationVol = 0.f;
+				Parptr->PercolationDepth = 0.f;
+			}
+
+			if (Statesptr->use_dhsvm == ON)
+			{
+				//if (curr_time - last_gw_time >= Parptr->gwTstep) {
+				//	last_gw_time = curr_time;
+				Parptr->subSurfaceLatFlow2Channel_rate = (Parptr->subSurfaceLatFlow2ChTotal - Parptr->subSurfaceLatFlowTotal2Ch_Last) / Parptr->MassInt;
+				Parptr->subSurfaceLatFlowTotal2Ch_Last = Parptr->subSurfaceLatFlow2ChTotal;
+				Parptr->subSurfaceLatFlow2Surf_rate = (Parptr->subSurfaceLatFlow2SurfTotal - Parptr->subSurfaceLatFlowTotal2Surf_Last) / Parptr->MassInt;
+				Parptr->subSurfaceLatFlowTotal2Surf_Last = Parptr->subSurfaceLatFlow2SurfTotal;
+				Parptr->subSurfacePerc2Surf_rate = (Parptr->subSurfacePerc2SurfTotal - Parptr->subSurfacePercTotal2Surf_Last) / Parptr->MassInt;
+				Parptr->subSurfacePercTotal2Surf_Last = Parptr->subSurfacePerc2SurfTotal;
+				for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
 				{
-					for (int i = 0; i < LFPContext->grid_cols; i++)
-					{
-						int index_padded = i + j * LFPContext->grid_cols_padded;
-						int index = i + j * LFPContext->grid_cols;
-						NUMERIC_TYPE temp = LFPContext->maxH_grid[index_padded] + LFPContext->SGC_BankFullHeight_grid[index_padded];
-						// depth in channel or above flood plain = h + BankFullHeight (should not be negative)
-						// note previous version just dumped the wd with no depth_thresh truncation
-						if (temp <= LFPContext->depth_thresh)
-							temp = C(0.0);
-						LFPContext->tmp_grid1[index] = temp;
-					}
+					Parptr->multi_soilPercoDepOfLyr_rate[lyr] = (Parptr->multi_soilPercoDepOfLyr[lyr] - Parptr->multi_soilPercoDepOfLyr_Last[lyr]) * 3600.0 / Parptr->MassInt;
+					//Parptr->multi_soilPercoDepOfLyr_rate[lyr] = (Parptr->multi_soilPercoDepOfLyr[lyr] - Parptr->multi_soilPercoDepOfLyr_Last[lyr])  / Parptr->MassInt;
+					Parptr->multi_soilPercoDepOfLyr_Last[lyr] = Parptr->multi_soilPercoDepOfLyr[lyr];
 				}
-				write_grid(Fnameptr->resrootname, Parptr->maxintcount,
-					NETCDF_IGNORE, ".wd_max",
-					LFPContext->tmp_grid1, LFPContext->grid_cols, LFPContext->grid_rows, Parptr->blx, Parptr->bly, Parptr->dx, &Statesptr->output_params);
+				//}
+
+				Parptr->surfaceFlow2Ch_rate = (Parptr->surfaceFlow2ChTotal - Parptr->surfaceFlow2ChTotal_Last) / Parptr->MassInt;
+				Parptr->surfaceFlow2ChTotal_Last = Parptr->surfaceFlow2ChTotal;
+
+				Parptr->surfaceHydro2Ch_rate = (Parptr->surfaceHydro2ChTotal - Parptr->surfaceHydro2ChTotal_Last) / Parptr->MassInt;
+				Parptr->surfaceHydro2ChTotal_Last = Parptr->surfaceHydro2ChTotal;
+
+				fprintf(Fptr->mass_fp, " %17.3" NUM_FMT" %19.3" NUM_FMT" %19.3" NUM_FMT" %19.3" NUM_FMT" %19.3" NUM_FMT,
+					Parptr->subSurfaceLatFlow2Channel_rate, Parptr->subSurfaceLatFlow2Surf_rate, Parptr->subSurfacePerc2Surf_rate, Parptr->surfaceFlow2Ch_rate, Parptr->surfaceHydro2Ch_rate);
+				// 每一层
+				for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
+				{
+					multi_soilWaterDepthOFLyr = (Parptr->multi_soilWaterDepthOfLyr[lyr]) / Parptr->sumNCells;
+					multi_soilPercoDepOfLyr = (Parptr->multi_soilPercoDepOfLyr_rate[lyr]) / Parptr->sumNCells;
+					fprintf(Fptr->mass_fp, "%18.3" NUM_FMT "%18.5" NUM_FMT, multi_soilWaterDepthOFLyr, multi_soilPercoDepOfLyr);
+				}
+			}
+
+			if (Statesptr->use_green_ampt_singlelayer == ON)
+			{
+				Parptr->InfilRateGA = C(0.0);
+			}
+			fprintf(Fptr->mass_fp, "\n");
+#endif
+
+			fflush(Fptr->mass_fp); // force program to flush buffer to file - keeps file in sync with writes - user sometimes tracks progress through the file.
+			if (Statesptr->DamMode == ON)
+			{
+				// Dam Output
+				fprintf(Fptr->dam_fp, "%-12.3" NUM_FMT" %-10.4" NUM_FMT"", LFPContext->curr_time, delta_time);
+				for (int i = 0; i < Damptr->NumDams; i++)
+				{
+					fprintf(Fptr->dam_fp, "%-10.3" NUM_FMT" %-10.3" NUM_FMT" %-10.3" NUM_FMT" %-10.3" NUM_FMT" %-10.3" NUM_FMT" %-10.4" NUM_FMT" %-10.4" NUM_FMT" %-10.4" NUM_FMT"\n", Damptr->DamArea[i], Damptr->DamVol[i], Damptr->DamVin[i], Damptr->InitialHeight[i], Damptr->DamTotalQ[i] * delta_time, Damptr->SpillQ[i], Damptr->DamOperationQ[i], C(0.0));
+				}
+				fflush(Fptr->dam_fp);
+			}
+			Solverptr->vol1 = Solverptr->vol2;
+			Parptr->MassTotal += Parptr->MassInt;
 
 
+			//stage output
+			if (Statesptr->save_stages == ON)
+			{
+				fprintf(Fptr->stage_fp, "%12.3" NUM_FMT"", LFPContext->curr_time);
+				for (int i = 0; i < Locptr->Nstages; i++)
+				{
+					if (Locptr->stage_check[i] == 1)
+					{
+						int grid_index = Locptr->stage_grid_x[i] + Locptr->stage_grid_y[i] * LFPContext->grid_cols_padded;
+						fprintf(Fptr->stage_fp, "%10.4" NUM_FMT"", LFPContext->h_grid[grid_index] + LFPContext->SGC_BankFullHeight_grid[grid_index]);
+					}
+					else
+						fprintf(Fptr->stage_fp, "-\t");
+				}
+				fprintf(Fptr->stage_fp, "\n");
+				fflush(Fptr->stage_fp); // force program to flush buffer to file - keeps file in sync with writes - user sometimes tracks progress through the file.
+				// added to export scalar velocity
+				// velocity moved to do_update - between update q and update h
+			}
+
+			//virtual gauge output
+			if (Statesptr->gsection == ON)
+			{
+				fprintf(Fptr->gau_fp, "%12.2" NUM_FMT"", LFPContext->curr_time); // print tiem to file
+				for (int i = 0; i < Locptr->Ngauges; i++) // loop through each virtual gauge
+				{
+					// call discharge calculation function
+					NUMERIC_TYPE discharge = CalcVirtualGauge(i, LFPContext->grid_cols_padded, LFPContext->Qx_grid, LFPContext->Qy_grid, Locptr);
+					fprintf(Fptr->gau_fp, " %10.3" NUM_FMT"", discharge); // Print discharge to file
+				}
+				fprintf(Fptr->gau_fp, "\n"); // print end of line
+				fflush(Fptr->gau_fp); // force program to flush buffer to file - keeps file in sync with writes - user sometimes tracks progress through the file.
+			}
+
+		}
+		// xiaodw, for groundwater timestep calculation
+		// export maximum depth interval
+		if (Statesptr->maxint == ON && LFPContext->curr_time >= Parptr->maxintTotal)
+		{
+			// update h to be 'depth' above sub-grid-channel
+			for (int j = 0; j < LFPContext->grid_rows; j++)
+			{
+				for (int i = 0; i < LFPContext->grid_cols; i++)
+				{
+					int index_padded = i + j * LFPContext->grid_cols_padded;
+					int index = i + j * LFPContext->grid_cols;
+					NUMERIC_TYPE temp = LFPContext->maxH_grid[index_padded] + LFPContext->SGC_BankFullHeight_grid[index_padded];
+					// depth in channel or above flood plain = h + BankFullHeight (should not be negative)
+					// note previous version just dumped the wd with no depth_thresh truncation
+					if (temp <= LFPContext->depth_thresh)
+						temp = C(0.0);
+					LFPContext->tmp_grid1[index] = temp;
+				}
+			}
+			write_grid(Fnameptr->resrootname, Parptr->maxintcount,
+				NETCDF_IGNORE, ".wd_max",
+				LFPContext->tmp_grid1, LFPContext->grid_cols, LFPContext->grid_rows, Parptr->blx, Parptr->bly, Parptr->dx, &Statesptr->output_params);
+
+
+			// update h to be 'depth' above sub-grid-channel
+			for (int j = 0; j < LFPContext->grid_rows; j++)
+			{
+				for (int i = 0; i < LFPContext->grid_cols; i++)
+				{
+					int index_padded = i + j * LFPContext->grid_cols_padded;
+					int index = i + j * LFPContext->grid_cols;
+					LFPContext->maxH_grid[index_padded] = C(0.0); // rests max depth to zero at save interval
+				}
+			}
+
+			// update interval counter
+			Parptr->maxintTotal += Parptr->maxint;
+			Parptr->maxintcount += 1;
+
+		}
+
+		// Regular output
+		if (LFPContext->curr_time >= Parptr->SaveTotal)
+		{
+
+			gettimeofday(&(LFPContext->timstr), NULL);
+			double write_start_time = LFPContext->timstr.tv_sec + (LFPContext->timstr.tv_usec / 1000000.0);
+
+			time(&Solverptr->time_check);
+
+#if _PROFILE_MODE < 2			
+			write_regular_output(Fnameptr->resrootname,
+				LFPContext->grid_cols, LFPContext->grid_rows, LFPContext->grid_cols_padded,
+				LFPContext->depth_thresh, LFPContext->curr_time,
+				LFPContext->tmp_grid1, LFPContext->tmp_grid2, LFPContext->tmp_grid3,
+				LFPContext->h_grid, LFPContext->dem_grid,
+				LFPContext->Qx_grid, LFPContext->Qy_grid,
+				LFPContext->Qx_old_grid, LFPContext->Qy_old_grid,
+				LFPContext->Vx_grid, LFPContext->Vy_grid,
+				LFPContext->SGC_BankFullHeight_grid, LFPContext->maxH_grid,
+				LFPContext->sub_grid_layout_rows, LFPContext->sub_grid_state_rows,
+
+				LFPContext->dx_col, LFPContext->dy_col,
+				Solverptr, Statesptr, Parptr, Fnameptr, LFPContext->boundary_cond, SGCptr,
+				&Statesptr->output_params,
+				Parptr->SaveNo,
+				Statesptr->save_depth, Statesptr->save_elev, Statesptr->save_Qs,
+				Statesptr->voutput, Statesptr->SGCvoutput, Statesptr->save_glacier_thickness, Statesptr->save_snow_thickness, Statesptr->save_table_depth
+			);
+#endif
+			// if regular output includes max reset max
+			if (Statesptr->saveint_max == ON)
+			{
 				// update h to be 'depth' above sub-grid-channel
 				for (int j = 0; j < LFPContext->grid_rows; j++)
 				{
@@ -9295,105 +9346,56 @@ void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesp
 						LFPContext->maxH_grid[index_padded] = C(0.0); // rests max depth to zero at save interval
 					}
 				}
-
-				// update interval counter
-				Parptr->maxintTotal += Parptr->maxint;
-				Parptr->maxintcount += 1;
-
 			}
 
-			// Regular output
-			if (LFPContext->curr_time >= Parptr->SaveTotal)
+			// update interval counter
+			Parptr->SaveTotal += Parptr->SaveInt;
+			Parptr->SaveNo += 1;
+
+			gettimeofday(&(LFPContext->timstr), NULL);
+			double write_end_time = LFPContext->timstr.tv_sec + (LFPContext->timstr.tv_usec / 1000000.0);
+			LFPContext->total_write_time += (write_end_time - write_start_time);
+		}
+
+		// If requested on command line, check whether we should kill this simulation...
+		if (Statesptr->killsim == ON)
+		{
+			//iteration time
+			time(&Solverptr->time_check);
+			Solverptr->itrn_time_now = Solverptr->itrn_time + (NUMERIC_TYPE)difftime(Solverptr->time_check, Solverptr->time_start);
+			// check if we have reached the kill time
+			if (Solverptr->itrn_time_now >= Parptr->killsim_time)
 			{
-
-				gettimeofday(&(LFPContext->timstr), NULL);
-				double write_start_time = LFPContext->timstr.tv_sec + (LFPContext->timstr.tv_usec / 1000000.0);
-
-				time(&Solverptr->time_check);
-
-#if _PROFILE_MODE < 2			
-				write_regular_output(Fnameptr->resrootname,
-					LFPContext->grid_cols, LFPContext->grid_rows, LFPContext->grid_cols_padded,
-					LFPContext->depth_thresh, LFPContext->curr_time,
-					LFPContext->tmp_grid1, LFPContext->tmp_grid2, LFPContext->tmp_grid3,
-					LFPContext->h_grid, LFPContext->dem_grid,
-					LFPContext->Qx_grid, LFPContext->Qy_grid,
-					LFPContext->Qx_old_grid, LFPContext->Qy_old_grid,
-					LFPContext->Vx_grid, LFPContext->Vy_grid,
-					LFPContext->SGC_BankFullHeight_grid, LFPContext->maxH_grid,
-					LFPContext->sub_grid_layout_rows, LFPContext->sub_grid_state_rows,
-
-					LFPContext->dx_col, LFPContext->dy_col,
-					Solverptr, Statesptr, Parptr, Fnameptr, LFPContext->boundary_cond, SGCptr,
-					&Statesptr->output_params,
-					Parptr->SaveNo,
-					Statesptr->save_depth, Statesptr->save_elev, Statesptr->save_Qs,
-					Statesptr->voutput, Statesptr->SGCvoutput, Statesptr->save_glacier_thickness, Statesptr->save_snow_thickness, Statesptr->save_table_depth
-				);
-#endif
-				// if regular output includes max reset max
-				if (Statesptr->saveint_max == ON)
-				{
-					// update h to be 'depth' above sub-grid-channel
-					for (int j = 0; j < LFPContext->grid_rows; j++)
-					{
-						for (int i = 0; i < LFPContext->grid_cols; i++)
-						{
-							int index_padded = i + j * LFPContext->grid_cols_padded;
-							int index = i + j * LFPContext->grid_cols;
-							LFPContext->maxH_grid[index_padded] = C(0.0); // rests max depth to zero at save interval
-						}
-					}
-				}
-
-				// update interval counter
-				Parptr->SaveTotal += Parptr->SaveInt;
-				Parptr->SaveNo += 1;
-
-				gettimeofday(&(LFPContext->timstr), NULL);
-				double write_end_time = LFPContext->timstr.tv_sec + (LFPContext->timstr.tv_usec / 1000000.0);
-				LFPContext->total_write_time += (write_end_time - write_start_time);
+				printf("Simulation kill time reached... ");
+				LFPContext->stop_loop = ON;
+				//break;
 			}
+		}
 
-			// If requested on command line, check whether we should kill this simulation...
-			if (Statesptr->killsim == ON)
-			{
-				//iteration time
-				time(&Solverptr->time_check);
-				Solverptr->itrn_time_now = Solverptr->itrn_time + (NUMERIC_TYPE)difftime(Solverptr->time_check, Solverptr->time_start);
-				// check if we have reached the kill time
-				if (Solverptr->itrn_time_now >= Parptr->killsim_time)
-				{
-					printf("Simulation kill time reached... ");
-					LFPContext->stop_loop = ON;
-					//break;
-				}
+		if (Statesptr->use_dhsvm == ON)
+		{
+			if (LFPContext->curr_time - LFPContext->last_gw_time >= Parptr->gwTstep) {
+				LFPContext->last_gw_time += Parptr->gwTstep;
 			}
+		}
+		// xdw modify, 执行完所有更新和输出后，再更新当前时间
+		if (LFPContext->curr_time > C(0.0))
+			Solverptr->MinTstep = getmin(Solverptr->MinTstep, delta_time);
+		LFPContext->curr_time += delta_time;
+		Solverptr->t = LFPContext->curr_time;
+		int intT = LFPContext->curr_time;
+		if (intT % 36000 == 0)
+		{
+			cout << "current time: " << Solverptr->t / 3600 << "hour,    timestep: " << delta_time << endl;
+		}
+		Solverptr->itCount++;
+		itCount = Solverptr->itCount;
 
-			if (Statesptr->use_dhsvm == ON)
-			{
-				if (LFPContext->curr_time - LFPContext->last_gw_time >= Parptr->gwTstep) {
-					LFPContext->last_gw_time += Parptr->gwTstep;
-				}
-			}
-			// xdw modify, 执行完所有更新和输出后，再更新当前时间
-			if (LFPContext->curr_time > C(0.0))
-				Solverptr->MinTstep = getmin(Solverptr->MinTstep, delta_time);
-			LFPContext->curr_time += delta_time;
-			Solverptr->t = LFPContext->curr_time;
-			int intT = LFPContext->curr_time;
-			if (intT % 36000 == 0)
-			{
-				cout << "current time: " << Solverptr->t / 3600 << "hour,    timestep: " << delta_time << endl;
-			}
-			Solverptr->itCount++;
-			itCount = Solverptr->itCount;
-
-		} //end omp single section
+	} //end omp single section
 }
 
 void Fast_Main(const int grid_cols, const int grid_rows, const int grid_cols_padded,
-	NUMERIC_TYPE *h_grid, NUMERIC_TYPE *volume_grid, 
+	NUMERIC_TYPE *h_grid, NUMERIC_TYPE *volume_grid,
 	NUMERIC_TYPE *Qx_grid, NUMERIC_TYPE *Qy_grid, NUMERIC_TYPE *Qx_old_grid, NUMERIC_TYPE *Qy_old_grid,
 	NUMERIC_TYPE *maxH_grid, NUMERIC_TYPE *maxHtm_grid, NUMERIC_TYPE *initHtm_grid, NUMERIC_TYPE *totalHtm_grid,
 	NUMERIC_TYPE *maxVc_grid, NUMERIC_TYPE *maxVc_height_grid, NUMERIC_TYPE *maxHazard_grid,
@@ -9443,7 +9445,7 @@ void Fast_Main(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	vector<ChannelSegmentType> *ChannelSegmentsVecPtr,
 #endif
 
-	)
+)
 {
 	int tstep_counter = -1;   // start at -1 so that in first run through we calculate river
 	int steadyCount = 0;
@@ -9490,9 +9492,9 @@ void Fast_Main(const int grid_cols, const int grid_rows, const int grid_cols_pad
 #endif
 
 	struct timeval timstr;      /* structure to hold elapsed time */
-	double processing_start_time, processing_end_time;
+	//double processing_start_time, processing_end_time;
 	gettimeofday(&timstr, NULL);
-	processing_start_time = timstr.tv_sec + (timstr.tv_usec / 1000000.0);
+	LFPContextPtr->processing_start_time = timstr.tv_sec + (timstr.tv_usec / 1000000.0);
 	time_t loop_start;
 	time(&loop_start);
 
@@ -9500,7 +9502,7 @@ void Fast_Main(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	SGC2_InitHBounds(grid_cols, grid_rows, grid_cols_padded, depth_thresh, sub_grid_layout_rows,
 		sub_grid_state_rows,
 		cell_area_col,
-		h_grid, volume_grid, wet_dry_bounds, SGCptr,dem_grid, Poisptr);
+		h_grid, volume_grid, wet_dry_bounds, SGCptr, dem_grid, Poisptr);
 	SGC2_UpdateLoadBalance(grid_rows, grid_cols_padded, sub_grid_layout_rows, wet_dry_bounds);
 
 	// initalise distributed rainfall
@@ -9516,7 +9518,7 @@ void Fast_Main(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	// xiaodw, for groundwater timestep calculation
 	NUMERIC_TYPE last_gw_time = 0.f;
 	NUMERIC_TYPE last_interflow_time = 0.f;
-	
+
 	// xiaodw, for distributed rainfall
 	LFPContextPtr->last_rain_time = 0.f;
 	if (Statesptr->rainfallmask)
@@ -9565,12 +9567,14 @@ void Fast_Main(const int grid_cols, const int grid_rows, const int grid_cols_pad
 
 			}
 		}
-		
+
 	}
 
 	//****************************Finish all initialize************************
 
 }
+
+
 
 // version of this function without inline
 // used by lis2_output.cpp

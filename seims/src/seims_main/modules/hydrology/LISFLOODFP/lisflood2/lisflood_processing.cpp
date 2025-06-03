@@ -1571,9 +1571,11 @@ float CalculateCapillarySuction(float por, float clay, float sand) {
 
 
 
+//void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
+//	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr,
+//	SuperGridLinksList *Super_linksptr)
 void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
-	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr,
-	SuperGridLinksList *Super_linksptr)
+	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr)
 {
 	// grid_cols列数，grid_rows行数
 	LFPContextPtr->grid_cols = Parptr->xsz;
@@ -2314,7 +2316,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	if (Statesptr->DamMode == ON) InitDamStructure(grid_rows, grid_cols, grid_cols_padded, Statesptr, Parptr, Arrptr,SGCptr, Damptr, LFPContextPtr->verbose);
 	
 	// Added by JCN for super grid channels
-	//SuperGridLinksList * Super_linksptr = new SuperGridLinksList();
+	SuperGridLinksList * Super_linksptr = new SuperGridLinksList();
 	if (Statesptr->ChanMaskRead == ON)
 	{ 
 		InitSuperLinksStructure(grid_rows, grid_cols, grid_cols_padded, Super_linksptr, Statesptr, Parptr, Arrptr, SGCptr, Solverptr, Fnameptr, LFPContextPtr->verbose);
@@ -3178,22 +3180,22 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Arrptr,
 		Damptr,
 		SGCptr,
-		LFPContextPtr->tmp_thread_data,
-		LFPContextPtr->tmp_thread_data_ch,
+		LFPContextPtr
 #ifdef RESULT_CHECK
 		Arrptr, BCptr,
 		ChannelSegments,
 		ChannelSegmentsVecPtr,
 #endif
-
-		LFPContextPtr->verbose);
+);
 
 
 }
 
 // ITERATE THROUGH TIME STEPS
+//void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
+//	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr, SuperGridLinksList *Super_linksptr)
 void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
-	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr, SuperGridLinksList *Super_linksptr)
+	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr)
 {
 	if (LFPContextPtr->verbose == ON)
 	{
@@ -3255,7 +3257,9 @@ void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parp
 		fflush(stdout);
 	}
 
-	Fast_MainInit(Fnameptr, Fptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Locptr, ChannelSegments, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr, Super_linksptr);
+	Fast_MainInit(Fnameptr, Fptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Locptr, ChannelSegments, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr);
+	//Fast_MainInit(Fnameptr, Fptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Locptr, ChannelSegments, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr, Super_linksptr);
+
 }
 
 

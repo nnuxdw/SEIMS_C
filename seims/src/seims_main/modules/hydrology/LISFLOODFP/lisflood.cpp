@@ -1,3 +1,4 @@
+#pragma once
 /*
 #####################################################################################
 LISFLOOD-FP flood inundation model
@@ -14,7 +15,7 @@ Tel: +44-117-928-9108, Fax: +44-117-928-7878
 
 #include "lisflood.h"
 #include "VersionHistory.h"
-#include "lisflood2/lisflood_processing.h"
+//#include "lisflood2/lisflood_processing.h"
 #include "utility.h"
 #include "sgc.h"
 #include "swe/fv1.h"
@@ -381,9 +382,10 @@ int LisFloodFP_Finilize(Solver *Solverptr, Arrays *Arrptr, Fnames *Fnameptr, Fil
 		sprintf(tmpFileNamePtr, "%s%s", Fnameptr->resrootname, ".dam");
 	}
 }
-
-int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, Fnames *Fnameptr,States *Statesptr,Pars *Parptr,Solver *Solverptr,Pois *Poisptr,BoundCs *BCptr,Stage *Stageptr,SGCprams *SGCptr,DamData *Damptr,
-	 vector<ChannelSegmentType> *ChannelSegmentsVecPtr, LISFLOODFPContext* LFPContextPtr, SuperGridLinksList *Super_linksptr, char* tmpFileNamePtr, char* tmpSysCmdPtr)
+int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Stageptr, SGCprams *SGCptr, DamData *Damptr,
+	vector<ChannelSegmentType> *ChannelSegmentsVecPtr, LISFLOODFPContext* LFPContextPtr, char* tmpFileNamePtr, char* tmpSysCmdPtr)
+//int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, Fnames *Fnameptr,States *Statesptr,Pars *Parptr,Solver *Solverptr,Pois *Poisptr,BoundCs *BCptr,Stage *Stageptr,SGCprams *SGCptr,DamData *Damptr,
+//	 vector<ChannelSegmentType> *ChannelSegmentsVecPtr, LISFLOODFPContext* LFPContextPtr, SuperGridLinksList *Super_linksptr, char* tmpFileNamePtr, char* tmpSysCmdPtr)
 {
 	int i, chseg;
 	FILE *tmp_fp;
@@ -1246,7 +1248,9 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	if (Statesptr->SGC == ON) // SGC output
 	{
 		// SGC模拟
-		Fast_MainStart(Fnameptr, FpsPtr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Stageptr, CSTypePtr, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr,  LFPContextPtr, Super_linksptr); //Damptr added by FEOL
+		Fast_MainStart(Fnameptr, FpsPtr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Stageptr, CSTypePtr, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr,  LFPContextPtr); //Damptr added by FEOL
+		//Fast_MainStart(Fnameptr, FpsPtr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Stageptr, CSTypePtr, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr, Super_linksptr); //Damptr added by FEOL
+
 	}
 	else if (Statesptr->fv1 == ON)
 	{

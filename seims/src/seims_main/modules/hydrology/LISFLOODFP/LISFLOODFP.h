@@ -1,16 +1,12 @@
-/*!
- * \brief A IO test demo of developing module for SEIMS.
- *
- * \author Dawei Xiao
- * \date 2018-02-07
- */
+#pragma once
+
 
 #ifndef SEIMS_MODULE_LISFLOODFP_H
 #define SEIMS_MODULE_LISFLOODFP_H
 
 #include "SimulationModule.h"
 #include "Scenario.h"
-#include "lisflood.h"
+//#include "lisflood.h"
 #include "./lisflood2/DataTypes.h"
 
 using namespace bmps;
@@ -54,7 +50,7 @@ private:
 	int m_nCells;
 	int m_nSubbsns;
 	int m_inputSubbsnID; ///< current subbasin ID, 0 for the entire watershed
-
+	int counter;
 	// Instances of Structures
 	Arrays Raster;
 	Files Fps;
@@ -68,6 +64,7 @@ private:
 	SGCprams SGCchanprams;
 	DamData DamDataprams;
 	vector<ChannelSegmentType> ChannelSegments;
+	//SuperGridLinksList superGridLinksList;
 	//LISFLOODFPContext LFPContext;
 	//int verbosemode;
 	
@@ -87,7 +84,7 @@ private:
 	char* tmpFileNamePtr;
 	char* tmpSysCmdPtr;
 	vector<ChannelSegmentType> *ChannelSegmentsVecPtr;
-	SuperGridLinksList *Super_linksptr;
+	//SuperGridLinksList* Super_linksptr;
 	LISFLOODFPContext* LFPContextPtr;
 
 	
