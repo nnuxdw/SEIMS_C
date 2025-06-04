@@ -88,7 +88,7 @@ private:
 	char* tmpSysCmdPtr;
 	vector<struct ChannelSegmentType> *ChannelSegmentsVecPtr;
 	struct SuperGridLinksList *Super_linksptr;
-	struct LISFLOODFPContext* LFPContextPtr;
+	//struct LISFLOODFPContext* LFPContextPtr;
 
 	
 

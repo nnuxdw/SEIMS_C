@@ -10,7 +10,7 @@ LISFLOODFP::LISFLOODFP() :
 }
 
 LISFLOODFP::~LISFLOODFP() {
-	LisFloodFP_Finilize(Solverptr, Arrptr, Fnameptr, FpsPtr, Statesptr, Parptr,  LFPContextPtr,  tmpFileNamePtr);
+	//LisFloodFP_Finilize(Solverptr, Arrptr, Fnameptr, FpsPtr, Statesptr, Parptr,  LFPContextPtr,  tmpFileNamePtr);
 
 }
 
@@ -102,9 +102,9 @@ void LISFLOODFP::InitialOutputs() {
 	Damptr = &DamDataprams;
 	tmpFileNamePtr = new char[255];
 	tmpSysCmdPtr = new char[255];
-	Super_linksptr = new SuperGridLinksList();
+	//Super_linksptr = new SuperGridLinksList();
 
-	LisFloodFP_Initilize(argc, argv,Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr,Stageptr, SGCptr, Damptr,ChannelSegmentsVecPtr, LFPContextPtr, Super_linksptr, tmpFileNamePtr, tmpSysCmdPtr);
+	//LisFloodFP_Initilize(argc, argv,Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr,Stageptr, SGCptr, Damptr,ChannelSegmentsVecPtr, LFPContextPtr, Super_linksptr, tmpFileNamePtr, tmpSysCmdPtr);
 
 	
 	
@@ -121,9 +121,9 @@ int LISFLOODFP::Execute() {
 
 	InitialOutputs();
 	m_dt;
-	while (LFPContextPtr->curr_time < Solverptr->Sim_Time && LFPContextPtr->curr_time < Solverptr->Sim_Time) {
-		Fast_RunStep(Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, SGCptr, Damptr, Locptr, LFPContextPtr, Super_linksptr);
-	}
+	//while (LFPContextPtr->curr_time < Solverptr->Sim_Time && LFPContextPtr->curr_time < Solverptr->Sim_Time) {
+	//	Fast_RunStep(Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, SGCptr, Damptr, Locptr, LFPContextPtr, Super_linksptr);
+	//}
 	
 
     return 0;

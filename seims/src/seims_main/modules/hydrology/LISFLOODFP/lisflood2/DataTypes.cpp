@@ -1,5 +1,4 @@
-//#include "DataTypes.h"
-#include "../lisflood.h"
+#include "DataTypes.h"
 
 void AllocateWetDryRowBound(int row_count, int block_count, WetDryRowBound * wet_dry_bounds)
 {
