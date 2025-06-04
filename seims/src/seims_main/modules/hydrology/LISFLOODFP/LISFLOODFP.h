@@ -68,7 +68,7 @@ private:
 	SGCprams SGCchanprams;
 	DamData DamDataprams;
 	vector<ChannelSegmentType> ChannelSegments;
-	//LISFLOODFPContext LFPContext;
+	LISFLOODFPContext LFPContext;
 	//int verbosemode;
 	
 
@@ -86,13 +86,9 @@ private:
 	struct Stage *Locptr;
 	char* tmpFileNamePtr;
 	char* tmpSysCmdPtr;
-	vector<struct ChannelSegmentType> *ChannelSegmentsVecPtr;
+	vector<ChannelSegmentType> *ChannelSegmentsVecPtr;
 	struct SuperGridLinksList *Super_linksptr;
-	//struct LISFLOODFPContext* LFPContextPtr;
-
-	
-
-	
+	struct LISFLOODFPContext* LFPContextPtr;
 
 };
 #endif 

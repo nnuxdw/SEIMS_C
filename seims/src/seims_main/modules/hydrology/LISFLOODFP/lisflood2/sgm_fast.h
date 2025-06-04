@@ -33,8 +33,8 @@ void SGC2_UpdateLoadBalance(const int grid_rows, const int grid_cols_padded,
 	const SubGridRowList * sub_grid_layout,
 	WetDryRowBound* wet_dry_bounds);
 
-void Fast_IterateLoop(const int grid_cols, const int grid_rows, const int grid_cols_padded,
-	NUMERIC_TYPE *h_grid, NUMERIC_TYPE *volume_grid, 
+void Fast_Main(const int grid_cols, const int grid_rows, const int grid_cols_padded,
+	NUMERIC_TYPE *h_grid, NUMERIC_TYPE *volume_grid,
 	NUMERIC_TYPE *Qx_grid, NUMERIC_TYPE *Qy_grid, NUMERIC_TYPE *Qx_old_grid, NUMERIC_TYPE *Qy_old_grid,
 	NUMERIC_TYPE *maxH_grid, NUMERIC_TYPE *maxHtm_grid, NUMERIC_TYPE *initHtm_grid, NUMERIC_TYPE *totalHtm_grid,
 	NUMERIC_TYPE *maxVc_grid, NUMERIC_TYPE *maxVc_height_grid, NUMERIC_TYPE *maxHazard_grid,
@@ -53,7 +53,7 @@ void Fast_IterateLoop(const int grid_cols, const int grid_rows, const int grid_c
 	const NUMERIC_TYPE * SGC_BankFullHeight_grid,
 
 	TimeSeries * evap_time_series,
-	NetCDFVariable *evap_grid,	      
+	NetCDFVariable * evap_grid,
 	TimeSeries * rain_time_series,
 	TimeSeries * temperature_time_series,
 	NUMERIC_TYPE *rain_grid,
@@ -65,7 +65,7 @@ void Fast_IterateLoop(const int grid_cols, const int grid_rows, const int grid_c
 	RouteDynamicList * route_dynamic_list,
 	const NUMERIC_TYPE *route_V_ratio_per_sec_qx, const NUMERIC_TYPE * route_V_ratio_per_sec_qy,
 
-	SuperGridLinksList * Super_linksptr,
+	SuperGridLinksList *Super_linksptr,
 	Fnames *Fnameptr,
 	Files *Fptr,
 	Stage *Locptr,
@@ -76,8 +76,7 @@ void Fast_IterateLoop(const int grid_cols, const int grid_rows, const int grid_c
 	Arrays *Arrptr,
 	DamData *Damptr,
 	SGCprams * SGCptr,
-	NUMERIC_TYPE ** tmp_thread_data,
-	NUMERIC_TYPE ** tmp_thread_data_ch,
+	LISFLOODFPContext* LFPContextPtr
 #ifdef RESULT_CHECK
 	Arrays * Arrptr, // only for compare results
 	BoundCs * BCptr, // only for compare results
@@ -85,5 +84,5 @@ void Fast_IterateLoop(const int grid_cols, const int grid_rows, const int grid_c
 	vector<ChannelSegmentType> *ChannelSegmentsVecPtr,
 #endif
 
-	const int verbose);
+);
 

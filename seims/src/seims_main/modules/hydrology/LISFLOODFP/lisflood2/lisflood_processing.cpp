@@ -1569,23 +1569,28 @@ float CalculateCapillarySuction(float por, float clay, float sand) {
 	return cs;
 }
 
-void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr, ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, int verbose)
+void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
+	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr)
 {
 	// grid_cols列数，grid_rows行数
-	const int grid_cols = Parptr->xsz;
-	const int grid_rows = Parptr->ysz;
+	LFPContextPtr->grid_cols = Parptr->xsz;
+	LFPContextPtr->grid_rows = Parptr->ysz;
+	int grid_cols = Parptr->xsz;
+	int grid_rows = Parptr->ysz;
 	// keep consistent stride throughout
 	// extra 1 column needed for qx, and friction
 	// extra padding every row has at least 64 bytes of blank padding on the right
 	// grid_cols_padded = 列数 + 一些缓冲数
-	int grid_cols_padded = grid_cols + 1 + (64 / sizeof(NUMERIC_TYPE));
-	grid_cols_padded += (GRID_ALIGN_WIDTH - (grid_cols_padded % GRID_ALIGN_WIDTH)) % GRID_ALIGN_WIDTH;
+	LFPContextPtr->grid_cols_padded = LFPContextPtr->grid_cols + 1 + (64 / sizeof(NUMERIC_TYPE));
+	LFPContextPtr->grid_cols_padded += (GRID_ALIGN_WIDTH - (LFPContextPtr->grid_cols_padded % GRID_ALIGN_WIDTH)) % GRID_ALIGN_WIDTH;
+	int grid_cols_padded = LFPContextPtr->grid_cols + 1 + (64 / sizeof(NUMERIC_TYPE));
+	grid_cols_padded += (GRID_ALIGN_WIDTH - (LFPContextPtr->grid_cols_padded % GRID_ALIGN_WIDTH)) % GRID_ALIGN_WIDTH;
+	NUMERIC_TYPE g = Solverptr->g;
 
 	// clean up memory that is not required
 
 #ifndef RESULT_CHECK
-	//memory_free_legacy(&Arrptr->DEM ); 
-	//memory_free_legacy(&Arrptr->H );
+
 	memory_free_legacy(&Arrptr->Qx); //todo copy in case of checkpoint
 	memory_free_legacy(&Arrptr->Qy); //todo copy in case of checkpoint
 	memory_free_legacy(&Arrptr->Qxold); //todo copy in case of checkpoint?
@@ -1611,30 +1616,16 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	memory_free_legacy(&Arrptr->FHUy);
 	memory_free_legacy(&Arrptr->FHVy);
 
-	//memory_free_legacy(&Arrptr->FlowDir);
 	memory_free_legacy(&Arrptr->Route_dH);
-	//memory_free_legacy(&Arrptr->RouteInt);
 
 	/* ---------------- */
 	memory_free_legacy(&Arrptr->maxH); //todo copy in case of checkpoint
 	memory_free_legacy(&Arrptr->maxHtm); //todo copy in case of checkpoint
 	memory_free_legacy(&Arrptr->initHtm); //todo copy in case of checkpoint
 	memory_free_legacy(&Arrptr->totalHtm); //todo copy in case of checkpoint
-	//memory_free_legacy(&Arrptr->Manningsn );
-	//memory_free_legacy(&Arrptr->SGCManningsn );
 	memory_free_legacy(&Arrptr->paerial);
 	memory_free_legacy(&Arrptr->pbound);
-	//memory_free_legacy(&Arrptr->Weir_hc); // lists of weirs used
-	//memory_free_legacy(&Arrptr->Weir_Cd);
-	//memory_free_legacy(&Arrptr->Weir_m);
-	//memory_free_legacy(&Arrptr->Weir_w);
-	//memory_free_legacy(&Arrptr->Weir_Fixdir);
-	//memory_free_legacy(&Arrptr->Weir_Typ);
 
-	//memory_free_legacy(&Arrptr->evap );
-	//memory_free_legacy(&Arrptr->rain );
-
-	//memory_free_legacy(&Arrptr->ChanMask);
 	memory_free_legacy(&Arrptr->SegMask);
 
 	memory_free_legacy(&Arrptr->TRecx);
@@ -1650,30 +1641,23 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	memory_free_legacy(&Arrptr->maxVc);
 	memory_free_legacy(&Arrptr->maxVcH);
 	memory_free_legacy(&Arrptr->maxHaz);
-	//memory_free_legacy(&Arrptr->SGCwidth );
-	//memory_free_legacy(&Arrptr->SGCz);
 
-	//memory_free_legacy(&Arrptr->SGCbfH );
-	//memory_free_legacy(&Arrptr->SGCVol );
 	memory_free_legacy(&Arrptr->SGCdVol);
-	//memory_free_legacy(&Arrptr->SGCbfV );
-	//memory_free_legacy(&Arrptr->SGCc );
+
 	memory_free_legacy(&Arrptr->SGCFlowWidth);
 	memory_free_legacy(&Arrptr->SGCdx);
 	memory_free_legacy(&Arrptr->SGCcat_area);
-	//memory_free_legacy(&Arrptr->dx );
-	//memory_free_legacy(&Arrptr->dy );
-	//memory_free_legacy(&Arrptr->dA ); 
+
 
 	//memory_free_legacy(&Arrptr->SGCgroup);
 
 #endif
 
-	const NUMERIC_TYPE g = Solverptr->g;
+	//const NUMERIC_TYPE g = Solverptr->g;
 
-	TimeSeries * evap_time_series = Arrptr->evap;
-	TimeSeries * rain_time_series = Arrptr->rain;
-	TimeSeries * temperature_time_series = Arrptr->temperature;
+	LFPContextPtr->evap_time_series = Arrptr->evap;
+	LFPContextPtr->rain_time_series = Arrptr->rain;
+	LFPContextPtr->temperature_time_series = Arrptr->temperature;
 	// ****************************POI***************************************
 
 	Poisptr->Rain_Grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
@@ -1683,12 +1667,12 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	Poisptr->Qx_Grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 	Poisptr->Qy_Grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 	Poisptr->Q_Ch = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	
+
 	Poisptr->Vol_Grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 	Poisptr->surf_water_depth_Grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 	Poisptr->soil_lat_flowin_Grid_allLyr = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 	Poisptr->soil_lat_flowout_Grid_allLyr = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	
+
 	Poisptr->soil_water_depth_Grid = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 	Poisptr->soil_perc_Grid = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 	Poisptr->soil_lat_flowin_Grid = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
@@ -1731,10 +1715,10 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Poisptr->GlacierMelt_Grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Poisptr->Freeze_Grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 	}
-	
 
 
-	NUMERIC_TYPE * rain_grid_padded       = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
+
+	NUMERIC_TYPE * rain_grid_padded = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 	NUMERIC_TYPE * dist_infil_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows); // grid for dirtributed infiltration data
 
 	NetCDFVariable evap_grid;
@@ -1749,8 +1733,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	// 这里重新定义了所有栅格文件，行列数改变了
 	NUMERIC_TYPE * dem_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
-
-	if (Statesptr->use_interflow_singlelayer ==ON)
+	if (Statesptr->use_interflow_singlelayer == ON)
 	{
 		int m_nCells = Parptr->xsz * Parptr->ysz;
 		Parptr->slope = new NUMERIC_TYPE[m_nCells];
@@ -1760,11 +1743,10 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Parptr->slopePD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->interflowRunoffVolPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->interflow2ChVolPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-		
+
 	}
 	if (Statesptr->use_interflow_multilayer == ON) {
 		int m_nCells = Parptr->xsz * Parptr->ysz;
-		//Parptr->multi_interflowCsValueOfLyr = new NUMERIC_TYPE[Parptr->multi_nSoilLyrs];   // 读par文件时分配内存
 		Parptr->multi_interflowGenVolPD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
 		Parptr->multi_interflowRunoffVolPD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
 		Parptr->multi_interflow2ChVolPD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
@@ -1809,13 +1791,11 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Parptr->poreIndexPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->rechargePD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->percolationPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-		//Parptr->gwStoragePD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->gndQ2RchPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		// xiaodw, here initialize gw related variables 
 		Parptr->GwStorageDepth = Parptr->initGwStorageDepth;
 		Parptr->sumNCells = 0;
 		Parptr->sumNSgcCells = 0;
-		//Parptr->GroundWaterStorageTotal = 0.0;
 	}
 	if (Statesptr->use_percolation_multilayer == ON) {
 		int m_nCells = Parptr->xsz * Parptr->ysz;
@@ -1826,36 +1806,16 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Parptr->multi_soilThickness = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 		Parptr->multi_soilInitMoisture = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 
-		//Parptr->multi_soilPoreIndex = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilFc = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilPorosity = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilKs = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilThickness = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilInitMoisture = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-
 		Parptr->multi_soilPoreIndexPD = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 		Parptr->multi_soilFcPD = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 		Parptr->multi_soilPorosityPD = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 		Parptr->multi_soilKsPD = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 		Parptr->multi_soilThicknessPD = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 		Parptr->multi_soilInitMoisturePD = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
-		//Parptr->multi_soilPoreIndexPD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilFcPD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilPorosityPD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilKsPD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilThicknessPD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilInitMoisturePD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-
 
 		Parptr->multi_soilPercoPD = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 		Parptr->multi_soilWaterDepthPD = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 		Parptr->multi_soilMoisturePD = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
-
-
-		//Parptr->multi_soilPercoPD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilWaterDepthPD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-		//Parptr->multi_soilMoisturePD = new NUMERIC_TYPE*[Parptr->multi_nSoilLyrs];
-
 		Parptr->multi_ksFactorVOfLyr = new NUMERIC_TYPE[Parptr->multi_nSoilLyrs];
 		Parptr->multi_ksFactorHOfLyr = new NUMERIC_TYPE[Parptr->multi_nSoilLyrs];
 		Parptr->multi_soilWtrStoPrfl = new NUMERIC_TYPE[grid_cols_padded * grid_rows];
@@ -1877,29 +1837,22 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 
 		for (int i = 0; i < Parptr->multi_nSoilLyrs; i++)
 		{
-			//Parptr->multi_soilPoreIndex[i] = new NUMERIC_TYPE[m_nCells];
-			//Parptr->multi_soilPoreIndexPD[i] =  new NUMERIC_TYPE[grid_cols_padded * grid_rows];
+
 			Parptr->multi_soilPoreIndex[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols * grid_rows);
 			Parptr->multi_soilPoreIndexPD[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
-
-			//Parptr->multi_soilFc[i] = new NUMERIC_TYPE[m_nCells];
 			Parptr->multi_soilFc[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols * grid_rows);
 			Parptr->multi_soilFcPD[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
-			//Parptr->multi_soilPorosity[i] = new NUMERIC_TYPE[m_nCells];
 			Parptr->multi_soilPorosity[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols * grid_rows);
 			Parptr->multi_soilPorosityPD[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
-			//Parptr->multi_soilKs[i] = new NUMERIC_TYPE[m_nCells];
 			Parptr->multi_soilKs[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols * grid_rows);
 			Parptr->multi_soilKsPD[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
-			//Parptr->multi_soilThickness[i] = new NUMERIC_TYPE[m_nCells];
 			Parptr->multi_soilThickness[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols * grid_rows);
 			Parptr->multi_soilThicknessPD[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
-			//Parptr->multi_soilInitMoisture[i] = new NUMERIC_TYPE[m_nCells];
 			Parptr->multi_soilInitMoisture[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols * grid_rows);
 			Parptr->multi_soilInitMoisturePD[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
@@ -1922,7 +1875,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Parptr->soilWaterDepth = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 	}
 	if (Statesptr->use_wetspa_sur_mr == ON) {
-		
+
 		int m_nCells = Parptr->xsz * Parptr->ysz;
 		loadSoilPropertiesWetspa(Fnameptr, Parptr, m_nCells);
 		Parptr->infilPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
@@ -1934,7 +1887,6 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	if (Statesptr->use_seims_aet == ON) {
 		Parptr->etco = 0.8;
 
-		
 	}
 
 	if (Statesptr->use_xaj_evap == ON) {
@@ -1944,7 +1896,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Parptr->ed = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
 	}
-	
+
 	// **********************xiaodw, DHSVM******************
 	if (Statesptr->use_dhsvm == ON) {
 		int m_nCells = Parptr->xsz * Parptr->ysz;
@@ -1961,14 +1913,13 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Parptr->delta_volume_grid_ch = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
 		// 修正DHSVM允许上层土壤壤中流
-		//Parptr->tableDepthUpLyrPD = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * Parptr->multi_nSoilLyrs);
 		Parptr->satFlowUpPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->tableDepthUpLyrPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->subFlowGradUpLyrPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->subDirUpLyrPD = (unsigned char**)memory_allocate(sizeof(unsigned char*) * grid_cols_padded * grid_rows);
 		//Parptr->subDirUpLyrPD = (unsigned char***)memory_allocate(sizeof(unsigned char*) * Parptr->multi_nSoilLyrs);
 		Parptr->subTotalDirUpLyrPD = (unsigned int*)memory_allocate(sizeof(unsigned int) * grid_cols_padded * grid_rows);
-		Parptr->lyrOfWaterTableUpLayer = ( int*)memory_allocate(sizeof(unsigned int) * grid_cols_padded * grid_rows);
+		Parptr->lyrOfWaterTableUpLayer = (int*)memory_allocate(sizeof(unsigned int) * grid_cols_padded * grid_rows);
 		// todo: subDirUpLyrPD 多层，每层都有不同的dir
 
 		// 渗漏需要的参数
@@ -2009,11 +1960,8 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Parptr->satFlow2ChLyr_Last = new NUMERIC_TYPE[Parptr->multi_nSoilLyrs];
 		Parptr->satFlow2ChLyr_Rate = new NUMERIC_TYPE[Parptr->multi_nSoilLyrs];
 
-
-		
 		for (int i = 0; i < Parptr->multi_nSoilLyrs; i++)
 		{
-			//Parptr->subDirUpLyrPD[i] = (unsigned char**)memory_allocate(sizeof(unsigned char*) * grid_cols_padded * grid_rows);
 			Parptr->multi_soilFc[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols * grid_rows);
 			Parptr->multi_soilFcPD[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
@@ -2039,12 +1987,6 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 
 			Parptr->multi_soilDepthPD[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
-			/*Parptr->tableDepthUpLyrPD[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);*/
-
-			//for (int index = 0; index < grid_cols_padded * grid_rows; index++)
-			//{
-			//	Parptr->subDirUpLyrPD[i][index] = (unsigned char*)memory_allocate(sizeof(unsigned char) * NDIRS);
-			//}
 		}
 
 		Parptr->subSurfaceLatFlow2ChTotal = 0.0;
@@ -2054,11 +1996,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 			Parptr->subDirPD[i] = (unsigned char*)memory_allocate(sizeof(unsigned char) * NDIRS);
 			Parptr->subDirUpLyrPD[i] = (unsigned char*)memory_allocate(sizeof(unsigned char) * NDIRS);
 		}
-		//Parptr->multi_adjustPD = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-		//for (int i = 0; i < grid_cols_padded * grid_rows; i++)
-		//{
-		//	Parptr->multi_adjustPD[i] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * Parptr->multi_nSoilLyrs);
-		//}
+
 		Parptr->subTotalDirPD = (unsigned int*)memory_allocate(sizeof(unsigned int) * grid_cols_padded * grid_rows);
 		Parptr->soilThicknessAllLyrsPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		//Parptr->rootLyrDepthLyr = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * Parptr->multi_nSoilLyrs);
@@ -2066,7 +2004,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Parptr->satFlowPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->satFlow2ChPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->PercExcess2SurfPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-		
+
 		Parptr->satFlow2SurfPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->satFlow2NeiborPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		int neighbor_ref[] = { -grid_cols_padded - 1, -grid_cols_padded, -grid_cols_padded + 1 , 1, grid_cols_padded + 1, grid_cols_padded, grid_cols_padded - 1, -1 };
@@ -2094,12 +2032,11 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Parptr->surfaceHydro2ChTotal_Last = 0.0;
 
 	}
-	
+
 	if (Statesptr->use_green_ampt_singlelayer == ON) {
 
 		int m_nCells = Parptr->xsz * Parptr->ysz;
 
-		//int m_nCells = Parptr->xsz * Parptr->ysz;
 		// 土壤毛细吸头
 		Parptr->capillarySuction = new NUMERIC_TYPE[m_nCells];
 		// 累积渗透深度
@@ -2136,21 +2073,13 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 
 		// 读取土壤属性tif文件
 		loadSoilPropertiesGASinglelayer(Fnameptr, Parptr, m_nCells);
-//#pragma omp parallel for
+		//#pragma omp parallel for
 		for (int i = 0; i < m_nCells; ++i) {
 			if (Arrptr->DEM[i] != DEM_NO_DATA)
 			{
 				Parptr->accumuDepth[i] = 0.0f;
 				Parptr->infil[i] = 0.0f;
 				Parptr->infilCapacitySurplus[i] = 0.0f;
-				//// 暂时用统一值
-				//Parptr->soilMoisture[i] = 0.0f;				
-				//Parptr->ks[i] = 140.0f;
-				//Parptr->porosity[i] = 0.54f;
-				//Parptr->initSoilMoisture[i] = 0.0f;
-				//Parptr->rootDepth[i] = 400.0f;
-				//Parptr->clay[i] = 20.0f;
-				//Parptr->sand[i] = 20.0f;
 				// 根据第1层土壤的孔隙度、粘土占比、沙土占比计算土壤毛细吸头
 				// clay sand  g/kg -> n % , capillarySuction mm
 				Parptr->capillarySuction[i] = CalculateCapillarySuction(Parptr->porosity[i], Parptr->clay[i] / 10.0, Parptr->sand[i] / 10.0);
@@ -2163,13 +2092,8 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 				Parptr->infilCapacitySurplus[i] = TIF_NO_DATA;
 				Parptr->capillarySuction[i] = TIF_NO_DATA;
 				Parptr->soilWaterDepth[i] = TIF_NO_DATA;
-
 			}
-
 		}
-
-
-
 	}
 	if (Statesptr->use_green_ampt_multilayer == ON) {
 		// 多层时，只需要提供表层的 clay，sand
@@ -2186,7 +2110,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		// 读取表层土壤属性tif文件
 		loadSoilPropertiesGAMultilayer(Fnameptr, Parptr, m_nCells);
 
-//#pragma omp parallel for
+		//#pragma omp parallel for
 		for (int i = 0; i < m_nCells; ++i) {
 			for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
 			{
@@ -2217,17 +2141,8 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Parptr->clayPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->sandPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 		Parptr->accumuDepthPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-		//Parptr->soilWaterDepthPD = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-
 
 	}
-
-	/*NUMERIC_TYPE * snow_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	NUMERIC_TYPE * glacier_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	NUMERIC_TYPE * dem_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	NUMERIC_TYPE * dem_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	NUMERIC_TYPE * dem_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	NUMERIC_TYPE * dem_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);*/
 
 	//dx_col: read only data - column vector - one cell stores the grid dx for every cell in the row
 	// cell x may vary with latitude on large models
@@ -2254,19 +2169,18 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	// data is offset to the down by 1 row for vectorization alignment with qy
 	NUMERIC_TYPE * g_friction_sq_y_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * (grid_rows + 1));
 	NUMERIC_TYPE * friction_y_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * (grid_rows + 1));
-	
+
 	NUMERIC_TYPE * h_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 	NUMERIC_TYPE * volume_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	//int * ChanMask_grid = (int*)memory_allocate(sizeof(int) * grid_cols_padded * grid_rows);
 
-	NUMERIC_TYPE *maxH_grid, *maxHtm_grid, *initHtm_grid, *totalHtm_grid, *maxVc_grid, *maxVc_height_grid, *maxHazard_grid;
-	maxH_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	maxHtm_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	initHtm_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	totalHtm_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	maxVc_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	maxVc_height_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	maxHazard_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
+	//NUMERIC_TYPE *maxH_grid, *maxHtm_grid, *initHtm_grid, *totalHtm_grid, *maxVc_grid, *maxVc_height_grid, *maxHazard_grid;
+	LFPContextPtr->maxH_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
+	LFPContextPtr->maxHtm_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
+	LFPContextPtr->initHtm_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
+	LFPContextPtr->totalHtm_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
+	LFPContextPtr->maxVc_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
+	LFPContextPtr->maxVc_height_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
+	LFPContextPtr->maxHazard_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 
 	// qx is in m3/s
 	// column 0 is flow to/from out of bounds into the domain
@@ -2278,7 +2192,6 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	NUMERIC_TYPE* Vx_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 	// floodplain ywidth is defined on Qx grid
 	NUMERIC_TYPE* Fp_ywidth = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-
 
 	// qy is in m3/s
 	// row 0 is flow to/from out of bounds into the domain
@@ -2292,23 +2205,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	NUMERIC_TYPE* Fp_xwidth = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * (grid_rows + 1));
 
 	// sub-grid
-	//NUMERIC_TYPE *SGC_width_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
 	NUMERIC_TYPE *SGC_BankFullHeight_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	//NUMERIC_TYPE *SGC_BankFullVolume_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	//NUMERIC_TYPE *SGC_c_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	//NUMERIC_TYPE *SGC_Qx_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	//NUMERIC_TYPE *SGC_Qy_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * (grid_rows + 1));
-	//flood plain flow into cell needs to be removed for the region above the channel (Neil 2012 Figure 1 (C) )
-	//NUMERIC_TYPE *SGC_ChannelWidth_X_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	//flood plain flow into cell needs to be removed for the region above the channel (Neil 2012 Figure 1 (C) )
-	//NUMERIC_TYPE *SGC_ChannelWidth_Y_grid = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * (grid_rows + 1));
-
-	//NUMERIC_TYPE * SGC_mannings;
-	//if (Arrptr->SGCManningsn != NULL)
-	//	SGC_mannings = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded * grid_rows);
-	//else
-	//	SGC_mannings = NULL;
-
 	// count the number of threads
 	// omp_get_num_threads() - current number of threads can't be used outside of pragma omp
 	// omp_get_max_threads() - is not consistent across implementations
@@ -2318,12 +2215,12 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	{
 		thread_count++;
 	}
-	if (verbose == ON) printf("OMP thread count: %d\n", thread_count);
+	if (LFPContextPtr->verbose == ON) printf("OMP thread count: %d\n", thread_count);
 
 #ifdef __unix__
 	int* numa_nodes = (int*)memory_allocate(sizeof(int)*thread_count);
 	//int* numa_nodes = (int*)memory_allocate_aligned(sizeof(int)*thread_count);
-	
+
 #pragma omp parallel default(shared)
 	{
 		int node = numa_node_of_cpu(sched_getcpu());
@@ -2384,8 +2281,8 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		grid_cols_padded,
 		g,
 		flow_Qx_lookup_grid_tmp, flow_Qy_lookup_grid_tmp,
-		Fp_xwidth,	Fp_ywidth,
-		Statesptr, Parptr, Arrptr, SGCptr, verbose);
+		Fp_xwidth, Fp_ywidth,
+		Statesptr, Parptr, Arrptr, SGCptr, LFPContextPtr->verbose);
 #if _SGM_BY_BLOCKS == 1
 	InitSubGridStructureByBlocks(sub_grid_state_blocks, sub_grid_layout_blocks,
 		block_count,
@@ -2402,22 +2299,22 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	WeirLayout * weirs_bridges = new WeirLayout();
 	InitWeirStructure(EWeir_Weir, weirs_weirs, grid_rows, grid_cols, grid_cols_padded,
 		flow_Qx_lookup_grid_tmp, flow_Qy_lookup_grid_tmp, g,
-		Statesptr, Parptr, Arrptr, SGCptr, verbose);
+		Statesptr, Parptr, Arrptr, SGCptr, LFPContextPtr->verbose);
 	InitWeirStructure(EWeir_Bridge, weirs_bridges, grid_rows, grid_cols, grid_cols_padded,
 		flow_Qx_lookup_grid_tmp, flow_Qy_lookup_grid_tmp, g,
-		Statesptr, Parptr, Arrptr, SGCptr, verbose);
-	
+		Statesptr, Parptr, Arrptr, SGCptr, LFPContextPtr->verbose);
+
 	memory_free(&flow_Qx_lookup_grid_tmp);
 	memory_free(&flow_Qy_lookup_grid_tmp);
 
 	// Added by FEOL for Dams
-	if (Statesptr->DamMode == ON) InitDamStructure(grid_rows, grid_cols, grid_cols_padded, Statesptr, Parptr, Arrptr,SGCptr, Damptr,verbose);
-	
+	if (Statesptr->DamMode == ON) InitDamStructure(grid_rows, grid_cols, grid_cols_padded, Statesptr, Parptr, Arrptr, SGCptr, Damptr, LFPContextPtr->verbose);
+
 	// Added by JCN for super grid channels
 	SuperGridLinksList * Super_linksptr = new SuperGridLinksList();
 	if (Statesptr->ChanMaskRead == ON)
-	{ 
-		InitSuperLinksStructure(grid_rows, grid_cols, grid_cols_padded, Super_linksptr, Statesptr, Parptr, Arrptr, SGCptr, Solverptr, Fnameptr, verbose);
+	{
+		InitSuperLinksStructure(grid_rows, grid_cols, grid_cols_padded, Super_linksptr, Statesptr, Parptr, Arrptr, SGCptr, Solverptr, Fnameptr, LFPContextPtr->verbose);
 		//memory_free_legacy(&Arrptr->ChanMask);
 	}
 	memory_free_legacy(&Arrptr->SGCz);
@@ -2435,30 +2332,30 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 
 	/// set up temp data for use by each thread
 	/// tmp_thread_data是二维数组grid_cols_padded * thread_count，用来存储当前处理行的数据
-	NUMERIC_TYPE ** tmp_thread_data = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * thread_count);
-	NUMERIC_TYPE ** tmp_thread_data_ch = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * thread_count);
-	
+	LFPContextPtr->tmp_thread_data = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * thread_count);
+	LFPContextPtr->tmp_thread_data_ch = (NUMERIC_TYPE**)memory_allocate(sizeof(NUMERIC_TYPE*) * thread_count);
+
 	for (int thread_id = 0; thread_id < thread_count; thread_id++)
 	{
 		//allocate 1 row of temp per thread
-		tmp_thread_data[thread_id] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded);
-		tmp_thread_data_ch[thread_id] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded);
-		
-	}
+		LFPContextPtr->tmp_thread_data[thread_id] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded);
+		LFPContextPtr->tmp_thread_data_ch[thread_id] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded);
+
+}
 
 	//first touch and zero tmp_thread_data in the thread it will be used by
 #pragma omp parallel default(shared)
 	{
 		int thread_id = omp_get_thread_num();
-		memset(tmp_thread_data[thread_id], 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
-		memset(tmp_thread_data_ch[thread_id], 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
+		memset(LFPContextPtr->tmp_thread_data[thread_id], 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
+		memset(LFPContextPtr->tmp_thread_data_ch[thread_id], 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
 
 	}
 
 
 	//start with even load balance
 	SGC2_UpdateLoadBalance(grid_rows, grid_cols_padded, sub_grid_layout_rows, wet_dry_bounds);
-	Parptr->neighbor_row_ref = new int[NNEIGHBORS]{ -1, -1, -1, 0, 1, 1, 1, 0 };
+	Parptr->neighbor_row_ref = new int[NNEIGHBORS] { -1, -1, -1, 0, 1, 1, 1, 0 };
 	Parptr->neighbor_col_ref = new int[NNEIGHBORS] { -1, 0, 1, 1, 1, 0, -1, -1 };
 
 #pragma omp parallel for default(shared) schedule(static)
@@ -2482,7 +2379,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 			int source_bytes_per_row = sizeof(NUMERIC_TYPE) * grid_cols;
 			int dest_bytes_per_row = sizeof(NUMERIC_TYPE) * grid_cols_padded;
 			int padding = sizeof(NUMERIC_TYPE) * padding_count;
-			
+
 			int source_bytes_per_row_int = sizeof(int)*grid_cols;
 			int dest_bytes_per_row_int = sizeof(int)*grid_cols_padded;
 			int padding_int = dest_bytes_per_row_int - source_bytes_per_row_int;
@@ -2527,7 +2424,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 
 			memcpy(dem_grid + dest_row_index, Arrptr->DEM + source_row_index, source_bytes_per_row);
 			memset(dem_grid + dest_row_index + grid_cols, 0, padding);
-			
+
 			//Initiate distributed rainfall mask ASmith 2015
 			if (Statesptr->rainfallmask == ON)
 			{
@@ -2535,23 +2432,16 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 				memcpy(rain_grid_padded + dest_row_index, Arrptr->Rainmask + source_row_index, source_bytes_per_row);
 				memset(rain_grid_padded + dest_row_index + grid_cols, 0, padding);
 			}
-			//
-			//if (Statesptr->use_distributed_rain == ON)
-			//{
-			//	memcpy(rain_grid_padded + dest_row_index, Arrptr->DistributeRain + source_row_index, source_bytes_per_row);
-			//	memset(rain_grid_padded + dest_row_index + grid_cols, 0, padding);
-			//}
-			
 			if (Statesptr->calc_distributed_infiltration == ON)
 			{
-				memcpy(dist_infil_grid + dest_row_index, Arrptr->dist_infiltration+ source_row_index, source_bytes_per_row);
+				memcpy(dist_infil_grid + dest_row_index, Arrptr->dist_infiltration + source_row_index, source_bytes_per_row);
 				memset(dist_infil_grid + dest_row_index + grid_cols, 0, padding);
 			}
 			if (Statesptr->calc_infiltration == ON)
 			{
 				memset(Parptr->soilWaterDepth + dest_row_index, 0.0, grid_cols_padded);
 			}
-			
+
 
 			if (Statesptr->use_snow_glacier == ON) {
 				memset(Poisptr->Snow_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
@@ -2571,7 +2461,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 			memset(Poisptr->Qx_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
 			memset(Poisptr->Qy_Grid + dest_row_index, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
 			memset(Poisptr->Q_Ch + dest_row_index, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
-			
+
 			memset(Poisptr->Rain_Grid + dest_row_index + grid_cols, -1, padding);
 			memset(Poisptr->Evap_Grid + dest_row_index + grid_cols, -1, padding);
 			memset(Poisptr->Infilt_Grid + dest_row_index + grid_cols, -1, padding);
@@ -2610,7 +2500,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 			memset(Poisptr->soil_lat_flowin_Grid_allLyr_Last + dest_row_index + grid_cols, -1, padding);
 			memset(Poisptr->soil_lat_flowout_Grid_allLyr_Last + dest_row_index, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
 			memset(Poisptr->soil_lat_flowout_Grid_allLyr_Last + dest_row_index + grid_cols, -1, padding);
-			
+
 			for (int i = 0; i < Parptr->multi_nSoilLyrs; i++)
 			{
 				// 直接把指定值赋给栅格，参考这种方法
@@ -2635,7 +2525,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 				memset(Poisptr->soil_lat_flowin_Grid_Last[i] + dest_row_index + grid_cols, -1, padding);
 				memset(Poisptr->soil_lat_flowout_Grid_Last[i] + dest_row_index + grid_cols, -1, padding);
 			}
-			
+
 
 			//Initiate distributed evaporation grid
 			if (Statesptr->calc_evap == TIME_SPACE)
@@ -2644,54 +2534,21 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 			}
 
 			/// sub grid - grid version
-			//memcpy(SGC_width_grid + dest_row_index, Arrptr->SGCwidth + source_row_index, source_bytes_per_row);
-			//memset(SGC_width_grid + dest_row_index + grid_cols, 0, padding);
 			memcpy(SGC_BankFullHeight_grid + dest_row_index, Arrptr->SGCbfH + source_row_index, source_bytes_per_row);
 			memset(SGC_BankFullHeight_grid + dest_row_index + grid_cols, 0, padding);
-
-			//memcpy(ChanMask_grid + dest_row_index, Arrptr->ChanMask + source_row_index, sizeof(int) * grid_cols);
-			//memset(ChanMask_grid + dest_row_index + grid_cols, 0, sizeof(int) * padding_count);
-
-			//memcpy(SGC_BankFullVolume_grid + dest_row_index, Arrptr->SGCbfV + source_row_index, source_bytes_per_row);
-			//memset(SGC_BankFullVolume_grid + dest_row_index + grid_cols, 0, padding);
-
-			//memcpy(SGC_c_grid + dest_row_index, Arrptr->SGCc + source_row_index, source_bytes_per_row);
-			//memset(SGC_c_grid + dest_row_index + grid_cols, 0, padding);
-
-			//basic mannings copy - improve with 1d sub-grid-channel
-			//if (SGC_mannings != NULL)
-			//{
-			//	memcpy(SGC_mannings + dest_row_index, Arrptr->SGCManningsn + source_row_index, source_bytes_per_row);
-			//	memset(SGC_mannings + dest_row_index + grid_cols, 0, padding);
-			//}
-
-			//memcpy(SGC_group_grid + dest_row_index, Arrptr->SGCgroup + source_row_index, sizeof(int) * grid_cols);
-			//memset(SGC_group_grid + dest_row_index + grid_cols, 0, sizeof(int) * padding_count);
 			// end sub grid		
-
 			//copy only the first cooumn of the cell width and area data.
 			//data is constant across the x dimention
 			dx_col[j] = Arrptr->dx[source_row_index];
 			dy_col[j] = Arrptr->dy[source_row_index];
 			cell_area_col[j] = Arrptr->dA[source_row_index];
-			//memcpy(dx_col + dest_row_index, Arrptr->dx + source_row_index, source_bytes_per_row);
-			//memcpy(dy_col + dest_row_index, Arrptr->dy + source_row_index, source_bytes_per_row);
 
 			bool not_last_row = (j < grid_rows - 1);
 
-			//memset(maxH_grid + dest_row_index, 0, dest_bytes_per_row);
-			memset(totalHtm_grid + dest_row_index, 0, dest_bytes_per_row);
-			memset(maxVc_grid + dest_row_index, 0, dest_bytes_per_row);
-			memset(maxVc_height_grid + dest_row_index, 0, dest_bytes_per_row);
-			memset(maxHazard_grid + dest_row_index, 0, dest_bytes_per_row);
-			// xdw add, initial array used by green-ampt infiltration and saturation excess infiltration
-			//for (int i = 0; i < grid_cols; i++)
-			//{
-			//	Parptr->soilWaterDepth[dest_row_index + i] = Parptr->soilMoisturePD[dest_row_index + i] * Parptr->rootDepthPD[dest_row_index + i] * 10.0;
-			//}
-			//for (int i = grid_cols; i < grid_cols_padded; i++) {
-			//	Parptr->soilWaterDepth[dest_row_index + i] = -1.0;
-			//}
+			memset(LFPContextPtr->totalHtm_grid + dest_row_index, 0, dest_bytes_per_row);
+			memset(LFPContextPtr->maxVc_grid + dest_row_index, 0, dest_bytes_per_row);
+			memset(LFPContextPtr->maxVc_height_grid + dest_row_index, 0, dest_bytes_per_row);
+			memset(LFPContextPtr->maxHazard_grid + dest_row_index, 0, dest_bytes_per_row);
 
 			if (Statesptr->use_green_ampt_singlelayer == ON) {
 
@@ -2736,19 +2593,6 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 				memcpy(Parptr->fieldCapacityPD + dest_row_index, Parptr->fieldCapacity + source_row_index, source_bytes_per_row);
 				memset(Parptr->fieldCapacityPD + dest_row_index + grid_cols, 0.0, padding);
 
-				//Parptr->accumuDepthPD[i] = 0.0f;
-				//Parptr->soilMoisturePD[i] = 0.0f;
-				//Parptr->infilPD[i] = 0.0f;
-				//Parptr->infilCapacitySurplusPD[i] = 0.0f;
-				////// 暂时用统一值
-				//Parptr->ksPD[i] = 140.0f;
-				//Parptr->porosityPD[i] = 0.54f;
-				//Parptr->initSoilMoisturePD[i] = 0.7f;
-				//Parptr->rootDepthPD[i] = 400.0f;
-				//Parptr->clayPD[i] = 20.0f;
-				//Parptr->sandPD[i] = 20.0f;
-				//// 根据第1层土壤的孔隙度、粘土占比、沙土占比计算土壤毛细吸头
-				//Parptr->capillarySuctionPD[i] = CalculateCapillarySuction(Parptr->porosity[i], Parptr->clay[i] * 100, Parptr->sand[i] * 100);
 			}
 
 			if (Statesptr->use_green_ampt_multilayer == ON) {
@@ -2838,7 +2682,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 					Parptr->multi_soilProsityOfLyr[i] = C(0.0);
 					Parptr->multi_ksFactorVOfLyr[i] = C(0.0);
 					Parptr->multi_ksFactorHOfLyr[i] = C(0.0);
-					
+
 					// pore index
 					if (Statesptr->multi_soilPoreIndexOfLyr == ON)
 					{
@@ -2883,33 +2727,16 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 						memcpy(Parptr->multi_soilMoisturePD[i] + dest_row_index, Parptr->multi_soilInitMoisture[i] + source_row_index, source_bytes_per_row);
 						memset(Parptr->multi_soilMoisturePD[i] + dest_row_index + grid_cols, 0.0, padding);
 					}
-
-
 				}
-
-
-				//NUMERIC_TYPE** multi_soilPoreIndexPD;
-				//NUMERIC_TYPE** multi_soilFcPD;
-				//NUMERIC_TYPE** multi_soilPorosityPD;
-				//NUMERIC_TYPE** multi_soilKsPD;
-				//NUMERIC_TYPE** multi_soilThicknessPD;
-				//NUMERIC_TYPE** multi_soilInitMoisturePD;
-
-				//NUMERIC_TYPE** multi_soilPercoPD;
-				//NUMERIC_TYPE** multi_soilWaterDepthPD;
-				//NUMERIC_TYPE** multi_soilMoisturePD;
-				//NUMERIC_TYPE*  multi_ksFactorVOfLyr;
-				//NUMERIC_TYPE*  multi_soilWtrStoPrfl;
-				//NUMERIC_TYPE*  multi_soilPoreIndexOfLyr;
 			}
 			if (Statesptr->use_wetspa_sur_mr == ON) {
 
-				memset(Parptr->rainExcessPD + dest_row_index, 0.0 , sizeof(NUMERIC_TYPE) * grid_cols + padding);
+				memset(Parptr->rainExcessPD + dest_row_index, 0.0, sizeof(NUMERIC_TYPE) * grid_cols + padding);
 				memset(Parptr->rainExcessPD + dest_row_index + grid_cols, 0.0, padding);
 
 				memcpy(Parptr->runoffCoPD + dest_row_index, Parptr->runoffCo + source_row_index, source_bytes_per_row);
 				memset(Parptr->runoffCoPD + dest_row_index + grid_cols, 0.0, padding);
-				
+
 				memset(Parptr->infilPD + dest_row_index, 0.0, sizeof(NUMERIC_TYPE) * grid_cols + padding);
 				memset(Parptr->infilPD + dest_row_index + grid_cols, 0.0, padding);
 
@@ -2920,7 +2747,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 
 			if (Statesptr->use_seims_aet == ON) {
 				Parptr->etco = 0.8;
-				
+
 
 			}
 
@@ -3004,21 +2831,15 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 					Parptr->satFlow2ChLyr_Last[i] = C(0.0);
 					Parptr->satFlow2ChLyr_Rate[i] = C(0.0);
 
-					// 初始化adjust, 先全部设为1.0
-					//memset(Parptr->multi_adjustPD[i] + dest_row_index, 1.0, grid_cols);
-					//memset(Parptr->multi_adjustPD[i] + dest_row_index + grid_cols, DEM_NO_DATA, padding);
-
 				}
 
-				//memset(Parptr->tableDepthPD + dest_row_index, -9999.0, grid_cols* sizeof(NUMERIC_TYPE));
-				//memset(Parptr->tableDepthPD + dest_row_index + grid_cols, -9999.0, padding);
 				for (int i = 0; i < grid_cols_padded; i++)
 				{
 					Parptr->tableDepthPD[j*grid_cols_padded + i] = DEM_NO_DATA;
 					Parptr->satFlow2SurfPD[j*grid_cols_padded + i] = DEM_NO_DATA;
 				}
 
-				
+
 				int row_start = wet_dry_bounds->dem_data[j].start;
 				int row_end = wet_dry_bounds->dem_data[j].end;
 				int grid_row_index = j * grid_cols_padded;
@@ -3067,7 +2888,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 						Parptr->delta_volume_grid_ch[index] = 0.0;
 
 						// 根据土壤初始湿度初始化地下水埋深、地下水位
-						if ((Parptr->tableDepthPD[index] = WaterTableDepth(Parptr, Solverptr, Arrptr,Statesptr,Poisptr, cell_area_col[j], Parptr->multi_nSoilLyrs, Parptr->multi_nRootLyrs, index)) < 0.0) {
+						if ((Parptr->tableDepthPD[index] = WaterTableDepth(Parptr, Solverptr, Arrptr, Statesptr, Poisptr, cell_area_col[j], Parptr->multi_nSoilLyrs, Parptr->multi_nRootLyrs, index)) < 0.0) {
 							/* ReportError((char *) Routine, 35); */
 							remove -= Parptr->tableDepthPD[index] * cell_area_col[j];
 							Parptr->tableDepthPD[index] = 0.0;
@@ -3110,7 +2931,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 							}
 
 						}
-						
+
 					}
 					else {
 						Parptr->tableDepthPD[index] = DEM_NO_DATA;
@@ -3124,9 +2945,9 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 						}
 					}
 
-					
+
 					if (remove > 0.0) {
-						float* latLong = getLatLongByIndex(index, grid_cols_padded,Parptr);
+						float* latLong = getLatLongByIndex(index, grid_cols_padded, Parptr);
 						cout << "Initialize WARNING:excess water in soil profile is " << remove << " index: " << index << " lat: " << latLong[0] << " lon: " << latLong[1] << endl;
 						delete[] latLong;
 						//printf("WARNING:excess water in soil profile is %lf m^3 \n", remove);
@@ -3248,16 +3069,16 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 					cell_area_col[j + 1] = Arrptr->dA[source_row_index];
 				}
 
-				maxHtm_grid[dest_index] = (NUMERIC_TYPE)NULLVAL;
-				initHtm_grid[dest_index] = (NUMERIC_TYPE)NULLVAL;
-				maxH_grid[dest_index] = C(0.0);// -SGC_BankFullHeight_grid[dest_index];
+				LFPContextPtr->maxHtm_grid[dest_index] = (NUMERIC_TYPE)NULLVAL;
+				LFPContextPtr->initHtm_grid[dest_index] = (NUMERIC_TYPE)NULLVAL;
+				LFPContextPtr->maxH_grid[dest_index] = C(0.0);// -SGC_BankFullHeight_grid[dest_index];
 			}
 			for (int i = grid_cols; i < grid_cols_padded; i++)
 			{
 				int dest_index = dest_row_index + i;
-				maxH_grid[dest_index] = 0;
-				maxHtm_grid[dest_index] = 0;
-				initHtm_grid[dest_index] = 0;
+				LFPContextPtr->maxH_grid[dest_index] = 0;
+				LFPContextPtr->maxHtm_grid[dest_index] = 0;
+				LFPContextPtr->initHtm_grid[dest_index] = 0;
 				g_friction_sq_x_grid[dest_index] = 0;
 				g_friction_sq_y_grid[grid_cols_padded + dest_index] = 0;
 				friction_x_grid[dest_index] = 0;
@@ -3315,18 +3136,18 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	fflush(stdout);
 
 
-	Fast_IterateLoop(grid_cols, grid_rows, grid_cols_padded,
+	Fast_Main(grid_cols, grid_rows, grid_cols_padded,
 		h_grid, volume_grid,
 		Qx_grid, Qy_grid, Qx_old_grid, Qy_old_grid,
 
-		maxH_grid, maxHtm_grid, initHtm_grid, totalHtm_grid,
-		maxVc_grid, maxVc_height_grid, maxHazard_grid,
+		LFPContextPtr->maxH_grid, LFPContextPtr->maxHtm_grid, LFPContextPtr->initHtm_grid, LFPContextPtr->totalHtm_grid,
+		LFPContextPtr->maxVc_grid, LFPContextPtr->maxVc_height_grid, LFPContextPtr->maxHazard_grid,
 		Vx_grid, Vy_grid, Vx_max_grid, Vy_max_grid,
 		dem_grid,
 		g_friction_sq_x_grid, g_friction_sq_y_grid,
 		friction_x_grid, friction_y_grid,
 		dx_col, dy_col, cell_area_col,
-		Fp_xwidth,Fp_ywidth,
+		Fp_xwidth, Fp_ywidth,
 
 		sub_grid_layout_rows,
 		sub_grid_state_rows,
@@ -3335,7 +3156,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 
 		SGC_BankFullHeight_grid,
 
-		evap_time_series, &evap_grid, rain_time_series, temperature_time_series,rain_grid_padded, dist_infil_grid,
+		LFPContextPtr->evap_time_series, &evap_grid, LFPContextPtr->rain_time_series, LFPContextPtr->temperature_time_series, rain_grid_padded, dist_infil_grid,
 
 		wet_dry_bounds,
 		ps_layout, boundaryCondition,
@@ -3354,366 +3175,17 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		Arrptr,
 		Damptr,
 		SGCptr,
-		tmp_thread_data,
-		tmp_thread_data_ch,
+		LFPContextPtr
 #ifdef RESULT_CHECK
 		Arrptr, BCptr,
 		ChannelSegments,
 		ChannelSegmentsVecPtr,
 #endif
-
-		verbose);
-
-#ifndef RESULT_CHECK
-
-	memory_free_legacy(&Arrptr->Weir_Identx); //Weir_Identx converted to list, grid no longer needed
-	memory_free_legacy(&Arrptr->Weir_Identy); //Weir_Identy converted to list, grid no longer needed
-
-	// clean other memory that is no longer required after it has been copied/used
-	memory_free_legacy(&Arrptr->FlowDir);
-	memory_free_legacy(&Arrptr->RouteInt);
-	memory_free_legacy(&Arrptr->H);
-	//memory_free_legacy(& Arrptr->H);
-	memory_free_legacy(&Arrptr->DEM);
-	memory_free_legacy(&Arrptr->DEM);
-	if (Arrptr->Manningsn != NULL)
-		memory_free_legacy(&Arrptr->Manningsn);
-	if (Arrptr->SGCManningsn != NULL)
-		memory_free_legacy(&Arrptr->SGCManningsn);
+	);
 
 
-	memory_free_legacy(&Arrptr->QxSGold);
-	memory_free_legacy(&Arrptr->QySGold);
-
-	memory_free_legacy(&Arrptr->SGCwidth);
-	memory_free_legacy(&Arrptr->SGCz);
-	memory_free_legacy(&Arrptr->SGCc);
-	memory_free_legacy(&Arrptr->SGCbfH);
-	memory_free_legacy(&Arrptr->SGCbfV);
-
-	memory_free_legacy(&Arrptr->dx);
-	memory_free_legacy(&Arrptr->dy);
-	memory_free_legacy(&Arrptr->dA);
-
-	// -----------------------xdw useless free memory --------------------
-	//if (Statesptr->use_green_ampt_singlelayer == ON) {
-
-
-	//}
-
-	//if (Statesptr->use_interflow_singlelayer == ON) {
-
-	//}
-
-	//if (Statesptr->use_percolation_singlelayer == ON) {
-
-	//	
-	//}
-
-	//if (Statesptr->use_percolation_multilayer == ON) {
-
-	//}
-#endif
-	/*
-	if (Statesptr->use_green_ampt_singlelayer == ON) {
-		if (Parptr->capillarySuctionPD != NULL)
-		{
-			delete[] Parptr->capillarySuctionPD;
-		}
-		if (Parptr->accumuDepthPD != NULL)
-		{
-			delete[] Parptr->accumuDepthPD;
-		}
-		if (Parptr->soilMoisturePD != NULL)
-		{
-			delete[] Parptr->soilMoisturePD;
-		}
-		if (Parptr->infilPD != NULL)
-		{
-			delete[] Parptr->infilPD;
-		}
-		if (Parptr->infilCapacitySurplusPD != NULL)
-		{
-			delete[] Parptr->infilCapacitySurplusPD;
-		}
-		if (Parptr->ksPD != NULL)
-		{
-			delete[] Parptr->ksPD;
-		}
-		if (Parptr->initSoilMoisturePD != NULL)
-		{
-			delete[] Parptr->initSoilMoisturePD;
-		}
-		if (Parptr->porosityPD != NULL)
-		{
-			delete[] Parptr->porosityPD;
-		}
-		if (Parptr->clayPD != NULL)
-		{
-			delete[] Parptr->clayPD;
-		}
-		if (Parptr->sandPD != NULL)
-		{
-			delete[] Parptr->sandPD;
-		}
-
-		if (Parptr->rootDepthPD != NULL)
-		{
-			delete[] Parptr->rootDepthPD;
-		}
-		if (Parptr->soilWaterDepth != NULL)
-		{
-			delete[] Parptr->soilWaterDepth;
-		}
-
-		if (Parptr->capillarySuction != NULL)
-		{
-			delete[] Parptr->capillarySuction;
-		}
-		if (Parptr->accumuDepth != NULL)
-		{
-			delete[] Parptr->accumuDepth;
-		}
-		if (Parptr->infil != NULL)
-		{
-			delete[] Parptr->infil;
-		}
-		if (Parptr->ks != NULL)
-		{
-			delete[] Parptr->ks;
-		}
-
-		if (Parptr->infilCapacitySurplus != NULL)
-		{
-			delete[] Parptr->infilCapacitySurplus;
-		}
-		if (Parptr->initSoilMoisture != NULL)
-		{
-			delete[] Parptr->initSoilMoisture;
-		}
-		if (Parptr->porosity != NULL)
-		{
-			delete[] Parptr->porosity;
-		}
-		if (Parptr->clay != NULL)
-		{
-			delete[] Parptr->clay;
-		}
-		if (Parptr->sand != NULL)
-		{
-			delete[] Parptr->sand;
-		}
-		if (Parptr->rootDepth != NULL)
-		{
-			delete[] Parptr->rootDepth;
-		}
-	}
-	if (Statesptr->use_percolation_singlelayer == ON) {
-		if (Parptr->fieldCapacityPD != NULL)
-		{
-			delete[] Parptr->fieldCapacityPD;
-		}
-		if (Parptr->poreIndexPD != NULL)
-		{
-			delete[] Parptr->poreIndexPD;
-		}
-		if (Parptr->rechargePD != NULL)
-		{
-			delete[] Parptr->rechargePD;
-		}
-		if (Parptr->percolationPD != NULL)
-		{
-			delete[] Parptr->percolationPD;
-		}
-		if (Parptr->gwStoragePD != NULL)
-		{
-			delete[] Parptr->gwStoragePD;
-		}
-		if (Parptr->gndQ2RchPD != NULL)
-		{
-			delete[] Parptr->gndQ2RchPD;
-		}
-
-		if (Parptr->fieldCapacity != NULL)
-		{
-			delete[] Parptr->fieldCapacity;
-		}
-		if (Parptr->poreIndex != NULL)
-		{
-			delete[] Parptr->poreIndex;
-		}
-	}
-	if (Statesptr->use_interflow_singlelayer == ON) {
-		if (Parptr->interflowGenVolPD != NULL)
-		{
-			delete[] Parptr->interflowGenVolPD;
-		}
-		if (Parptr->interflow2ChVolPD != NULL)
-		{
-			delete[] Parptr->interflow2ChVolPD;
-		}
-		if (Parptr->interflowRunoffVolPD != NULL)
-		{
-			delete[] Parptr->interflowRunoffVolPD;
-		}
-		if (Parptr->slopePD != NULL)
-		{
-			delete[] Parptr->slopePD;
-		}
-
-		if (Parptr->slope != NULL)
-		{
-			delete[] Parptr->slope;
-		}
-	}
-	if (Statesptr->use_percolation_multilayer == ON) {
-		for (int i = 0; i < Parptr->multi_nSoilLyrs; i++)
-		{
-			delete[] Parptr->multi_soilPoreIndex[i];
-			delete[] Parptr->multi_soilFc[i];
-			delete[] Parptr->multi_soilPorosity[i];
-			delete[] Parptr->multi_soilKs[i];
-			delete[] Parptr->multi_soilThickness[i];
-			delete[] Parptr->multi_soilInitMoisture[i];
-		}
-		delete[] Parptr->multi_soilPoreIndex;
-		delete[] Parptr->multi_soilFc;
-		delete[] Parptr->multi_soilPorosity;
-		delete[] Parptr->multi_soilKs;
-		delete[] Parptr->multi_soilThickness;
-		delete[] Parptr->multi_soilInitMoisture;
-
-		for (int i = 0; i < Parptr->multi_nSoilLyrs; i++)
-		{
-			delete[] Parptr->multi_soilPoreIndexPD[i];
-			delete[] Parptr->multi_soilFcPD[i];
-			delete[] Parptr->multi_soilPorosityPD[i];
-			delete[] Parptr->multi_soilKsPD[i];
-			delete[] Parptr->multi_soilThicknessPD[i];
-			delete[] Parptr->multi_soilInitMoisturePD[i];
-
-			delete[] Parptr->multi_soilPercoPD[i];
-			delete[] Parptr->multi_soilWaterDepthPD[i];
-			delete[] Parptr->multi_soilMoisturePD[i];
-			delete[] Parptr->multi_soilInitMoisturePD[i];
-			delete[] Parptr->multi_soilInitMoisturePD[i];
-			delete[] Parptr->multi_soilInitMoisturePD[i];
-
-		}
-		delete[] Parptr->multi_soilPoreIndexPD;
-		delete[] Parptr->multi_soilFcPD;
-		delete[] Parptr->multi_soilPorosityPD;
-		delete[] Parptr->multi_soilKsPD;
-		delete[] Parptr->multi_soilThicknessPD;
-		delete[] Parptr->multi_soilInitMoisturePD;
-
-		delete[] Parptr->multi_soilPercoPD;
-		delete[] Parptr->multi_soilWaterDepthPD;
-		delete[] Parptr->multi_soilMoisturePD;
-		delete[] Parptr->multi_soilInitMoisturePD;
-		delete[] Parptr->multi_soilInitMoisturePD;
-		delete[] Parptr->multi_soilInitMoisturePD;
-
-		delete[] Parptr->multi_ksFactorVOfLyr;
-		delete[] Parptr->multi_soilWtrStoPrfl;
-		delete[] Parptr->multi_soilPoreIndexOfLyr;
-
-	}
-	if (Statesptr->use_interflow_multilayer == ON) {
-		for (int i = 0; i < Parptr->multi_nSoilLyrs; i++)
-		{
-			delete[] Parptr->multi_interflowGenVolPD[i];
-			delete[] Parptr->multi_interflow2ChVolPD[i];
-			delete[] Parptr->multi_interflowRunoffVolPD[i];
-		}
-		delete[] Parptr->multi_interflowGenVolPD;
-		delete[] Parptr->multi_interflow2ChVolPD;
-		delete[] Parptr->multi_interflowRunoffVolPD;
-		delete[] Parptr->multi_interflowCsValueOfLyr;
-	}
-	*/
-	if (verbose == ON) printf("Finished.\n\n");
 }
-
 // ITERATE THROUGH TIME STEPS
-void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr, ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, int verbose)
-{
-	if (verbose == ON)
-	{
-		printf("\nStarting time steps: ");
-		fflush(stdout);
-	}
-	Solverptr->itrn_time_now = Solverptr->itrn_time;
-
-	// Populating Tstep variables prior to start of simulation
-	// 注意这里可以选择不同的时间步长策略
-	if (Statesptr->adaptive_ts == ON)
-	{
-		if (Solverptr->t == 0)
-		{
-			Solverptr->Tstep = Solverptr->InitTstep;
-			Solverptr->MinTstep = Solverptr->InitTstep;
-		}
-		if (verbose == ON) printf("adaptive mode\n\n");
-		fflush(stdout);
-	}
-	else if (Statesptr->acceleration == ON)
-	{
-		if (Solverptr->t == 0)
-		{
-			Solverptr->Tstep = Solverptr->InitTstep;
-			Solverptr->MinTstep = Solverptr->InitTstep;
-		}
-		if (verbose == ON) printf("acceleration mode\n\n");
-		fflush(stdout);
-	}
-	else if (Statesptr->Roe == ON)
-	{
-		if (Solverptr->t == 0)
-		{
-			Solverptr->Tstep = Solverptr->InitTstep;
-			Solverptr->MinTstep = Solverptr->InitTstep;
-		}
-		if (verbose == ON) printf("Roe mode\n\n");
-		fflush(stdout);
-	}
-	else
-	{
-		if (Solverptr->t == 0)
-		{
-			Solverptr->Tstep = Solverptr->InitTstep;
-			Solverptr->MinTstep = Solverptr->InitTstep;
-		}
-		if (verbose == ON) printf("non-adaptive mode\n\n");
-		fflush(stdout);
-	}
-	if (Statesptr->SGC == ON)
-	{
-		// because the SGC model calculates the time step in UpdateH rather than during calcFPflow it needs to initalise 
-		// SGCtmpTstep, which would usually be calculated in UpdateH
-		Solverptr->Tstep = Solverptr->InitTstep;
-		CalcT(Parptr, Solverptr, Arrptr);
-		Solverptr->SGCtmpTstep = Solverptr->Tstep;
-		if (verbose == ON) printf("SGC mode\n\n");
-		fflush(stdout);
-	}
-	//	NUMERIC_TYPE init[16];
-	//#pragma omp parallel for default(shared) schedule(static)
-	//	for (int j = 0; j < 16; j++)
-	//	{
-	//		#pragma omp critical
-	//		{
-	//			init[j] = CBRT((NUMERIC_TYPE)j);
-	//		}
-	//
-	//	}
-	//	for (int j = 0; j < 16; j++)
-	//	{
-	//		printf("Init done: %" NUM_FMT"\n", init[j]);
-	//	}
-
-	Fast_MainInit(Fnameptr, Fptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Locptr, ChannelSegments, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, verbose);
-}
 
 
 
