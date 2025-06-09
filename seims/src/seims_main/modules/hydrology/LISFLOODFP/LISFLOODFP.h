@@ -53,7 +53,11 @@ private:
 	int m_dt;            ///< time step (sec)
 	int m_nCells;
 	int m_nSubbsns;
-	int m_inputSubbsnID; ///< current subbasin ID, 0 for the entire watershed
+	//int m_inputSubbsnID; ///< current subbasin ID, 0 for the entire watershed
+	/// subbasin grid (subbasins ID)
+	float* m_subbsnID;
+	int counter;
+	string seims_start_time;
 
 	// Instances of Structures
 	Arrays Raster;

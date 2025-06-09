@@ -449,6 +449,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_OL_HAND                           "Use HAND to calculate floodplain inundation."
 #define MID_LISFLOODFP                             "LISFLOODFP"
 #define MDESC_LISFLOODFP                           "Use LISFLOODFP to calculate floodplain inundation."
+#define MID_LISFLOODFP_MUSK                             "LISFLOODFP_MUSK"
+#define MDESC_LISFLOODFP_MUSK                       "Use LISFLOODFP_MUSK to calculate floodplain inundation."
 /// Channel routing related modules
 #define MCLS_CH_ROUTING                        "Channel routing"
 #define MCLSDESC_CH_ROUTING                    "Channel routing modules"

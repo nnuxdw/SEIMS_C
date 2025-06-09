@@ -29,6 +29,8 @@ Tel: +44-117-928-9108, Fax: +44-117-928-7878
 
 #include "lisflood2/file_tool.h"
 
+#include "time_tool.h"
+
 //#include "lisflood2/lis2_output.h"
 //#include "lisflood2/lisflood_processing.h"
 
@@ -787,20 +789,6 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	NUMERIC_TYPE tmp;
 	//char tmp_sys_com[255]; // temporary string to hold system command
 
-	// Instances of Structures
-	//Arrays Raster;
-	//Files Fps;
-	//Fnames ParFp;
-	//States SimStates;
-	//Pars Params;
-	//Solver ParSolver;
-	//Pois PoisHandler;
-	//BoundCs Bounds;
-	//Stage OutLocs;
-	//SGCprams SGCchanprams;
-	//DamData DamDataprams;
-
-
 	//Instances of Vectors
 	vector<ChannelSegmentType> ChannelSegments; // CCS Contains the channel information for ALL rivers (indexed using RiversIndex vector below).
 	//vector<ChannelSegmentType> *ChannelSegmentsVecPtr; // CCS
@@ -813,30 +801,6 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	vector<int> RiversIndex; // CCS Contains index values for ChannelSegments so we know where one river finishes and the next starts.
 	vector<int> *RiversIndexVecPtr; // CCS
 	RiversIndexVecPtr = &RiversIndex; // CCS
-
-	//memset(&Raster, 0, sizeof(Arrays));
-	//memset(&Fps, 0, sizeof(Files));
-	//memset(&ParFp, 0, sizeof(Fnames));
-	//memset(&SimStates, 0, sizeof(States));
-	//memset(&Params, 0, sizeof(Pars));
-	//memset(&ParSolver, 0, sizeof(Solver));
-	//memset(&PoisHandler, 0, sizeof(Pois));
-	//memset(&Bounds, 0, sizeof(BoundCs));
-	//memset(&OutLocs, 0, sizeof(Stage));
-	//memset(&SGCchanprams, 0, sizeof(SGCprams));
-	//memset(&DamDataprams, 0, sizeof(DamData));
-
-	// DEFINE & DECLARE: Pointers to Structures
-	//Arrays *Arrptr = &Raster;
-	//Fnames *Fnameptr = &ParFp;
-	//States *Statesptr = &SimStates;
-	//Pars *Parptr = &Params;
-	//Solver *Solverptr = &ParSolver;
-	//Pois *Poisptr = &PoisHandler;
-	//BoundCs *BCptr = &Bounds;
-	//Stage *Stageptr = &OutLocs;
-	//SGCprams *SGCptr = &SGCchanprams;
-	//DamData *Damptr = &DamDataprams; //FEOL
 
 	// Define initial value for common simulation states (eg. verbose)
 	Statesptr->output_params = OutputParams();
@@ -903,12 +867,7 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	Parptr->multi_nSoilLyrs = C(0.0);
 	Parptr->multi_curSoilLyr = C(0.0);
 
-	//Parptr->multi_lyr_soilPerco = C(0.0);
-	//Parptr->multi_lyr_soilPorosity = C(0.0);
-	//Parptr->multi_lyr_soilKs = C(0.0);
-	//Parptr->multi_lyr_soilThickness = C(0.0);
-	//Parptr->multi_lyr_soilInitMoisture = C(0.0);
-	//Parptr->multi_lyr_soilPoreIndex = C(0.0);
+
 
 	Parptr->Routing_Speed = C(0.1); // CCS default routing speed for shallow rainfall flows C(0.1) m/s
 	Parptr->RouteInt = C(0.0); // CCS will be reasigned when FlowDirDEM function is called
@@ -928,12 +887,7 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	Parptr->drain_nodata = OFF;
 	//-----------------------------multi-layer perc, interflow
 	Parptr->multi_nSoilLyrs = 0;
-	//Parptr->multi_lyr_soilPerco = 0;
-	//Parptr->multi_lyr_soilPorosity = 0;
-	//Parptr->multi_lyr_soilKs = 0;
-	//Parptr->multi_lyr_soilThickness = 0;
-	//Parptr->multi_lyr_soilInitMoisture = 0;
-	//Parptr->multi_lyr_soilPoreIndex = 0;
+
 
 	// Define initial values for boundary conditions
 	BCptr->Qin = C(0.0);
@@ -1086,7 +1040,7 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	strcpy(Fnameptr->res_prefix, "res");
 
 	int verbosemode = ReadVerboseMode(argc, argv);
-
+	LFPContextPtr->verbose = verbosemode;
 	printversion(verbosemode);
 
 	ReadConfiguration(argc, argv, Fnameptr, Statesptr, Parptr, Solverptr,

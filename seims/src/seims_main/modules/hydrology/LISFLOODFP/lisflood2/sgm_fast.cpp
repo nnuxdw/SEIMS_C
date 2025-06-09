@@ -9690,7 +9690,7 @@ void Fast_Main(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	NUMERIC_TYPE last_interflow_time = 0.f;
 
 	// xiaodw, for distributed rainfall
-	LFPContextPtr->last_rain_time = 0.f;
+	LFPContextPtr->last_rain_time = 0;
 	if (Statesptr->rainfallmask)
 	{
 		LFPContextPtr->rain_begin_timestamp = getTimestampFromDateTime(Solverptr->rain_begin_time);
@@ -9699,6 +9699,9 @@ void Fast_Main(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		LFPContextPtr->last_rain_time = LFPContextPtr->rain_begin_timestamp;
 		LFPContextPtr->rainfall_no_padding = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * Parptr->xsz * Parptr->ysz);
 	}
+	// xiaodw, for seims
+	LFPContextPtr->seims_begin_timestamp = getTimestampFromDateTime(Solverptr->seims_begin_time);
+	LFPContextPtr->seims_end_timestamp = getTimestampFromDateTime(Solverptr->seims_end_time);
 	// xiaodw, SGC模式下的河道初始径流量
 	if (Parptr->sgcStartH > 0)
 	{

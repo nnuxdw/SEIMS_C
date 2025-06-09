@@ -1272,6 +1272,9 @@ struct Solver{
 	// xdw add, support distributed rainfall
 	char rain_begin_time[256];
 	char rain_end_time[256];
+
+	char seims_begin_time[256];
+	char seims_end_time[256];
 	int rain_time_step;   // 降雨间隔时间 s
 };
 
@@ -1669,6 +1672,8 @@ struct LISFLOODFPContext {
 	double processing_end_time;
 	double total_write_time;
 	double loop_start;
+	time_t seims_begin_timestamp;
+	time_t seims_end_timestamp;
 
 	NUMERIC_TYPE curr_time;
 	time_t rain_begin_timestamp;

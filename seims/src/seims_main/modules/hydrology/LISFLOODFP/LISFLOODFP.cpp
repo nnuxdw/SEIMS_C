@@ -6,7 +6,9 @@
 #include "text.h"
 
 LISFLOODFP::LISFLOODFP() :
-	m_dt(-1), m_inputSubbsnID(-1){
+	m_dt(-1), counter(0), m_subbsnID(nullptr),Arrptr(nullptr), FpsPtr(nullptr), Fnameptr(nullptr), Statesptr(nullptr), Parptr(nullptr), Solverptr(nullptr), Poisptr(nullptr), BCptr(nullptr),
+	Stageptr(nullptr), SGCptr(nullptr), Damptr(nullptr), tmpFileNamePtr(nullptr), tmpSysCmdPtr(nullptr) {
+
 }
 
 LISFLOODFP::~LISFLOODFP() {
@@ -16,13 +18,14 @@ LISFLOODFP::~LISFLOODFP() {
 
 void LISFLOODFP::SetValue(const char* key, const float value) {
 	string sk(key);
-	if (StringMatch(sk, Tag_HillSlopeTimeStep)) m_dt = CVT_INT(value);
+	if (StringMatch(sk, Tag_TimeStep)) m_dt = CVT_INT(value);
+	else if (StringMatch(sk, Tag_StartTime)) seims_start_time = CVT_INT(value);
 	else if (StringMatch(sk, Tag_CellSize)) m_nCells = CVT_INT(value);
 	//else if (StringMatch(sk, Tag_CellWidth)) m_CellWth = value;
 	else if (StringMatch(sk, VAR_SUBBSNID_NUM)) m_nSubbsns = CVT_INT(value);
-	else if (StringMatch(sk, Tag_SubbasinId)) m_inputSubbsnID = CVT_INT(value);
+	//else if (StringMatch(sk, Tag_SubbasinId)) m_inputSubbsnID = CVT_INT(value);
 	else {
-		throw ModelException(MID_IUH_OL, "SetValue", "Parameter " + sk + " does not exist.");
+		throw ModelException(MID_LISFLOODFP, "SetValue", "Parameter " + sk + " does not exist.");
 	}
 }
 
@@ -34,6 +37,7 @@ void LISFLOODFP::Set1DData(const char* key, const int n, float* data) {
 		CheckInputSize(MID_LISFLOODFP, key, n, m_nCells);
 		//m_handArea = data;
 	}
+	else if (StringMatch(sk, VAR_SUBBSN)) m_subbsnID = data;
 	//else if (StringMatch(sk, VAR_BKST)) m_bankSto = data;	
 	else {
 		throw ModelException(MID_LISFLOODFP, "Set1DData", "Parameter " + sk + " does not exist.");
@@ -73,7 +77,7 @@ void LISFLOODFP::InitialOutputs() {
 	//CHECK_POSITIVE(MID_LISFLOODFP, m_nCells);
 	char* argv[] = {
 		(char*)"-v",
-		(char*)"F:\\BasinFloodData\\BasinFloodData1726898305348_250m\\prepdata\\Basin\\lisfloodfp\\cali_test\\test.par"
+		(char*)"F:\\BasinFloodData\\BasinFloodData1726898305348_250m\\prepdata\\Basin\\lisfloodfp\\cali_test\\test-seims.par"
 		};
 	int argc = 2;
 
@@ -88,6 +92,8 @@ void LISFLOODFP::InitialOutputs() {
 	memset(&OutLocs, 0, sizeof(Stage));
 	memset(&SGCchanprams, 0, sizeof(SGCprams));
 	memset(&DamDataprams, 0, sizeof(DamData));
+	memset(&LFPContext, 0, sizeof(LISFLOODFPContext));
+	
 	
 	Arrptr = &Raster;
 	FpsPtr = &Fps;
@@ -100,6 +106,7 @@ void LISFLOODFP::InitialOutputs() {
 	Stageptr = &OutLocs;
 	SGCptr = &SGCchanprams;
 	Damptr = &DamDataprams;
+	LFPContextPtr = &LFPContext;
 	tmpFileNamePtr = new char[255];
 	tmpSysCmdPtr = new char[255];
 	//Super_linksptr = new SuperGridLinksList();
@@ -118,14 +125,24 @@ int LISFLOODFP::Execute() {
 
 	//check the data
 	CheckInputData();
-
-	InitialOutputs();
-	m_dt;
-	while (LFPContextPtr->curr_time < Solverptr->Sim_Time && LFPContextPtr->curr_time < Solverptr->Sim_Time) {
-		Fast_RunStep(Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, SGCptr, Damptr, Locptr, LFPContextPtr, Super_linksptr);
+	if (nullptr == Arrptr)
+	{
+		InitialOutputs();
 	}
-	
-
+	counter++;
+	int seims_cur_step_start_timestamp = LFPContextPtr->seims_begin_timestamp + (counter - 1) * m_dt;
+	int seims_cur_step_end_timestamp = LFPContextPtr->seims_end_timestamp + counter * m_dt;
+	int current_timestamp;
+	if (seims_cur_step_start_timestamp < LFPContextPtr->rain_end_timestamp && seims_cur_step_end_timestamp > LFPContextPtr->rain_begin_timestamp)
+	{
+		updateCurrentTimestamp(&current_timestamp, LFPContextPtr);
+		// The simulation starts at the begin time of lisfloodfp, but it must end at the end of a SEIMS time step.
+		// This means lisfloodfp may run slightly longer than expected if its end time is not aligned with SEIMS.
+		while (current_timestamp > seims_cur_step_start_timestamp && current_timestamp < seims_cur_step_end_timestamp) {
+			Fast_RunStep(Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, SGCptr, Damptr, Locptr, LFPContextPtr, Super_linksptr);
+			updateCurrentTimestamp(&current_timestamp, LFPContextPtr);
+		}
+	}
     return 0;
 }
 
@@ -154,6 +171,10 @@ void LISFLOODFP::RunCalculation() {
 
 }
 
+
+void updateCurrentTimestamp(int * current_timestamp, LISFLOODFPContext* LFPContextPtr) {
+	*current_timestamp = LFPContextPtr->curr_time + LFPContextPtr->rain_begin_timestamp;
+}
 
 
 
