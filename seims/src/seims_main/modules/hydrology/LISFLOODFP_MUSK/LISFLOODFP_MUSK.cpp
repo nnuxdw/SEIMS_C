@@ -1,6 +1,7 @@
 #include "LISFLOODFP_MUSK.h"
 #include "ChannelRoutingCommon.h"
 #include "utils_math.h"
+#include <numeric>  // std::accumulate
 
 #include <map>
 #include <set> 
@@ -1313,6 +1314,10 @@ int LISFLOODFP_MUSK::Execute() {
 							Fast_RunStep(Arrptr, FpsPtr, Fnameptr, Statesptr, Parptr, Solverptr, Poisptr, SGCptr, Damptr, Locptr, LFPContextPtr, Super_linksptr, &coupling_map[reachIndex]);
 							updateCurrentTimestamp(&current_timestamp, LFPContextPtr);
 						}
+						// add 
+						coupling_map[reachIndex].qOutOneSeimsStep = accumulate(coupling_map[reachIndex].qOutList.begin(), coupling_map[reachIndex].qOutList.end(), static_cast<NUMERIC_TYPE>(0));
+						coupling_map[reachIndex].qOutList.clear();
+						m_qsRchOut[reachIndex] = coupling_map[reachIndex].qOutOneSeimsStep;
 					}
 				}
 				else if(lfpSetOther.count(reachIndex)){
@@ -1446,12 +1451,27 @@ void LISFLOODFP_MUSK::parseCouplingFile(
 		vector<SeimsUpstream> seims_up_list;
 		stringstream up_ss(parts[0]);
 		string up_token;
+		int i = 0;
 		while (getline(up_ss, up_token, '-')) {
 			auto colon_pos = up_token.find(':');
 			if (colon_pos != string::npos) {
 				int seims_id = stoi(up_token.substr(0, colon_pos));
-				int inflow_pt_name = stoi(up_token.substr(colon_pos + 1));
-				seims_up_list.push_back({ seims_id, inflow_pt_name });
+				std::string inflow_name_str = up_token.substr(colon_pos + 1);
+
+				// ·ÖÅä inflow_pt_name ×Ö·û´®ÄÚ´æ
+				char* inflow_name_cstr = new char[inflow_name_str.length() + 1];
+				std::strcpy(inflow_name_cstr, inflow_name_str.c_str());
+
+				SeimsUpstream upstream;
+				upstream.seims_id = seims_id;
+				upstream.inflow_pt_name = inflow_name_cstr;
+				upstream.qIn = 0.0;
+				upstream.ws_index = i++;
+				upstream.ps_index = 0;
+				upstream.ps_x = 0;
+				upstream.ps_y = 0;
+				upstream.grid_index = 0;
+				seims_up_list.push_back(upstream);
 			}
 		}
 

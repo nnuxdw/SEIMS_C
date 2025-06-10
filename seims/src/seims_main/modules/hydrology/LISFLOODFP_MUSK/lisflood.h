@@ -1717,7 +1717,8 @@ struct SeimsUpstream {
 struct LfpCouplingInfo {
 	vector<SeimsUpstream> seims_up_list;
 	int seims_down_id;
-	NUMERIC_TYPE qOut;
+	vector<NUMERIC_TYPE> qOutList;
+	NUMERIC_TYPE qOutOneSeimsStep;
 };
 
 void AllocateRoutingDynamicList(int rows, int grid_cols_padded, RouteDynamicList * route_dynamic_list);

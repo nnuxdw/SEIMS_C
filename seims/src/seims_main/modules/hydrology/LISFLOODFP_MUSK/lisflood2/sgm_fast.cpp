@@ -9036,6 +9036,8 @@ void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesp
 		Parptr->RainTotalLoss += reduce_rain_total;
 		LFPContext->ps_layout->Qpoint_pos = reduce_Qpoint_timestep_pos / delta_time;
 		LFPContext->ps_layout->Qpoint_neg = reduce_Qpoint_timestep_neg / delta_time;
+		// 把每个小时间段的流量存储到输出数组
+		LfpCouplingInfoPtr->qOutList.push_back(reduce_Qpoint_timestep_neg);
 
 		// Point sources
 		// xiaodw，关键：这里才是point source作为输入和输出流量边界，汇总到boundary_cond。
