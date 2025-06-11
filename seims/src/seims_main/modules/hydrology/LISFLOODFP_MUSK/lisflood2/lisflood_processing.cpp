@@ -46,7 +46,7 @@ void CopyToSubSubGridFlowInfo(int grid_index, int grid_index_next, int flow_inde
 	// PFU set constant channel ratio to minimum of two cells
 	NUMERIC_TYPE width0 = Arrptr->SGCwidth[grid_index];
 	NUMERIC_TYPE width1 = Arrptr->SGCwidth[grid_index_next];
-	flow_info->sg_flow_ChannelRatio[flow_index] = getmin(width0,width1)/grid_cell_width;
+	flow_info->sg_flow_ChannelRatio[flow_index] = getmin(width0, width1) / grid_cell_width;
 	//printf("Debug channelratio: %d, %" NUM_FMT,flow_index,flow_info->sg_flow_ChannelRatio[flow_index]);
 }
 
@@ -61,10 +61,10 @@ void CopyToSubGridCellInfo(int grid_cols_padded, int cell_index, int x, int y, S
 	sub_grid_cell_info->sg_cell_x[cell_index] = x;
 	sub_grid_cell_info->sg_cell_y[cell_index] = y;
 	sub_grid_cell_info->sg_cell_grid_index_lookup[cell_index] = x + y * grid_cols_padded;
-	
+
 	sub_grid_cell_info->sg_cell_cell_area[cell_index] = Arrptr->dA[source_row_index];
 	sub_grid_cell_info->sg_cell_dem[cell_index] = Arrptr->DEM[source_index];
-	
+
 	sub_grid_cell_info->sg_cell_SGC_width[cell_index] = Arrptr->SGCwidth[source_index];
 	// SGCbfH是河道的深度
 	sub_grid_cell_info->sg_cell_SGC_BankFullHeight[cell_index] = Arrptr->SGCbfH[source_index];
@@ -80,8 +80,8 @@ int CheckSubGrid(const int source_index_this, const int i, const int j, const in
 {
 	int source_index_right = source_index_this + 1;
 	int source_index_below = source_index_this + grid_cols;
-	int source_index_belowright    = source_index_this + 1 + grid_cols;
-	int source_index_belowleft     = source_index_this - 1 + grid_cols;
+	int source_index_belowright = source_index_this + 1 + grid_cols;
+	int source_index_belowleft = source_index_this - 1 + grid_cols;
 
 	int source_index_qx = (j * (grid_cols + 1)) + 1;
 	int source_index_qy = ((j + 1) * (grid_cols + 1));
@@ -98,7 +98,7 @@ int CheckSubGrid(const int source_index_this, const int i, const int j, const in
 	if (i < (grid_cols - 1) &&
 		(Arrptr->SGCwidth[source_index_right] > C(0.0)) &&
 		(Arrptr->DEM[source_index_right] != DEM_NO_DATA || Arrptr->ChanMask[source_index_right] > 0) && // typically the sub-grid model would not operate under DEM NoData, except if ChanMask is present
-		(weirs_enable != ON || Arrptr->Weir_Identx[source_index_qx] == -1) ) // don't add the sub-grid calculation where there is a weir
+		(weirs_enable != ON || Arrptr->Weir_Identx[source_index_qx] == -1)) // don't add the sub-grid calculation where there is a weir
 	{
 		//printf("sgx at %d, %d\n", i, j);
 		// PFU, check direction raster (in both directions)
@@ -118,7 +118,7 @@ int CheckSubGrid(const int source_index_this, const int i, const int j, const in
 	{
 		if ((Arrptr->SGCwidth[source_index_below] > C(0.0)) &&
 			(Arrptr->DEM[source_index_below] != DEM_NO_DATA || Arrptr->ChanMask[source_index_below] > 0) &&
-			(weirs_enable != ON || Arrptr->Weir_Identy[source_index_qy] == -1) ) // don't add the sub-grid calculation where there is a weir
+			(weirs_enable != ON || Arrptr->Weir_Identy[source_index_qy] == -1)) // don't add the sub-grid calculation where there is a weir
 		{
 			//printf("sgy at %d, %d\n", i, j);
 			if (Arrptr->SGCdirn == NULL)
@@ -127,7 +127,7 @@ int CheckSubGrid(const int source_index_this, const int i, const int j, const in
 			}
 			else
 			{
-				if(Arrptr->SGCdirn[source_index_this] == 7 || Arrptr->SGCdirn[source_index_below] == 3)
+				if (Arrptr->SGCdirn[source_index_this] == 7 || Arrptr->SGCdirn[source_index_below] == 3)
 				{
 					this_flow_count++;
 				}
@@ -135,11 +135,11 @@ int CheckSubGrid(const int source_index_this, const int i, const int j, const in
 		}
 	}
 	// PFU d8 dir belowright
-	if (d8dirs_enable && (j < grid_rows - 1) && (i<grid_cols-1) )
+	if (d8dirs_enable && (j < grid_rows - 1) && (i < grid_cols - 1))
 	{
 		if ((Arrptr->SGCwidth[source_index_belowright] > C(0.0)) &&
-			(Arrptr->DEM[source_index_belowright] != DEM_NO_DATA || Arrptr->ChanMask[source_index_belowright] > 0)) 
-		// warning: not checking for weirs in d8
+			(Arrptr->DEM[source_index_belowright] != DEM_NO_DATA || Arrptr->ChanMask[source_index_belowright] > 0))
+			// warning: not checking for weirs in d8
 		{
 			//printf("sgy at %d, %d\n", i, j);
 			if (Arrptr->SGCdirn == NULL)
@@ -156,11 +156,11 @@ int CheckSubGrid(const int source_index_this, const int i, const int j, const in
 		}
 	}
 	// PFU d8 dir belowleft
-	if (d8dirs_enable && (j < grid_rows - 1) && (i>0) )
+	if (d8dirs_enable && (j < grid_rows - 1) && (i > 0))
 	{
 		if ((Arrptr->SGCwidth[source_index_belowleft] > C(0.0)) &&
-			(Arrptr->DEM[source_index_belowleft] != DEM_NO_DATA || Arrptr->ChanMask[source_index_belowleft] > 0) )
-		// warning: not checking for weirs in d8
+			(Arrptr->DEM[source_index_belowleft] != DEM_NO_DATA || Arrptr->ChanMask[source_index_belowleft] > 0))
+			// warning: not checking for weirs in d8
 		{
 			//printf("sgy at %d, %d\n", i, j);
 			if (Arrptr->SGCdirn == NULL)
@@ -190,7 +190,7 @@ void InitSubGridStructureByBlocks(SubGridState * sub_grid_state, SubGridRowList 
 	const int grid_cols_padded,
 	const NUMERIC_TYPE g,
 	int * flow_Qx_lookup_grid_tmp, int * flow_Qy_lookup_grid_tmp,
-	NUMERIC_TYPE * Fp_xwidth,	NUMERIC_TYPE * Fp_ywidth,
+	NUMERIC_TYPE * Fp_xwidth, NUMERIC_TYPE * Fp_ywidth,
 	States *Statesptr, Pars *Parptr, Arrays *Arrptr, SGCprams *SGCptr, const int verbose)
 {
 	if (verbose == ON)	printf("Init Sub Grid...\t");
@@ -523,7 +523,7 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 	const int grid_cols_padded,
 	const NUMERIC_TYPE g,
 	int * flow_Qx_lookup_grid_tmp, int * flow_Qy_lookup_grid_tmp,
-	NUMERIC_TYPE * Fp_xwidth,	NUMERIC_TYPE * Fp_ywidth,
+	NUMERIC_TYPE * Fp_xwidth, NUMERIC_TYPE * Fp_ywidth,
 	States *Statesptr, Pars *Parptr, Arrays *Arrptr, SGCprams *SGCptr, const int verbose)
 {
 	if (verbose == ON)	printf("Init Sub Grid...\t");
@@ -559,11 +559,11 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 
 		//PFU initialise fp widths to 1
 		// Y-grid has one extra row (for xwidths)
-		for (int i = 0; i < grid_cols_padded; i++){
-			if (j==0)
+		for (int i = 0; i < grid_cols_padded; i++) {
+			if (j == 0)
 				Fp_xwidth[i] = C(1.0);
 			Fp_ywidth[i + j * grid_cols_padded] = C(1.0);
-			Fp_xwidth[i + (j+1) * grid_cols_padded] = C(1.0);
+			Fp_xwidth[i + (j + 1) * grid_cols_padded] = C(1.0);
 		}
 
 
@@ -706,14 +706,14 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 				// Link with cell to the right
 				if (i < (Parptr->xsz - 1) &&
 					(Arrptr->SGCwidth[source_index_right] > C(0.0)) &&
-					(Arrptr->DEM[source_index_right] != DEM_NO_DATA || Arrptr->ChanMask[source_index_right] > 0)  &&
+					(Arrptr->DEM[source_index_right] != DEM_NO_DATA || Arrptr->ChanMask[source_index_right] > 0) &&
 					(Statesptr->weirs != ON || Arrptr->Weir_Identx[source_index_right_q] == -1)) // don't add the sub-grid calculation where there is a weir)
 				{
 					// check directions raster for link
 					bool dirn_allowed = 1;
 					if (Arrptr->SGCdirn != NULL)
 					{
-						if  (Arrptr->SGCdirn[source_index_this] != 1 && Arrptr->SGCdirn[source_index_right] != 5 ) dirn_allowed = 0;
+						if (Arrptr->SGCdirn[source_index_this] != 1 && Arrptr->SGCdirn[source_index_right] != 5) dirn_allowed = 0;
 					}
 					if (dirn_allowed)
 					{
@@ -751,9 +751,9 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 						// use omp critical to prevent different threads writing to same width variable
 						// 这里使用的sg_flow_ChannelRatio就很重要了，sg_flow_ChannelRatio是 河宽/栅格宽度，如果sg_flow_ChannelRatio>cell width，Fp_ywidth可能出现负值
 						// todo ： 验证是否可能是负值？
-						#pragma omp critical(widthy)
+#pragma omp critical(widthy)
 						{
-						Fp_ywidth[grid_index+1] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index];
+							Fp_ywidth[grid_index + 1] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index];
 						}
 
 						row_flow_index++;
@@ -770,10 +770,10 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 						bool dirn_allowed = 1;
 						if (Arrptr->SGCdirn != NULL)
 						{
-							if ( Arrptr->SGCdirn[source_index_this] != 7 && Arrptr->SGCdirn[source_index_right] != 3 ) dirn_allowed = 0;
+							if (Arrptr->SGCdirn[source_index_this] != 7 && Arrptr->SGCdirn[source_index_right] != 3) dirn_allowed = 0;
 						}
 						if (dirn_allowed)
-							{
+						{
 
 							int flow_index = sg_row_start_index + row_flow_index;
 							int flow_pair_index = sg_row_pair_start_index + 2 * row_flow_index;
@@ -808,9 +808,9 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 							// Widths are on Q grid (between floodplain cells)
 							// use omp critical to prevent different threads writing to same width variable
 							// 当一个栅格上包含subgrid河道时，Fp_xwidth ≈ 栅格宽度 - 河道宽度
-							#pragma omp critical(widthx)
+#pragma omp critical(widthx)
 							{
-							Fp_xwidth[grid_index+grid_cols_padded] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index];
+								Fp_xwidth[grid_index + grid_cols_padded] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index];
 							}
 
 							row_flow_index++;
@@ -827,7 +827,7 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 						bool dirn_allowed = 1;
 						if (Arrptr->SGCdirn != NULL)
 						{
-							if ( Arrptr->SGCdirn[source_index_this] != 8 && Arrptr->SGCdirn[source_index_right] != 4 ) dirn_allowed = 0;
+							if (Arrptr->SGCdirn[source_index_this] != 8 && Arrptr->SGCdirn[source_index_right] != 4) dirn_allowed = 0;
 						}
 						if (dirn_allowed)
 						{
@@ -847,10 +847,10 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 							ZeroSubGridCellInfo(&sub_grid_flow_info->flow_pair, flow_pair_index);
 							ZeroSubGridCellInfo(&sub_grid_flow_info->flow_pair, flow_pair_index + 1);
 
-							NUMERIC_TYPE flow_dist = SQRT(row_dy*row_dy + row_dx*row_dx);
+							NUMERIC_TYPE flow_dist = SQRT(row_dy*row_dy + row_dx * row_dx);
 							// This cell width (perpendicular to the flow) is used for the channel_ratio 
 							// Redefine 'effective' cell width for diagonal flows, to get appropriate channel ratio (channel ratio is channel_width / cell_width)). 
-							NUMERIC_TYPE cell_width = (row_dy * row_dx) / flow_dist; 
+							NUMERIC_TYPE cell_width = (row_dy * row_dx) / flow_dist;
 							CopyToSubSubGridFlowInfo(source_index_this, source_index_belowright, flow_index, g, flow_dist, cell_width, sub_grid_flow_info, Parptr, Arrptr, SGCptr);
 							CopyToSubGridCellInfo(grid_cols_padded, flow_pair_index, i, j, &sub_grid_flow_info->flow_pair, Parptr, Arrptr, SGCptr);
 							CopyToSubGridCellInfo(grid_cols_padded, flow_pair_index + 1, i + 1, j + 1, &sub_grid_flow_info->flow_pair, Parptr, Arrptr, SGCptr);
@@ -865,21 +865,21 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 							sub_grid_flow_info->sg_cell_flow_lookup[cell_list_index_belowright].flow_add[2] = flow_index; //add to the cell belowright
 
 							// This is the ratio of dx/dy cell sides to the diagonal cell length
-							NUMERIC_TYPE dx_diag_ratio = row_dx/flow_dist;
-							NUMERIC_TYPE dy_diag_ratio = row_dy/flow_dist;
+							NUMERIC_TYPE dx_diag_ratio = row_dx / flow_dist;
+							NUMERIC_TYPE dy_diag_ratio = row_dy / flow_dist;
 
 							// PFU subtract channel ratio from floodplain width (floodplain width initialized to 1)
 							// Widths are on Q grid (between floodplain cells)
 							// use omp critical to prevent different threads writing to same width variable
-							#pragma omp critical(widthx)
+#pragma omp critical(widthx)
 							{
-							Fp_xwidth[grid_index+grid_cols_padded] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index]/C(2.0)*dx_diag_ratio;
-							Fp_xwidth[grid_index+grid_cols_padded+1] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index]/C(2.0)*dx_diag_ratio;
+								Fp_xwidth[grid_index + grid_cols_padded] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index] / C(2.0)*dx_diag_ratio;
+								Fp_xwidth[grid_index + grid_cols_padded + 1] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index] / C(2.0)*dx_diag_ratio;
 							}
-							#pragma omp critical(widthy)
+#pragma omp critical(widthy)
 							{
-							Fp_ywidth[grid_index+1] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index]/C(2.0)*dy_diag_ratio;
-							Fp_ywidth[grid_index+1+grid_cols_padded] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index]/C(2.0)*dy_diag_ratio;
+								Fp_ywidth[grid_index + 1] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index] / C(2.0)*dy_diag_ratio;
+								Fp_ywidth[grid_index + 1 + grid_cols_padded] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index] / C(2.0)*dy_diag_ratio;
 							}
 
 							row_flow_index++;
@@ -887,7 +887,7 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 					}
 				}
 				// Link with the cell belowleft (PFU d8 directions)
-				if (Statesptr->SGCd8 && not_last_row && (i >0))
+				if (Statesptr->SGCd8 && not_last_row && (i > 0))
 				{
 					if ((Arrptr->SGCwidth[source_index_belowleft] > C(0.0)) &&
 						(Arrptr->DEM[source_index_belowleft] != DEM_NO_DATA || Arrptr->ChanMask[source_index_belowleft] > 0))
@@ -896,7 +896,7 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 						bool dirn_allowed = 1;
 						if (Arrptr->SGCdirn != NULL)
 						{
-							if ( Arrptr->SGCdirn[source_index_this] != 6 && Arrptr->SGCdirn[source_index_right] != 2 ) dirn_allowed = 0;
+							if (Arrptr->SGCdirn[source_index_this] != 6 && Arrptr->SGCdirn[source_index_right] != 2) dirn_allowed = 0;
 						}
 						if (dirn_allowed)
 						{
@@ -916,10 +916,10 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 							ZeroSubGridCellInfo(&sub_grid_flow_info->flow_pair, flow_pair_index);
 							ZeroSubGridCellInfo(&sub_grid_flow_info->flow_pair, flow_pair_index + 1);
 
-							NUMERIC_TYPE flow_dist = SQRT(row_dy*row_dy + row_dx*row_dx);
+							NUMERIC_TYPE flow_dist = SQRT(row_dy*row_dy + row_dx * row_dx);
 							// This cell width (perpendicular to the flow) is used for the channel_ratio 
 							// Redefine 'effective' cell width for diagonal flows, to get appropriate channel ratio (channel ratio is channel_width / cell_width)). 
-							NUMERIC_TYPE cell_width = (row_dy * row_dx) / flow_dist; 
+							NUMERIC_TYPE cell_width = (row_dy * row_dx) / flow_dist;
 							CopyToSubSubGridFlowInfo(source_index_this, source_index_belowleft, flow_index, g, flow_dist, cell_width, sub_grid_flow_info, Parptr, Arrptr, SGCptr);
 							CopyToSubGridCellInfo(grid_cols_padded, flow_pair_index, i, j, &sub_grid_flow_info->flow_pair, Parptr, Arrptr, SGCptr);
 							CopyToSubGridCellInfo(grid_cols_padded, flow_pair_index + 1, i - 1, j + 1, &sub_grid_flow_info->flow_pair, Parptr, Arrptr, SGCptr);
@@ -935,21 +935,21 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 
 
 							// This is the ratio of dx/dy cell sides to the diagonal cell length
-							NUMERIC_TYPE dx_diag_ratio = row_dx/flow_dist;
-							NUMERIC_TYPE dy_diag_ratio = row_dy/flow_dist;
+							NUMERIC_TYPE dx_diag_ratio = row_dx / flow_dist;
+							NUMERIC_TYPE dy_diag_ratio = row_dy / flow_dist;
 
 							// PFU subtract channel ratio from floodplain width (floodplain width initialized to 1)
 							// Widths are on Q grid (between floodplain cells)
 							// use omp critical to prevent different threads writing to same width variable
-							#pragma omp critical(widthx)
+#pragma omp critical(widthx)
 							{
-							Fp_xwidth[grid_index+grid_cols_padded-1] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index]/C(2.0)*dx_diag_ratio;
-							Fp_xwidth[grid_index+grid_cols_padded] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index]/C(2.0)*dx_diag_ratio;
+								Fp_xwidth[grid_index + grid_cols_padded - 1] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index] / C(2.0)*dx_diag_ratio;
+								Fp_xwidth[grid_index + grid_cols_padded] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index] / C(2.0)*dx_diag_ratio;
 							}
-							#pragma omp critical(widthy)
+#pragma omp critical(widthy)
 							{
-							Fp_ywidth[grid_index] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index]/C(2.0)*dy_diag_ratio;
-							Fp_ywidth[grid_index+grid_cols_padded] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index]/C(2.0)*dy_diag_ratio;
+								Fp_ywidth[grid_index] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index] / C(2.0)*dy_diag_ratio;
+								Fp_ywidth[grid_index + grid_cols_padded] -= sub_grid_flow_info->sg_flow_ChannelRatio[flow_index] / C(2.0)*dy_diag_ratio;
 							}
 
 							row_flow_index++;
@@ -960,11 +960,11 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 		}
 	}
 
-	#pragma omp parallel for default(shared) schedule(static)
+#pragma omp parallel for default(shared) schedule(static)
 	for (int j = 0; j < grid_rows; j++)
 	{
 		const int padded_grid_row_index = j * grid_cols_padded;
-		const int padded_grid_nextrow_index = (j+1) * grid_cols_padded;	
+		const int padded_grid_nextrow_index = (j + 1) * grid_cols_padded;
 		const int source_row_index = j * Parptr->xsz;
 		// xdw add, for debug
 		const int source_row_index2 = j * grid_cols;
@@ -972,19 +972,19 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 		const NUMERIC_TYPE row_dy = Arrptr->dy[source_row_index];
 		//PFU reset negative widths to 0, multiply by cell width
 		// Y-grid has one extra row
-		for (int i = 0; i < grid_cols_padded; i++){
-			if (j==0)
-				Fp_xwidth[i] = getmax(Fp_xwidth[i],C(0.0))*row_dx;
+		for (int i = 0; i < grid_cols_padded; i++) {
+			if (j == 0)
+				Fp_xwidth[i] = getmax(Fp_xwidth[i], C(0.0))*row_dx;
 			// xdw add, for debug
 			/*int source_index_this = source_row_index2 + i;
 			if (Fp_xwidth[i + padded_grid_nextrow_index] < C(0.0))
 				cout << "Fp_xwidth[" << i + padded_grid_nextrow_index << "]: " << Fp_xwidth[i + padded_grid_nextrow_index] << endl;
 			if (Fp_ywidth[i + padded_grid_row_index] < C(0.0))
 				cout << "Fp_ywidth[" << i + padded_grid_row_index << "]: " << Fp_ywidth[i + padded_grid_row_index] << " SGCwidth[" << source_index_this << "]: " << Arrptr->SGCwidth[source_index_this] << endl;*/
-			// 这里取Fp_ywidth和0的较大值，避免Fp_ywidth小于0的情况（即subgrid河道宽度大于栅格单元宽度）
-			Fp_ywidth[i + padded_grid_row_index] = getmax(Fp_ywidth[i + padded_grid_row_index],C(0.0))*row_dy;
+				// 这里取Fp_ywidth和0的较大值，避免Fp_ywidth小于0的情况（即subgrid河道宽度大于栅格单元宽度）
+			Fp_ywidth[i + padded_grid_row_index] = getmax(Fp_ywidth[i + padded_grid_row_index], C(0.0))*row_dy;
 
-			Fp_xwidth[i + padded_grid_nextrow_index] = getmax(Fp_xwidth[i + padded_grid_nextrow_index],C(0.0))*row_dx;
+			Fp_xwidth[i + padded_grid_nextrow_index] = getmax(Fp_xwidth[i + padded_grid_nextrow_index], C(0.0))*row_dx;
 
 		}
 	}
@@ -1022,7 +1022,9 @@ void PointSourceToWaterSource(int ps_index, int ws_index, const int grid_cols_pa
 	ps_info->timeSeries[ws_index] = BCptr->PS_TimeSeries[ps_index];
 
 	ps_info->Q_FP_old[ws_index] = BCptr->PS_Q_FP_old[ps_index];
-	ps_info->Q_SG_old[ws_index] = BCptr->PS_Q_SG_old[ps_index];;
+	ps_info->Q_SG_old[ws_index] = BCptr->PS_Q_SG_old[ps_index];
+
+	strcpy(ps_info->Name[ws_index], BCptr->PS_Name + ps_index * 80);
 
 	int x = BCptr->xpi[ps_index];
 	int y = BCptr->ypi[ps_index];
@@ -1149,17 +1151,15 @@ void InitPointSourceInfoStructure(PointSourceRowList * ps_layout,
 			// read from index
 			int ps_index = ps_index_lookup_tmp[ws_index];
 
-			PointSourceToWaterSource(ps_index, ws_index, grid_cols_padded, grid_cols,g,
+			PointSourceToWaterSource(ps_index, ws_index, grid_cols_padded, grid_cols, g,
 				&ps_layout->ps_info, Parptr, Arrptr, BCptr, SGCptr);
 
-			for (int up_index = 0; up_index < LfpCouplingInfoPtr->seims_up_list.size(); ++up_index) {
-				if (LfpCouplingInfoPtr->seims_up_list[up_index].ps_index == ps_index)
-				{
-					LfpCouplingInfoPtr->seims_up_list[up_index].ws_index = ws_index;
-					LfpCouplingInfoPtr->seims_up_list[up_index].grid_index = ps_layout->ps_info.ws_cell.sg_cell_grid_index_lookup[ws_index];
+			for (auto& pair : LfpCouplingInfoPtr->seims_up_map) {
+				SeimsUpstream& upstream = pair.second;
+				if (upstream.ps_index == ps_index) {
+					upstream.ws_index = ws_index;
+					upstream.grid_index = ps_layout->ps_info.ws_cell.sg_cell_grid_index_lookup[ws_index];
 				}
-
-
 			}
 		}
 	}
@@ -1437,7 +1437,7 @@ void InitWeirStructure(EWeirType weirType,
 
 					int group0 = Arrptr->SGCgroup[source_index];
 					int group1 = Arrptr->SGCgroup[source_index + grid_cols];
-					weirs->Weir_g_friction_sq[weir_id] = g*C(0.5)* (SGCptr->SGCn[group0] + SGCptr->SGCn[group1]);
+					weirs->Weir_g_friction_sq[weir_id] = g * C(0.5)* (SGCptr->SGCn[group0] + SGCptr->SGCn[group1]);
 
 					CopyToSubGridCellInfo(grid_cols_padded, 2 * weir_id, x, y, &weirs->cell_pair, Parptr, Arrptr, SGCptr);
 					CopyToSubGridCellInfo(grid_cols_padded, 2 * weir_id + 1, x, y + 1, &weirs->cell_pair, Parptr, Arrptr, SGCptr);
@@ -1503,7 +1503,7 @@ void InitRoutingStructure_row(NUMERIC_TYPE * route_V_ratio_per_sec_qx, NUMERIC_T
 	}
 }
 
-void InitDamStructure(const int grid_rows, const int grid_cols, const int grid_cols_padded,	States *Statesptr, Pars *Parptr, Arrays *Arrptr, SGCprams *SGCptr, DamData *Damptr, int verbose)
+void InitDamStructure(const int grid_rows, const int grid_cols, const int grid_cols_padded, States *Statesptr, Pars *Parptr, Arrays *Arrptr, SGCprams *SGCptr, DamData *Damptr, int verbose)
 {
 	int n = 0;
 	int nt = 0;
@@ -1514,20 +1514,20 @@ void InitDamStructure(const int grid_rows, const int grid_cols, const int grid_c
 		Damptr->TotalEdge += Damptr->Edgenos[d];
 		Damptr->DamVol[d] = (Damptr->Volmax[d] / Damptr->DamHeight[d])*(Damptr->InitialHeight[d] - (Damptr->SpillHeight[d] - Damptr->DamHeight[d]));
 	}
-	Damptr->DynamicEdge = new int [3*Damptr->TotalEdge]();
-//	Damptr->TotalEdge = nt;
-	Damptr->DynamicEdgeData = memory_allocate_zero_numeric_legacy(12*Damptr->TotalEdge);
-	for (int i = 0; i < grid_cols; i++) for (int j = 0; j < grid_rows; j++) 
+	Damptr->DynamicEdge = new int[3 * Damptr->TotalEdge]();
+	//	Damptr->TotalEdge = nt;
+	Damptr->DynamicEdgeData = memory_allocate_zero_numeric_legacy(12 * Damptr->TotalEdge);
+	for (int i = 0; i < grid_cols; i++) for (int j = 0; j < grid_rows; j++)
 	{
-		if (Arrptr->DamMask[i + j*grid_cols] > C(0.0))
+		if (Arrptr->DamMask[i + j * grid_cols] > C(0.0))
 		{
-			int source_index = i + j*grid_cols;
+			int source_index = i + j * grid_cols;
 			NUMERIC_TYPE cell_lenght = (Arrptr->dx[j*grid_cols] + Arrptr->dy[j*grid_cols]) / C(2.0);
 			//cell_lenght = cell_lenght / C(2.0);
 			gr = Arrptr->SGCgroup[source_index];
 
-			Damptr->DynamicEdge[2 * n] = i + j*grid_cols_padded;
-			Damptr->DynamicEdge[(2 * n) + 1] = Arrptr->DamMask[i + j*grid_cols];
+			Damptr->DynamicEdge[2 * n] = i + j * grid_cols_padded;
+			Damptr->DynamicEdge[(2 * n) + 1] = Arrptr->DamMask[i + j * grid_cols];
 			Damptr->DynamicEdge[(2 * n) + 2] = gr;
 			Damptr->DynamicEdgeData[12 * n] = 0; //Qold
 			Damptr->DynamicEdgeData[12 * n + 1] = 0; // Q combined
@@ -1543,22 +1543,22 @@ void InitDamStructure(const int grid_rows, const int grid_cols, const int grid_c
 			Damptr->DynamicEdgeData[12 * n + 11] = Arrptr->SGCwidth[source_index];; // widthSGC
 
 //			printf("%d\n", n);
-			if (i > C(0.0) && Arrptr->DamMask[i-1 + j*grid_cols] < C(0.0))
+			if (i > C(0.0) && Arrptr->DamMask[i - 1 + j * grid_cols] < C(0.0))
 			{
 				Damptr->DynamicEdgeData[12 * n + 2] += Arrptr->dx[j*grid_cols];
 			}
-			if (i < grid_cols && Arrptr->DamMask[i + 1 + j*grid_cols] < C(0.0))
+			if (i < grid_cols && Arrptr->DamMask[i + 1 + j * grid_cols] < C(0.0))
 			{
 				Damptr->DynamicEdgeData[12 * n + 2] += Arrptr->dx[j*grid_cols];
 			}
 			if (j > C(0.0) && Arrptr->DamMask[i + (j - 1)*grid_cols] < C(0.0))
 			{
-				Damptr->DynamicEdgeData[12 * n + 2] += Arrptr->dy[(j-1)*grid_cols];
+				Damptr->DynamicEdgeData[12 * n + 2] += Arrptr->dy[(j - 1)*grid_cols];
 			}
 			if (j < grid_rows && Arrptr->DamMask[i + (j + 1)*grid_cols] < C(0.0))
 			{
-				Damptr->DynamicEdgeData[12 * n + 2] += Arrptr->dy[(j+1)*grid_cols];
-			}		
+				Damptr->DynamicEdgeData[12 * n + 2] += Arrptr->dy[(j + 1)*grid_cols];
+			}
 			n++;
 		}
 	}
@@ -1570,7 +1570,7 @@ float CalculateCapillarySuction(float por, float clay, float sand) {
 	//	+ 0.001602f * pow(por, 2) * pow(clay, 2) - 0.0000136f * pow(sand, 2) * clay -
 	//	0.003479f * pow(clay, 2) * por - 0.000799f * pow(sand, 2) * por);
 	// xiaodw, 删除乘以10的
-	float cs =  exp(6.5309f - 7.32561f * por + 0.001583f * pow(clay, 2) + 3.809479f * pow(por, 2)
+	float cs = exp(6.5309f - 7.32561f * por + 0.001583f * pow(clay, 2) + 3.809479f * pow(por, 2)
 		+ 0.000344f * sand * clay - 0.049837f * por * sand
 		+ 0.001608f * pow(por, 2) * pow(sand, 2)
 		+ 0.001602f * pow(por, 2) * pow(clay, 2) - 0.0000136f * pow(sand, 2) * clay -
@@ -2351,7 +2351,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 		LFPContextPtr->tmp_thread_data[thread_id] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded);
 		LFPContextPtr->tmp_thread_data_ch[thread_id] = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * grid_cols_padded);
 
-}
+	}
 
 	//first touch and zero tmp_thread_data in the thread it will be used by
 #pragma omp parallel default(shared)
@@ -3224,14 +3224,14 @@ void InitSuperLinksStructure(const int grid_rows, const int grid_cols, const int
 			Super_linksptr->Qold[i] = C(0.0);
 			Super_linksptr->link_index_2D[i] = Super_linksptr->link_index_2D_i[i] + Super_linksptr->link_index_2D_j[i] * grid_cols_padded;
 			Super_linksptr->link_index_SGC[i] = Super_linksptr->link_index_SGC_i[i] + Super_linksptr->link_index_SGC_j[i] * grid_cols_padded;
-			p0 = Super_linksptr->link_index_2D_i[i] + Super_linksptr->link_index_2D_j[i] *Parptr->xsz;
+			p0 = Super_linksptr->link_index_2D_i[i] + Super_linksptr->link_index_2D_j[i] * Parptr->xsz;
 			Super_linksptr->DEM_z[i] = Arrptr->DEM[p0];
 			p0 = Super_linksptr->link_index_SGC_i[i] + Super_linksptr->link_index_SGC_j[i] * Parptr->xsz;
 			Super_linksptr->SGC_z[i] = Arrptr->SGCz[p0];
 			Super_linksptr->SGC_bfH[i] = Arrptr->SGCbfH[p0];
 		}
 		fclose(fp);
-		
+
 	}
 	else // calculate links in code using nearest neighbour
 	{
@@ -3261,7 +3261,7 @@ void InitSuperLinksStructure(const int grid_rows, const int grid_cols, const int
 				if (adjacent_to_chanmask == 1)	n_links = n_links++;
 			}
 		}
-		
+
 		// Step 0: Create temp variables of the right size
 		int* tmp_link_index_SGC_i = new int[n_SGC_under_mask]();
 		int* tmp_link_index_SGC_j = new int[n_SGC_under_mask]();

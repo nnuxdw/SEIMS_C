@@ -13,7 +13,7 @@
 #include "lisflood.h"
 #include <unordered_set>
 #include <unordered_map>
-//#include "./lisflood2/DataTypes.h"
+ //#include "./lisflood2/DataTypes.h"
 
 using namespace bmps;
 using namespace std;
@@ -25,9 +25,9 @@ public:
 
 	LISFLOODFP_MUSK();
 
-    virtual ~LISFLOODFP_MUSK();
+	virtual ~LISFLOODFP_MUSK();
 
-    void Set1DData(const char* key, int n, float* data) OVERRIDE;
+	void Set1DData(const char* key, int n, float* data) OVERRIDE;
 
 	void Set2DData(const char* key, int nrows, int ncols, float** data) OVERRIDE;
 
@@ -35,11 +35,11 @@ public:
 
 	void SetReaches(clsReaches* reaches) OVERRIDE;
 
-    bool CheckInputData() OVERRIDE;
+	bool CheckInputData() OVERRIDE;
 
-    int Execute() OVERRIDE;
+	int Execute() OVERRIDE;
 
-    void Get1DData(const char* key, int* n, float** data) OVERRIDE;
+	void Get1DData(const char* key, int* n, float** data) OVERRIDE;
 
 	void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
 
@@ -62,7 +62,7 @@ private:
 	int m_nCells;
 	int m_nSubbsns;
 	//int m_inputSubbsnID; ///< current subbasin ID, 0 for the entire watershed
-	
+
 	float* m_subbsnID;/// subbasin grid (subbasins ID)
 	int counter;
 	string seims_start_time;
@@ -83,7 +83,7 @@ private:
 	LISFLOODFPContext LFPContext;
 	LfpCouplingInfo LfpCoupleInfo;
 	//int verbosemode;
-	
+
 
 	struct Arrays *Arrptr;
 	struct Files* FpsPtr;
@@ -115,7 +115,7 @@ private:
 
 	void updateCurrentTimestamp(int * current_timestamp, LISFLOODFPContext* LFPContextPtr);
 
-	void parseCouplingFile(const string& filepath,unordered_set<int>& lfpSetFirst,unordered_set<int>& lfpSetOther,unordered_map<int, LfpCouplingInfo>& coupling_map);
+	void parseCouplingFile(const string& filepath, unordered_set<int>& lfpSetFirst, unordered_set<int>& lfpSetOther, unordered_map<int, LfpCouplingInfo>& coupling_map);
 
 
 	/************************************MUSK_CH**********************************/

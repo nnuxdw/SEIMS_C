@@ -104,7 +104,7 @@ void LoadStages(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Stage *Locptr
 			if (verbose == ON) printf("WARNING: Stage off-image: %d\n", i + 1);
 		}
 	}
-	
+
 	if (verbose == ON) printf("Done.\n\n");
 
 	fclose(fp);
@@ -196,19 +196,19 @@ void LoadWeir(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr,
 		// Unfixed flow direction = C(0.)
 		if (strcmp(char_tmp, tag_w1) == 0 || strcmp(char_tmp, tag_w2) == 0)
 		{
-			Arrptr->Weir_Identx[xi + 1 + yi*(Parptr->xsz + 1)] = i;
+			Arrptr->Weir_Identx[xi + 1 + yi * (Parptr->xsz + 1)] = i;
 			Arrptr->Weir_Fixdir[i] = DirectionNA;
 			Arrptr->Weir_Typ[i] = EWeir_Weir;
 		}
 		if (strcmp(char_tmp, tag_e1) == 0 || strcmp(char_tmp, tag_e2) == 0)
 		{
-			Arrptr->Weir_Identx[xi + yi*(Parptr->xsz + 1)] = i;
+			Arrptr->Weir_Identx[xi + yi * (Parptr->xsz + 1)] = i;
 			Arrptr->Weir_Fixdir[i] = DirectionNA;
 			Arrptr->Weir_Typ[i] = EWeir_Weir;
 		}
 		if (strcmp(char_tmp, tag_s1) == 0 || strcmp(char_tmp, tag_s2) == 0)
 		{
-			Arrptr->Weir_Identy[xi + yi*(Parptr->xsz + 1)] = i;
+			Arrptr->Weir_Identy[xi + yi * (Parptr->xsz + 1)] = i;
 			Arrptr->Weir_Fixdir[i] = DirectionNA;
 			Arrptr->Weir_Typ[i] = EWeir_Weir;
 		}
@@ -222,19 +222,19 @@ void LoadWeir(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr,
 		// Fixed flow directions: N = 1, E = 2, S = 3, W = 4.
 		if (strcmp(char_tmp, tag_wf1) == 0 || strcmp(char_tmp, tag_wf2) == 0)
 		{
-			Arrptr->Weir_Identx[xi + 1 + yi*(Parptr->xsz + 1)] = i;
+			Arrptr->Weir_Identx[xi + 1 + yi * (Parptr->xsz + 1)] = i;
 			Arrptr->Weir_Fixdir[i] = West;
 			Arrptr->Weir_Typ[i] = EWeir_Weir;
 		}
 		if (strcmp(char_tmp, tag_ef1) == 0 || strcmp(char_tmp, tag_ef2) == 0)
 		{
-			Arrptr->Weir_Identx[xi + yi*(Parptr->xsz + 1)] = i;
+			Arrptr->Weir_Identx[xi + yi * (Parptr->xsz + 1)] = i;
 			Arrptr->Weir_Fixdir[i] = East;
 			Arrptr->Weir_Typ[i] = EWeir_Weir;
 		}
 		if (strcmp(char_tmp, tag_sf1) == 0 || strcmp(char_tmp, tag_sf2) == 0)
 		{
-			Arrptr->Weir_Identy[xi + yi*(Parptr->xsz + 1)] = i;
+			Arrptr->Weir_Identy[xi + yi * (Parptr->xsz + 1)] = i;
 			Arrptr->Weir_Fixdir[i] = South;
 			Arrptr->Weir_Typ[i] = EWeir_Weir;
 		}
@@ -247,19 +247,19 @@ void LoadWeir(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr,
 		// control tags for bridge
 		if (strcmp(char_tmp, tag_wb1) == 0 || strcmp(char_tmp, tag_wb2) == 0)
 		{
-			Arrptr->Weir_Identx[xi + 1 + yi*(Parptr->xsz + 1)] = i;
+			Arrptr->Weir_Identx[xi + 1 + yi * (Parptr->xsz + 1)] = i;
 			Arrptr->Weir_Fixdir[i] = DirectionNA;
 			Arrptr->Weir_Typ[i] = EWeir_Bridge;
 		}
 		if (strcmp(char_tmp, tag_eb1) == 0 || strcmp(char_tmp, tag_eb2) == 0)
 		{
-			Arrptr->Weir_Identx[xi + yi*(Parptr->xsz + 1)] = i;
+			Arrptr->Weir_Identx[xi + yi * (Parptr->xsz + 1)] = i;
 			Arrptr->Weir_Fixdir[i] = DirectionNA;
 			Arrptr->Weir_Typ[i] = EWeir_Bridge;
 		}
 		if (strcmp(char_tmp, tag_sb1) == 0 || strcmp(char_tmp, tag_sb2) == 0)
 		{
-			Arrptr->Weir_Identy[xi + yi*(Parptr->xsz + 1)] = i;
+			Arrptr->Weir_Identy[xi + yi * (Parptr->xsz + 1)] = i;
 			Arrptr->Weir_Fixdir[i] = DirectionNA;
 			Arrptr->Weir_Typ[i] = EWeir_Bridge;
 		}
@@ -274,17 +274,17 @@ void LoadWeir(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr,
 		// this is especally important for the SGC model where bed elevations may change.
 
 		// first index the cell of the weir and get z0
-		p0 = xi + yi*Parptr->xsz;
+		p0 = xi + yi * Parptr->xsz;
 		if (Statesptr->SGC == ON && Arrptr->SGCwidth[p0] > C(0.0)) z0 = Arrptr->SGCz[p0];
 		else z0 = Arrptr->DEM[p0];
 		// Then index the cell it flows from and get the elevation
 		if (strcmp(char_tmp, tag_w1) == 0 || strcmp(char_tmp, tag_w2) == 0 || strcmp(char_tmp, tag_wf1) == 0 || strcmp(char_tmp, tag_wf2) == 0 || strcmp(char_tmp, tag_wb1) == 0 || strcmp(char_tmp, tag_wb2) == 0)
 		{
-			p1 = xi + 1 + yi*Parptr->xsz;
+			p1 = xi + 1 + yi * Parptr->xsz;
 		}
 		if (strcmp(char_tmp, tag_e1) == 0 || strcmp(char_tmp, tag_e2) == 0 || strcmp(char_tmp, tag_ef1) == 0 || strcmp(char_tmp, tag_ef2) == 0 || strcmp(char_tmp, tag_eb1) == 0 || strcmp(char_tmp, tag_eb2) == 0)
 		{
-			p1 = xi - 1 + yi*Parptr->xsz;
+			p1 = xi - 1 + yi * Parptr->xsz;
 		}
 		if (strcmp(char_tmp, tag_s1) == 0 || strcmp(char_tmp, tag_s2) == 0 || strcmp(char_tmp, tag_sf1) == 0 || strcmp(char_tmp, tag_sf2) == 0 || strcmp(char_tmp, tag_sb1) == 0 || strcmp(char_tmp, tag_sb2) == 0)
 		{
@@ -464,7 +464,7 @@ void LoadRiver(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, vector<Channel
 
 			// load buffer until EOL
 			j = 0;
-			do{ buff[j] = fgetc(fp); } while (buff[j++] != '\n');
+			do { buff[j] = fgetc(fp); } while (buff[j++] != '\n');
 			buff[j] = '\0';									// Finish off string
 			if (sscanf(buff, "%" NUM_FMT"%" NUM_FMT"%" NUM_FMT"", &tmp1, &tmp2, &tmp3) == 3)
 			{        										// Only store values if 3 reads successful
@@ -577,16 +577,16 @@ void LoadRiver(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, vector<Channel
 					{
 						xpi[count] = ni;
 						ypi[count] = nj;
-						Arrptr->ChanMask[ni + nj*Parptr->xsz] = 1; // mark mask with value of 1 - will renumber later in order
+						Arrptr->ChanMask[ni + nj * Parptr->xsz] = 1; // mark mask with value of 1 - will renumber later in order
 						count++;
 					}
 					else if (ni != xpi[count - 1] || nj != ypi[count - 1]) // if grid location changes
 					{
-						if (Arrptr->ChanMask[ni + nj*Parptr->xsz] == -1)   // channel mask not set
+						if (Arrptr->ChanMask[ni + nj * Parptr->xsz] == -1)   // channel mask not set
 						{
 							xpi[count] = ni;
 							ypi[count] = nj;
-							Arrptr->ChanMask[ni + nj*Parptr->xsz] = 1; // mark mask with value of 1 - will renumber later in order
+							Arrptr->ChanMask[ni + nj * Parptr->xsz] = 1; // mark mask with value of 1 - will renumber later in order
 							total_length += Parptr->dx*sqrt(pow((NUMERIC_TYPE)(ni - xpi[count - 1]), C(2.0)) + pow((NUMERIC_TYPE)(nj - ypi[count - 1]), C(2.0)));
 							count++;
 						}
@@ -639,7 +639,7 @@ void LoadRiver(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, vector<Channel
 		// Find chainage and dx along channel
 		for (i = 0; i < csp->chsz - 1; i++)
 			csp->Chandx[i] = sqrt(pow(Parptr->dx*(csp->ChanX[i] - csp->ChanX[i + 1]), 2) +
-			pow(Parptr->dy*(csp->ChanY[i] - csp->ChanY[i + 1]), 2));
+				pow(Parptr->dy*(csp->ChanY[i] - csp->ChanY[i + 1]), 2));
 
 		// assume dx for last cell is same as last segment
 		csp->Chandx[csp->chsz - 1] = sqrt(pow(Parptr->dx*(csp->ChanX[csp->chsz - 1] - csp->ChanX[csp->chsz - 2]), 2) +
@@ -656,11 +656,11 @@ void LoadRiver(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, vector<Channel
 			pj = csp->ChanY[i];
 
 			// renumber channel mask
-			Arrptr->ChanMask[pi + pj*Parptr->xsz] = i;
+			Arrptr->ChanMask[pi + pj * Parptr->xsz] = i;
 			// set bank level
-			csp->BankZ[i] = Arrptr->DEM[pi + pj*Parptr->xsz];
+			csp->BankZ[i] = Arrptr->DEM[pi + pj * Parptr->xsz];
 			// mark segment mask
-			Arrptr->SegMask[pi + pj*Parptr->xsz] = chseg;
+			Arrptr->SegMask[pi + pj * Parptr->xsz] = chseg;
 		}
 
 		// Adjust chainage calcs so that it is independent of cell size. ####
@@ -696,9 +696,9 @@ void LoadRiver(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, vector<Channel
 		i1 = 0; i2 = 0;
 		while (i2 < npoints - 1)
 		{
-			for (i2 = i1 + 1; i2<npoints; i2++)
+			for (i2 = i1 + 1; i2 < npoints; i2++)
 			{
-				if (wp[i2]>C(0.0)) break; // loop until next non zero value found
+				if (wp[i2] > C(0.0)) break; // loop until next non zero value found
 			}
 			for (i = 0; i < csp->chsz; i++)
 			{
@@ -717,7 +717,7 @@ void LoadRiver(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, vector<Channel
 					}
 					else
 					{
-						Arrptr->DEM[pi + pj*Parptr->xsz] = hp[i1] + (hp[i2] - hp[i1])*(csp->Chainage[i] - cp[i1]) / (cp[i2] - cp[i1]);
+						Arrptr->DEM[pi + pj * Parptr->xsz] = hp[i1] + (hp[i2] - hp[i1])*(csp->Chainage[i] - cp[i1]) / (cp[i2] - cp[i1]);
 					}
 				}
 			}
@@ -952,10 +952,10 @@ void LoadManningsn(Fnames *Fnameptr, Pars *Parptr, Arrays *Arrptr, const int ver
 	Arrptr->Manningsn = memory_allocate_numeric_legacy(Parptr->xsz*Parptr->ysz);
 	for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 	{
-		fscanf(fp, "%" NUM_FMT"", Arrptr->Manningsn + i + j*Parptr->xsz);
+		fscanf(fp, "%" NUM_FMT"", Arrptr->Manningsn + i + j * Parptr->xsz);
 		// 如果是nodata，则赋值为fpfric的值
-		if (AreEqual(Arrptr->Manningsn[i + j*Parptr->xsz], no_data_value))
-			Arrptr->Manningsn[i + j*Parptr->xsz] = Parptr->FPn;
+		if (AreEqual(Arrptr->Manningsn[i + j * Parptr->xsz], no_data_value))
+			Arrptr->Manningsn[i + j * Parptr->xsz] = Parptr->FPn;
 	}
 	fclose(fp);
 
@@ -981,9 +981,9 @@ void LoadSGCManningsn(Fnames *Fnameptr, Pars *Parptr, Arrays *Arrptr, const int 
 	Arrptr->SGCManningsn = memory_allocate_numeric_legacy(Parptr->xsz*Parptr->ysz);
 	for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 	{
-		fscanf(fp, "%" NUM_FMT"", Arrptr->SGCManningsn + i + j*Parptr->xsz);
-		if (AreEqual(Arrptr->SGCManningsn[i + j*Parptr->xsz], no_data_value))
-			Arrptr->SGCManningsn[i + j*Parptr->xsz] = Parptr->SGC_n;
+		fscanf(fp, "%" NUM_FMT"", Arrptr->SGCManningsn + i + j * Parptr->xsz);
+		if (AreEqual(Arrptr->SGCManningsn[i + j * Parptr->xsz], no_data_value))
+			Arrptr->SGCManningsn[i + j * Parptr->xsz] = Parptr->SGC_n;
 	}
 	fclose(fp);
 
@@ -1007,12 +1007,12 @@ void LoadSGCdirn(Fnames *Fnameptr, Pars *Parptr, Arrays *Arrptr, const int verbo
 	fscanf(fp, "%s %i", dum, &no_data_value);
 
 	//Arrptr->SGCdirn = memory_allocate_numeric_legacy(Parptr->xsz*Parptr->ysz);
-	Arrptr->SGCdirn =  new int[Parptr->xsz*Parptr->ysz];
+	Arrptr->SGCdirn = new int[Parptr->xsz*Parptr->ysz];
 	for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 	{
-		fscanf(fp, "%i", Arrptr->SGCdirn + i + j*Parptr->xsz);
-		if (AreEqual(Arrptr->SGCdirn[i + j*Parptr->xsz], no_data_value))
-			Arrptr->SGCdirn[i + j*Parptr->xsz] = 0;
+		fscanf(fp, "%i", Arrptr->SGCdirn + i + j * Parptr->xsz);
+		if (AreEqual(Arrptr->SGCdirn[i + j * Parptr->xsz], no_data_value))
+			Arrptr->SGCdirn[i + j * Parptr->xsz] = 0;
 	}
 	fclose(fp);
 
@@ -1077,9 +1077,9 @@ void LoadPor(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr, 
 		Arrptr->paerial = memory_allocate_numeric_legacy(Parptr->xsz*Parptr->ysz);
 		for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 		{
-			fscanf(fp, "%" NUM_FMT"", Arrptr->paerial + i + j*Parptr->xsz);
-			if (AreEqual(Arrptr->paerial[i + j*Parptr->xsz], no_data_value))
-				Arrptr->paerial[i + j*Parptr->xsz] = 1;
+			fscanf(fp, "%" NUM_FMT"", Arrptr->paerial + i + j * Parptr->xsz);
+			if (AreEqual(Arrptr->paerial[i + j * Parptr->xsz], no_data_value))
+				Arrptr->paerial[i + j * Parptr->xsz] = 1;
 		}
 		fclose(fp);
 	}
@@ -1098,9 +1098,9 @@ void LoadPor(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr, 
 			fscanf(fp, "%" NUM_FMT"", &incr);
 			for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 			{
-				fscanf(fp, "%" NUM_FMT"", Arrptr->paerial + i + j*Parptr->xsz + k*Parptr->xsz*Parptr->ysz);
-				if (AreEqual(Arrptr->paerial[i + j*Parptr->xsz + k*Parptr->xsz*Parptr->ysz], no_data_value))
-					Arrptr->paerial[i + j*Parptr->xsz + k*Parptr->xsz*Parptr->ysz] = 1;
+				fscanf(fp, "%" NUM_FMT"", Arrptr->paerial + i + j * Parptr->xsz + k * Parptr->xsz*Parptr->ysz);
+				if (AreEqual(Arrptr->paerial[i + j * Parptr->xsz + k * Parptr->xsz*Parptr->ysz], no_data_value))
+					Arrptr->paerial[i + j * Parptr->xsz + k * Parptr->xsz*Parptr->ysz] = 1;
 			}
 		}
 		fclose(fp);
@@ -1117,9 +1117,9 @@ void LoadPor(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr, 
 
 		for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 		{
-			fscanf(fp, "%" NUM_FMT"", Arrptr->paerial + i + j*Parptr->xsz);
-			if (AreEqual(Arrptr->paerial[i + j*Parptr->xsz], no_data_value))
-				Arrptr->paerial[i + j*Parptr->xsz] = 1;
+			fscanf(fp, "%" NUM_FMT"", Arrptr->paerial + i + j * Parptr->xsz);
+			if (AreEqual(Arrptr->paerial[i + j * Parptr->xsz], no_data_value))
+				Arrptr->paerial[i + j * Parptr->xsz] = 1;
 		}
 
 		fscanf(fp, "%s", dum);
@@ -1128,9 +1128,9 @@ void LoadPor(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr, 
 		{
 			for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 			{
-				fscanf(fp, "%" NUM_FMT"", Arrptr->pbound + i + j*Parptr->xsz + k*Parptr->xsz*Parptr->ysz);
-				if (AreEqual(Arrptr->pbound[i + j*Parptr->xsz + k*Parptr->xsz*Parptr->ysz], no_data_value))
-					Arrptr->pbound[i + j*Parptr->xsz + k*Parptr->xsz*Parptr->ysz] = 1;
+				fscanf(fp, "%" NUM_FMT"", Arrptr->pbound + i + j * Parptr->xsz + k * Parptr->xsz*Parptr->ysz);
+				if (AreEqual(Arrptr->pbound[i + j * Parptr->xsz + k * Parptr->xsz*Parptr->ysz], no_data_value))
+					Arrptr->pbound[i + j * Parptr->xsz + k * Parptr->xsz*Parptr->ysz] = 1;
 			}
 		}
 		fclose(fp);
@@ -1152,9 +1152,9 @@ void LoadPor(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr, 
 			fscanf(fp, "%" NUM_FMT"", &incr);
 			for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 			{
-				fscanf(fp, "%" NUM_FMT"", Arrptr->paerial + i + j*Parptr->xsz + k*Parptr->xsz*Parptr->ysz);
-				if (AreEqual(Arrptr->paerial[i + j*Parptr->xsz + k*Parptr->xsz*Parptr->ysz], no_data_value))
-					Arrptr->paerial[i + j*Parptr->xsz + k*Parptr->xsz*Parptr->ysz] = 1;
+				fscanf(fp, "%" NUM_FMT"", Arrptr->paerial + i + j * Parptr->xsz + k * Parptr->xsz*Parptr->ysz);
+				if (AreEqual(Arrptr->paerial[i + j * Parptr->xsz + k * Parptr->xsz*Parptr->ysz], no_data_value))
+					Arrptr->paerial[i + j * Parptr->xsz + k * Parptr->xsz*Parptr->ysz] = 1;
 			}
 		}
 
@@ -1165,10 +1165,10 @@ void LoadPor(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr, 
 			fscanf(fp, "%" NUM_FMT"", &incr);
 			for (k = 0; k < 4; k++) for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 			{
-				fscanf(fp, "%" NUM_FMT"", Arrptr->pbound + i + j*Parptr->xsz + m*Parptr->xsz*Parptr->ysz + k*Parptr->xsz*Parptr->ysz);
-				if (AreEqual(Arrptr->pbound[i + j*Parptr->xsz + m*Parptr->xsz*Parptr->ysz + k*Parptr->xsz*Parptr->ysz], no_data_value))
+				fscanf(fp, "%" NUM_FMT"", Arrptr->pbound + i + j * Parptr->xsz + m * Parptr->xsz*Parptr->ysz + k * Parptr->xsz*Parptr->ysz);
+				if (AreEqual(Arrptr->pbound[i + j * Parptr->xsz + m * Parptr->xsz*Parptr->ysz + k * Parptr->xsz*Parptr->ysz], no_data_value))
 				{
-					Arrptr->pbound[i + j*Parptr->xsz + m*Parptr->xsz*Parptr->ysz + k*Parptr->xsz*Parptr->ysz] = 1;
+					Arrptr->pbound[i + j * Parptr->xsz + m * Parptr->xsz*Parptr->ysz + k * Parptr->xsz*Parptr->ysz] = 1;
 				}
 			}
 		}
@@ -1190,37 +1190,37 @@ void InitStartFile(States *Statesptr, Pars *Parptr, Arrays *Arrptr, SGCprams *SG
 		{
 			//fscanf(fp, "%" NUM_FMT"", Arrptr->H + i + j*Parptr->xsz);
 			// if no_data set depth to zero
-			if (AreEqual(Arrptr->H[i + j*Parptr->xsz], no_data_value)) Arrptr->H[i + j*Parptr->xsz] = C(0.0);
+			if (AreEqual(Arrptr->H[i + j * Parptr->xsz], no_data_value)) Arrptr->H[i + j * Parptr->xsz] = C(0.0);
 			else if (Statesptr->startelev == ON) // convert water surface elevation to depth is this is being used
 			{
 				// check to see if SGC is on
 				if (Statesptr->SGC == ON)
 				{
-					gr = Arrptr->SGCgroup[i + j*Parptr->xsz]; // channel group number
+					gr = Arrptr->SGCgroup[i + j * Parptr->xsz]; // channel group number
 					// is SGC is on calculate both a depth from the channel bed and the domain volume
-					Arrptr->H[i + j*Parptr->xsz] = getmax(Arrptr->H[i + j*Parptr->xsz] - Arrptr->SGCz[i + j*Parptr->xsz], C(0.0));
+					Arrptr->H[i + j * Parptr->xsz] = getmax(Arrptr->H[i + j * Parptr->xsz] - Arrptr->SGCz[i + j * Parptr->xsz], C(0.0));
 
-					if (Arrptr->H[i + j*Parptr->xsz] <= Arrptr->SGCbfH[i + j*Parptr->xsz])
-						Arrptr->SGCVol[i + j*Parptr->xsz] = CalcSGC_UpV(SGCptr->SGCchantype[gr], Arrptr->H[i + j*Parptr->xsz], SGCptr->SGCs[gr], Arrptr->SGCc[i + j*Parptr->xsz]);
-					else if (Arrptr->SGCwidth[i + j*Parptr->xsz] >= C(0.5)*(Arrptr->dx[i + j*Parptr->xsz] + Arrptr->dy[i + j*Parptr->xsz]))
-						Arrptr->SGCVol[i + j*Parptr->xsz] = CalcSGC_UpV(SGCptr->SGCchantype[gr], Arrptr->H[i + j*Parptr->xsz], SGCptr->SGCs[gr], Arrptr->SGCc[i + j*Parptr->xsz]);
+					if (Arrptr->H[i + j * Parptr->xsz] <= Arrptr->SGCbfH[i + j * Parptr->xsz])
+						Arrptr->SGCVol[i + j * Parptr->xsz] = CalcSGC_UpV(SGCptr->SGCchantype[gr], Arrptr->H[i + j * Parptr->xsz], SGCptr->SGCs[gr], Arrptr->SGCc[i + j * Parptr->xsz]);
+					else if (Arrptr->SGCwidth[i + j * Parptr->xsz] >= C(0.5)*(Arrptr->dx[i + j * Parptr->xsz] + Arrptr->dy[i + j * Parptr->xsz]))
+						Arrptr->SGCVol[i + j * Parptr->xsz] = CalcSGC_UpV(SGCptr->SGCchantype[gr], Arrptr->H[i + j * Parptr->xsz], SGCptr->SGCs[gr], Arrptr->SGCc[i + j * Parptr->xsz]);
 					else
-						Arrptr->SGCVol[i + j*Parptr->xsz] = Arrptr->SGCbfV[i + j*Parptr->xsz] + (Arrptr->H[i + j*Parptr->xsz] 
-							- Arrptr->SGCbfH[i + j*Parptr->xsz])*(Arrptr->dx[i + j*Parptr->xsz] * Arrptr->dy[i + j*Parptr->xsz]); // out of bank level * cell area
+						Arrptr->SGCVol[i + j * Parptr->xsz] = Arrptr->SGCbfV[i + j * Parptr->xsz] + (Arrptr->H[i + j * Parptr->xsz]
+							- Arrptr->SGCbfH[i + j * Parptr->xsz])*(Arrptr->dx[i + j * Parptr->xsz] * Arrptr->dy[i + j * Parptr->xsz]); // out of bank level * cell area
 				}
 				else
-					Arrptr->H[i + j*Parptr->xsz] = getmax(Arrptr->H[i + j*Parptr->xsz] - Arrptr->DEM[i + j*Parptr->xsz], C(0.0));
+					Arrptr->H[i + j * Parptr->xsz] = getmax(Arrptr->H[i + j * Parptr->xsz] - Arrptr->DEM[i + j * Parptr->xsz], C(0.0));
 
 			}
 			else if (Statesptr->SGC == ON)
 			{
-				gr = Arrptr->SGCgroup[i + j*Parptr->xsz]; // channel group number
-				if (Arrptr->H[i + j*Parptr->xsz] <= Arrptr->SGCbfH[i + j*Parptr->xsz])
-					Arrptr->SGCVol[i + j*Parptr->xsz] = CalcSGC_UpV(SGCptr->SGCchantype[gr], Arrptr->H[i + j*Parptr->xsz], SGCptr->SGCs[gr], Arrptr->SGCc[i + j*Parptr->xsz]);
-				else if (Arrptr->SGCwidth[i + j*Parptr->xsz] >= C(0.5)*(Arrptr->dx[i + j*Parptr->xsz] + Arrptr->dy[i + j*Parptr->xsz]))
-					Arrptr->SGCVol[i + j*Parptr->xsz] = CalcSGC_UpV(SGCptr->SGCchantype[gr], Arrptr->H[i + j*Parptr->xsz], SGCptr->SGCs[gr], Arrptr->SGCc[i + j*Parptr->xsz]);
+				gr = Arrptr->SGCgroup[i + j * Parptr->xsz]; // channel group number
+				if (Arrptr->H[i + j * Parptr->xsz] <= Arrptr->SGCbfH[i + j * Parptr->xsz])
+					Arrptr->SGCVol[i + j * Parptr->xsz] = CalcSGC_UpV(SGCptr->SGCchantype[gr], Arrptr->H[i + j * Parptr->xsz], SGCptr->SGCs[gr], Arrptr->SGCc[i + j * Parptr->xsz]);
+				else if (Arrptr->SGCwidth[i + j * Parptr->xsz] >= C(0.5)*(Arrptr->dx[i + j * Parptr->xsz] + Arrptr->dy[i + j * Parptr->xsz]))
+					Arrptr->SGCVol[i + j * Parptr->xsz] = CalcSGC_UpV(SGCptr->SGCchantype[gr], Arrptr->H[i + j * Parptr->xsz], SGCptr->SGCs[gr], Arrptr->SGCc[i + j * Parptr->xsz]);
 				else
-					Arrptr->SGCVol[i + j*Parptr->xsz] = Arrptr->SGCbfV[i + j*Parptr->xsz] + (Arrptr->H[i + j*Parptr->xsz] - Arrptr->SGCbfH[i + j*Parptr->xsz])*(Arrptr->dx[i + j*Parptr->xsz] * Arrptr->dy[i + j*Parptr->xsz]); // out of bank level
+					Arrptr->SGCVol[i + j * Parptr->xsz] = Arrptr->SGCbfV[i + j * Parptr->xsz] + (Arrptr->H[i + j * Parptr->xsz] - Arrptr->SGCbfH[i + j * Parptr->xsz])*(Arrptr->dx[i + j * Parptr->xsz] * Arrptr->dy[i + j * Parptr->xsz]); // out of bank level
 			}
 		}
 
@@ -1243,7 +1243,7 @@ void LoadStart(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr
 	for (j = 0; j < Parptr->ysz; j++)
 		for (i = 0; i < Parptr->xsz; i++)
 		{
-			fscanf(fp, "%" NUM_FMT"", Arrptr->H + i + j*Parptr->xsz);
+			fscanf(fp, "%" NUM_FMT"", Arrptr->H + i + j * Parptr->xsz);
 		}
 	fclose(fp);
 
@@ -1278,7 +1278,7 @@ void LoadBinaryStart(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *
 
 	for (j = 0; j < Parptr->ysz; j++) //for(i=0;i<Parptr->xsz;i++) no need to loop x with fread.
 	{
-		fread(Arrptr->H + j*Parptr->xsz, sizeof(NUMERIC_TYPE), Parptr->xsz, fp);
+		fread(Arrptr->H + j * Parptr->xsz, sizeof(NUMERIC_TYPE), Parptr->xsz, fp);
 		//// loop through x
 		//for (i = 0; i < Parptr->xsz; i++)
 		//{
@@ -1305,31 +1305,31 @@ void LoadBinaryStart(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *
 // LOAD <startfile>.Qx and <startfile>.Qy into HU and HV for FV1 and DG2
 // solvers.
 void LoadStartQ2D(Fnames* Fnameptr, Pars* Parptr, Arrays* Arrptr,
-        const int verbose)
+	const int verbose)
 {
 	FILE *fp;
 	int i, j;
 	char dum[800];
 	NUMERIC_TYPE no_data_value = -9999;
 
-    char hu_startfile[800];
-    strcpy(hu_startfile, Fnameptr->startfilename);
-    strcat(hu_startfile, ".Qx");
+	char hu_startfile[800];
+	strcpy(hu_startfile, Fnameptr->startfilename);
+	strcat(hu_startfile, ".Qx");
 
-    char hv_startfile[800];
-    strcpy(hv_startfile, Fnameptr->startfilename);
-    strcat(hv_startfile, ".Qy");
+	char hv_startfile[800];
+	strcpy(hv_startfile, Fnameptr->startfilename);
+	strcat(hv_startfile, ".Qy");
 
 	fp = fopen_or_die(hu_startfile, "r", "Loading startfile.Qx ", verbose);
 	for (i = 0; i < 5; i++) fscanf(fp, "%s %s", dum, dum);
 	fscanf(fp, "%s %" NUM_FMT"", dum, &no_data_value);
 	for (j = 0; j < Parptr->ysz; j++)
-    {
+	{
 		for (i = 0; i < Parptr->xsz; i++)
 		{
-			fscanf(fp, "%" NUM_FMT"", Arrptr->HU + i + j*Parptr->xsz);
+			fscanf(fp, "%" NUM_FMT"", Arrptr->HU + i + j * Parptr->xsz);
 		}
-    }
+	}
 	fclose(fp);
 	if (verbose == ON) printf("Done.\n\n");
 
@@ -1337,12 +1337,12 @@ void LoadStartQ2D(Fnames* Fnameptr, Pars* Parptr, Arrays* Arrptr,
 	for (i = 0; i < 5; i++) fscanf(fp, "%s %s", dum, dum);
 	fscanf(fp, "%s %" NUM_FMT"", dum, &no_data_value);
 	for (j = 0; j < Parptr->ysz; j++)
-    {
+	{
 		for (i = 0; i < Parptr->xsz; i++)
 		{
-			fscanf(fp, "%" NUM_FMT"", Arrptr->HV + i + j*Parptr->xsz);
+			fscanf(fp, "%" NUM_FMT"", Arrptr->HV + i + j * Parptr->xsz);
 		}
-    }
+	}
 	fclose(fp);
 	if (verbose == ON) printf("Done.\n\n");
 
@@ -1358,7 +1358,7 @@ void LoadDEM(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Arrays *Arrptr, 
 	NUMERIC_TYPE no_data_value = -9999;
 
 	FILE *fp = LoadDomainGeometry(Fnameptr->demfilename, Parptr, verbose,
-			 no_data_value);
+		no_data_value);
 
 	// allocate memory for arrays, Note the () at the end ensures all elements are initialised to zero
 	Arrptr->H = memory_allocate_zero_numeric_legacy(Parptr->xsz*Parptr->ysz);
@@ -1532,14 +1532,14 @@ void LoadDEMData
 	NUMERIC_TYPE file_nodata_value
 )
 {
-	for (int j=0; j<Parptr->ysz; j++)
+	for (int j = 0; j < Parptr->ysz; j++)
 	{
-		for (int i=0; i<Parptr->xsz; i++)
+		for (int i = 0; i < Parptr->xsz; i++)
 		{
-			fscanf(fp, "%" NUM_FMT"", &DEM[i + j*Parptr->xsz]);
-			if (AreEqual(DEM[i + j*Parptr->xsz], file_nodata_value))
+			fscanf(fp, "%" NUM_FMT"", &DEM[i + j * Parptr->xsz]);
+			if (AreEqual(DEM[i + j * Parptr->xsz], file_nodata_value))
 			{
-				DEM[i + j*Parptr->xsz] = Parptr->nodata_elevation;
+				DEM[i + j * Parptr->xsz] = Parptr->nodata_elevation;
 			}
 		}
 	}
@@ -1566,7 +1566,7 @@ void LoadPOIs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Pois *Poisptr, 
 		fscanf(fp, "%" NUM_FMT"%" NUM_FMT"", &px, &py);
 		Poisptr->xpi[pi] = (int)((px - Parptr->blx) / Parptr->dx);
 		Poisptr->ypi[pi] = (int)((Parptr->tly - py) / Parptr->dy);
-		
+
 	}
 	Statesptr->save_poi = ON;
 }
@@ -1581,7 +1581,7 @@ void LoadBCs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, 
 	FILE *fp;
 	char buff[800], buff2[800], buff3[800], side;
 	NUMERIC_TYPE BC_tmp;
-	int pi = -1, maxpi = 20000;  // increase max from 10 to 20K (MT)
+	int pi = BCptr->numPS - 1, maxpi = 20000;  // increase max from 10 to 20K (MT)
 	NUMERIC_TYPE px, py;
 
 	int *new_xpi, *new_ypi;
@@ -1589,35 +1589,35 @@ void LoadBCs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, 
 	NUMERIC_TYPE *new_PS_Val, *new_PS_Q_FP_old, *new_PS_Q_SG_old;
 	char *new_PS_Name;
 
-	// POINT SOURCE STUFF
-	BCptr->xpi = new int[maxpi];
-	BCptr->ypi = new int[maxpi];
-	for (i = 0; i < maxpi; i++)
-		BCptr->xpi[i] = BCptr->ypi[i] = -1;
-	BCptr->PS_Ident = new ESourceType[maxpi];
-	BCptr->PS_Val = memory_allocate_numeric_legacy(maxpi);
-	BCptr->PS_Name = new char[maxpi * 80];
-	for (i = 0; i < maxpi; i++)
-	{
-		BCptr->PS_Ident[i] = NONE0;
-		BCptr->PS_Val[i] = C(-1.0);
-		BCptr->PS_Name[i] = '\0';
-	}
-	BCptr->numPS = -1;
+	//// POINT SOURCE STUFF
+	//BCptr->xpi = new int[maxpi];
+	//BCptr->ypi = new int[maxpi];
+	//for (i = 0; i < maxpi; i++)
+	//	BCptr->xpi[i] = BCptr->ypi[i] = -1;
+	//BCptr->PS_Ident = new ESourceType[maxpi];
+	//BCptr->PS_Val = memory_allocate_numeric_legacy(maxpi);
+	//BCptr->PS_Name = new char[maxpi * 80];
+	//for (i = 0; i < maxpi; i++)
+	//{
+	//	BCptr->PS_Ident[i] = NONE0;
+	//	BCptr->PS_Val[i] = C(-1.0);
+	//	BCptr->PS_Name[i] = '\0';
+	//}
+	////BCptr->numPS = -1;
 
-	// BOUNDARY CONDITION STUFF
-	numBCs = 2 * Parptr->xsz + 2 * Parptr->ysz;
-	BCptr->BC_Ident = new ESourceType[numBCs];
-	BCptr->BC_Val = memory_allocate_numeric_legacy(numBCs);
-	BCptr->BC_Name = new char[numBCs * 80];
-	BCptr->numBCs = numBCs;
+	//// BOUNDARY CONDITION STUFF
+	//numBCs = 2 * Parptr->xsz + 2 * Parptr->ysz;
+	//BCptr->BC_Ident = new ESourceType[numBCs];
+	//BCptr->BC_Val = memory_allocate_numeric_legacy(numBCs);
+	//BCptr->BC_Name = new char[numBCs * 80];
+	//BCptr->numBCs = numBCs;
 
-	for (i = 0; i < numBCs; i++)
-	{
-		BCptr->BC_Ident[i] = NONE0;
-		BCptr->BC_Val[i] = C(-1.0);
-		BCptr->BC_Name[i*80] = '\0';
-	}
+	//for (i = 0; i < numBCs; i++)
+	//{
+	//	BCptr->BC_Ident[i] = NONE0;
+	//	BCptr->BC_Val[i] = C(-1.0);
+	//	BCptr->BC_Name[i * 80] = '\0';
+	//}
 
 	if (strlen(Fnameptr->bcifilename) == 0)
 	{
@@ -1705,7 +1705,7 @@ void LoadBCs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, 
 		// Read free boundary condition locations
 		// load buffer until EOL
 		j = 0;
-		do{ buff2[j] = fgetc(fp); } while (buff2[j++] != '\n' && !feof(fp));
+		do { buff2[j] = fgetc(fp); } while (buff2[j++] != '\n' && !feof(fp));
 		if (j > 0)
 			buff2[j - 1] = '\0';               // Finish off string
 		// get buff so you know boundary type
@@ -1771,7 +1771,7 @@ void LoadBCs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, 
 			sscanf(buff2, "%s%s", buff3, buff);
 			if (verbose == ON)
 				printf("QVAR from bdy file %s on %c side start %" NUM_FMT" end %" NUM_FMT"\n",
-				buff, side, start, finish);
+					buff, side, start, finish);
 			for (i = BCi1; i <= BCi2; i++)
 			{
 				strcpy(BCptr->BC_Name + i * 80, buff);
@@ -1822,14 +1822,8 @@ void LoadBCs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, 
 				printf("QVAR at point [%" NUM_FMT",%" NUM_FMT"] (%d,%d) %s\n", px, py, BCptr->xpi[pi], BCptr->ypi[pi], buff);
 			strcpy(BCptr->PS_Name + pi * 80, buff);
 			BCptr->PS_Ident[pi] = QVAR5;
-			for (int up_index = 0; up_index < LfpCouplingInfoPtr->seims_up_list.size(); ++up_index) {
-				LfpCouplingInfoPtr->seims_up_list[up_index].ps_index = pi;
-				LfpCouplingInfoPtr->seims_up_list[up_index].ps_x = BCptr->xpi[pi];
-				LfpCouplingInfoPtr->seims_up_list[up_index].ps_y = BCptr->ypi[pi];
-				LfpCouplingInfoPtr->seims_up_list[up_index].inflow_pt_name = BCptr->PS_Name;
-
-			}
 			
+
 			// xdw modify, 这里暂时把此项加入到BC_Ident中，否则在sgm_fast.cpp的SGC2_BCs()方法中就无法遍历到HFIX,QFIX,QVAR,HVAR,FREE(SGC)情况
 			//BCptr->BC_Ident[pi] = QVAR5;
 		}
@@ -1917,6 +1911,99 @@ void LoadBCs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, 
 	return;
 }
 
+void LoadBCs_SEIMS(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, LfpCouplingInfo * LfpCouplingInfoPtr, const int verbose)
+{
+
+
+	int numBCs, i, j, BCi1, BCi2, tmpi;
+	NUMERIC_TYPE start, finish;
+	FILE *fp;
+	char buff[800], buff2[800], buff3[800], side;
+	char BC_tmp[300];
+	int pi = -1, maxpi = 20000;  // increase max from 10 to 20K (MT)
+	NUMERIC_TYPE px, py;
+
+	int *new_xpi, *new_ypi;
+	ESourceType *new_PS_Ident;
+	NUMERIC_TYPE *new_PS_Val, *new_PS_Q_FP_old, *new_PS_Q_SG_old;
+	char *new_PS_Name;
+
+	// POINT SOURCE STUFF
+	BCptr->xpi = new int[maxpi];
+	BCptr->ypi = new int[maxpi];
+	for (i = 0; i < maxpi; i++)
+		BCptr->xpi[i] = BCptr->ypi[i] = -1;
+	BCptr->PS_Ident = new ESourceType[maxpi];
+	BCptr->PS_Val = memory_allocate_numeric_legacy(maxpi);
+	BCptr->PS_Name = new char[maxpi * 80];
+	for (i = 0; i < maxpi; i++)
+	{
+		BCptr->PS_Ident[i] = NONE0;
+		BCptr->PS_Val[i] = C(-1.0);
+		BCptr->PS_Name[i] = '\0';
+	}
+	BCptr->numPS = 0;
+
+	// BOUNDARY CONDITION STUFF
+	numBCs = 2 * Parptr->xsz + 2 * Parptr->ysz;
+	BCptr->BC_Ident = new ESourceType[numBCs];
+	BCptr->BC_Val = memory_allocate_numeric_legacy(numBCs);
+	BCptr->BC_Name = new char[numBCs * 80];
+	BCptr->numBCs = numBCs;
+
+	for (i = 0; i < numBCs; i++)
+	{
+		BCptr->BC_Ident[i] = NONE0;
+		BCptr->BC_Val[i] = C(-1.0);
+		BCptr->BC_Name[i * 80] = '\0';
+	}
+
+	if (strlen(Fnameptr->bcifilename) == 0)
+	{
+		if (verbose == ON) printf("No bcifile used\n");
+		return;
+	}
+	if (Statesptr->use_seims_bc == ON)
+	{
+		fp = fopen_or_die(Fnameptr->seims_bcifilename, "rb", "Loading boundary condition IDs\n", verbose);
+
+		char type[16], qtype[16], qname[300];
+
+		while (!feof(fp)) {
+			if (fscanf(fp, "%s", type) != 1) break;
+			if (type[0] != 'P') continue;
+
+			if (fscanf(fp, "%" NUM_FMT " %" NUM_FMT " %s %s", &px, &py, qtype, qname) != 4) {
+				if (verbose == ON) printf("WARNING: Format error in .bci line\n");
+				continue;
+			}
+
+			pi++;
+			BCptr->xpi[pi] = (int)((px - Parptr->blx) / Parptr->dx);
+			BCptr->ypi[pi] = (int)((Parptr->tly - py) / Parptr->dy);
+
+			if (!STRCMPi(qtype, "QFIX")) {
+				BCptr->PS_Ident[pi] = QFIX4;
+				BCptr->PS_Val[pi] = C(-1.0);  // 可选，实际不使用
+				strcpy(BCptr->PS_Name + pi * 80, qname);  // 把 “06602400” 存进去
+
+				if (verbose == ON)
+					printf("QFIX at point [%" NUM_FMT ", %" NUM_FMT "] (%d,%d), ID=%s\n",
+						px, py, BCptr->xpi[pi], BCptr->ypi[pi], qname);
+				BCptr->numPS++;
+			}
+			else {
+				if (verbose == ON) printf("WARNING: Unsupported type: %s\n", qtype);
+			}
+		}
+
+		fclose(fp);
+	}
+
+
+	return;
+}
+
 void FreeTimeSeries(TimeSeries& timeSeries)
 {
 	NUMERIC_TYPE ** mem;
@@ -1965,8 +2052,8 @@ void LoadTimeSeries
 	timeSeries.count = ndata;
 	timeSeries.prev_index = 0;
 	timeSeries.prev_time = C(-1.0);
-	timeSeries.time = (NUMERIC_TYPE*)memory_allocate(ndata*sizeof(NUMERIC_TYPE));
-	timeSeries.value = (NUMERIC_TYPE*)memory_allocate(ndata*sizeof(NUMERIC_TYPE));
+	timeSeries.time = (NUMERIC_TYPE*)memory_allocate(ndata * sizeof(NUMERIC_TYPE));
+	timeSeries.value = (NUMERIC_TYPE*)memory_allocate(ndata * sizeof(NUMERIC_TYPE));
 
 	int i = 0;
 	NUMERIC_TYPE prev_time = C(-1.);
@@ -2088,8 +2175,8 @@ void LoadBCVar(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr
 			// new code
 			TimeSeries* timeSeries = new TimeSeries();
 			BCptr->allTimeSeries.push_back(*timeSeries);
-			LoadTimeSeries(BCptr->allTimeSeries.back(), Fnameptr->bdyfilename, fp, OFF); 
-			*timeSeries = BCptr->allTimeSeries.back(); 
+			LoadTimeSeries(BCptr->allTimeSeries.back(), Fnameptr->bdyfilename, fp, OFF);
+			*timeSeries = BCptr->allTimeSeries.back();
 
 			/* James shaw code (incompatible with CPU solvers)
 			BCptr->allTimeSeries.push_back(TimeSeries());
@@ -2246,7 +2333,7 @@ void LoadRain(Fnames *Fnameptr, Arrays *Arrptr, const int verbose)
 }
 // xdw add，support read rain, temperature data from meteorological station csv data directly
 // read time series and specify col_index you want to read as data series
-void LoadDataByCSV(char *filename,  TimeSeries ** dataSeries, const int verbose, int col_index) {
+void LoadDataByCSV(char *filename, TimeSeries ** dataSeries, const int verbose, int col_index) {
 	ifstream file(filename);
 	string line;
 	int line_count = 0;
@@ -2303,7 +2390,7 @@ void LoadDataByCSV(char *filename,  TimeSeries ** dataSeries, const int verbose,
 		}
 		getline(ss, token, ',');
 		series->value[line_count - 1] = stof(token);
-		
+
 		//dataSeries->value[line_count - 1] = rainfall;
 		line_count++;
 	}
@@ -2405,11 +2492,11 @@ void LoadRainmask(Fnames *Fnameptr, Pars *Parptr, Arrays *Arrptr, States *States
 
 	for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 	{
-		fscanf(fp, "%" NUM_FMT"", Arrptr->Rainmask + i + j*Parptr->xsz);
+		fscanf(fp, "%" NUM_FMT"", Arrptr->Rainmask + i + j * Parptr->xsz);
 		// 打印读取的值
 		//printf("Read value: %" NUM_FMT "\n", Arrptr->Rainmask[i + j * Parptr->xsz]);
-		if (AreEqual(Arrptr->Rainmask[i + j*Parptr->xsz], no_data_value))
-			Arrptr->Rainmask[i + j*Parptr->xsz] = 0;
+		if (AreEqual(Arrptr->Rainmask[i + j * Parptr->xsz], no_data_value))
+			Arrptr->Rainmask[i + j * Parptr->xsz] = 0;
 	}
 	fclose(fp);
 
@@ -2457,9 +2544,9 @@ void LoadSGC(Fnames *Fnameptr, Pars *Parptr, Arrays *Arrptr, States *Statesptr, 
 		fscanf(fp, "%s %" NUM_FMT"", dum, &no_data_value);
 		for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 		{
-			fscanf(fp, "%" NUM_FMT"", Arrptr->SGCwidth + i + j*Parptr->xsz);
-			if (AreEqual( Arrptr->SGCwidth[i + j*Parptr->xsz], no_data_value))
-				Arrptr->SGCwidth[i + j*Parptr->xsz] = C(0.0); // In the case of no_data_value set the width to zero
+			fscanf(fp, "%" NUM_FMT"", Arrptr->SGCwidth + i + j * Parptr->xsz);
+			if (AreEqual(Arrptr->SGCwidth[i + j * Parptr->xsz], no_data_value))
+				Arrptr->SGCwidth[i + j * Parptr->xsz] = C(0.0); // In the case of no_data_value set the width to zero
 		}
 		fclose(fp);
 
@@ -2476,15 +2563,15 @@ void LoadSGC(Fnames *Fnameptr, Pars *Parptr, Arrays *Arrptr, States *Statesptr, 
 		for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 		{
 			fscanf(fp, "%" NUM_FMT"", &tmp); // read a NUMERIC_TYPE in case someone doesn't put intergers in the ascii file.
-			Arrptr->SGCgroup[i + j*Parptr->xsz] = (int)tmp;
-			if (AreEqual(Arrptr->SGCgroup[i + j*Parptr->xsz], no_data_value) || Arrptr->SGCgroup[i + j*Parptr->xsz] < 0) 
-				Arrptr->SGCgroup[i + j*Parptr->xsz] = 0; // In the case of no_data_value set the chan group to zero
+			Arrptr->SGCgroup[i + j * Parptr->xsz] = (int)tmp;
+			if (AreEqual(Arrptr->SGCgroup[i + j * Parptr->xsz], no_data_value) || Arrptr->SGCgroup[i + j * Parptr->xsz] < 0)
+				Arrptr->SGCgroup[i + j * Parptr->xsz] = 0; // In the case of no_data_value set the chan group to zero
 		}
 		fclose(fp);
 		if (verbose == ON) printf("Done.\n\n");
 	}
 	if (Statesptr->ChanMaskRead == ON) // loads SGC channel mask if present
-	{ 
+	{
 		// creat memory space for channel mask
 		memset(Arrptr->ChanMask, 0, sizeof(int)*(Parptr->xsz)*(Parptr->ysz));
 		// open file
@@ -2498,19 +2585,19 @@ void LoadSGC(Fnames *Fnameptr, Pars *Parptr, Arrays *Arrptr, States *Statesptr, 
 		for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 		{
 			fscanf(fp, "%" NUM_FMT"", &tmp);
-			if (AreEqual(tmp, no_data_value)) Arrptr->ChanMask[i + j*Parptr->xsz] = 0; // In the case of no_data_value set the chan mask to zero
+			if (AreEqual(tmp, no_data_value)) Arrptr->ChanMask[i + j * Parptr->xsz] = 0; // In the case of no_data_value set the chan mask to zero
 			else if (tmp > C(0.0))
 			{
 				Arrptr->ChanMask[i + j * Parptr->xsz] = 1;
 				channel_cell_count++;
 			} // a positive number is a mask cell 1
-			else Arrptr->ChanMask[i + j*Parptr->xsz] = 0; // anything else is a no mask cell 0
+			else Arrptr->ChanMask[i + j * Parptr->xsz] = 0; // anything else is a no mask cell 0
 		}
 		cout << "channel cell number is: " << channel_cell_count << endl;
 		fclose(fp);
 		if (verbose == ON) printf("Done.\n");
 	}
-	
+
 	return;
 }
 
@@ -2530,7 +2617,7 @@ void LoadTimeVaringTemperature(Fnames *Fnameptr, Arrays *Arrptr, const int verbo
 	if (verbose == ON) printf("Done.\n\n");
 	return;
 }
-void initialize_array(float * arr,  const int grid_rows,const int grid_cols, const int grid_cols_padded) {
+void initialize_array(float * arr, const int grid_rows, const int grid_cols, const int grid_cols_padded) {
 	if (arr == NULL)
 	{
 		//arr = (float*)memory_allocate(sizeof(float) * grid_cols_padded * Parptr->ysz);
@@ -2598,14 +2685,14 @@ void loadSoilPropertiesInterflow(Fnames *Fnameptr, Pars *Parptr, int m_nCells) {
 void loadSoilPropertiesPerco_Multilayer(Fnames *Fnameptr, Pars *Parptr, States *Statesptr, int m_nCells) {
 	for (int i = 0; i < Parptr->multi_nSoilLyrs; i++)
 	{
-		if(Statesptr->multi_soilPoreIndexFile == ON)
+		if (Statesptr->multi_soilPoreIndexFile == ON)
 		{
 			LoadProperty(FILE_TYPE, "multi_soilPoreIndex", Parptr->multi_soilPoreIndex[i], Fnameptr->multi_soilPoreIndexFile[i], 0.0, m_nCells);
 		}
 		if (Parptr->usePoreIndexType == VALUE_TYPE)
 		{
 			LoadProperty(VALUE_TYPE, "multi_soilPoreIndex", Parptr->multi_soilPoreIndex[i], Fnameptr->multi_soilPoreIndexFile[i], Parptr->poreIndexValue, m_nCells);
-		} 
+		}
 
 		if (Statesptr->multi_soilFcFile == ON)
 		{
@@ -2631,11 +2718,11 @@ void loadSoilPropertiesPerco_Multilayer(Fnames *Fnameptr, Pars *Parptr, States *
 	}
 }
 
-void loadSoilPropertiesGASinglelayer(Fnames *Fnameptr,Pars *Parptr,int m_nCells) {
+void loadSoilPropertiesGASinglelayer(Fnames *Fnameptr, Pars *Parptr, int m_nCells) {
 	//int m_nCells = Parptr->xsz * Parptr->ysz;
 	// ks
 	Parptr->ks = new NUMERIC_TYPE[m_nCells];
-	LoadProperty(Parptr->useKsType,"ks", Parptr->ks, Fnameptr->ksFile, Parptr->ksValue, m_nCells);
+	LoadProperty(Parptr->useKsType, "ks", Parptr->ks, Fnameptr->ksFile, Parptr->ksValue, m_nCells);
 	// initSoilMoisture
 	Parptr->initSoilMoisture = new NUMERIC_TYPE[m_nCells];
 	LoadProperty(Parptr->useInitSoilMoistureType, "soil_moisture", Parptr->initSoilMoisture, Fnameptr->initSoilMoistureFile, Parptr->initSoilMoistureValue, m_nCells);
@@ -2644,7 +2731,7 @@ void loadSoilPropertiesGASinglelayer(Fnames *Fnameptr,Pars *Parptr,int m_nCells)
 	LoadProperty(Parptr->usePorosityType, "porosity", Parptr->porosity, Fnameptr->porosityFile, Parptr->porosityValue, m_nCells);
 	// clay
 	Parptr->clay = new NUMERIC_TYPE[m_nCells];
-	LoadProperty(Parptr->useClayType, "clay", Parptr->clay , Fnameptr->clayFile, Parptr->clayValue, m_nCells);
+	LoadProperty(Parptr->useClayType, "clay", Parptr->clay, Fnameptr->clayFile, Parptr->clayValue, m_nCells);
 	// sand
 	Parptr->sand = new NUMERIC_TYPE[m_nCells];
 	LoadProperty(Parptr->useSandType, "sand", Parptr->sand, Fnameptr->sandFile, Parptr->sandValue, m_nCells);
@@ -2672,7 +2759,7 @@ void loadSoilPropertiesGASinglelayer(Fnames *Fnameptr,Pars *Parptr,int m_nCells)
 	//{
 	//	printf("errpr green ampt ks type, please config ga_ks_file or ga_ks_value  in par file !");
 	//}
-	
+
 	//char * ksFile = "F:\\program\\lisflood\\data\\preparedata\\dembnk.tif";
 	//char * initSoilMoistureFile = "F:\\program\\lisflood\\data\\liujiahe\\dem.tif";
 	//char * porosityFile = "F:\\program\\lisflood\\data\\liujiahe\\dem.tif";
@@ -2709,7 +2796,7 @@ void loadSoilPropertiesDHSVM(Fnames *Fnameptr, Pars *Parptr, int m_nCells) {
 	LoadProperty(Parptr->useKsLatType, "ksLat", Parptr->ksLat, Fnameptr->ksLatFile, Parptr->ksLatValue, m_nCells);
 
 	//LoadProperty(FILE_TYPE, "multi_soilInitMoisture", Parptr->multi_soilInitMoisture[i], Fnameptr->multi_soilInitMoistureFile[i], 0.0, m_nCells);
-	
+
 }
 
 void loadSoilPropertiesWetspa(Fnames *Fnameptr, Pars *Parptr, int m_nCells) {
@@ -2719,7 +2806,7 @@ void loadSoilPropertiesWetspa(Fnames *Fnameptr, Pars *Parptr, int m_nCells) {
 
 }
 
-void LoadProperty(int type,string paramName, NUMERIC_TYPE * paramPtr, char * filename, NUMERIC_TYPE value, int m_nCells) {
+void LoadProperty(int type, string paramName, NUMERIC_TYPE * paramPtr, char * filename, NUMERIC_TYPE value, int m_nCells) {
 	//paramPtr = new float[m_nCells];
 	if (type == FILE_TYPE)
 	{
@@ -2749,9 +2836,9 @@ void LoadProperty(int type,string paramName, NUMERIC_TYPE * paramPtr, char * fil
 		//readTIFNoGdal(filename, paramPtr);
 		readTIFByGdal(filename, paramPtr);
 		for (int i = 0; i < m_nCells; ++i) {
-			if (paramPtr[i] > ZERO){
+			if (paramPtr[i] > ZERO) {
 				paramPtr[i] = value;
-			}	
+			}
 		}
 	}
 	else
@@ -2811,7 +2898,7 @@ void LoadGauges(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Stage *Locptr
 		if (Locptr->gauge_grid_y[i] >= Parptr->ysz) Locptr->gauge_grid_y[i] = Parptr->ysz - 1;
 
 		// multi_adjustPD distances if these will go off the domain - check these (Toby.D Checked and fixed!)
-		if ((Locptr->gauge_dir[i] == North || Locptr->gauge_dir[i] == South) && 
+		if ((Locptr->gauge_dir[i] == North || Locptr->gauge_dir[i] == South) &&
 			Locptr->gauge_grid_y[i] + Locptr->gauge_cells[i] > Parptr->ysz - 1)
 			Locptr->gauge_cells[i] = Parptr->ysz - 1 - Locptr->gauge_grid_y[i];
 		else if ((Locptr->gauge_dir[i] == East || Locptr->gauge_dir[i] == West)
@@ -2933,10 +3020,10 @@ void LoadDamPrams(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, DamData *Da
 	Damptr->OutputCellY = memory_allocate_zero_numeric_legacy(Damptr->NumDams);//;
 	Damptr->DamMaxH = C(0.0);
 	Damptr->DamYear = new int[Damptr->NumDams]();
-	
+
 	// Damptr->DynamicEdge = new DamEdge *[Damptr->NumDams];
 
-	
+
 
 	if (verbose == ON) printf("Num   Vol	Area	Initial_H	Dam_H     Spill_Width     Spill_Cd    Spill_Height     Dam_Op_Q     Output_X	Output_Y    \n");
 	//scan x,y locations from file
@@ -2952,7 +3039,7 @@ void LoadDamPrams(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, DamData *Da
 		}
 		buff[j] = '\0';									// Finish off string
 		sscanf(buff, "%i%" NUM_FMT"%" NUM_FMT"%" NUM_FMT"%" NUM_FMT"%" NUM_FMT"%" NUM_FMT"%" NUM_FMT"%i%" NUM_FMT"%" NUM_FMT"%" NUM_FMT"", &tmp, &Damptr->Volmax[i], &Damptr->DamArea[i], &Damptr->InitialHeight[i], &Damptr->DamHeight[i], &Damptr->SpillWidth[i], &Damptr->Spill_Cd[i], &Damptr->SpillHeight[i], &Damptr->DamOperationCode[i], &Damptr->DamMeanQ[i], &Damptr->OutputCellX[i], &Damptr->OutputCellY[i]);
-				
+
 		if (verbose == ON) printf("%i     %.3" NUM_FMT" %.3" NUM_FMT" %.3" NUM_FMT" %.3" NUM_FMT" %.3" NUM_FMT" %.3" NUM_FMT" %.3" NUM_FMT" %.3" NUM_FMT"  %" NUM_FMT"  %" NUM_FMT"\n", i, Damptr->Volmax[i], Damptr->DamArea[i], Damptr->InitialHeight[i], Damptr->DamHeight[i], Damptr->SpillWidth[i], Damptr->Spill_Cd[i], Damptr->SpillHeight[i], Damptr->DamMeanQ[i], Damptr->OutputCellX[i], Damptr->OutputCellY[i]);
 		Damptr->OutputCellX[i] = (floor((Damptr->OutputCellX[i] - Parptr->blx) / Parptr->dx));
 		Damptr->OutputCellY[i] = Parptr->ysz - 1 - ((floor((Damptr->OutputCellY[i] - Parptr->bly) / Parptr->dy)));
@@ -2960,7 +3047,7 @@ void LoadDamPrams(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, DamData *Da
 	if (verbose == ON) printf("Done.\n\n");
 
 	fclose(fp);
-	
+
 	return;
 }
 void LoadDamMask(Fnames *Fnameptr, Pars *Parptr, Arrays *Arrptr, DamData *Damptr, const int verbose)  //FEOL
@@ -2970,25 +3057,25 @@ void LoadDamMask(Fnames *Fnameptr, Pars *Parptr, Arrays *Arrptr, DamData *Damptr
 	int n; //Check
 	int num_cols; int num_rows; NUMERIC_TYPE  xllcorner; NUMERIC_TYPE  yllcorner; NUMERIC_TYPE  cell_size;
 
-		
+
 	read_file(Fnameptr->DamMaskfilename, no_data_value, &num_cols, &num_rows, &Arrptr->DamMask, &xllcorner, &yllcorner, &cell_size);
 
 	// Changes DEM to DEM_NO_DATA where mask is negative (no flow cells). No flow cells are ignored in 2-D solver.
 	for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++)
 	{
-		if (Arrptr->DamMask[i + j*Parptr->xsz] < C(0.0)) 
+		if (Arrptr->DamMask[i + j * Parptr->xsz] < C(0.0))
 		{
-			Arrptr->DEM[i + j*Parptr->xsz] = no_data_value;
-			if (AreEqual(Arrptr->DEM[i + j*Parptr->xsz], no_data_value))
-			Arrptr->DEM[i + j*Parptr->xsz] = DEM_NO_DATA;
+			Arrptr->DEM[i + j * Parptr->xsz] = no_data_value;
+			if (AreEqual(Arrptr->DEM[i + j * Parptr->xsz], no_data_value))
+				Arrptr->DEM[i + j * Parptr->xsz] = DEM_NO_DATA;
 		}
 	}
 	Damptr->Edgenos = new int[Damptr->NumDams]();
-	for (j = 0; j <Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++) for (n = 0; n < Damptr->NumDams; n++)
+	for (j = 0; j < Parptr->ysz; j++) for (i = 0; i < Parptr->xsz; i++) for (n = 0; n < Damptr->NumDams; n++)
 	{
 
-		if (Arrptr->DamMask[i + j*Parptr->xsz]== (n+1))
-			Damptr->Edgenos[n]++;		
+		if (Arrptr->DamMask[i + j * Parptr->xsz] == (n + 1))
+			Damptr->Edgenos[n]++;
 	}
 	return;
 }

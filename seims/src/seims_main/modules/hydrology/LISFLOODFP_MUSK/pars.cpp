@@ -268,6 +268,8 @@ void CheckParam(char* param_name, char* param_value_ptr, int line_number, Fnames
 		return;
 	if (read_string_param(param_name, line_number, param_value_ptr, "bcifile", Fnameptr->bcifilename, verbose, mode))
 		return;
+	if (read_string_param(param_name, line_number, param_value_ptr, "seims_bcifile", Fnameptr->seims_bcifilename, verbose, mode))
+		return;
 	if (read_string_param(param_name, line_number, param_value_ptr, "poifile", Fnameptr->poifilename, verbose, mode))
 		return;
 	if (read_string_param(param_name, line_number, param_value_ptr, "bdyfile", Fnameptr->bdyfilename, verbose, mode))
@@ -939,7 +941,12 @@ void CheckParam(char* param_name, char* param_value_ptr, int line_number, Fnames
 		printf("xaj c changed to %" NUM_FMT" \n", Parptr->c);
 		return;
 	}
-	
+	//-------------------------------couple SEIMS--------------------------------
+	if (read_empty_param(param_name, line_number, param_value_ptr, "use_seims_bc", verbose, mode))
+	{
+		Statesptr->use_seims_bc = ON;
+		return;
+	}
 	//-------------------------------DHSVM--------------------------------
 	if (read_empty_param(param_name, line_number, param_value_ptr, "use_dhsvm", verbose, mode))
 	{

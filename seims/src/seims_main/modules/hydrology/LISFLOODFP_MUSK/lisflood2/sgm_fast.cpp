@@ -77,9 +77,9 @@ inline NUMERIC_TYPE CalculateQ(const NUMERIC_TYPE surface_slope,
 
 	calc_num = (q_old - g * area * delta_time * surface_slope);
 	calc_den = (1 + delta_time * g_friction_squared * abs_q / (pow_tmp * area));
-	
+
 	return calc_num / calc_den;
-	
+
 #else
 #if _CALCULATE_Q_MODE == 1
 	NUMERIC_TYPE pow_tmp1, pow_tmp, abs_q, calc_num, calc_den;
@@ -96,7 +96,7 @@ inline NUMERIC_TYPE CalculateQ(const NUMERIC_TYPE surface_slope,
 
 	// limit to max Froude
 	calc_num = calc_num / calc_den; // calculate Q as calc_num
-	calc_den = max_Froude*area*SQRT(g*R); // Calculate max Q for max Froude as calcden
+	calc_den = max_Froude * area*SQRT(g*R); // Calculate max Q for max Froude as calcden
 
 	if (FABS(calc_num) < calc_den) return calc_num; // return calc_num if its less than calc_den
 	else return copysign(1.0, calc_num)*calc_den; // else return calc_den but get the sign from the surface slope
@@ -105,7 +105,7 @@ inline NUMERIC_TYPE CalculateQ(const NUMERIC_TYPE surface_slope,
 #if _CALCULATE_Q_MODE == 2
 	NUMERIC_TYPE pow_tmp1, pow_tmp, abs_q, calc_num, calc_den;
 
-	pow_tmp = POW(R, C(4.0)/C(3.0));
+	pow_tmp = POW(R, C(4.0) / C(3.0));
 
 	abs_q = FABS(q_old);
 
@@ -114,7 +114,7 @@ inline NUMERIC_TYPE CalculateQ(const NUMERIC_TYPE surface_slope,
 	return calc_num / calc_den;
 #else
 
-	return (q_old - g * area * delta_time * surface_slope) / ((1 + delta_time * g_friction_squared * FABS(q_old) / (POW(R, C(4.0)/C(3.0)) * area)));
+	return (q_old - g * area * delta_time * surface_slope) / ((1 + delta_time * g_friction_squared * FABS(q_old) / (POW(R, C(4.0) / C(3.0)) * area)));
 #endif
 #endif
 #endif
@@ -171,27 +171,27 @@ inline NUMERIC_TYPE SGC2_CalcR(int gr, NUMERIC_TYPE h, NUMERIC_TYPE hbf, NUMERIC
 		{
 			// beta parameters for flow depths below SGCbetahmin (C(0.05)) depth/bankfull width
 			b1 = SGCptr->SGCbeta1[gr]; b2 = SGCptr->SGCbeta2[gr];
-			R = b1*hp + b2*hp*hp; // calculate wetted perimiter component
+			R = b1 * hp + b2 * hp*hp; // calculate wetted perimiter component
 		}
 		else
 		{
 			// beta parameters for flow depths above or equal to SGCbetahmin (C(0.05)) depth/bankfull width
 			b1 = SGCptr->SGCbeta3[gr]; b2 = SGCptr->SGCbeta4[gr];
 			hp -= SGCptr->SGCbetahmin; // decrease hp to account for for wetted perimiter fraction below C(0.05) depth/bankful depth
-			R = SGCptr->SGCbeta5[gr] + b1*hp + b2*hp*hp; // calculate wetted perimiter component
+			R = SGCptr->SGCbeta5[gr] + b1 * hp + b2 * hp*hp; // calculate wetted perimiter component
 		}
-		R = A / (w + R*wbf);  // calculate hydraulic radius
+		R = A / (w + R * wbf);  // calculate hydraulic radius
 		break;	// Break terminates the switch statement
 
 	case 3: // linear slope - This model has a bed elevation, slope, top width and top elevation. 
-		if (h < hbf)	R = A / (h + SQRT(h  *h + w*w));	// within bank flow hydraulic radius
-		else			R = A / (hbf + SQRT(hbf*hbf + w*w));   // out of bank hydraulic radius (wetted perimeter is actually constant !!)
+		if (h < hbf)	R = A / (h + SQRT(h  *h + w * w));	// within bank flow hydraulic radius
+		else			R = A / (hbf + SQRT(hbf*hbf + w * w));   // out of bank hydraulic radius (wetted perimeter is actually constant !!)
 		break;	// Break terminates the switch statement
 
 	case 4: // triangular channel - This model has the bed elevation, slope, top width and top elevation 
 		w = C(0.5)*w;
-		if (h < hbf)	R = A / (2 * SQRT(h  *h + w*w));   // within bank flow hydraulic radius
-		else			R = A / (2 * SQRT(hbf*hbf + w*w));   // out of bank hydraulic radius (wetted perimeter is actually constant !!)
+		if (h < hbf)	R = A / (2 * SQRT(h  *h + w * w));   // within bank flow hydraulic radius
+		else			R = A / (2 * SQRT(hbf*hbf + w * w));   // out of bank hydraulic radius (wetted perimeter is actually constant !!)
 		break;	// Break terminates the switch statement  
 
 	case 5: // parabolic channel       
@@ -209,8 +209,8 @@ inline NUMERIC_TYPE SGC2_CalcR(int gr, NUMERIC_TYPE h, NUMERIC_TYPE hbf, NUMERIC
 
 	case 7: // trapazoidal channel
 		sl = SGCptr->SGCs[gr];
-		if (h < hbf)	R = A / (w + 2 * h   * SQRT(1 + sl*sl));   // within bank flow hydraulic radius
-		else			R = A / (w + 2 * hbf * SQRT(1 + sl*sl));   // out of bank hydraulic radius (wetted perimeter is actually constant !!)
+		if (h < hbf)	R = A / (w + 2 * h   * SQRT(1 + sl * sl));   // within bank flow hydraulic radius
+		else			R = A / (w + 2 * hbf * SQRT(1 + sl * sl));   // out of bank hydraulic radius (wetted perimeter is actually constant !!)
 		break;	// Break terminates the switch statement
 
 	default: // its all gone wrong
@@ -242,9 +242,9 @@ inline void SGC2_CalcA(int gr, NUMERIC_TYPE hflow, NUMERIC_TYPE bf, NUMERIC_TYPE
 		if (hflow < bf)
 		{
 			(*we) = (*we)*pow(hflow / bf, C(1.0) / sl);
-			(*A) = hflow*(*we)*(C(1.0) - C(1.0) / (sl + C(1.0)));
+			(*A) = hflow * (*we)*(C(1.0) - C(1.0) / (sl + C(1.0)));
 		}
-		else (*A) = bf*(*we)*(1 - 1 / (sl + 1)) + (*we)*(hflow - bf); // out of bank flow area
+		else (*A) = bf * (*we)*(1 - 1 / (sl + 1)) + (*we)*(hflow - bf); // out of bank flow area
 		break;	// Break terminates the switch statement
 
 	case 3: // linear slope. 
@@ -269,9 +269,9 @@ inline void SGC2_CalcA(int gr, NUMERIC_TYPE hflow, NUMERIC_TYPE bf, NUMERIC_TYPE
 		if (hflow < bf)
 		{
 			(*we) = (*we)*SQRT(hflow / bf);
-			(*A) = hflow*(*we)*(C(2.0) / C(3.0));
+			(*A) = hflow * (*we)*(C(2.0) / C(3.0));
 		}
-		else    (*A) = bf*   (*we)*(C(2.0) / C(3.0)) + (*we)*(hflow - bf); // out of bank flow area
+		else    (*A) = bf * (*we)*(C(2.0) / C(3.0)) + (*we)*(hflow - bf); // out of bank flow area
 		break;	// Break terminates the switch statement
 
 	case 6: // Rectangular channel (default) - This model has a top width and bed elevation and top 
@@ -280,8 +280,8 @@ inline void SGC2_CalcA(int gr, NUMERIC_TYPE hflow, NUMERIC_TYPE bf, NUMERIC_TYPE
 
 	case 7: // trapazoidal channel
 		sl = SGCptr->SGCs[gr];
-		if (hflow < bf) (*A) = ((*we) + sl*hflow)*hflow;    // within bank flow area
-		else            (*A) = ((*we) + sl*bf)*bf + ((*we) + sl*bf)*(hflow - bf);
+		if (hflow < bf) (*A) = ((*we) + sl * hflow)*hflow;    // within bank flow area
+		else            (*A) = ((*we) + sl * bf)*bf + ((*we) + sl * bf)*(hflow - bf);
 		break;	// Break terminates the switch statement
 
 	default: // its all gone wrong
@@ -423,7 +423,7 @@ inline NUMERIC_TYPE SGC2_CalcUpH(const NUMERIC_TYPE V, const NUMERIC_TYPE c, con
 inline NUMERIC_TYPE SGC2_CalcUpV(const NUMERIC_TYPE h, const NUMERIC_TYPE c, const int channel_group, const SGCprams *SGCptr)
 {
 #if defined _ONLY_RECT && _ONLY_RECT == 1
-	return h*c;
+	return h * c;
 #else
 
 	int SGCchan_type = SGCptr->SGCchantype[channel_group];
@@ -435,27 +435,27 @@ inline NUMERIC_TYPE SGC2_CalcUpV(const NUMERIC_TYPE h, const NUMERIC_TYPE c, con
 	switch (SGCchan_type)
 	{
 	case 1:
-		v = h*c;
+		v = h * c;
 		break;
 
 	case 2:
-		v = c*pow(h, C(1.0) / sl + C(1.0));
+		v = c * pow(h, C(1.0) / sl + C(1.0));
 		break;
 
 	case 3:
-		v = h*c;
+		v = h * c;
 		break;
 
 	case 4:
-		v = h*c;
+		v = h * c;
 		break;
 
 	case 5:
-		v = c*pow(h, C(3.0) / C(2.0));
+		v = c * pow(h, C(3.0) / C(2.0));
 		break;
 
 	case 6: // Rectangular channel (no banks)
-		v = h*c;
+		v = h * c;
 		break;
 
 	default: // its all gone wrong
@@ -484,8 +484,8 @@ inline NUMERIC_TYPE CalculateRoutingQ(const NUMERIC_TYPE delta_time,
 
 	NUMERIC_TYPE flow = (z0 + h0) - (z1 + h1);/*calculate the maximum possible flow into lowest neigbour cell by
 											  comparing water surface elevations:*/
-	/*where water surface elevation of neighbour cell is below DEM
-	level of current cell, set maxflow to h0*/
+											  /*where water surface elevation of neighbour cell is below DEM
+											  level of current cell, set maxflow to h0*/
 	if (flow > h0)
 	{
 		flow = h0;
@@ -513,7 +513,7 @@ inline NUMERIC_TYPE CalcWeirQ(WeirLayout * weirs, const int grid_cols,
 	const int weir_id,
 	const NUMERIC_TYPE depth_thresh,
 	const NUMERIC_TYPE delta_time,
-	const NUMERIC_TYPE * h_grid, 
+	const NUMERIC_TYPE * h_grid,
 	const NUMERIC_TYPE * volume_grid,
 	WetDryRowBound* wet_dry_bounds,
 	const EDirection dir_positive, const EDirection dir_negative)
@@ -557,11 +557,11 @@ inline NUMERIC_TYPE CalcWeirQ(WeirLayout * weirs, const int grid_cols,
 						Q = weirs->Weir_Cd[weir_id] * weirs->Weir_w[weir_id] * pow(hu, (C(1.5))); // Free flow
 					else
 						Q = weirs->Weir_Cd[weir_id] * weirs->Weir_w[weir_id] * hu*(SQRT(hu - hd)) / SQRT(weirs->Weir_m[weir_id]); // Drowned flow
-					NUMERIC_TYPE maxQ=((volume_grid[grid_index_this]/delta_time)*0.5);
-					Q=getmin(Q,maxQ);				
-}
+					NUMERIC_TYPE maxQ = ((volume_grid[grid_index_this] / delta_time)*0.5);
+					Q = getmin(Q, maxQ);
+				}
 			}
-                                 
+
 		}
 		else if ((surfaceElevation0) < (surfaceElevation1))		// Flow in - direction
 		{
@@ -575,9 +575,9 @@ inline NUMERIC_TYPE CalcWeirQ(WeirLayout * weirs, const int grid_cols,
 						Q = -weirs->Weir_Cd[weir_id] * weirs->Weir_w[weir_id] * pow(hu, (C(1.5))); // Free flow
 					else
 						Q = -weirs->Weir_Cd[weir_id] * weirs->Weir_w[weir_id] * hu*(SQRT(hu - hd)) / SQRT(weirs->Weir_m[weir_id]); // Drowned flow
-						NUMERIC_TYPE maxQ=((volume_grid[grid_index_this]/delta_time)*0.5);
-						Q=getmin(Q,maxQ);				
-}
+					NUMERIC_TYPE maxQ = ((volume_grid[grid_index_this] / delta_time)*0.5);
+					Q = getmin(Q, maxQ);
+				}
 			}
 		}
 	}
@@ -589,7 +589,7 @@ inline NUMERIC_TYPE CalcWeirQ(WeirLayout * weirs, const int grid_cols,
 		wet_dry_bounds->fp_vol[y].end = max(wet_dry_bounds->fp_vol[y].end, x + 1);
 	}
 
-	
+
 
 	return(Q);
 }
@@ -656,7 +656,7 @@ inline NUMERIC_TYPE CalcBridgeQ(WeirLayout * weirs, const int grid_cols,
 
 		// calculate some more bridge parameters from basic ones
 		Z = getmin(Soffit - z1, Soffit - z0); // bridge opening (smallest opening)
-		Area = Width*Z; // bridge flow area (again smallest opening)
+		Area = Width * Z; // bridge flow area (again smallest opening)
 
 		// get some basic paramters for the open channel flow calc
 		NUMERIC_TYPE g_friction_sq = weirs->Weir_g_friction_sq[weir_id];// cn = C(0.5)* (SGCptr->SGCn[SGCgroup_grid[p0]] + SGCptr->SGCn[SGCgroup_grid[p1]]); // mean mannings (note n2)
@@ -664,7 +664,7 @@ inline NUMERIC_TYPE CalcBridgeQ(WeirLayout * weirs, const int grid_cols,
 		//Sf=-dh/Parptr->dx; //CCS_deletion
 		Sf = -dh / cell_length; // CCS added for subgrid lat long compatibility.
 		hflow = getmax(surfaceElevation0, surfaceElevation1) - getmax(z0, z1); // calculate the max flow depth
-		A = Width*hflow; // calc open channel flow area
+		A = Width * hflow; // calc open channel flow area
 		R = A / (Width + 2 * hflow); // calc hydraulic radius from open channel flow
 
 		// calculate open channel flow using SGC flow
@@ -675,7 +675,7 @@ inline NUMERIC_TYPE CalcBridgeQ(WeirLayout * weirs, const int grid_cols,
 			Zratio = h0 / Z; // calc current flow depth to bridge opening ratio
 			usVel = sub_grid_state->sg_flow_Q[weirs->Weir_pair_stream_flow_index[weir_pair_id0]] / (h0*weirs->cell_pair.sg_cell_SGC_width[weir_pair_id0]); // MT calculate upstream velocity
 			heg = (usVel*usVel) / (2 * g); // MT calculate upstream energy gradient height
-			Qp = Cd*Area*SQRT(2 * g*(surfaceElevation0 - surfaceElevation1 + heg)); // calc bridge orifice flow
+			Qp = Cd * Area*SQRT(2 * g*(surfaceElevation0 - surfaceElevation1 + heg)); // calc bridge orifice flow
 		}
 		else { // Negative flow
 			Zratio = h1 / Z; // calc current flow depth to bridge opening ratio
@@ -725,7 +725,7 @@ void SGC2_UpdateVelocity_row(const int grid_row_index,
 	const NUMERIC_TYPE cell_width,
 	const NUMERIC_TYPE * h_grid, const NUMERIC_TYPE * dem_grid, const NUMERIC_TYPE * Q_grid,
 	NUMERIC_TYPE * V_grid, NUMERIC_TYPE * V_max_grid
-	)
+)
 {
 
 #pragma ivdep
@@ -774,9 +774,9 @@ void SGC2_UpdateVelocity_row(const int grid_row_index,
 void SGC2_UpdateWeirsFlow_row(const int j, const int grid_cols, const int grid_rows, const int grid_cols_padded,
 	const NUMERIC_TYPE depth_thresh,
 	const NUMERIC_TYPE delta_time,
-	const NUMERIC_TYPE * h_grid, 
+	const NUMERIC_TYPE * h_grid,
 	const NUMERIC_TYPE * volume_grid,
-	NUMERIC_TYPE * Qx_grid, 
+	NUMERIC_TYPE * Qx_grid,
 	NUMERIC_TYPE * Qy_grid,
 	WetDryRowBound * wet_dry_bounds,
 	WeirLayout * weirs)
@@ -893,16 +893,16 @@ void DamOpQ(const NUMERIC_TYPE delta_time, const NUMERIC_TYPE curr_time, const N
 		{
 			Damptr->DamOperationQ[ID] = Damptr->DamVol[ID] / delta_time;
 		}
-		
+
 	}
 	if (Damptr->DamOperationCode[ID] == 2) // Based off matlab code provided by Francesca Pianosi for constant release (regardless of storage)
 	{
-		NUMERIC_TYPE upper_limit = getmin((Damptr->Volmax[ID]/ delta_time), Damptr->DamMeanQ[ID]);
+		NUMERIC_TYPE upper_limit = getmin((Damptr->Volmax[ID] / delta_time), Damptr->DamMeanQ[ID]);
 		NUMERIC_TYPE lower_limit = getmax((Damptr->Volmax[ID] - Damptr->DamVol[ID]), 0) / delta_time;
-		Damptr->DamOperationQ[ID] = getmax(lower_limit,upper_limit);
+		Damptr->DamOperationQ[ID] = getmax(lower_limit, upper_limit);
 		if (Damptr->DamOperationQ[ID] * delta_time > Damptr->DamVol[ID])
 		{
-			Damptr->DamOperationQ[ID] = Damptr->DamVol[ID]/delta_time;
+			Damptr->DamOperationQ[ID] = Damptr->DamVol[ID] / delta_time;
 		}
 	}
 	if (Damptr->DamOperationCode[ID] == 3) // Based off matlab code provided by Francesca Pianosi for releases kinearly proportional to of storage
@@ -939,11 +939,11 @@ void DamOpQ(const NUMERIC_TYPE delta_time, const NUMERIC_TYPE curr_time, const N
 		NUMERIC_TYPE Kappa = C(0.16);
 		NUMERIC_TYPE Lambda = C(0.6);
 
-		Damptr->DamOperationQ[ID] = Kappa*(Damptr->DamVin[ID] / delta_time);
+		Damptr->DamOperationQ[ID] = Kappa * (Damptr->DamVin[ID] / delta_time);
 
 		if ((Damptr->DamVin[ID] / delta_time) < Damptr->DamMeanQ[ID])
 		{
-			Damptr->DamOperationQ[ID] = Lambda*(Damptr->DamVin[ID]/delta_time) + (Damptr->DamMeanQ[ID] - (Damptr->DamVin[ID]/delta_time));
+			Damptr->DamOperationQ[ID] = Lambda * (Damptr->DamVin[ID] / delta_time) + (Damptr->DamMeanQ[ID] - (Damptr->DamVin[ID] / delta_time));
 		}
 
 		if (Damptr->DamOperationQ[ID] * delta_time > Damptr->DamVol[ID])
@@ -966,10 +966,10 @@ void DamOpQ(const NUMERIC_TYPE delta_time, const NUMERIC_TYPE curr_time, const N
 		NUMERIC_TYPE DayRelease = Damptr->DamMeanQ[ID];
 
 		// Switch
-		Damptr->DamOperationQ[ID] = Damptr->OP7_Kappa[ID] *DayRelease;
+		Damptr->DamOperationQ[ID] = Damptr->OP7_Kappa[ID] * DayRelease;
 		if (Storage < C(0.5))
 		{
-			Damptr->DamOperationQ[ID] = pow((Storage/0.5), 2)*Damptr->OP7_Kappa[ID] * DayRelease + (1 - pow((Storage/0.5), 2))*(Damptr->DamVin[ID] / delta_time);
+			Damptr->DamOperationQ[ID] = pow((Storage / 0.5), 2)*Damptr->OP7_Kappa[ID] * DayRelease + (1 - pow((Storage / 0.5), 2))*(Damptr->DamVin[ID] / delta_time);
 		}
 
 	}
@@ -979,119 +979,119 @@ void SGC2_UpdateDamFlowVolume(const int grid_cols, const int grid_rows, const in
 	const NUMERIC_TYPE depth_thresh, const NUMERIC_TYPE delta_time, const NUMERIC_TYPE curr_time, const NUMERIC_TYPE * h_grid, NUMERIC_TYPE * volume_grid,
 	NUMERIC_TYPE * Qx_grid, NUMERIC_TYPE * Qy_grid, DamData *Damptr, const SGCprams *SGCptr, const NUMERIC_TYPE g, const NUMERIC_TYPE max_Froude)
 {
-	
+
 	delete[] Damptr->DamVin; // Needed to avoid memory leakage
 	Damptr->DamVin = memory_allocate_zero_numeric_legacy(Damptr->NumDams);
 	Damptr->DamMaxH = C(0.0);
-	
+
 	for (int i = 0; i < Damptr->TotalEdge; i++)
 	{
-	//	printf("Value of i: %d\n", i);
+		//	printf("Value of i: %d\n", i);
 		fflush(stdout);
 		const int grid_index_this = Damptr->DynamicEdge[2 * i];
 		const int reservoir_index = Damptr->DynamicEdge[(2 * i) + 1];
 		const int gr = Damptr->DynamicEdge[(2 * i) + 2];
-		
+
 		// Floodplain flowing into Dam
 				//Calculate Q
-				NUMERIC_TYPE h0 = h_grid[grid_index_this];
-				
-				NUMERIC_TYPE h1 = Damptr->InitialHeight[reservoir_index - 1];  //h1 is absolute height - not relative height(equivilent to h1 + dem[index])
-				NUMERIC_TYPE z0 = Damptr->DynamicEdgeData[12 * i + 4];
-				NUMERIC_TYPE zb0 = Damptr->DynamicEdgeData[12 * i + 6];
-				//	NUMERIC_TYPE z1 = C(0.0); //Dam has infinite Depth NOT NEEDED!!!
-				NUMERIC_TYPE friction = Damptr->DynamicEdgeData[12 * i + 3] * Damptr->DynamicEdgeData[12 * i + 3] * g;
-				NUMERIC_TYPE friction1= Damptr->DynamicEdgeData[12 * i + 5] * Damptr->DynamicEdgeData[12 * i + 5] * g;
-				NUMERIC_TYPE surface_elevation0 = z0 + h0;
-				NUMERIC_TYPE surface_elevation1 = h1;
-				NUMERIC_TYPE SGC_width = Damptr->DynamicEdgeData[12 * i + 11]; // SGC width
-				NUMERIC_TYPE hflow = C(0.0);
-				
-				
-				//
-			
-				Damptr->DynamicEdgeData[12 * i + 1] = C(0.0);
-				NUMERIC_TYPE dh, surface_slope, A, R, deltaV;
-					if (SGC_width > C(0.0)) //  check for sub-grid channel
-					{
-						hflow = getmax(surface_elevation0, surface_elevation1) - zb0;
-						if (hflow > depth_thresh)
-						{
-							dh = surface_elevation1 - surface_elevation0;//, surface_elevation0 - Damptr->DynamicEdgeData[12 * i + 6]);
-							surface_slope = dh / Damptr->DynamicEdgeData[12 * i + 8];
-							//surface_slope = (-1 * abs(surface_slope));
-							SGC2_CalcA(gr, hflow, Damptr->DynamicEdgeData[12 * i + 6], &A, &SGC_width, SGCptr); // calculate channel area for SGC
-							R = SGC2_CalcR(gr, hflow, Damptr->DynamicEdgeData[12 * i + 6], SGC_width, SGC_width, A, SGCptr); // calculate hydraulic radius for SGC
+		NUMERIC_TYPE h0 = h_grid[grid_index_this];
 
-							Damptr->DynamicEdgeData[12 * i + 7] = CalculateQ(surface_slope, R, delta_time, g, A, friction1, Damptr->DynamicEdgeData[12 * i + 7], max_Froude);
-						}	// DynamicEdgeData{12i +7] = subgrid flow m3/s
-						else Damptr->DynamicEdgeData[12 * i + 7] = C(0.0);
-					}
+		NUMERIC_TYPE h1 = Damptr->InitialHeight[reservoir_index - 1];  //h1 is absolute height - not relative height(equivilent to h1 + dem[index])
+		NUMERIC_TYPE z0 = Damptr->DynamicEdgeData[12 * i + 4];
+		NUMERIC_TYPE zb0 = Damptr->DynamicEdgeData[12 * i + 6];
+		//	NUMERIC_TYPE z1 = C(0.0); //Dam has infinite Depth NOT NEEDED!!!
+		NUMERIC_TYPE friction = Damptr->DynamicEdgeData[12 * i + 3] * Damptr->DynamicEdgeData[12 * i + 3] * g;
+		NUMERIC_TYPE friction1 = Damptr->DynamicEdgeData[12 * i + 5] * Damptr->DynamicEdgeData[12 * i + 5] * g;
+		NUMERIC_TYPE surface_elevation0 = z0 + h0;
+		NUMERIC_TYPE surface_elevation1 = h1;
+		NUMERIC_TYPE SGC_width = Damptr->DynamicEdgeData[12 * i + 11]; // SGC width
+		NUMERIC_TYPE hflow = C(0.0);
 
-					//hflow = getmax(getmax(surface_elevation1 - z0, h0), C(0.0));
-					hflow = getmax(surface_elevation0, surface_elevation1) - z0;
-					if (hflow > depth_thresh && SGC_width < Damptr->DynamicEdgeData[12 * i + 2])
-					{
-						dh = surface_elevation1 - surface_elevation0;
-						surface_slope = dh / Damptr->DynamicEdgeData[12 * i + 8];
-					//	surface_slope = (-1 * abs(surface_slope));
-						// Set Cross-Section area equal to the min of cell size or flow cross section
-						A = min(Damptr->DynamicEdgeData[12 * i + 2],Damptr->DynamicEdgeData[12*i+8]) * hflow;
-						// calculate FP flow
-						NUMERIC_TYPE Q;
-						Q = CalculateQ(surface_slope, hflow, delta_time, g, A, friction, min(Damptr->DynamicEdgeData[12 * i + 2], Damptr->DynamicEdgeData[12 * i + 8]), max_Froude);
-						Damptr->DynamicEdgeData[12 * i] = Q; // FP Flow in m3/s
 
-						if (SGC_width > C(0.0))
-						{
-							NUMERIC_TYPE channel_ratio = min(SGC_width / min(Damptr->DynamicEdgeData[12 * i + 2], Damptr->DynamicEdgeData[12 * i + 8]), C(1.0));
-							Q = Q - channel_ratio * Q;
-						}
-						
-						Damptr->DynamicEdgeData[12*i+1] = Q; // DynamicEdgeData[12i+1] = TotalQ m3/s
-					}
-					else Damptr->DynamicEdgeData[12 * i] = C(0.0); //FP Q set to 0. 
+		//
 
-					Damptr->DynamicEdgeData[12 * i + 1] += Damptr->DynamicEdgeData[12 * i + 7]; // Add Sub-grid Q to Total Q. m3/s
+		Damptr->DynamicEdgeData[12 * i + 1] = C(0.0);
+		NUMERIC_TYPE dh, surface_slope, A, R, deltaV;
+		if (SGC_width > C(0.0)) //  check for sub-grid channel
+		{
+			hflow = getmax(surface_elevation0, surface_elevation1) - zb0;
+			if (hflow > depth_thresh)
+			{
+				dh = surface_elevation1 - surface_elevation0;//, surface_elevation0 - Damptr->DynamicEdgeData[12 * i + 6]);
+				surface_slope = dh / Damptr->DynamicEdgeData[12 * i + 8];
+				//surface_slope = (-1 * abs(surface_slope));
+				SGC2_CalcA(gr, hflow, Damptr->DynamicEdgeData[12 * i + 6], &A, &SGC_width, SGCptr); // calculate channel area for SGC
+				R = SGC2_CalcR(gr, hflow, Damptr->DynamicEdgeData[12 * i + 6], SGC_width, SGC_width, A, SGCptr); // calculate hydraulic radius for SGC
 
-					deltaV = (Damptr->DynamicEdgeData[12 * i + 1] * delta_time);
-					
-					// Check Statement needed to ensure volume grid >= zero
-					NUMERIC_TYPE DVratio = min(volume_grid[grid_index_this]/deltaV, C(1.0));;
-					if (deltaV < C(0.0))
-					{
-						DVratio = C(1.0);
-					
-					}
-					DVratio = C(1.0);
-					volume_grid[grid_index_this] -= deltaV*DVratio;
-					Damptr->DamVin[reservoir_index - 1] += deltaV*DVratio;
-					Damptr->DynamicEdgeData[12 * i] = Damptr->DynamicEdgeData[12 * i] *DVratio;
-					Damptr->DynamicEdgeData[12 * 7] = Damptr->DynamicEdgeData[12 * 7] *DVratio;
+				Damptr->DynamicEdgeData[12 * i + 7] = CalculateQ(surface_slope, R, delta_time, g, A, friction1, Damptr->DynamicEdgeData[12 * i + 7], max_Froude);
+			}	// DynamicEdgeData{12i +7] = subgrid flow m3/s
+			else Damptr->DynamicEdgeData[12 * i + 7] = C(0.0);
+		}
 
-					Damptr->DamMaxH = getmax(Damptr->DamMaxH, hflow);
+		//hflow = getmax(getmax(surface_elevation1 - z0, h0), C(0.0));
+		hflow = getmax(surface_elevation0, surface_elevation1) - z0;
+		if (hflow > depth_thresh && SGC_width < Damptr->DynamicEdgeData[12 * i + 2])
+		{
+			dh = surface_elevation1 - surface_elevation0;
+			surface_slope = dh / Damptr->DynamicEdgeData[12 * i + 8];
+			//	surface_slope = (-1 * abs(surface_slope));
+				// Set Cross-Section area equal to the min of cell size or flow cross section
+			A = min(Damptr->DynamicEdgeData[12 * i + 2], Damptr->DynamicEdgeData[12 * i + 8]) * hflow;
+			// calculate FP flow
+			NUMERIC_TYPE Q;
+			Q = CalculateQ(surface_slope, hflow, delta_time, g, A, friction, min(Damptr->DynamicEdgeData[12 * i + 2], Damptr->DynamicEdgeData[12 * i + 8]), max_Froude);
+			Damptr->DynamicEdgeData[12 * i] = Q; // FP Flow in m3/s
+
+			if (SGC_width > C(0.0))
+			{
+				NUMERIC_TYPE channel_ratio = min(SGC_width / min(Damptr->DynamicEdgeData[12 * i + 2], Damptr->DynamicEdgeData[12 * i + 8]), C(1.0));
+				Q = Q - channel_ratio * Q;
 			}
+
+			Damptr->DynamicEdgeData[12 * i + 1] = Q; // DynamicEdgeData[12i+1] = TotalQ m3/s
+		}
+		else Damptr->DynamicEdgeData[12 * i] = C(0.0); //FP Q set to 0. 
+
+		Damptr->DynamicEdgeData[12 * i + 1] += Damptr->DynamicEdgeData[12 * i + 7]; // Add Sub-grid Q to Total Q. m3/s
+
+		deltaV = (Damptr->DynamicEdgeData[12 * i + 1] * delta_time);
+
+		// Check Statement needed to ensure volume grid >= zero
+		NUMERIC_TYPE DVratio = min(volume_grid[grid_index_this] / deltaV, C(1.0));;
+		if (deltaV < C(0.0))
+		{
+			DVratio = C(1.0);
+
+		}
+		DVratio = C(1.0);
+		volume_grid[grid_index_this] -= deltaV * DVratio;
+		Damptr->DamVin[reservoir_index - 1] += deltaV * DVratio;
+		Damptr->DynamicEdgeData[12 * i] = Damptr->DynamicEdgeData[12 * i] * DVratio;
+		Damptr->DynamicEdgeData[12 * 7] = Damptr->DynamicEdgeData[12 * 7] * DVratio;
+
+		Damptr->DamMaxH = getmax(Damptr->DamMaxH, hflow);
+	}
 	//		
-	
+
 	// Calculate Update Volume of Dam
 	//NUMERIC_TYPE DamVol
-	
+
 	for (int d = 0; d < Damptr->NumDams; d++)
 	{
-		
+
 		Damptr->DamOperationQ[d] = C(0.0);
 		Damptr->DamTotalQ[d] = C(0.0);
 		// Operational Outflows will go here;
-		
-		DamOpQ(delta_time,curr_time, h_grid, Qx_grid, Qy_grid, Damptr, g, d);
-			Damptr->DamTotalQ[d] += Damptr->DamOperationQ[d];
+
+		DamOpQ(delta_time, curr_time, h_grid, Qx_grid, Qy_grid, Damptr, g, d);
+		Damptr->DamTotalQ[d] += Damptr->DamOperationQ[d];
 
 		// Spill Way Calcs.
 		if (Damptr->InitialHeight[d] <= Damptr->SpillHeight[d])
 		{
 			Damptr->SpillQ[d] = C(0.0);
 		}
-		else Damptr->SpillQ[d] = Damptr->Spill_Cd[d] * Damptr->SpillWidth[d] *pow(g,(C(0.5))) *pow((Damptr->InitialHeight[d] - Damptr->SpillHeight[d]), (C(1.5)));
+		else Damptr->SpillQ[d] = Damptr->Spill_Cd[d] * Damptr->SpillWidth[d] * pow(g, (C(0.5))) *pow((Damptr->InitialHeight[d] - Damptr->SpillHeight[d]), (C(1.5)));
 
 		Damptr->DamTotalQ[d] += Damptr->SpillQ[d];
 
@@ -1106,13 +1106,13 @@ void SGC2_UpdateDamFlowVolume(const int grid_cols, const int grid_rows, const in
 		//	Update Height of Reservoir
 		Damptr->InitialHeight[d] = (Damptr->DamVol[d] / Damptr->Volmax[d])*Damptr->DamHeight[d] + (Damptr->SpillHeight[d] - Damptr->DamHeight[d]);
 
-			// Output DamTotalQ to output cells
-			//convert coordinates to grid cell numbers already done in input.cpp
-		// convert to padded_cell_index
-			int output = Damptr->OutputCellX[d] + Damptr->OutputCellY[d] * grid_cols_padded;
-			volume_grid[output] += (Damptr->DamTotalQ[d] * delta_time);
+		// Output DamTotalQ to output cells
+		//convert coordinates to grid cell numbers already done in input.cpp
+	// convert to padded_cell_index
+		int output = Damptr->OutputCellX[d] + Damptr->OutputCellY[d] * grid_cols_padded;
+		volume_grid[output] += (Damptr->DamTotalQ[d] * delta_time);
 	}
-	
+
 }
 
 // Dam Code FEOL 2016 
@@ -1487,23 +1487,23 @@ inline void ProcessSubGridQBlock(const int block_index, const int grid_cols_padd
 	__assume_aligned(Qy_old_grid, 64);
 #endif
 
-//#pragma ivdep
-//#pragma simd
-//	for (int flow_i = 0; flow_i < flow_end; flow_i++)
-//	{
-//		int flow_index = sg_row_start_index + flow_i;
-//		int flow_pair_index = sg_row_pair_start_index + 2 * flow_i;
-//		int flow_pair_index_next = flow_pair_index + 1;
-//
-//		int grid_index0 = sg_pair_grid_index_lookup[flow_pair_index];
-//		int grid_index1 = sg_pair_grid_index_lookup[flow_pair_index_next]; // also the q index for this flow (in d4)
-//
-//		if (sgcStartH > 0)
-//		{
-//			h_grid[grid_index0] = sgcStartH;
-//			h_grid[grid_index1] = sgcStartH;
-//		}
-//	}
+	//#pragma ivdep
+	//#pragma simd
+	//	for (int flow_i = 0; flow_i < flow_end; flow_i++)
+	//	{
+	//		int flow_index = sg_row_start_index + flow_i;
+	//		int flow_pair_index = sg_row_pair_start_index + 2 * flow_i;
+	//		int flow_pair_index_next = flow_pair_index + 1;
+	//
+	//		int grid_index0 = sg_pair_grid_index_lookup[flow_pair_index];
+	//		int grid_index1 = sg_pair_grid_index_lookup[flow_pair_index_next]; // also the q index for this flow (in d4)
+	//
+	//		if (sgcStartH > 0)
+	//		{
+	//			h_grid[grid_index0] = sgcStartH;
+	//			h_grid[grid_index1] = sgcStartH;
+	//		}
+	//	}
 
 #pragma ivdep
 #pragma simd
@@ -1782,7 +1782,7 @@ inline void SGC2_UpdateQx_row(const int grid_cols,
 			// flow_info->sg_flow_ChannelRatio[flow_index] = getmin(width0,width1)/grid_cell_width;
 			// Fp_ywidth是1 - sg_flow_ChannelRatio就很重要了，sg_flow_ChannelRatio是 河宽/栅格宽度，如果sg_flow_ChannelRatio>cell width，Fp_ywidth可能出现负值;
 			// 在InitSubGridStructureByRows方法中进行了特殊处理，当河道宽度>栅格单元宽度(即Fp_ywidth<0)时，令Fp_ywidth=0
-			NUMERIC_TYPE area = Fp_ywidth[index_next]* hflow;
+			NUMERIC_TYPE area = Fp_ywidth[index_next] * hflow;
 			NUMERIC_TYPE dh = (surface_elevation0)-(surface_elevation1);
 			surface_slope = -dh / row_dx;
 			q_tmp = CalculateQ(surface_slope, hflow, delta_time, g, area, g_friction_sq_x_grid[index_next], Qx_old_grid[index_next], max_Froude);
@@ -1907,7 +1907,7 @@ inline void SGC2_UpdateQy_row(const int grid_cols,
 		{
 			//NUMERIC_TYPE area = (row_dx)* hflow;
 			// PFU use floodplain width corrected for sub grid channel ratio rather than cell width
-			NUMERIC_TYPE area = Fp_xwidth[index_next]* hflow;
+			NUMERIC_TYPE area = Fp_xwidth[index_next] * hflow;
 			NUMERIC_TYPE dh = (surface_elevation0)-(surface_elevation1);
 			surface_slope = -dh / row_dy;
 			//if (Fp_xwidth[index_next] <= 0.0)
@@ -1930,3300 +1930,3300 @@ inline void SGC2_UpdateQy_row(const int grid_cols,
 		memcpy(Qy_grid + grid_row_index + row_start_y + next_cell_add, Qy_old_grid + grid_row_index + row_start_y + next_cell_add, sizeof(NUMERIC_TYPE) * count);
 }
 
-	//-----------------------------------------------------------------------------
-	// FLOODPLAIN DISTRIBUTED INFILTRATION
-	// with correction for sub grid channels
-	inline NUMERIC_TYPE SGC2_Infil_floodplain_row(
-		const int row_start, int row_end,
-		const NUMERIC_TYPE depth_thresh,
-		const NUMERIC_TYPE row_cell_area,
-		const NUMERIC_TYPE evap_deltaH_step,
-		const NUMERIC_TYPE * h_row,
-		const NUMERIC_TYPE * infil_row,
-		NUMERIC_TYPE * volume_row, Pars *Parptr, const Solver *Solverptr)
-	{
+//-----------------------------------------------------------------------------
+// FLOODPLAIN DISTRIBUTED INFILTRATION
+// with correction for sub grid channels
+inline NUMERIC_TYPE SGC2_Infil_floodplain_row(
+	const int row_start, int row_end,
+	const NUMERIC_TYPE depth_thresh,
+	const NUMERIC_TYPE row_cell_area,
+	const NUMERIC_TYPE evap_deltaH_step,
+	const NUMERIC_TYPE * h_row,
+	const NUMERIC_TYPE * infil_row,
+	NUMERIC_TYPE * volume_row, Pars *Parptr, const Solver *Solverptr)
+{
 #ifdef __INTEL_COMPILER
-		__assume_aligned(h_row, 64);
-		__assume_aligned(volume_row, 64);
+	__assume_aligned(h_row, 64);
+	__assume_aligned(volume_row, 64);
 #endif
 
-		NUMERIC_TYPE reduce_infil_loss = C(0.0);
+	NUMERIC_TYPE reduce_infil_loss = C(0.0);
 #pragma ivdep
 #pragma simd
-		for (int i = row_start; i < row_end; i++)
+	for (int i = row_start; i < row_end; i++)
+	{
+		NUMERIC_TYPE h_new, dV = C(0.0);
+		NUMERIC_TYPE h_old = h_row[i];
+		NUMERIC_TYPE evap_deltaV_step = infil_row[i] * row_cell_area *  Solverptr->SGCtmpTstep;
+		if (h_old > depth_thresh) // There is water to evaporate on the flood plain
 		{
-			NUMERIC_TYPE h_new, dV = C(0.0);
-			NUMERIC_TYPE h_old = h_row[i];
-			NUMERIC_TYPE evap_deltaV_step = infil_row[i] * row_cell_area *  Solverptr->SGCtmpTstep;
-			if (h_old > depth_thresh) // There is water to evaporate on the flood plain
+			// update depth by subtracting evap depth
+			// 新水深 = 旧水深 - 下渗深度
+			h_new = h_old - infil_row[i] * Solverptr->SGCtmpTstep;
+			//check for -ve depths
+			// 水全部下渗
+			if (h_new < C(0.0))
 			{
-				// update depth by subtracting evap depth
+				// reduce evap loss to account for dry bed (don't go below 0)
+				dV = h_old * row_cell_area;
+			}
+			// 水部分下渗
+			else
+			{
+				dV = evap_deltaV_step;
+			}
+			// 扣除下渗水量
+			volume_row[i] -= dV;
+		}
+		reduce_infil_loss += dV; //mass-balance for a standard cell
+	}
+	return reduce_infil_loss;
+}
+
+inline NUMERIC_TYPE SGC2_Infil_floodplain_row_constant(
+	const int row_start, int row_end,
+	const NUMERIC_TYPE depth_thresh,
+	const NUMERIC_TYPE row_cell_area,
+	const NUMERIC_TYPE * dem_row,
+	const NUMERIC_TYPE evap_deltaH_step,
+	const NUMERIC_TYPE * h_row,
+	const NUMERIC_TYPE infil_row,
+	NUMERIC_TYPE *soil_water_depth_row,
+	NUMERIC_TYPE * volume_row, Pars *Parptr,
+	const Solver *Solverptr, NUMERIC_TYPE* Infilt_Row,
+	const int grid_row_index, const int sg_row_start, const int cell_row_count,
+	const int * sg_cell_grid_index_lookup, const NUMERIC_TYPE * sg_cell_SGC_BankFullHeight,
+	const NUMERIC_TYPE * sg_cell_cell_area
+)
+{
+#ifdef __INTEL_COMPILER
+	__assume_aligned(h_row, 64);
+	__assume_aligned(volume_row, 64);
+#endif
+
+	NUMERIC_TYPE reduce_infil_loss = C(0.0);
+
+#pragma ivdep
+#pragma simd
+	for (int i = row_start; i < row_end; i++)
+	{
+		int grid_index = grid_row_index + i;
+		if (dem_row[i] != DEM_NO_DATA) {
+			NUMERIC_TYPE h_new, dV = C(0.0);
+			// 加上当前步长内的降雨深度后，再扣除下渗
+			//NUMERIC_TYPE h_old = h_row[i];
+			NUMERIC_TYPE h_old = h_row[i] + volume_row[i] / row_cell_area;
+			NUMERIC_TYPE infil_deltaV_step = infil_row * row_cell_area *  Solverptr->SGCtmpTstep;
+			//if (h_old > depth_thresh) // There is water to infiltrate on the flood plain
+			//{
+
+			// floodplain或虽然是河道但是水位于floodplain之上，保证h_old为正值
+			if (h_old > 0.0)
+			{
+				// 如果蓄满了，则此栅格不再下渗
+				if (soil_water_depth_row[i] >= Parptr->saturation_value)
+				{
+					continue;
+				}
 				// 新水深 = 旧水深 - 下渗深度
-				h_new = h_old - infil_row[i] * Solverptr->SGCtmpTstep;
+				h_new = h_old - infil_row * Solverptr->SGCtmpTstep;
 				//check for -ve depths
 				// 水全部下渗
 				if (h_new < C(0.0))
 				{
-					// reduce evap loss to account for dry bed (don't go below 0)
 					dV = h_old * row_cell_area;
+					Infilt_Row[i] = h_old;
 				}
 				// 水部分下渗
 				else
 				{
-					dV = evap_deltaV_step;
+					dV = infil_deltaV_step;
+					Infilt_Row[i] = infil_deltaV_step / row_cell_area;
 				}
-				// 扣除下渗水量
+				// 累计下渗深度
+				soil_water_depth_row[i] += Infilt_Row[i];
+				// 扣除栅格单元上的下渗水量
 				volume_row[i] -= dV;
+				reduce_infil_loss += dV; //mass-balance for a standard cell
 			}
-			reduce_infil_loss += dV; //mass-balance for a standard cell
+			//else
+			//{
+			//	int cell_end = cell_row_count;
+			//	for (int cell_i = 0; cell_i < cell_end; cell_i++)
+			//	{
+			//		const int cell_index = sg_row_start + cell_i;
+			//		//int x = sg_cell_x[cell_index];
+			//		//int y = sg_cell_y[cell_index];
+			//		int grid_index_from_lookup = sg_cell_grid_index_lookup[cell_index];// x + y * grid_cols_padded;
+			//		// 如果是在河道上，且水面低于河道上底
+			//		if (h_old < 0.0 && grid_index_from_lookup == grid_index)
+			//		{
+			//			NUMERIC_TYPE cell_area = sg_cell_cell_area[cell_index];
+			//			h_old += sg_cell_SGC_BankFullHeight[cell_index];
+			//			if (h_old >= 0.0)
+			//			{
+			//				// 新水深 = 旧水深 - 下渗深度
+			//				h_new = h_old - infil_row * Solverptr->SGCtmpTstep;
+			//				//check for -ve depths
+			//				// 水全部下渗
+			//				if (h_new < C(0.0))
+			//				{
+			//					// reduce evap loss to account for dry bed (don't go below 0)
+			//					dV = h_old * cell_area;
+			//					Infilt_Row[i] = h_old;
+			//				}
+			//				// 水部分下渗
+			//				else
+			//				{
+			//					dV = infil_deltaV_step;
+			//					Infilt_Row[i] = infil_deltaV_step / cell_area;
+			//				}
+			//				// 扣除栅格单元上的下渗水量
+			//				volume_row[i] -= dV;
+			//				reduce_infil_loss += dV; //mass-balance for a standard cell
+			//			}
+
+			//		}
+			//	}
+			//}
+
+			//}
+
+
 		}
-		return reduce_infil_loss;
+
 	}
-
-	inline NUMERIC_TYPE SGC2_Infil_floodplain_row_constant(
-		const int row_start, int row_end,
-		const NUMERIC_TYPE depth_thresh,
-		const NUMERIC_TYPE row_cell_area,
-		const NUMERIC_TYPE * dem_row,
-		const NUMERIC_TYPE evap_deltaH_step,
-		const NUMERIC_TYPE * h_row,
-		const NUMERIC_TYPE infil_row,
-		NUMERIC_TYPE *soil_water_depth_row,
-		NUMERIC_TYPE * volume_row, Pars *Parptr, 
-		const Solver *Solverptr, NUMERIC_TYPE* Infilt_Row, 
-		const int grid_row_index,const int sg_row_start,const int cell_row_count,
-		const int * sg_cell_grid_index_lookup, const NUMERIC_TYPE * sg_cell_SGC_BankFullHeight,
-		const NUMERIC_TYPE * sg_cell_cell_area
-	)
-	{
-#ifdef __INTEL_COMPILER
-		__assume_aligned(h_row, 64);
-		__assume_aligned(volume_row, 64);
-#endif
-
-		NUMERIC_TYPE reduce_infil_loss = C(0.0);
-
-#pragma ivdep
-#pragma simd
+	// 注释掉模型原有逻辑，改为不管格子上有多少水，都要下渗
+	//	if (h_old > depth_thresh) // There is water to infiltrate on the flood plain
+	//	{
+	//		// update depth by subtracting evap depth
+	//		// 新水深 = 旧水深 - 下渗深度
+	//		h_new = h_old - infil_row * Solverptr->SGCtmpTstep;
+	//		//check for -ve depths
+	//		// 水全部下渗
+	//		if (h_new < C(0.0))
+	//		{
+	//			// reduce evap loss to account for dry bed (don't go below 0)
+	//			dV = h_old * row_cell_area;
+	//		}
+	//		// 水部分下渗
+	//		else
+	//		{
+	//			dV = infil_deltaV_step;
+	//		}
+	//		// 扣除栅格单元上的下渗水量
+	//		volume_row[i] -= dV;
+	//		Infilt_Row[i] = dV;
+	//	}
+	//	reduce_infil_loss += dV; //mass-balance for a standard cell
+	//}
+	return reduce_infil_loss;
+}
+// sgc channel should be processed specificly
+inline NUMERIC_TYPE SGC2_floodplain_perclation_singlelayer(
+	const int row_start, int row_end,
+	const NUMERIC_TYPE depth_thresh,
+	const NUMERIC_TYPE row_cell_area,
+	const NUMERIC_TYPE groundwater_tstep,
+	const NUMERIC_TYPE * h_row,
+	//const NUMERIC_TYPE * infil_row,
+	NUMERIC_TYPE * volume_row,
+	Pars *Parptr, const Solver *Solverptr, int grid_row_index, int j, int start_y, int end_y,
+	NUMERIC_TYPE *PercolationVol, int  sumNCells, NUMERIC_TYPE * sumGndQ2Rch, NUMERIC_TYPE * GwStorageDepth) {
+	if (row_end - row_start > 0) {
+		//***********************percolation************************
 		for (int i = row_start; i < row_end; i++)
 		{
-			int grid_index = grid_row_index + i;
-			if (dem_row[i] != DEM_NO_DATA) {
-				NUMERIC_TYPE h_new, dV = C(0.0);
-				// 加上当前步长内的降雨深度后，再扣除下渗
-				//NUMERIC_TYPE h_old = h_row[i];
-				NUMERIC_TYPE h_old = h_row[i] + volume_row[i] / row_cell_area;
-				NUMERIC_TYPE infil_deltaV_step = infil_row * row_cell_area *  Solverptr->SGCtmpTstep;
-				//if (h_old > depth_thresh) // There is water to infiltrate on the flood plain
-				//{
-
-				// floodplain或虽然是河道但是水位于floodplain之上，保证h_old为正值
-				if (h_old > 0.0)
-				{
-					// 如果蓄满了，则此栅格不再下渗
-					if (soil_water_depth_row[i] >= Parptr->saturation_value)
-					{
-						continue;
-					}
-					// 新水深 = 旧水深 - 下渗深度
-					h_new = h_old - infil_row * Solverptr->SGCtmpTstep;
-					//check for -ve depths
-					// 水全部下渗
-					if (h_new < C(0.0))
-					{
-						dV = h_old * row_cell_area;
-						Infilt_Row[i] = h_old;
-					}
-					// 水部分下渗
-					else
-					{
-						dV = infil_deltaV_step;
-						Infilt_Row[i] = infil_deltaV_step / row_cell_area;
-					}
-					// 累计下渗深度
-					soil_water_depth_row[i] += Infilt_Row[i];
-					// 扣除栅格单元上的下渗水量
-					volume_row[i] -= dV;
-					reduce_infil_loss += dV; //mass-balance for a standard cell
+			int index = i + grid_row_index;
+			float moisture = Parptr->soilMoisturePD[index];
+			Parptr->rechargePD[index] = 0.f;
+			if (moisture > Parptr->fieldCapacityPD[index]) {
+				// the water exceeds the porosity is added to percolation directly
+				if (moisture > Parptr->porosityPD[index]) {
+					Parptr->rechargePD[index] += (moisture - Parptr->porosityPD[index]) * Parptr->rootDepthPD[index];
+					Parptr->soilMoisturePD[index] = Parptr->porosityPD[index];
 				}
-				//else
-				//{
-				//	int cell_end = cell_row_count;
-				//	for (int cell_i = 0; cell_i < cell_end; cell_i++)
-				//	{
-				//		const int cell_index = sg_row_start + cell_i;
-				//		//int x = sg_cell_x[cell_index];
-				//		//int y = sg_cell_y[cell_index];
-				//		int grid_index_from_lookup = sg_cell_grid_index_lookup[cell_index];// x + y * grid_cols_padded;
-				//		// 如果是在河道上，且水面低于河道上底
-				//		if (h_old < 0.0 && grid_index_from_lookup == grid_index)
-				//		{
-				//			NUMERIC_TYPE cell_area = sg_cell_cell_area[cell_index];
-				//			h_old += sg_cell_SGC_BankFullHeight[cell_index];
-				//			if (h_old >= 0.0)
-				//			{
-				//				// 新水深 = 旧水深 - 下渗深度
-				//				h_new = h_old - infil_row * Solverptr->SGCtmpTstep;
-				//				//check for -ve depths
-				//				// 水全部下渗
-				//				if (h_new < C(0.0))
-				//				{
-				//					// reduce evap loss to account for dry bed (don't go below 0)
-				//					dV = h_old * cell_area;
-				//					Infilt_Row[i] = h_old;
-				//				}
-				//				// 水部分下渗
-				//				else
-				//				{
-				//					dV = infil_deltaV_step;
-				//					Infilt_Row[i] = infil_deltaV_step / cell_area;
-				//				}
-				//				// 扣除栅格单元上的下渗水量
-				//				volume_row[i] -= dV;
-				//				reduce_infil_loss += dV; //mass-balance for a standard cell
-				//			}
 
-				//		}
-				//	}
-				//}
+				// recharge capacity (mm)
+				float dcIndex = 2.f + 2.f / Parptr->poreIndexPD[index]; // pore disconnectedness index
+				//float rechargeCap = m_Conductivity[i] / 3600.f * m_timestep * pow((moisture - m_Residual[i])/temp, dcIndex);
+				float rechargeCap =
+					Parptr->ksPD[index] / 3600.f * groundwater_tstep * pow(moisture / Parptr->porosityPD[index], dcIndex); //Campbell, 1974
+				float availableWater = (Parptr->soilMoisturePD[index] - Parptr->fieldCapacityPD[index]) * Parptr->rootDepthPD[index];
+				if (rechargeCap >= availableWater) {
+					rechargeCap = availableWater;
+				}
 
-				//}
-
-
+				Parptr->rechargePD[index] += rechargeCap;
+				Parptr->soilMoisturePD[index] -= Parptr->rechargePD[index] / Parptr->rootDepthPD[index];
 			}
-
 		}
-		// 注释掉模型原有逻辑，改为不管格子上有多少水，都要下渗
-		//	if (h_old > depth_thresh) // There is water to infiltrate on the flood plain
-		//	{
-		//		// update depth by subtracting evap depth
-		//		// 新水深 = 旧水深 - 下渗深度
-		//		h_new = h_old - infil_row * Solverptr->SGCtmpTstep;
-		//		//check for -ve depths
-		//		// 水全部下渗
-		//		if (h_new < C(0.0))
-		//		{
-		//			// reduce evap loss to account for dry bed (don't go below 0)
-		//			dV = h_old * row_cell_area;
-		//		}
-		//		// 水部分下渗
-		//		else
-		//		{
-		//			dV = infil_deltaV_step;
-		//		}
-		//		// 扣除栅格单元上的下渗水量
-		//		volume_row[i] -= dV;
-		//		Infilt_Row[i] = dV;
+		//***********************groundwater linear resovior************************
+		// make all grid cells as an alone resovior 
+		// get percolation for each subbasin
+		//if (lyr == start_y)
+		//{
+		//	Parptr->PercolationVol = 0.f;
+		//	Parptr->sumNCells = 0;
+		//	Parptr->sumGndQ2Rch = 0.f;
+		//	for (int i = row_start; i < row_end; i++) {
+		//		int index = i + grid_row_index;
+		//		Parptr->PercolationVol += Parptr->rechargePD[index];
 		//	}
-		//	reduce_infil_loss += dV; //mass-balance for a standard cell
+		//	Parptr->sumNCells += (row_end - row_start);
 		//}
-		return reduce_infil_loss;
-	}
-	// sgc channel should be processed specificly
-	inline NUMERIC_TYPE SGC2_floodplain_perclation_singlelayer(
-		const int row_start, int row_end,
-		const NUMERIC_TYPE depth_thresh,
-		const NUMERIC_TYPE row_cell_area,
-		const NUMERIC_TYPE groundwater_tstep,
-		const NUMERIC_TYPE * h_row,
-		//const NUMERIC_TYPE * infil_row,
-		NUMERIC_TYPE * volume_row,
-		Pars *Parptr, const Solver *Solverptr, int grid_row_index,int j, int start_y,int end_y,
-		NUMERIC_TYPE *PercolationVol, int  sumNCells, NUMERIC_TYPE * sumGndQ2Rch, NUMERIC_TYPE * GwStorageDepth) {
-		if (row_end - row_start > 0) {
-			//***********************percolation************************
-			for (int i = row_start; i < row_end; i++)
-			{
+		if (j < end_y - 1)
+		{
+			for (int i = row_start; i < row_end; i++) {
 				int index = i + grid_row_index;
+				Parptr->PercolationVol += Parptr->rechargePD[index];
+			}
+			//Parptr->sumNCells += (row_end - row_start);
+		}
+		// xiaodw, calculate groundwater Q after the last row
+		if (j == end_y - 1)
+		{
+
+			for (int i = row_start; i < row_end; i++) {
+				int index = i + grid_row_index;
+				Parptr->PercolationVol += Parptr->rechargePD[index];
+			}
+			//Parptr->sumNCells += (row_end - row_start);
+			// xiaodw, average percolation mm of the basin
+			float percolation = Parptr->PercolationVol * (1.f - Parptr->deepCoefficient) / Parptr->sumNCells;
+			// depth of groundwater runoff(mm)
+			float outFlowDepth = Parptr->recessionCoefficient * pow(Parptr->GwStorageDepth, Parptr->recessionExponent);
+			// groundwater flow out of the subbasin at time t (m3/s)
+			Parptr->sumGndQ2Rch += outFlowDepth / 1000.f * Parptr->sumNCells * Parptr->dx * Parptr->dy / groundwater_tstep;
+
+			// water balance (mm)
+			Parptr->GwStorageDepth += percolation - outFlowDepth;
+		}
+
+
+		// make each grid cell as an alone resovior 
+		/*
+		for (int i = row_start; i < row_end; i++) {
+			int index = i + grid_row_index;
+			Parptr->percolationPD[index] = Parptr->rechargePD[index];
+			float percolation = Parptr->percolationPD[index] * (1.f - Parptr->deepCoefficient);
+			// depth of groundwater runoff(mm)
+			float outFlowDepth = Parptr->recessionCoefficient * pow(Parptr->gwStoragePD[index], Parptr->recessionExponent);
+			// groundwater flow out of the subbasin at time t (m3/s)
+			Parptr->gndQ2RchPD[index] = outFlowDepth / 1000.f * Parptr->dx * Parptr->dy / percolation_tstep;
+			Parptr->sumGndQ2Rch = Parptr->sumGndQ2Rch + Parptr->gndQ2RchPD[index];
+
+			// water balance (mm)
+			Parptr->gwStoragePD[index] += percolation - outFlowDepth;
+			Parptr->GwStorageDepth = Parptr->GwStorageDepth + Parptr->gwStoragePD[index];
+			Parptr->PercolationVol = Parptr->PercolationVol + percolation;
+		}
+		*/
+
+
+
+
+
+	}
+
+
+}
+
+inline NUMERIC_TYPE SGC2_floodplain_perclation_singlelayer(
+	const int row_start, int row_end,
+	const NUMERIC_TYPE depth_thresh,
+	const NUMERIC_TYPE percolation_tstep,
+	Pars *Parptr, int grid_row_index, const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area) {
+
+	NUMERIC_TYPE recharge_vol_row = 0.0;
+	if (row_end - row_start > 0) {
+		//***********************percolation************************
+		for (int i = row_start; i < row_end; i++)
+		{
+			int index = i + grid_row_index;
+			if (dem_row[i] != DEM_NO_DATA) {
 				float moisture = Parptr->soilMoisturePD[index];
 				Parptr->rechargePD[index] = 0.f;
+				// fieldCapacityPD(decimal,eg:0.2)
 				if (moisture > Parptr->fieldCapacityPD[index]) {
 					// the water exceeds the porosity is added to percolation directly
-					if (moisture > Parptr->porosityPD[index]) {
-						Parptr->rechargePD[index] += (moisture - Parptr->porosityPD[index]) * Parptr->rootDepthPD[index];
-						Parptr->soilMoisturePD[index] = Parptr->porosityPD[index];
-					}
+					// xiaodw, 当土壤超饱和时，土壤水也不会在一个时间步长上全部渗漏到地下水
+					//if (moisture > Parptr->porosityPD[index]) {
+					//	// rootDepthPD cm -> mm, rechargePD mm
+					//	Parptr->rechargePD[index] += (moisture - Parptr->porosityPD[index]) * Parptr->rootDepthPD[index] * 10.f;
+					//	Parptr->soilMoisturePD[index] = Parptr->porosityPD[index];
+					//}
 
 					// recharge capacity (mm)
-					float dcIndex = 2.f + 2.f / Parptr->poreIndexPD[index]; // pore disconnectedness index
-					//float rechargeCap = m_Conductivity[i] / 3600.f * m_timestep * pow((moisture - m_Residual[i])/temp, dcIndex);
-					float rechargeCap =
-						Parptr->ksPD[index] / 3600.f * groundwater_tstep * pow(moisture / Parptr->porosityPD[index], dcIndex); //Campbell, 1974
-					float availableWater = (Parptr->soilMoisturePD[index] - Parptr->fieldCapacityPD[index]) * Parptr->rootDepthPD[index];
+					float dcIndex = 3.f + 2.f / Parptr->poreIndexPD[index]; // pore disconnectedness index
+					// ksPD mm/h -> mm/s, rechargeCap mm
+					//float rechargeCap = Parptr->ks_factor * Parptr->ksPD[index] / 3600.f * percolation_tstep * pow(moisture / Parptr->porosityPD[index], dcIndex); //Campbell, 1974
+					// xiaodw modify, Parptr->soilMoisturePD[index] has subtracted the water exceeds the porosity, here just calculate water in the soil   
+					float rechargeCap = Parptr->ks_factor *  Parptr->ksPD[index] / 3600.f * percolation_tstep * pow((Parptr->soilMoisturePD[index] - Parptr->fieldCapacityPD[index]) / (Parptr->porosityPD[index] - Parptr->fieldCapacityPD[index]), dcIndex); //Campbell, 1974
+					 // mm
+					float availableWater = (Parptr->soilMoisturePD[index] - Parptr->fieldCapacityPD[index]) * Parptr->rootDepthPD[index] * 10.f;
 					if (rechargeCap >= availableWater) {
 						rechargeCap = availableWater;
 					}
-
+					// mm 
 					Parptr->rechargePD[index] += rechargeCap;
-					Parptr->soilMoisturePD[index] -= Parptr->rechargePD[index] / Parptr->rootDepthPD[index];
+					// xiaodw modify, the excess water has been subtracted from soil moisture, shouldn't be subtracted again here.
+					Parptr->soilMoisturePD[index] -= Parptr->rechargePD[index] / (Parptr->rootDepthPD[index] * 10.f);
+					Parptr->soilWaterDepth[index] -= Parptr->rechargePD[index];
 				}
 			}
-			//***********************groundwater linear resovior************************
-			// make all grid cells as an alone resovior 
-			// get percolation for each subbasin
-			//if (lyr == start_y)
-			//{
-			//	Parptr->PercolationVol = 0.f;
-			//	Parptr->sumNCells = 0;
-			//	Parptr->sumGndQ2Rch = 0.f;
-			//	for (int i = row_start; i < row_end; i++) {
-			//		int index = i + grid_row_index;
-			//		Parptr->PercolationVol += Parptr->rechargePD[index];
-			//	}
-			//	Parptr->sumNCells += (row_end - row_start);
-			//}
-			if (j < end_y - 1)
-			{
-				for (int i = row_start; i < row_end; i++) {
-					int index = i + grid_row_index;
-					Parptr->PercolationVol += Parptr->rechargePD[index];
-				}
-				//Parptr->sumNCells += (row_end - row_start);
-			}
-			// xiaodw, calculate groundwater Q after the last row
-			if (j == end_y - 1)
-			{
-
-				for (int i = row_start; i < row_end; i++) {
-					int index = i + grid_row_index;
-					Parptr->PercolationVol += Parptr->rechargePD[index];
-				}
-				//Parptr->sumNCells += (row_end - row_start);
-				// xiaodw, average percolation mm of the basin
-				float percolation = Parptr->PercolationVol * (1.f - Parptr->deepCoefficient) / Parptr->sumNCells;
-				// depth of groundwater runoff(mm)
-				float outFlowDepth = Parptr->recessionCoefficient * pow(Parptr->GwStorageDepth, Parptr->recessionExponent);
-				// groundwater flow out of the subbasin at time t (m3/s)
-				Parptr->sumGndQ2Rch += outFlowDepth / 1000.f * Parptr->sumNCells * Parptr->dx * Parptr->dy / groundwater_tstep;
-
-				// water balance (mm)
-				Parptr->GwStorageDepth += percolation - outFlowDepth;
-			}
-			
-
-			// make each grid cell as an alone resovior 
-			/*
-			for (int i = row_start; i < row_end; i++) {
-				int index = i + grid_row_index;
-				Parptr->percolationPD[index] = Parptr->rechargePD[index];
-				float percolation = Parptr->percolationPD[index] * (1.f - Parptr->deepCoefficient);
-				// depth of groundwater runoff(mm)
-				float outFlowDepth = Parptr->recessionCoefficient * pow(Parptr->gwStoragePD[index], Parptr->recessionExponent);
-				// groundwater flow out of the subbasin at time t (m3/s)
-				Parptr->gndQ2RchPD[index] = outFlowDepth / 1000.f * Parptr->dx * Parptr->dy / percolation_tstep;
-				Parptr->sumGndQ2Rch = Parptr->sumGndQ2Rch + Parptr->gndQ2RchPD[index];
-
-				// water balance (mm)
-				Parptr->gwStoragePD[index] += percolation - outFlowDepth;
-				Parptr->GwStorageDepth = Parptr->GwStorageDepth + Parptr->gwStoragePD[index];
-				Parptr->PercolationVol = Parptr->PercolationVol + percolation;
-			}
-			*/
-
-
-			
-
-
 		}
-		
+		//***********************groundwater linear resovior************************
+		// make all grid cells as an alone resovior 
+		// get percolation for each subbasin
 
+		// xiaodw, calculate groundwater Q after the last row
+		// m3
+		for (int i = row_start; i < row_end; i++) {
+			int index = i + grid_row_index;
+			if (dem_row[i] != DEM_NO_DATA) {
+				recharge_vol_row += Parptr->rechargePD[index] / 1000.0 * row_cell_area;
+			}
+		}
 	}
+	return recharge_vol_row;
+}
 
-	inline NUMERIC_TYPE SGC2_floodplain_perclation_singlelayer(
-		const int row_start, int row_end,
-		const NUMERIC_TYPE depth_thresh,
-		const NUMERIC_TYPE percolation_tstep,
-		Pars *Parptr,  int grid_row_index, const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area) {
+inline NUMERIC_TYPE SGC2_floodplain_perclation_multilayer(
+	const int row_start, int row_end, const NUMERIC_TYPE depth_thresh, const NUMERIC_TYPE percolation_tstep,
+	Pars *Parptr, const Solver *Solverptr, NUMERIC_TYPE * volume_grid, int grid_row_index, const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area) {
 
-		NUMERIC_TYPE recharge_vol_row = 0.0;
-		if (row_end - row_start > 0) {
-			//***********************percolation************************
-			for (int i = row_start; i < row_end; i++)
-			{
-				int index = i + grid_row_index;
-				if (dem_row[i] != DEM_NO_DATA) {
-					float moisture = Parptr->soilMoisturePD[index];
-					Parptr->rechargePD[index] = 0.f;
-					// fieldCapacityPD(decimal,eg:0.2)
-					if (moisture > Parptr->fieldCapacityPD[index]) {
-						// the water exceeds the porosity is added to percolation directly
-						// xiaodw, 当土壤超饱和时，土壤水也不会在一个时间步长上全部渗漏到地下水
-						//if (moisture > Parptr->porosityPD[index]) {
-						//	// rootDepthPD cm -> mm, rechargePD mm
-						//	Parptr->rechargePD[index] += (moisture - Parptr->porosityPD[index]) * Parptr->rootDepthPD[index] * 10.f;
-						//	Parptr->soilMoisturePD[index] = Parptr->porosityPD[index];
-						//}
+	NUMERIC_TYPE recharge_vol_row = 0.0;
+	if (row_end - row_start > 0) {
+		for (int row_i = row_start; row_i < row_end; row_i++)
+		{
+			int i = row_i + grid_row_index;
+			if (dem_row[row_i] != DEM_NO_DATA) {
+				// Note that, infiltration, pothole seepage, irrigation etc. have been added to
+				// the first soil layer in other modules. By LJ
+				float excessWater = 0.f, maxSoilWaterDepth = 0.f, fcSoilWaterDepth = 0.f;
+				for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++) {
+					// 每一层超出土壤孔隙度和田间持水量的水, 孔隙度水当量，田间持水量 mm
+					excessWater = 0.f;
+					maxSoilWaterDepth = Parptr->multi_soilPorosityPD[lyr][i] * Parptr->multi_soilThicknessPD[lyr][i] * 1000.0;
+					fcSoilWaterDepth = Parptr->multi_soilFcPD[lyr][i] * Parptr->multi_soilThicknessPD[lyr][i] * 1000.0;
+					Parptr->multi_soilWaterDepthPD[lyr][i] = Parptr->multi_soilMoisturePD[lyr][i] * Parptr->multi_soilThicknessPD[lyr][i] * 1000.0;
+					// determine gravity drained water in layer
+					excessWater += Parptr->multi_soilWaterDepthPD[lyr][i] - fcSoilWaterDepth;
 
-						// recharge capacity (mm)
-						float dcIndex = 3.f + 2.f / Parptr->poreIndexPD[index]; // pore disconnectedness index
-						// ksPD mm/h -> mm/s, rechargeCap mm
-						//float rechargeCap = Parptr->ks_factor * Parptr->ksPD[index] / 3600.f * percolation_tstep * pow(moisture / Parptr->porosityPD[index], dcIndex); //Campbell, 1974
-						// xiaodw modify, Parptr->soilMoisturePD[index] has subtracted the water exceeds the porosity, here just calculate water in the soil   
-						float rechargeCap = Parptr->ks_factor *  Parptr->ksPD[index] / 3600.f * percolation_tstep * pow((Parptr->soilMoisturePD[index] - Parptr->fieldCapacityPD[index]) / (Parptr->porosityPD[index] - Parptr->fieldCapacityPD[index]), dcIndex); //Campbell, 1974
-						 // mm
-						float availableWater = (Parptr->soilMoisturePD[index] - Parptr->fieldCapacityPD[index]) * Parptr->rootDepthPD[index] * 10.f;
-						if (rechargeCap >= availableWater) {
-							rechargeCap = availableWater;
+					maxSoilWaterDepth = Max(0.f, maxSoilWaterDepth);
+					// mm
+					Parptr->multi_soilPercoPD[lyr][i] = 0.f;
+					// No movement if soil moisture is below field capacity
+					if (excessWater > 1.e-5f) {
+						float maxPerc = maxSoilWaterDepth - fcSoilWaterDepth;
+						if (maxPerc < 0.f) maxPerc = 0.1f;
+						// ks is mm/h, convert it to mm/s firstly, this means how much time it needs to percolate all water in this layer
+						float tt = 3600.f * maxPerc / Parptr->multi_soilKsPD[lyr][i];
+						// 每次根据比例渗漏一部分，其余的下个步长渗漏
+						//Parptr->multi_soilPercoPD[lyr][i] = excessWater * (1.f - exp(-Solverptr->SGCtmpTstep / tt)); // secs
+						Parptr->multi_soilPercoPD[lyr][i] = excessWater * (1.f - exp(-percolation_tstep / tt)); // secs
+
+						if (Parptr->multi_soilPercoPD[lyr][i] > maxPerc) {
+							Parptr->multi_soilPercoPD[lyr][i] = maxPerc;
 						}
-						// mm 
-						Parptr->rechargePD[index] += rechargeCap;
-						// xiaodw modify, the excess water has been subtracted from soil moisture, shouldn't be subtracted again here.
-						Parptr->soilMoisturePD[index] -= Parptr->rechargePD[index] / (Parptr->rootDepthPD[index] * 10.f);
-						Parptr->soilWaterDepth[index] -= Parptr->rechargePD[index];
-					}
-				}
-			}
-			//***********************groundwater linear resovior************************
-			// make all grid cells as an alone resovior 
-			// get percolation for each subbasin
+						//Adjust the moisture content in the current layer, and the layer immediately below it
+						// 每一层都会向下一层渗漏,mm
+						Parptr->multi_soilWaterDepthPD[lyr][i] -= Parptr->multi_soilPercoPD[lyr][i];
+						excessWater -= Parptr->multi_soilPercoPD[lyr][i];
+						Parptr->multi_soilWaterDepthPD[lyr][i] = Max(0.0, Parptr->multi_soilWaterDepthPD[lyr][i]);
+						// redistribute soil water if above field capacity (high water table), rewrite from sat_excess.f of SWAT
+						if (lyr < Parptr->multi_nSoilLyrs - 1) {
+							Parptr->multi_soilWaterDepthPD[lyr + 1][i] += Parptr->multi_soilPercoPD[lyr][i];
+							Parptr->multi_soilPercoDepOfLyr[lyr] += Parptr->multi_soilPercoPD[lyr][i];
+							Parptr->multi_soilPercoVolOfLyr[lyr] += Parptr->multi_soilPercoPD[lyr][i] * 0.001 * row_cell_area;
 
-			// xiaodw, calculate groundwater Q after the last row
-			// m3
-			for (int i = row_start; i < row_end; i++) {
-				int index = i + grid_row_index;
-				if (dem_row[i] != DEM_NO_DATA) {
-					recharge_vol_row += Parptr->rechargePD[index] / 1000.0 * row_cell_area;
-				}
-			}
-		}
-		return recharge_vol_row;
-	}
+							// 如果上一层超饱和了，则超饱和的水全部渗漏到下一层
+							//if (Parptr->multi_soilWaterDepthPD[lyr][i] - maxSoilWaterDepth > 1.e-4f) {
+							//	Parptr->multi_soilWaterDepthPD[lyr + 1][i] += Parptr->multi_soilWaterDepthPD[lyr][i] - maxSoilWaterDepth;
+							//	Parptr->multi_soilWaterDepthPD[lyr][i] = Parptr->multi_soilPorosityPD[lyr][i];
+							//}
 
-	inline NUMERIC_TYPE SGC2_floodplain_perclation_multilayer(
-		const int row_start, int row_end,const NUMERIC_TYPE depth_thresh,const NUMERIC_TYPE percolation_tstep,
-		Pars *Parptr, const Solver *Solverptr, NUMERIC_TYPE * volume_grid, int grid_row_index, const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area) {
-
-		NUMERIC_TYPE recharge_vol_row = 0.0;
-		if (row_end - row_start > 0) {
-			for (int row_i = row_start; row_i < row_end; row_i++)
-			{
-				int i = row_i + grid_row_index;
-				if (dem_row[row_i] != DEM_NO_DATA) {
-					// Note that, infiltration, pothole seepage, irrigation etc. have been added to
-					// the first soil layer in other modules. By LJ
-					float excessWater = 0.f, maxSoilWaterDepth = 0.f, fcSoilWaterDepth = 0.f;
-					for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++) {
-						// 每一层超出土壤孔隙度和田间持水量的水, 孔隙度水当量，田间持水量 mm
-						excessWater = 0.f;
-						maxSoilWaterDepth = Parptr->multi_soilPorosityPD[lyr][i] * Parptr->multi_soilThicknessPD[lyr][i] * 1000.0;
-						fcSoilWaterDepth = Parptr->multi_soilFcPD[lyr][i] * Parptr->multi_soilThicknessPD[lyr][i] * 1000.0;
-						Parptr->multi_soilWaterDepthPD[lyr][i] = Parptr->multi_soilMoisturePD[lyr][i] * Parptr->multi_soilThicknessPD[lyr][i] * 1000.0;
-						// determine gravity drained water in layer
-						excessWater += Parptr->multi_soilWaterDepthPD[lyr][i] - fcSoilWaterDepth;
-
-						maxSoilWaterDepth = Max(0.f, maxSoilWaterDepth);
-						// mm
-						Parptr->multi_soilPercoPD[lyr][i] = 0.f;
-						// No movement if soil moisture is below field capacity
-						if (excessWater > 1.e-5f) {
-							float maxPerc = maxSoilWaterDepth - fcSoilWaterDepth;
-							if (maxPerc < 0.f) maxPerc = 0.1f;
-							// ks is mm/h, convert it to mm/s firstly, this means how much time it needs to percolate all water in this layer
-							float tt = 3600.f * maxPerc / Parptr->multi_soilKsPD[lyr][i];
-							// 每次根据比例渗漏一部分，其余的下个步长渗漏
-							//Parptr->multi_soilPercoPD[lyr][i] = excessWater * (1.f - exp(-Solverptr->SGCtmpTstep / tt)); // secs
-							Parptr->multi_soilPercoPD[lyr][i] = excessWater * (1.f - exp(-percolation_tstep / tt)); // secs
-
-							if (Parptr->multi_soilPercoPD[lyr][i] > maxPerc) {
-								Parptr->multi_soilPercoPD[lyr][i] = maxPerc;
-							}
-							//Adjust the moisture content in the current layer, and the layer immediately below it
-							// 每一层都会向下一层渗漏,mm
+						}
+						else {
+							/// for the last soil layer
+							/// 最后一层优先渗漏到地下水
+							recharge_vol_row += Parptr->multi_soilPercoPD[lyr][i] * 0.001 * row_cell_area;
+							Parptr->multi_soilPercoDepOfLyr[lyr] += Parptr->multi_soilPercoPD[lyr][i];
+							Parptr->multi_soilPercoVolOfLyr[lyr] += Parptr->multi_soilPercoPD[lyr][i] * 0.001 * row_cell_area;
 							Parptr->multi_soilWaterDepthPD[lyr][i] -= Parptr->multi_soilPercoPD[lyr][i];
-							excessWater -= Parptr->multi_soilPercoPD[lyr][i];
-							Parptr->multi_soilWaterDepthPD[lyr][i] = Max(0.0, Parptr->multi_soilWaterDepthPD[lyr][i]);
-							// redistribute soil water if above field capacity (high water table), rewrite from sat_excess.f of SWAT
-							if (lyr < Parptr->multi_nSoilLyrs - 1) {
-								Parptr->multi_soilWaterDepthPD[lyr + 1][i] += Parptr->multi_soilPercoPD[lyr][i];
-								Parptr->multi_soilPercoDepOfLyr[lyr] += Parptr->multi_soilPercoPD[lyr][i];
-								Parptr->multi_soilPercoVolOfLyr[lyr] += Parptr->multi_soilPercoPD[lyr][i] * 0.001 * row_cell_area;
+							/// 如果最后一层超饱和，则超饱和的量会逐层向上层补给
+							if (Parptr->multi_soilWaterDepthPD[lyr][i] - maxSoilWaterDepth > 1.e-4f) {
+								float ul_excess = Parptr->multi_soilWaterDepthPD[lyr][i] - maxSoilWaterDepth;
+								Parptr->multi_soilWaterDepthPD[lyr][i] = maxSoilWaterDepth;
+								// xiaodw，最后一层饱和后又反过来检查上面每一层是否因为增加了渗漏量而超饱和
+								for (int ly = Parptr->multi_nSoilLyrs - 2; ly >= 0; ly--) {
+									Parptr->multi_soilWaterDepthPD[i][ly] += ul_excess;
+									NUMERIC_TYPE tmp_maxSoilWaterDepth = Parptr->multi_soilPorosityPD[lyr][i] * Parptr->multi_soilThicknessPD[lyr][i] * 1000.0;
+									if (Parptr->multi_soilWaterDepthPD[lyr][i] > tmp_maxSoilWaterDepth) {
+										ul_excess = Parptr->multi_soilWaterDepthPD[lyr][i] - tmp_maxSoilWaterDepth;
+										Parptr->multi_soilWaterDepthPD[lyr][i] = Parptr->multi_soilPorosityPD[lyr][i];
+									}
+									else {
+										ul_excess = 0.f;
+										break;
+									}
+									// 如果第一层都超饱和了，则更新第一层的入渗量，并将超饱和的水转入地表径流
+									if (ly == 0 && ul_excess > 0.f) {
 
-								// 如果上一层超饱和了，则超饱和的水全部渗漏到下一层
-								//if (Parptr->multi_soilWaterDepthPD[lyr][i] - maxSoilWaterDepth > 1.e-4f) {
-								//	Parptr->multi_soilWaterDepthPD[lyr + 1][i] += Parptr->multi_soilWaterDepthPD[lyr][i] - maxSoilWaterDepth;
-								//	Parptr->multi_soilWaterDepthPD[lyr][i] = Parptr->multi_soilPorosityPD[lyr][i];
-								//}
-
-							}
-							else {
-								/// for the last soil layer
-								/// 最后一层优先渗漏到地下水
-								recharge_vol_row += Parptr->multi_soilPercoPD[lyr][i] * 0.001 * row_cell_area;
-								Parptr->multi_soilPercoDepOfLyr[lyr] += Parptr->multi_soilPercoPD[lyr][i];
-								Parptr->multi_soilPercoVolOfLyr[lyr] += Parptr->multi_soilPercoPD[lyr][i] * 0.001 * row_cell_area;
-								Parptr->multi_soilWaterDepthPD[lyr][i] -= Parptr->multi_soilPercoPD[lyr][i];
-								/// 如果最后一层超饱和，则超饱和的量会逐层向上层补给
-								if (Parptr->multi_soilWaterDepthPD[lyr][i] - maxSoilWaterDepth > 1.e-4f) {
-									float ul_excess = Parptr->multi_soilWaterDepthPD[lyr][i] - maxSoilWaterDepth;
-									Parptr->multi_soilWaterDepthPD[lyr][i] = maxSoilWaterDepth;
-									// xiaodw，最后一层饱和后又反过来检查上面每一层是否因为增加了渗漏量而超饱和
-									for (int ly = Parptr->multi_nSoilLyrs - 2; ly >= 0; ly--) {
-										Parptr->multi_soilWaterDepthPD[i][ly] += ul_excess;
-										NUMERIC_TYPE tmp_maxSoilWaterDepth = Parptr->multi_soilPorosityPD[lyr][i] * Parptr->multi_soilThicknessPD[lyr][i] * 1000.0;
-										if (Parptr->multi_soilWaterDepthPD[lyr][i] > tmp_maxSoilWaterDepth) {
-											ul_excess = Parptr->multi_soilWaterDepthPD[lyr][i] - tmp_maxSoilWaterDepth;
-											Parptr->multi_soilWaterDepthPD[lyr][i] = Parptr->multi_soilPorosityPD[lyr][i];
-										}
-										else {
-											ul_excess = 0.f;
-											break;
-										}
-										// 如果第一层都超饱和了，则更新第一层的入渗量，并将超饱和的水转入地表径流
-										if (ly == 0 && ul_excess > 0.f) {
-
-											volume_grid[i] += ul_excess * 0.001 * row_cell_area;
-											//m_infil[i] -= ul_excess;
-										}
+										volume_grid[i] += ul_excess * 0.001 * row_cell_area;
+										//m_infil[i] -= ul_excess;
 									}
 								}
 							}
+						}
 
-						}
-						else {
-							Parptr->multi_soilPercoPD[lyr][i] = 0.f;
-						}
-						// update soilMoisture
-						Parptr->multi_soilMoisturePD[lyr][i] = Parptr->multi_soilWaterDepthPD[lyr][i] / (Parptr->multi_soilThicknessPD[lyr][i] * 1000.0);
 					}
-					/// update soil profile water
-					Parptr->multi_soilWtrStoPrfl[i] = 0.f;
-					for (int ly = 0; ly < Parptr->multi_nSoilLyrs; ly++) {
-						Parptr->multi_soilWtrStoPrfl[i] += Parptr->multi_soilWaterDepthPD[ly][i];
+					else {
+						Parptr->multi_soilPercoPD[lyr][i] = 0.f;
 					}
+					// update soilMoisture
+					Parptr->multi_soilMoisturePD[lyr][i] = Parptr->multi_soilWaterDepthPD[lyr][i] / (Parptr->multi_soilThicknessPD[lyr][i] * 1000.0);
+				}
+				/// update soil profile water
+				Parptr->multi_soilWtrStoPrfl[i] = 0.f;
+				for (int ly = 0; ly < Parptr->multi_nSoilLyrs; ly++) {
+					Parptr->multi_soilWtrStoPrfl[i] += Parptr->multi_soilWaterDepthPD[ly][i];
 				}
 			}
 		}
-		return recharge_vol_row;
 	}
+	return recharge_vol_row;
+}
 
-	inline NUMERIC_TYPE SGC2_Infil_floodplain_row_green_ampt(
-		const int row_start, int row_end, const NUMERIC_TYPE depth_thresh, const NUMERIC_TYPE row_cell_area, const NUMERIC_TYPE evap_deltaH_step,
-		const NUMERIC_TYPE * h_row, const NUMERIC_TYPE * dem_row, NUMERIC_TYPE* Infilt_Row_POI, NUMERIC_TYPE *soil_water_depth_row,
-		//const NUMERIC_TYPE * infil_row,
-		NUMERIC_TYPE * volume_row, NUMERIC_TYPE * porosityPD, NUMERIC_TYPE * initSoilMoisturePD, NUMERIC_TYPE * capillarySuctionPD,
-		NUMERIC_TYPE * ksPD, NUMERIC_TYPE ksFactor, NUMERIC_TYPE * accumuDepthPD, NUMERIC_TYPE * rootDepthPD, NUMERIC_TYPE * infilPD,
-		NUMERIC_TYPE * infilCapacitySurplusPD, NUMERIC_TYPE * soilMoisturePD, NUMERIC_TYPE * soil_water_depth_Row_POI,
-		Pars *Parptr, const Solver *Solverptr, const States *Statesptr, int grid_row_index, NUMERIC_TYPE *infilAvgBlock, int *infilValidCount)
-	{
+inline NUMERIC_TYPE SGC2_Infil_floodplain_row_green_ampt(
+	const int row_start, int row_end, const NUMERIC_TYPE depth_thresh, const NUMERIC_TYPE row_cell_area, const NUMERIC_TYPE evap_deltaH_step,
+	const NUMERIC_TYPE * h_row, const NUMERIC_TYPE * dem_row, NUMERIC_TYPE* Infilt_Row_POI, NUMERIC_TYPE *soil_water_depth_row,
+	//const NUMERIC_TYPE * infil_row,
+	NUMERIC_TYPE * volume_row, NUMERIC_TYPE * porosityPD, NUMERIC_TYPE * initSoilMoisturePD, NUMERIC_TYPE * capillarySuctionPD,
+	NUMERIC_TYPE * ksPD, NUMERIC_TYPE ksFactor, NUMERIC_TYPE * accumuDepthPD, NUMERIC_TYPE * rootDepthPD, NUMERIC_TYPE * infilPD,
+	NUMERIC_TYPE * infilCapacitySurplusPD, NUMERIC_TYPE * soilMoisturePD, NUMERIC_TYPE * soil_water_depth_Row_POI,
+	Pars *Parptr, const Solver *Solverptr, const States *Statesptr, int grid_row_index, NUMERIC_TYPE *infilAvgBlock, int *infilValidCount)
+{
 #ifdef __INTEL_COMPILER
-		__assume_aligned(h_row, 64);
-		__assume_aligned(volume_row, 64);
+	__assume_aligned(h_row, 64);
+	__assume_aligned(volume_row, 64);
 #endif
-		//*infilAvgRow = C(0.0);
-		//*infilAccRow = C(0.0);
-		NUMERIC_TYPE infil_loss = C(0.0);
-		//int counter = 0;
-		NUMERIC_TYPE rowToalInfil = C(0.0);
+	//*infilAvgRow = C(0.0);
+	//*infilAccRow = C(0.0);
+	NUMERIC_TYPE infil_loss = C(0.0);
+	//int counter = 0;
+	NUMERIC_TYPE rowToalInfil = C(0.0);
 #pragma ivdep
 #pragma simd
-		for (int i = row_start; i < row_end; i++)
-		{
-			if (dem_row[i] != DEM_NO_DATA) {
-				NUMERIC_TYPE h_new, dV = C(0.0);
-				//NUMERIC_TYPE h_old = h_row[i]; // m
-				NUMERIC_TYPE h_old = h_row[i] + volume_row[i] / row_cell_area;
-				//NUMERIC_TYPE evap_deltaV_step = infil_row[i] * row_cell_area;
+	for (int i = row_start; i < row_end; i++)
+	{
+		if (dem_row[i] != DEM_NO_DATA) {
+			NUMERIC_TYPE h_new, dV = C(0.0);
+			//NUMERIC_TYPE h_old = h_row[i]; // m
+			NUMERIC_TYPE h_old = h_row[i] + volume_row[i] / row_cell_area;
+			//NUMERIC_TYPE evap_deltaV_step = infil_row[i] * row_cell_area;
 
-				//**************************************start green-ampt***********************************
-				int index = i + grid_row_index;
-				// effective matric potential (m), capillarySuctionPD mm->m
-				float matricPotential = (porosityPD[index] -initSoilMoisturePD[index]) *capillarySuctionPD[index] / 1000.f;
-				//float matricPotential = (Parptr->porosityPD[index] - Parptr->initSoilMoisturePD[index]) *Parptr->capillarySuctionPD[index] / 1000.f;
-				// algorithm of Li, 1996, uesd in C2SC2D
-				float ks = ksPD[index] / 1000.f / 3600.f; // mm/h -> m/s
-				if (ksFactor > 0.0)
-				{
-					ks = ks * ksFactor;
-				}
-				//ks = 0.0000001;
-				float dt = Solverptr->SGCtmpTstep;
-				float infilDepth = accumuDepthPD[index] / 1000.f; // mm ->m
+			//**************************************start green-ampt***********************************
+			int index = i + grid_row_index;
+			// effective matric potential (m), capillarySuctionPD mm->m
+			float matricPotential = (porosityPD[index] - initSoilMoisturePD[index]) *capillarySuctionPD[index] / 1000.f;
+			//float matricPotential = (Parptr->porosityPD[index] - Parptr->initSoilMoisturePD[index]) *Parptr->capillarySuctionPD[index] / 1000.f;
+			// algorithm of Li, 1996, uesd in C2SC2D
+			float ks = ksPD[index] / 1000.f / 3600.f; // mm/h -> m/s
+			if (ksFactor > 0.0)
+			{
+				ks = ks * ksFactor;
+			}
+			//ks = 0.0000001;
+			float dt = Solverptr->SGCtmpTstep;
+			float infilDepth = accumuDepthPD[index] / 1000.f; // mm ->m
 
-				float p1 = (float)(ks * dt - 2.0 * infilDepth);
-				float p2 = ks * (infilDepth + matricPotential);
-				// infiltration rate (m/s) 根据累计入渗深度计算出来的当前时间步长的下渗能力（最大下渗速率）
-				float infilRate = (float)((p1 + sqrt(pow(p1, 2.0f) + 8.0f * p2 * dt)) / (2.0f * dt));
-				//infilCap是当前时间步长土壤还能容纳的最大入渗最大深度(m)
-				// rootDepthPD cm->mm
-				// todo: 这里是否应该soilMoisturePD*porosityPD？避免湿度大于孔隙度的情况
-				float infilCap = (porosityPD[index] - soilMoisturePD[index]) * rootDepthPD[index] * 1000.f;
-				if (infilRate >= 0.0)
-				{
-					//xiaodw, 改为只要有水就入渗
-					if (h_old > 0.0) {               
+			float p1 = (float)(ks * dt - 2.0 * infilDepth);
+			float p2 = ks * (infilDepth + matricPotential);
+			// infiltration rate (m/s) 根据累计入渗深度计算出来的当前时间步长的下渗能力（最大下渗速率）
+			float infilRate = (float)((p1 + sqrt(pow(p1, 2.0f) + 8.0f * p2 * dt)) / (2.0f * dt));
+			//infilCap是当前时间步长土壤还能容纳的最大入渗最大深度(m)
+			// rootDepthPD cm->mm
+			// todo: 这里是否应该soilMoisturePD*porosityPD？避免湿度大于孔隙度的情况
+			float infilCap = (porosityPD[index] - soilMoisturePD[index]) * rootDepthPD[index] * 1000.f;
+			if (infilRate >= 0.0)
+			{
+				//xiaodw, 改为只要有水就入渗
+				if (h_old > 0.0) {
 					//if (h_old > depth_thresh) {
 						//for saturation overland flow
 						// 当前的土壤湿度 > 土壤孔隙度，代表土壤水饱和了，则不下渗了；土壤湿度会随着下渗量的增加而增加
-						if (soilMoisturePD[i] > porosityPD[index]) {
-							infilPD[index] = 0.0f;
-							infilCapacitySurplusPD[index] = 0.f;
+					if (soilMoisturePD[i] > porosityPD[index]) {
+						infilPD[index] = 0.0f;
+						infilCapacitySurplusPD[index] = 0.f;
 
-						}
-						else {
-							// 取较小值的意思是，如果入渗能力*时间步长 < 最大入渗深度，就代表在当前时间步长下，土壤还能容纳这么多水的下渗（入渗能力*时间步长）
-							// 如果入渗能力*时间步长 > 最大入渗深度，就代表在当前时间步长下，土壤已经容纳不了这么多水的下渗（入渗能力*时间步长）
-							infilPD[index] = min(infilRate * dt * 1000.f, infilCap); // mm
-
-							//check if the infiltration potential exceeds the available water
-							if (infilPD[index] > h_old * 1000.0) {
-								infilCapacitySurplusPD[index] = infilPD[index] - h_old * 1000.0;
-								//limit infiltration rate to available water supply
-								infilPD[index] = h_old * 1000;
-							}
-							else {
-								infilCapacitySurplusPD[index] = 0.f;
-							}
-
-							//Compute the cumulative depth of infiltration
-							accumuDepthPD[index] += infilPD[index];  // mm
-
-							// rootDepthPD cm -> mm
-							if (rootDepthPD != NULL) {
-								soilMoisturePD[index] += infilPD[index] / (rootDepthPD[index] * 1000.f);
-							}
-						}
-						// 下渗量
-						dV = infilPD[index] / 1000.0 * row_cell_area;   // m
-						volume_row[i] -= dV;
-						
-						// 输出下渗量
-						rowToalInfil += infilPD[index];
-						//*infilAvgRow += infilPD[index];
-						//*infilAccRow += accumuDepthPD[index];
-						// todo : 为什么输出的AccDep是负值？
 					}
 					else {
-						infilPD[index] = 0.0;
+						// 取较小值的意思是，如果入渗能力*时间步长 < 最大入渗深度，就代表在当前时间步长下，土壤还能容纳这么多水的下渗（入渗能力*时间步长）
+						// 如果入渗能力*时间步长 > 最大入渗深度，就代表在当前时间步长下，土壤已经容纳不了这么多水的下渗（入渗能力*时间步长）
+						infilPD[index] = min(infilRate * dt * 1000.f, infilCap); // mm
+
+						//check if the infiltration potential exceeds the available water
+						if (infilPD[index] > h_old * 1000.0) {
+							infilCapacitySurplusPD[index] = infilPD[index] - h_old * 1000.0;
+							//limit infiltration rate to available water supply
+							infilPD[index] = h_old * 1000;
+						}
+						else {
+							infilCapacitySurplusPD[index] = 0.f;
+						}
+
+						//Compute the cumulative depth of infiltration
+						accumuDepthPD[index] += infilPD[index];  // mm
+
+						// rootDepthPD cm -> mm
+						if (rootDepthPD != NULL) {
+							soilMoisturePD[index] += infilPD[index] / (rootDepthPD[index] * 1000.f);
+						}
 					}
-					
+					// 下渗量
+					dV = infilPD[index] / 1000.0 * row_cell_area;   // m
+					volume_row[i] -= dV;
+
+					// 输出下渗量
+					rowToalInfil += infilPD[index];
+					//*infilAvgRow += infilPD[index];
+					//*infilAccRow += accumuDepthPD[index];
+					// todo : 为什么输出的AccDep是负值？
 				}
-				else
-				{
+				else {
 					infilPD[index] = 0.0;
 				}
-				*infilAvgBlock = *infilAvgBlock + infilPD[index];
-				(*infilValidCount)++;
-
-				//soil_water_depth_row[i]+= infilPD[index];
-				soil_water_depth_row[i] = soilMoisturePD[index] * rootDepthPD[index] * 1000.0;
-				// POI
-				if (Statesptr->save_poi)
-				{
-					Infilt_Row_POI[i] += infilPD[index];   // mm
-					soil_water_depth_Row_POI[i] = soilMoisturePD[index] * rootDepthPD[index] * 1000.0;
-				}
-				//Parptr->soilWaterDepthAvgPercell += soil_water_depth_row[i];
-				infil_loss += dV; //mass-balance for a standard cell
 
 			}
+			else
+			{
+				infilPD[index] = 0.0;
+			}
+			*infilAvgBlock = *infilAvgBlock + infilPD[index];
+			(*infilValidCount)++;
 
-			//**************************************end green-ampt***********************************
+			//soil_water_depth_row[i]+= infilPD[index];
+			soil_water_depth_row[i] = soilMoisturePD[index] * rootDepthPD[index] * 1000.0;
+			// POI
+			if (Statesptr->save_poi)
+			{
+				Infilt_Row_POI[i] += infilPD[index];   // mm
+				soil_water_depth_Row_POI[i] = soilMoisturePD[index] * rootDepthPD[index] * 1000.0;
+			}
+			//Parptr->soilWaterDepthAvgPercell += soil_water_depth_row[i];
+			infil_loss += dV; //mass-balance for a standard cell
 
 		}
-		//if (counter > 0)
-		//{
-		//	*infilAvgRow = rowToalInfil / counter;
-		//	*infilAccRow = rowToalInfil / counter;
-		//}
-		return infil_loss;
+
+		//**************************************end green-ampt***********************************
+
 	}
+	//if (counter > 0)
+	//{
+	//	*infilAvgRow = rowToalInfil / counter;
+	//	*infilAccRow = rowToalInfil / counter;
+	//}
+	return infil_loss;
+}
 
-	inline NUMERIC_TYPE cal_infil_wetspa(Pars* Parptr, const Solver *Solverptr,NUMERIC_TYPE h_old,int index, NUMERIC_TYPE * soilMoisturePD, NUMERIC_TYPE * porosityPD,
-		NUMERIC_TYPE *rootDepthPD,NUMERIC_TYPE *infilPD, NUMERIC_TYPE area) {
-		NUMERIC_TYPE dV = 0.0;
-		NUMERIC_TYPE infilCap = (porosityPD[index] - soilMoisturePD[index]) * rootDepthPD[index] * 1000.f;
-		NUMERIC_TYPE pMaxStep = Parptr->pMax * Solverptr->SGCtmpTstep * 1.1574074074074073e-05f;   // mm/day -> mm this step
-		NUMERIC_TYPE alpha = 1.0;
-		if (Parptr->useAlphaType == 1)
-		{
-			alpha = Parptr->alpha;
-		}
-		else {
-			alpha = Parptr->kRun - (Parptr->kRun - 1) * h_old / pMaxStep;
-			if (h_old >= pMaxStep)
-				alpha = 1.0;
-		}
-
-
-		//runoff percentage
-		NUMERIC_TYPE runoffPercentage;
-		NUMERIC_TYPE runoffCo = Parptr->useRunoffCoType == VALUE_TYPE ? Parptr->runoffCoVal : Parptr->runoffCoPD[index];
-
-		if (runoffCo > 0.99f)
-			runoffPercentage = 1.0f;
-		else
-			runoffPercentage = Parptr->runoffCoFactor * runoffCo * pow((soilMoisturePD[index] / porosityPD[index]), alpha);   /// xiaodw, 20250409, 增加径流系数的调节因子
-
-		if (runoffPercentage < 0 || runoffPercentage > 1) runoffPercentage = 1.0f;
-
-		NUMERIC_TYPE surfq = h_old * runoffPercentage; // mm
-		infilPD[index] = h_old - surfq;  // mm
-
-		infilPD[index] = min(infilPD[index], infilCap); // mm
-
-		//check if the infiltration potential exceeds the available water
-		if (infilPD[index] > h_old) {
-			//limit infiltration rate to available water supply
-			infilPD[index] = h_old;
-		}
-		//if (!IsNumber(infilPD[index]) || isinf(infilPD[index]) || !IsNumber(Parptr->rainExcessPD[index]) || isinf(Parptr->rainExcessPD[index]))
-		//{
-		//	ostringstream oss;
-		//	oss << "The infiltration or runoff in cell (" << index << ") is out of reasonable range!" << endl;
-		//	oss << "m_infil[i]: " << infilPD[index] << endl;
-		//	oss << "m_pe[i]: " << Parptr->rainExcessPD[index] << endl;
-		//	oss << "pNet: " << h_old << endl;
-		//	oss << "surfq: " << surfq << endl;
-		//	oss << "runoffPercentage: " << runoffPercentage << endl;
-		//	oss << "runoffCo: " << runoffCo << endl;
-		//	oss << "m_soilMoisture[i]: " << soilMoisturePD[index] << endl;
-		//	oss << "porosity: " << porosityPD[index] << endl;
-		//	oss << "alpha: " << alpha << endl;
-		//	oss << "m_kRunoff: " << Parptr->kRun << endl;
-		//	oss << "m_pMax: " << Parptr->pMax << endl;
-		//}
-		dV = infilPD[index] * area * 0.001;
-		return dV;
-	}
-
-
-	/* from wetspa SUR_MR   */
-	inline NUMERIC_TYPE SGC2_Infil_floodplain_row_wetspa(
-		const int row_start, int row_end, const NUMERIC_TYPE depth_thresh, const NUMERIC_TYPE row_cell_area, 
-		const NUMERIC_TYPE * h_grid, const NUMERIC_TYPE * dem_grid, NUMERIC_TYPE* Infilt_Row_POI, NUMERIC_TYPE* Infilt_Ch_POI, NUMERIC_TYPE *soil_water_depth_row,
-		NUMERIC_TYPE * volume_row, NUMERIC_TYPE *  volume_row_ch, NUMERIC_TYPE * porosityPD,
-		 NUMERIC_TYPE * rootDepthPD, NUMERIC_TYPE * infilPD, NUMERIC_TYPE * infilChPD,
-		 NUMERIC_TYPE * soilMoisturePD, NUMERIC_TYPE * soil_water_depth_Row_POI,
-		Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, const States *Statesptr, int grid_row_index, NUMERIC_TYPE *infilAvgBlock, int *infilValidCount,int j,
-		const int cell_count, const int sg_row_start, const int * sg_cell_grid_index_lookup, const NUMERIC_TYPE * sg_cell_cell_area,
-		const NUMERIC_TYPE * sg_cell_SGC_BankFullHeight, const NUMERIC_TYPE * sg_cell_SGC_BankFullVolume, const NUMERIC_TYPE * sg_cell_SGC_c,
-		const SubGridFlowLookup * sg_cell_flow_lookup)
+inline NUMERIC_TYPE cal_infil_wetspa(Pars* Parptr, const Solver *Solverptr, NUMERIC_TYPE h_old, int index, NUMERIC_TYPE * soilMoisturePD, NUMERIC_TYPE * porosityPD,
+	NUMERIC_TYPE *rootDepthPD, NUMERIC_TYPE *infilPD, NUMERIC_TYPE area) {
+	NUMERIC_TYPE dV = 0.0;
+	NUMERIC_TYPE infilCap = (porosityPD[index] - soilMoisturePD[index]) * rootDepthPD[index] * 1000.f;
+	NUMERIC_TYPE pMaxStep = Parptr->pMax * Solverptr->SGCtmpTstep * 1.1574074074074073e-05f;   // mm/day -> mm this step
+	NUMERIC_TYPE alpha = 1.0;
+	if (Parptr->useAlphaType == 1)
 	{
+		alpha = Parptr->alpha;
+	}
+	else {
+		alpha = Parptr->kRun - (Parptr->kRun - 1) * h_old / pMaxStep;
+		if (h_old >= pMaxStep)
+			alpha = 1.0;
+	}
+
+
+	//runoff percentage
+	NUMERIC_TYPE runoffPercentage;
+	NUMERIC_TYPE runoffCo = Parptr->useRunoffCoType == VALUE_TYPE ? Parptr->runoffCoVal : Parptr->runoffCoPD[index];
+
+	if (runoffCo > 0.99f)
+		runoffPercentage = 1.0f;
+	else
+		runoffPercentage = Parptr->runoffCoFactor * runoffCo * pow((soilMoisturePD[index] / porosityPD[index]), alpha);   /// xiaodw, 20250409, 增加径流系数的调节因子
+
+	if (runoffPercentage < 0 || runoffPercentage > 1) runoffPercentage = 1.0f;
+
+	NUMERIC_TYPE surfq = h_old * runoffPercentage; // mm
+	infilPD[index] = h_old - surfq;  // mm
+
+	infilPD[index] = min(infilPD[index], infilCap); // mm
+
+	//check if the infiltration potential exceeds the available water
+	if (infilPD[index] > h_old) {
+		//limit infiltration rate to available water supply
+		infilPD[index] = h_old;
+	}
+	//if (!IsNumber(infilPD[index]) || isinf(infilPD[index]) || !IsNumber(Parptr->rainExcessPD[index]) || isinf(Parptr->rainExcessPD[index]))
+	//{
+	//	ostringstream oss;
+	//	oss << "The infiltration or runoff in cell (" << index << ") is out of reasonable range!" << endl;
+	//	oss << "m_infil[i]: " << infilPD[index] << endl;
+	//	oss << "m_pe[i]: " << Parptr->rainExcessPD[index] << endl;
+	//	oss << "pNet: " << h_old << endl;
+	//	oss << "surfq: " << surfq << endl;
+	//	oss << "runoffPercentage: " << runoffPercentage << endl;
+	//	oss << "runoffCo: " << runoffCo << endl;
+	//	oss << "m_soilMoisture[i]: " << soilMoisturePD[index] << endl;
+	//	oss << "porosity: " << porosityPD[index] << endl;
+	//	oss << "alpha: " << alpha << endl;
+	//	oss << "m_kRunoff: " << Parptr->kRun << endl;
+	//	oss << "m_pMax: " << Parptr->pMax << endl;
+	//}
+	dV = infilPD[index] * area * 0.001;
+	return dV;
+}
+
+
+/* from wetspa SUR_MR   */
+inline NUMERIC_TYPE SGC2_Infil_floodplain_row_wetspa(
+	const int row_start, int row_end, const NUMERIC_TYPE depth_thresh, const NUMERIC_TYPE row_cell_area,
+	const NUMERIC_TYPE * h_grid, const NUMERIC_TYPE * dem_grid, NUMERIC_TYPE* Infilt_Row_POI, NUMERIC_TYPE* Infilt_Ch_POI, NUMERIC_TYPE *soil_water_depth_row,
+	NUMERIC_TYPE * volume_row, NUMERIC_TYPE *  volume_row_ch, NUMERIC_TYPE * porosityPD,
+	NUMERIC_TYPE * rootDepthPD, NUMERIC_TYPE * infilPD, NUMERIC_TYPE * infilChPD,
+	NUMERIC_TYPE * soilMoisturePD, NUMERIC_TYPE * soil_water_depth_Row_POI,
+	Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, const States *Statesptr, int grid_row_index, NUMERIC_TYPE *infilAvgBlock, int *infilValidCount, int j,
+	const int cell_count, const int sg_row_start, const int * sg_cell_grid_index_lookup, const NUMERIC_TYPE * sg_cell_cell_area,
+	const NUMERIC_TYPE * sg_cell_SGC_BankFullHeight, const NUMERIC_TYPE * sg_cell_SGC_BankFullVolume, const NUMERIC_TYPE * sg_cell_SGC_c,
+	const SubGridFlowLookup * sg_cell_flow_lookup)
+{
 #ifdef __INTEL_COMPILER
-		__assume_aligned(h_row, 64);
-		__assume_aligned(volume_row, 64);
+	__assume_aligned(h_row, 64);
+	__assume_aligned(volume_row, 64);
 #endif
-		NUMERIC_TYPE infil_loss = C(0.0);
-		NUMERIC_TYPE rowToalInfil = C(0.0);
+	NUMERIC_TYPE infil_loss = C(0.0);
+	NUMERIC_TYPE rowToalInfil = C(0.0);
 #pragma ivdep
 #pragma simd
-		for (int i = row_start; i < row_end; i++)
-		{
-			int index = grid_row_index + i;
-			if (dem_grid[index] != DEM_NO_DATA) {
-				int source_index_this = j * Parptr->xsz + i;
-				if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0)) {
-					continue;
-				}
+	for (int i = row_start; i < row_end; i++)
+	{
+		int index = grid_row_index + i;
+		if (dem_grid[index] != DEM_NO_DATA) {
+			int source_index_this = j * Parptr->xsz + i;
+			if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0)) {
+				continue;
+			}
 
-				NUMERIC_TYPE h_new, dV = C(0.0);
-				NUMERIC_TYPE h_old = (h_grid[index] + volume_row[i] / row_cell_area) * 1000.0;  // m->mm
-				if (h_old > 0)
+			NUMERIC_TYPE h_new, dV = C(0.0);
+			NUMERIC_TYPE h_old = (h_grid[index] + volume_row[i] / row_cell_area) * 1000.0;  // m->mm
+			if (h_old > 0)
+			{
+				//for saturation overland flow
+				if (soilMoisturePD[index] >= porosityPD[index])
 				{
-					//for saturation overland flow
-				    if (soilMoisturePD[index] >= porosityPD[index])
-					{
-						Parptr->rainExcessPD[index] = h_old;
-						infilPD[index] = 0.0f;
-					}
-					else
-					{
-						dV = cal_infil_wetspa(Parptr,Solverptr, h_old, index, soilMoisturePD, porosityPD, rootDepthPD, infilPD,row_cell_area);
-
-						Parptr->rainExcessPD[index] = h_old - infilPD[index];
-						// 从地表水量中减去
-						volume_row[i] -= dV;
-						// 加入土壤水分
-						soilMoisturePD[index] += infilPD[index] / (rootDepthPD[index] * 1000.f);
-						soil_water_depth_row[i] = soilMoisturePD[index] * rootDepthPD[index] * 1000.f;
-						//soil_water_depth_row[i] += infilPD[index];
-					}
-				}
-				else
-				{
-					Parptr->rainExcessPD[index] = 0.0f;
+					Parptr->rainExcessPD[index] = h_old;
 					infilPD[index] = 0.0f;
 				}
-
-				// POI
-				if (Statesptr->save_poi)
-				{
-					Infilt_Row_POI[i] += infilPD[index];   // mm
-					soil_water_depth_Row_POI[i] = soilMoisturePD[index] * rootDepthPD[index] * 1000.0;
-				}
-				*infilAvgBlock = *infilAvgBlock + infilPD[index];
-				(*infilValidCount)++;
-				infil_loss += dV; //mass-balance for a standard cell
-			}
-		}
-
-		for (int cell_i = 0; cell_i < cell_count; cell_i++)
-		{
-			int cell_index = sg_row_start + cell_i;
-			
-			int grid_index = sg_cell_grid_index_lookup[cell_index];
-			int i = grid_index - grid_row_index;
-			NUMERIC_TYPE dV = 0.0, dVCh = 0.0, dVFp = 0.0;
-			//NUMERIC_TYPE dVFp2Ch = 0.0
-			// 上个时间步长结束时的水深
-			const NUMERIC_TYPE h_prev = h_grid[grid_index];
-			// // 河道所在的栅格单元面积
-			const NUMERIC_TYPE cell_area = sg_cell_cell_area[cell_index];
-			NUMERIC_TYPE SGC_BankFullHeight = sg_cell_SGC_BankFullHeight[cell_index] * 1000.0;
-			NUMERIC_TYPE SGC_c = sg_cell_SGC_c[cell_index];  // SGC河道单元底面积
-
-			NUMERIC_TYPE fp_area = row_cell_area - SGC_c;
-			//NUMERIC_TYPE h_old = h_grid[grid_index] * 1000;   // mm
-			NUMERIC_TYPE h_old_fp = h_grid[grid_index] > 0.0? (h_grid[grid_index] + volume_row[i] / fp_area) * 1000.0 : volume_row[i] / fp_area * 1000.0;  // m->mm
-			NUMERIC_TYPE h_old_ch = (h_grid[grid_index] + volume_row_ch[i] / SGC_c) * 1000.0 + SGC_BankFullHeight;  // m->mm
-
-			//*************先计算蓄洪区的入渗******************
-			if (h_old_fp > 0.0) {
-				//for saturation overland flow
-				if (soilMoisturePD[grid_index] >= porosityPD[grid_index])
-				{
-					Parptr->rainExcessPD[grid_index] = h_old_fp;
-					infilPD[grid_index] = 0.0f;
-					dVFp = 0.0;
-				}
 				else
 				{
-					// 如果蓄洪区的水没能入渗完，则剩余的水:
-					// 1)来自降雨-蒸发剩余的水会保留在volume_row里，最终会用来更新河道水深 2) 如果蓄洪区上本来就有水，则它本来就属于河道总水量的一部分。 因此不需要手动将蓄洪区剩余的水移到河道里或dVCh里
-					dVFp = cal_infil_wetspa(Parptr, Solverptr, h_old_fp, grid_index, soilMoisturePD, porosityPD, rootDepthPD, infilPD, fp_area);
+					dV = cal_infil_wetspa(Parptr, Solverptr, h_old, index, soilMoisturePD, porosityPD, rootDepthPD, infilPD, row_cell_area);
 
-					Parptr->rainExcessPD[grid_index] = h_old_fp - infilPD[grid_index];
-
+					Parptr->rainExcessPD[index] = h_old - infilPD[index];
+					// 从地表水量中减去
+					volume_row[i] -= dV;
 					// 加入土壤水分
-					soilMoisturePD[grid_index] += infilPD[grid_index] / (rootDepthPD[grid_index] * 1000.f);
-					//soil_water_depth_row[i] += infilPD[grid_index];
-					soil_water_depth_row[i] = soilMoisturePD[grid_index] * rootDepthPD[grid_index]  * 1000.f;
+					soilMoisturePD[index] += infilPD[index] / (rootDepthPD[index] * 1000.f);
+					soil_water_depth_row[i] = soilMoisturePD[index] * rootDepthPD[index] * 1000.f;
+					//soil_water_depth_row[i] += infilPD[index];
 				}
 			}
 			else
 			{
-				Parptr->rainExcessPD[grid_index] = 0.0f;
-				infilPD[grid_index] = 0.0f;
-				dVFp = 0.0;
+				Parptr->rainExcessPD[index] = 0.0f;
+				infilPD[index] = 0.0f;
 			}
-			
-
-			//*************计算河道的入渗******************
-
-			// 河道里原本有水
-			if (h_old_ch > 0.0) {
-				// 河道土壤对应其栅格的第几层
-				int bedLyr = Parptr->sgcBedSoilLyrPD[grid_index];
-				// 河道底部所在层土壤饱和则不入渗
-				if (Parptr->multi_soilMoisturePD[bedLyr][grid_index] >= Parptr->multi_soilPorosityPD[bedLyr][grid_index]) {
-					infilChPD[grid_index] = 0.0f;
-					dVCh = 0.0;
-				}
-				// 河道底部所在层土壤不饱和则入渗
-				else {
-					NUMERIC_TYPE ch_soilDepth = (Parptr->soilThicknessAllLyrsPD[grid_index] - SGC_BankFullHeight);
-					// 当河道底部有土壤，且河道水深+降雨-蒸发>0(有待入渗的水,h_old + SGC_BankFullHeight > 0.0肯定满足)，且底部土壤湿度<孔隙度时，更新河道底部土壤的湿度
-					if (ch_soilDepth > UTIL_ZERO  && Parptr->multi_soilMoisturePD[bedLyr][grid_index] < Parptr->multi_soilPorosityPD[bedLyr][grid_index])
-					{
-						dVCh = cal_infil_wetspa(Parptr, Solverptr, h_old_ch, grid_index, Parptr->multi_soilMoisturePD[bedLyr], Parptr->multi_soilPorosityPD[bedLyr], Parptr->multi_soilThicknessPD[bedLyr], infilChPD, SGC_c);
-						Parptr->multi_soilMoisturePD[bedLyr][grid_index] += infilChPD[grid_index] * SGC_c / (Parptr->multi_soilThicknessPD[bedLyr][grid_index] * row_cell_area);
-					}
-				}
-			}
-			// 河道里原本没有水（已加降雨-蒸发）
-			else
-			{
-				infilChPD[grid_index] = 0.0f;
-				dVCh = 0.0;
-			}
-
-			// 从地表水量中减去
-			volume_row[i] -= dVFp;
-			// 从河道水量中减去
-			volume_row_ch[i] -= dVCh;
 
 			// POI
 			if (Statesptr->save_poi)
 			{
-				Infilt_Row_POI[i] += infilPD[grid_index];   // mm
-				Infilt_Ch_POI[i] += infilChPD[grid_index];
-				soil_water_depth_Row_POI[i] = soilMoisturePD[grid_index] * rootDepthPD[grid_index] * 1000.0;
+				Infilt_Row_POI[i] += infilPD[index];   // mm
+				soil_water_depth_Row_POI[i] = soilMoisturePD[index] * rootDepthPD[index] * 1000.0;
 			}
-			
-
+			*infilAvgBlock = *infilAvgBlock + infilPD[index];
+			(*infilValidCount)++;
+			infil_loss += dV; //mass-balance for a standard cell
 		}
-
-		return infil_loss;
 	}
 
-	bool IsNumber(float x)
+	for (int cell_i = 0; cell_i < cell_count; cell_i++)
 	{
-		// This looks like it should always be true, 
-		// but it's false if x is a NaN.
-		return (x == x);
-	}
+		int cell_index = sg_row_start + cell_i;
 
-	inline NUMERIC_TYPE SGC2_interflow_singlelayer(
-		const int row_start, int row_end,
-		const NUMERIC_TYPE depth_thresh,
-		Pars *Parptr, const Solver *Solverptr, int grid_row_index,
-		const NUMERIC_TYPE * dem_row,
-		NUMERIC_TYPE *interflow_runoff_vol,
-		NUMERIC_TYPE *interflow_2ch_vol,
-		const NUMERIC_TYPE row_cell_area
-		//NUMERIC_TYPE* interflow_Row_POI,
-	)
-	{
-		float k = 0.f;   // mm/h
-		float ks = 0.f;
-		float maxSoilWaterVol = 0.f;
-		float soilWaterVol = 0.f;
-		float fieldCapacityVol = 0.f;
-		float interflowMiosture = 0.f;
-		float runoffVolCurStep = 0.f;
-		NUMERIC_TYPE interflow_loss = C(0.0);
-		for (int i = row_start; i < row_end; i++)
-		{
-			// 问题1：SEIMS里的单元有明确的上下游关系，这里要使用流向tif直接作为上下游关系的依据，还是用土壤水位差作为上下游的依据？
-			// 问题2：green-ampt假设有一个明确的湿润锋面，适合干旱区的入渗；有人将其改造为适合湿润区的，但
-			// 我们用的casc2d里的greenampt是否适合湿润区的模拟？
-			// 问题3：为什么要除以流长（单元上的河道长度），对我而言流长是否是一个栅格单元的宽度？
-			if (dem_row[i] != DEM_NO_DATA) {
-				int index = i + grid_row_index;
-				if (Parptr->soilMoisturePD[index] < Parptr->fieldCapacityPD[index])
-				{
-					continue;
-				}
-				if (Parptr->ks_factor > 0.0)
-				{
-					ks = Parptr->ks_factor *  Parptr->ksPD[index];
-				}
-				else
-				{
-					ks = Parptr->ksPD[index];
-				}
-				maxSoilWaterVol = Parptr->porosityPD[index] * Parptr->rootDepthPD[index] * 0.01f  * row_cell_area;  // m3
-				if (Parptr->soilMoisturePD[index] > Parptr->porosityPD[index]) {
-					k = ks;
-				}
-				else {
-					/// Using Clapp and Hornberger (1978) equation to calculate unsaturated hydraulic conductivity.
-					float dcIndex = 2.f * Parptr->poreIndexPD[index] + 2.f; // pore disconnectedness index
-					k = ks * pow(Parptr->soilMoisturePD[index] / Parptr->porosityPD[index], dcIndex);
-					//if (k <= 0.000001) k = 0.f;
-				}
-				// 1. / 3600. = 0.0002777777777777778
-				// 当前土壤水分的当量水量
-				soilWaterVol = Parptr->rootDepthPD[index] * 0.01f * Parptr->soilMoisturePD[index] * row_cell_area;  // m3
-				// 田间持水量的当量水量
-				fieldCapacityVol = Parptr->rootDepthPD[index] * 0.01f * Parptr->fieldCapacityPD[index] * row_cell_area;
-				// interflowGenVolPD m3,k from mm/h -> m/s
-				if (Parptr->slopePD[index] <= 0.0)
-				{
-					Parptr->slopePD[index] = 0.001;
-				}
-				// 加一个lag系数，汇流（SWAT文档，问娇娇）
-				Parptr->interflowGenVolPD[index] = Parptr->interflow_cs * Parptr->rootDepthPD[index] * 0.01f * Parptr->slopePD[index]
-					* k * 0.0002777777777777778 * 0.001
-					* Parptr->soilMoisturePD[index]  * sqrt(row_cell_area)  * 	Solverptr->SGCtmpTstep;    // m3
+		int grid_index = sg_cell_grid_index_lookup[cell_index];
+		int i = grid_index - grid_row_index;
+		NUMERIC_TYPE dV = 0.0, dVCh = 0.0, dVFp = 0.0;
+		//NUMERIC_TYPE dVFp2Ch = 0.0
+		// 上个时间步长结束时的水深
+		const NUMERIC_TYPE h_prev = h_grid[grid_index];
+		// // 河道所在的栅格单元面积
+		const NUMERIC_TYPE cell_area = sg_cell_cell_area[cell_index];
+		NUMERIC_TYPE SGC_BankFullHeight = sg_cell_SGC_BankFullHeight[cell_index] * 1000.0;
+		NUMERIC_TYPE SGC_c = sg_cell_SGC_c[cell_index];  // SGC河道单元底面积
 
-				// the unit is mm
-				// 如果地下水储量 - 地下水径流量后，依然超出土壤孔隙度（土壤最大储水量），则地下水径流量=土壤水储量-最大储水量，原有逻辑感觉适合日尺度，不适合秒尺度
-				// 改为即便超饱和，地下水径流仍然以ks为速率流失, 避免出现河道流量突变
-				//if (soilWaterDep - interflowDep > maxSoilWaterDep) {
-				//	Parptr->interflowGenVolPD[index] = Parptr->soilMoisturePD[index] - maxSoilWaterDep;
-				//}
-				if (soilWaterVol - Parptr->interflowGenVolPD[index] > maxSoilWaterVol) {
-					Parptr->interflowGenVolPD[index] = soilWaterVol - maxSoilWaterVol;
-				}
-				else if (soilWaterVol - Parptr->interflowGenVolPD[index] < fieldCapacityVol) {
-					// 如果 减去后，小于田间持水量，则壤中流=土壤水储量-田间持水量，xiaodw
-					Parptr->interflowGenVolPD[index] = soilWaterVol - fieldCapacityVol;
-				}
-				Parptr->interflowGenVolPD[index] = Max(0.f, Parptr->interflowGenVolPD[index]);
-				interflowMiosture = Parptr->interflowGenVolPD[index] / (row_cell_area * Parptr->rootDepthPD[index] * 0.01f);  // m3/m3
+		NUMERIC_TYPE fp_area = row_cell_area - SGC_c;
+		//NUMERIC_TYPE h_old = h_grid[grid_index] * 1000;   // mm
+		NUMERIC_TYPE h_old_fp = h_grid[grid_index] > 0.0 ? (h_grid[grid_index] + volume_row[i] / fp_area) * 1000.0 : volume_row[i] / fp_area * 1000.0;  // m->mm
+		NUMERIC_TYPE h_old_ch = (h_grid[grid_index] + volume_row_ch[i] / SGC_c) * 1000.0 + SGC_BankFullHeight;  // m->mm
 
-				// 土壤水储量 - 壤中流径流量
-				Parptr->soilMoisturePD[index] -= interflowMiosture;
-				Parptr->soilWaterDepth[index] -= Parptr->interflowGenVolPD[index] * 1000.0 / row_cell_area;  // mm
-				//*interflowAvgBlock = *interflowAvgBlock + Parptr->interflowGenVolPD[index];
-				interflow_loss += Parptr->interflowGenVolPD[index];
-
-				// 根据滞后系数计算实际汇流的量=(当前步长产流+之前的积累量)*滞后系数
-				if (Parptr->interflow_lagindex > 0.0)
-				{
-					Parptr->interflow2ChVolPD[index] = (Parptr->interflowGenVolPD[index] + Parptr->interflowRunoffVolPD[index]) * Parptr->interflow_lagindex;
-				}
-				else
-				{
-					Parptr->interflow2ChVolPD[index] = (Parptr->interflowGenVolPD[index] + Parptr->interflowRunoffVolPD[index]) * (1 - exp(-Parptr->interflow_surlag / (Parptr->interflow_t_conc)));
-					//Parptr->interflow2ChVolPD[index] = (Parptr->interflowGenVolPD[index] + Parptr->interflowRunoffVolPD[index]) * (1 - exp(-Parptr->interflow_surlag / (Parptr->interflow_t_conc / (Solverptr->SGCtmpTstep * 0.00027777f))));
-				}
-
-				//cout << index << "  " << Parptr->interflow2ChVolPD[index] << "   " << Parptr->interflowGenVolPD[index] << "   " << Parptr->interflowRunoffVolPD[index] << endl;
-				// 更新壤中流形成的地表径流的库存量
-				Parptr->interflowRunoffVolPD[index] = Parptr->interflowRunoffVolPD[index] + Parptr->interflowGenVolPD[index] - Parptr->interflow2ChVolPD[index];
-				*interflow_2ch_vol = *interflow_2ch_vol + Parptr->interflow2ChVolPD[index];
-				*interflow_runoff_vol = *interflow_runoff_vol + Parptr->interflowRunoffVolPD[index];
-			}
-		}
-		return interflow_loss;
-	}
-	inline unsigned char fequal(NUMERIC_TYPE a, NUMERIC_TYPE b) {
-		return ABSVAL(a - b) <= 0.000001;
-	}
-
-
-
-
-	inline int valid_cell(const int row, const int col,  const int row_start, const int row_end,const int grid_rows) {
-		return row >= 0 && row < grid_rows && col >= row_start && col < row_end;
-	}
-
-	// dx 是 col， dy 是 row
-	inline void slope_aspect(NUMERIC_TYPE dx, NUMERIC_TYPE dy, NUMERIC_TYPE celev, NUMERIC_TYPE* nelev,
-		NUMERIC_TYPE *slope, NUMERIC_TYPE *aspect)
-	{
-		int n;
-		float dzdx, dzdy;
-		NUMERIC_TYPE *dummyelev;
-		/* this dummy varaible is added for calculation of elev difference,
-		in which the elev of OUTSIDEBASIN cells (which is ZERO) is
-		replaced by the elev of the central cell */
-
-		/* allocate memory */
-		
-		dummyelev = new  NUMERIC_TYPE[NNEIGHBORS];
-
-		for (n = 0; n < NNEIGHBORS; n++) {
-			if (nelev[n] == OUTSIDEBASIN) {
-				dummyelev[n] = celev;
+		//*************先计算蓄洪区的入渗******************
+		if (h_old_fp > 0.0) {
+			//for saturation overland flow
+			if (soilMoisturePD[grid_index] >= porosityPD[grid_index])
+			{
+				Parptr->rainExcessPD[grid_index] = h_old_fp;
+				infilPD[grid_index] = 0.0f;
+				dVFp = 0.0;
 			}
 			else
-				dummyelev[n] = nelev[n];
-		}
-		// 认为7的权重是2
-		dzdx = ((dummyelev[0] + 2 * dummyelev[7] + dummyelev[6]) -
-			(dummyelev[2] + 2 * dummyelev[3] + dummyelev[4])) / (8 * dx);
-		dzdy = ((dummyelev[0] + 2 * dummyelev[1] + dummyelev[2]) -
-			(dummyelev[4] + 2 * dummyelev[5] + dummyelev[6])) / (8 * dy);
+			{
+				// 如果蓄洪区的水没能入渗完，则剩余的水:
+				// 1)来自降雨-蒸发剩余的水会保留在volume_row里，最终会用来更新河道水深 2) 如果蓄洪区上本来就有水，则它本来就属于河道总水量的一部分。 因此不需要手动将蓄洪区剩余的水移到河道里或dVCh里
+				dVFp = cal_infil_wetspa(Parptr, Solverptr, h_old_fp, grid_index, soilMoisturePD, porosityPD, rootDepthPD, infilPD, fp_area);
 
-		*slope = sqrt(dzdx * dzdx + dzdy * dzdy);
-		if (fequal(dzdx, 0.0) && fequal(dzdy, 0.0)) {
-			*aspect = 0.0;
+				Parptr->rainExcessPD[grid_index] = h_old_fp - infilPD[grid_index];
+
+				// 加入土壤水分
+				soilMoisturePD[grid_index] += infilPD[grid_index] / (rootDepthPD[grid_index] * 1000.f);
+				//soil_water_depth_row[i] += infilPD[grid_index];
+				soil_water_depth_row[i] = soilMoisturePD[grid_index] * rootDepthPD[grid_index] * 1000.f;
+			}
 		}
-		else {
-			/* convert from radian to degree */
-			*aspect = atan2(dzdx, dzdy);
+		else
+		{
+			Parptr->rainExcessPD[grid_index] = 0.0f;
+			infilPD[grid_index] = 0.0f;
+			dVFp = 0.0;
 		}
-		//memory_free_legacy(&dummyelev);
-		delete[] dummyelev;
-		//free(dummyelev);
-		return;
+
+
+		//*************计算河道的入渗******************
+
+		// 河道里原本有水
+		if (h_old_ch > 0.0) {
+			// 河道土壤对应其栅格的第几层
+			int bedLyr = Parptr->sgcBedSoilLyrPD[grid_index];
+			// 河道底部所在层土壤饱和则不入渗
+			if (Parptr->multi_soilMoisturePD[bedLyr][grid_index] >= Parptr->multi_soilPorosityPD[bedLyr][grid_index]) {
+				infilChPD[grid_index] = 0.0f;
+				dVCh = 0.0;
+			}
+			// 河道底部所在层土壤不饱和则入渗
+			else {
+				NUMERIC_TYPE ch_soilDepth = (Parptr->soilThicknessAllLyrsPD[grid_index] - SGC_BankFullHeight);
+				// 当河道底部有土壤，且河道水深+降雨-蒸发>0(有待入渗的水,h_old + SGC_BankFullHeight > 0.0肯定满足)，且底部土壤湿度<孔隙度时，更新河道底部土壤的湿度
+				if (ch_soilDepth > UTIL_ZERO  && Parptr->multi_soilMoisturePD[bedLyr][grid_index] < Parptr->multi_soilPorosityPD[bedLyr][grid_index])
+				{
+					dVCh = cal_infil_wetspa(Parptr, Solverptr, h_old_ch, grid_index, Parptr->multi_soilMoisturePD[bedLyr], Parptr->multi_soilPorosityPD[bedLyr], Parptr->multi_soilThicknessPD[bedLyr], infilChPD, SGC_c);
+					Parptr->multi_soilMoisturePD[bedLyr][grid_index] += infilChPD[grid_index] * SGC_c / (Parptr->multi_soilThicknessPD[bedLyr][grid_index] * row_cell_area);
+				}
+			}
+		}
+		// 河道里原本没有水（已加降雨-蒸发）
+		else
+		{
+			infilChPD[grid_index] = 0.0f;
+			dVCh = 0.0;
+		}
+
+		// 从地表水量中减去
+		volume_row[i] -= dVFp;
+		// 从河道水量中减去
+		volume_row_ch[i] -= dVCh;
+
+		// POI
+		if (Statesptr->save_poi)
+		{
+			Infilt_Row_POI[i] += infilPD[grid_index];   // mm
+			Infilt_Ch_POI[i] += infilChPD[grid_index];
+			soil_water_depth_Row_POI[i] = soilMoisturePD[grid_index] * rootDepthPD[grid_index] * 1000.0;
+		}
+
+
 	}
 
-	inline void flow_fractions(float dx, float dy, NUMERIC_TYPE slope, NUMERIC_TYPE aspect,
-		NUMERIC_TYPE celev, NUMERIC_TYPE* nelev, NUMERIC_TYPE *grad,
-		unsigned char dir[NDIRS], unsigned int *total_dir)
+	return infil_loss;
+}
+
+bool IsNumber(float x)
+{
+	// This looks like it should always be true, 
+	// but it's false if x is a NaN.
+	return (x == x);
+}
+
+inline NUMERIC_TYPE SGC2_interflow_singlelayer(
+	const int row_start, int row_end,
+	const NUMERIC_TYPE depth_thresh,
+	Pars *Parptr, const Solver *Solverptr, int grid_row_index,
+	const NUMERIC_TYPE * dem_row,
+	NUMERIC_TYPE *interflow_runoff_vol,
+	NUMERIC_TYPE *interflow_2ch_vol,
+	const NUMERIC_TYPE row_cell_area
+	//NUMERIC_TYPE* interflow_Row_POI,
+)
+{
+	float k = 0.f;   // mm/h
+	float ks = 0.f;
+	float maxSoilWaterVol = 0.f;
+	float soilWaterVol = 0.f;
+	float fieldCapacityVol = 0.f;
+	float interflowMiosture = 0.f;
+	float runoffVolCurStep = 0.f;
+	NUMERIC_TYPE interflow_loss = C(0.0);
+	for (int i = row_start; i < row_end; i++)
 	{
-		NUMERIC_TYPE cosine = cos(aspect);
-		NUMERIC_TYPE sine = sin(aspect);
-		NUMERIC_TYPE total_width, effective_width;
-		NUMERIC_TYPE *cos, *sin;
-		int n;
-		NUMERIC_TYPE *drop = new NUMERIC_TYPE[NDIRS];
-		NUMERIC_TYPE maxdrop;
-		int steepest;
-
-		/* allocate memory */
-		
-		cos = new  NUMERIC_TYPE [NDIRS / 2];
-		sin = new  NUMERIC_TYPE [NDIRS / 2];
-		//if (!(cos = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * NDIRS / 2)))
-		//	cout << "slope_aspect( )" << "allocate memory error" << endl;
-		//if (!(sin = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * NDIRS / 2)))
-		//	cout << "slope_aspect( )" << "allocate memory error" << endl;
-
-		switch (NDIRS) {
-		case 4:
-			/* fudge any cells which flow outside the basin by just pointing the
-			   aspect in the opposite direction */
-			if (cosine > 0 && nelev[5] == (float)OUTSIDEBASIN)
-				cos[1] = -cosine;
-			else cos[1] = cosine;
-			if (cosine < 0 && nelev[1] == (float)OUTSIDEBASIN)
-				cos[0] = -cosine;
-			else cos[0] = cosine;
-			if (sine > 0 && nelev[3] == (float)OUTSIDEBASIN)
-				sin[0] = -sine;
-			else sin[0] = sine;
-			if (sine < 0 && nelev[7] == (float)OUTSIDEBASIN)
-				sin[1] = -sine;
-			else sin[1] = sine;
-
-			/* compute flow widths */
-			total_width = fabs(sine) * dx + fabs(cosine) * dy;
-			*grad = slope * total_width;
-			*total_dir = 0;
-			for (n = 0; n < NDIRS; n++)
+		// 问题1：SEIMS里的单元有明确的上下游关系，这里要使用流向tif直接作为上下游关系的依据，还是用土壤水位差作为上下游的依据？
+		// 问题2：green-ampt假设有一个明确的湿润锋面，适合干旱区的入渗；有人将其改造为适合湿润区的，但
+		// 我们用的casc2d里的greenampt是否适合湿润区的模拟？
+		// 问题3：为什么要除以流长（单元上的河道长度），对我而言流长是否是一个栅格单元的宽度？
+		if (dem_row[i] != DEM_NO_DATA) {
+			int index = i + grid_row_index;
+			if (Parptr->soilMoisturePD[index] < Parptr->fieldCapacityPD[index])
 			{
-				switch (n) {
-				case 0:
-					effective_width = (cos[1] > 0 ? cos[1] * dx : 0.0);
-					break;
-				case 2:
-					effective_width = (cos[0] < 0 ? -cos[0] * dx : 0.0);
-					break;
-				case 1:
-					effective_width = (sin[0] > 0 ? sin[0] * dy : 0.0);
-					break;
-				case 3:
-					effective_width = (sin[1] < 0 ? -sin[1] * dy : 0.0);
-					break;
-				default:
-					cout << "error flow_fractions " << 65 << endl;
-				}
-				dir[n] = (int)((effective_width / total_width) * 255.0 + 0.5);
-				*total_dir += dir[n];
+				continue;
 			}
-			break;
-		case 8:
-			/*For D8 flow directions, water discharges to ONE of its eight neighbors:
-			to one located in the direction of steepest descent. This requires the DEM
-			to be pre-filled for D8 routing scheme as flat area will confuse the model*/
-			steepest = -9999;
-			maxdrop = -9999;
-			/*Determine flow direction based on deepest drop */
-			for (n = 0; n < NDIRS; n++) {
-				/*Make sure flow is inside boundary*/
-				if (nelev[n] == OUTSIDEBASIN) {
-					dir[n] = 0;
-					drop[n] = 0;
-				}
-				else {
-					/*Find steepest descent*/
-					if (n == 0 || n == 2 || n == 4 || n == 6)
-						drop[n] = (celev - nelev[n]) / sqrt(dx * dx + dy * dy);
-					else
-						drop[n] = (celev - nelev[n]) / dx;
-
-					if ((drop[n] < 0.0) && (drop[n] > -0.001)) {
-						//printf("Reset minor negative flow slope from %f to 0.0\n", drop[n]);
-						drop[n] = 0.0;
-					}
-
-					if (drop[n] >= 0 && drop[n] > maxdrop) {
-						steepest = n;
-						maxdrop = drop[n];
-					}
-				}
+			if (Parptr->ks_factor > 0.0)
+			{
+				ks = Parptr->ks_factor *  Parptr->ksPD[index];
 			}
-
-			*total_dir = 0;
-			if (steepest >= 0) {
-				dir[steepest] = 1.0;
-				*total_dir += dir[steepest];
-
-				/* This requires dx = dy */
-				if (steepest == 0 || steepest == 2 || steepest == 4 || steepest == 6)
-					total_width = sqrt(dx * dx + dy * dy);
-				else
-					total_width = dx;
+			else
+			{
+				ks = Parptr->ksPD[index];
+			}
+			maxSoilWaterVol = Parptr->porosityPD[index] * Parptr->rootDepthPD[index] * 0.01f  * row_cell_area;  // m3
+			if (Parptr->soilMoisturePD[index] > Parptr->porosityPD[index]) {
+				k = ks;
 			}
 			else {
-				//cout << "one grid cell has minor sink, set flow width to cell size\n" << endl;
-				total_width = dx;
+				/// Using Clapp and Hornberger (1978) equation to calculate unsaturated hydraulic conductivity.
+				float dcIndex = 2.f * Parptr->poreIndexPD[index] + 2.f; // pore disconnectedness index
+				k = ks * pow(Parptr->soilMoisturePD[index] / Parptr->porosityPD[index], dcIndex);
+				//if (k <= 0.000001) k = 0.f;
 			}
-			*grad = slope * total_width;
+			// 1. / 3600. = 0.0002777777777777778
+			// 当前土壤水分的当量水量
+			soilWaterVol = Parptr->rootDepthPD[index] * 0.01f * Parptr->soilMoisturePD[index] * row_cell_area;  // m3
+			// 田间持水量的当量水量
+			fieldCapacityVol = Parptr->rootDepthPD[index] * 0.01f * Parptr->fieldCapacityPD[index] * row_cell_area;
+			// interflowGenVolPD m3,k from mm/h -> m/s
+			if (Parptr->slopePD[index] <= 0.0)
+			{
+				Parptr->slopePD[index] = 0.001;
+			}
+			// 加一个lag系数，汇流（SWAT文档，问娇娇）
+			Parptr->interflowGenVolPD[index] = Parptr->interflow_cs * Parptr->rootDepthPD[index] * 0.01f * Parptr->slopePD[index]
+				* k * 0.0002777777777777778 * 0.001
+				* Parptr->soilMoisturePD[index] * sqrt(row_cell_area)  * 	Solverptr->SGCtmpTstep;    // m3
 
-			break;
-		default:
-			cout << "error flow_fractions " << 65 << endl;
+			// the unit is mm
+			// 如果地下水储量 - 地下水径流量后，依然超出土壤孔隙度（土壤最大储水量），则地下水径流量=土壤水储量-最大储水量，原有逻辑感觉适合日尺度，不适合秒尺度
+			// 改为即便超饱和，地下水径流仍然以ks为速率流失, 避免出现河道流量突变
+			//if (soilWaterDep - interflowDep > maxSoilWaterDep) {
+			//	Parptr->interflowGenVolPD[index] = Parptr->soilMoisturePD[index] - maxSoilWaterDep;
+			//}
+			if (soilWaterVol - Parptr->interflowGenVolPD[index] > maxSoilWaterVol) {
+				Parptr->interflowGenVolPD[index] = soilWaterVol - maxSoilWaterVol;
+			}
+			else if (soilWaterVol - Parptr->interflowGenVolPD[index] < fieldCapacityVol) {
+				// 如果 减去后，小于田间持水量，则壤中流=土壤水储量-田间持水量，xiaodw
+				Parptr->interflowGenVolPD[index] = soilWaterVol - fieldCapacityVol;
+			}
+			Parptr->interflowGenVolPD[index] = Max(0.f, Parptr->interflowGenVolPD[index]);
+			interflowMiosture = Parptr->interflowGenVolPD[index] / (row_cell_area * Parptr->rootDepthPD[index] * 0.01f);  // m3/m3
+
+			// 土壤水储量 - 壤中流径流量
+			Parptr->soilMoisturePD[index] -= interflowMiosture;
+			Parptr->soilWaterDepth[index] -= Parptr->interflowGenVolPD[index] * 1000.0 / row_cell_area;  // mm
+			//*interflowAvgBlock = *interflowAvgBlock + Parptr->interflowGenVolPD[index];
+			interflow_loss += Parptr->interflowGenVolPD[index];
+
+			// 根据滞后系数计算实际汇流的量=(当前步长产流+之前的积累量)*滞后系数
+			if (Parptr->interflow_lagindex > 0.0)
+			{
+				Parptr->interflow2ChVolPD[index] = (Parptr->interflowGenVolPD[index] + Parptr->interflowRunoffVolPD[index]) * Parptr->interflow_lagindex;
+			}
+			else
+			{
+				Parptr->interflow2ChVolPD[index] = (Parptr->interflowGenVolPD[index] + Parptr->interflowRunoffVolPD[index]) * (1 - exp(-Parptr->interflow_surlag / (Parptr->interflow_t_conc)));
+				//Parptr->interflow2ChVolPD[index] = (Parptr->interflowGenVolPD[index] + Parptr->interflowRunoffVolPD[index]) * (1 - exp(-Parptr->interflow_surlag / (Parptr->interflow_t_conc / (Solverptr->SGCtmpTstep * 0.00027777f))));
+			}
+
+			//cout << index << "  " << Parptr->interflow2ChVolPD[index] << "   " << Parptr->interflowGenVolPD[index] << "   " << Parptr->interflowRunoffVolPD[index] << endl;
+			// 更新壤中流形成的地表径流的库存量
+			Parptr->interflowRunoffVolPD[index] = Parptr->interflowRunoffVolPD[index] + Parptr->interflowGenVolPD[index] - Parptr->interflow2ChVolPD[index];
+			*interflow_2ch_vol = *interflow_2ch_vol + Parptr->interflow2ChVolPD[index];
+			*interflow_runoff_vol = *interflow_runoff_vol + Parptr->interflowRunoffVolPD[index];
 		}
-		delete[] sin;
-		delete[] cos;
-		delete[] drop;
-		return;
 	}
+	return interflow_loss;
+}
+inline unsigned char fequal(NUMERIC_TYPE a, NUMERIC_TYPE b) {
+	return ABSVAL(a - b) <= 0.000001;
+}
 
 
 
-	inline void HeadSlopeAspect(Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
-		const NUMERIC_TYPE * dem_row, const int row_start, int row_end, const int grid_cols_padded, NUMERIC_TYPE dx, NUMERIC_TYPE dy, WetDryRowBound* wet_dry_bounds)
-	{
-		int n;
-		NUMERIC_TYPE neighbor_water_table[NNEIGHBORS];
 
-		int index = 0;
-		int neighbor_index;
-		int neighbor_row;
-		int neighbor_col;
-		/* let's assume for now that WaterLevel is the SOILPIX map is computed elsewhere */
-		for (int i = row_start; i < row_end; i++)
+inline int valid_cell(const int row, const int col, const int row_start, const int row_end, const int grid_rows) {
+	return row >= 0 && row < grid_rows && col >= row_start && col < row_end;
+}
+
+// dx 是 col， dy 是 row
+inline void slope_aspect(NUMERIC_TYPE dx, NUMERIC_TYPE dy, NUMERIC_TYPE celev, NUMERIC_TYPE* nelev,
+	NUMERIC_TYPE *slope, NUMERIC_TYPE *aspect)
+{
+	int n;
+	float dzdx, dzdy;
+	NUMERIC_TYPE *dummyelev;
+	/* this dummy varaible is added for calculation of elev difference,
+	in which the elev of OUTSIDEBASIN cells (which is ZERO) is
+	replaced by the elev of the central cell */
+
+	/* allocate memory */
+
+	dummyelev = new  NUMERIC_TYPE[NNEIGHBORS];
+
+	for (n = 0; n < NNEIGHBORS; n++) {
+		if (nelev[n] == OUTSIDEBASIN) {
+			dummyelev[n] = celev;
+		}
+		else
+			dummyelev[n] = nelev[n];
+	}
+	// 认为7的权重是2
+	dzdx = ((dummyelev[0] + 2 * dummyelev[7] + dummyelev[6]) -
+		(dummyelev[2] + 2 * dummyelev[3] + dummyelev[4])) / (8 * dx);
+	dzdy = ((dummyelev[0] + 2 * dummyelev[1] + dummyelev[2]) -
+		(dummyelev[4] + 2 * dummyelev[5] + dummyelev[6])) / (8 * dy);
+
+	*slope = sqrt(dzdx * dzdx + dzdy * dzdy);
+	if (fequal(dzdx, 0.0) && fequal(dzdy, 0.0)) {
+		*aspect = 0.0;
+	}
+	else {
+		/* convert from radian to degree */
+		*aspect = atan2(dzdx, dzdy);
+	}
+	//memory_free_legacy(&dummyelev);
+	delete[] dummyelev;
+	//free(dummyelev);
+	return;
+}
+
+inline void flow_fractions(float dx, float dy, NUMERIC_TYPE slope, NUMERIC_TYPE aspect,
+	NUMERIC_TYPE celev, NUMERIC_TYPE* nelev, NUMERIC_TYPE *grad,
+	unsigned char dir[NDIRS], unsigned int *total_dir)
+{
+	NUMERIC_TYPE cosine = cos(aspect);
+	NUMERIC_TYPE sine = sin(aspect);
+	NUMERIC_TYPE total_width, effective_width;
+	NUMERIC_TYPE *cos, *sin;
+	int n;
+	NUMERIC_TYPE *drop = new NUMERIC_TYPE[NDIRS];
+	NUMERIC_TYPE maxdrop;
+	int steepest;
+
+	/* allocate memory */
+
+	cos = new  NUMERIC_TYPE[NDIRS / 2];
+	sin = new  NUMERIC_TYPE[NDIRS / 2];
+	//if (!(cos = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * NDIRS / 2)))
+	//	cout << "slope_aspect( )" << "allocate memory error" << endl;
+	//if (!(sin = (NUMERIC_TYPE*)memory_allocate(sizeof(NUMERIC_TYPE) * NDIRS / 2)))
+	//	cout << "slope_aspect( )" << "allocate memory error" << endl;
+
+	switch (NDIRS) {
+	case 4:
+		/* fudge any cells which flow outside the basin by just pointing the
+		   aspect in the opposite direction */
+		if (cosine > 0 && nelev[5] == (float)OUTSIDEBASIN)
+			cos[1] = -cosine;
+		else cos[1] = cosine;
+		if (cosine < 0 && nelev[1] == (float)OUTSIDEBASIN)
+			cos[0] = -cosine;
+		else cos[0] = cosine;
+		if (sine > 0 && nelev[3] == (float)OUTSIDEBASIN)
+			sin[0] = -sine;
+		else sin[0] = sine;
+		if (sine < 0 && nelev[7] == (float)OUTSIDEBASIN)
+			sin[1] = -sine;
+		else sin[1] = sine;
+
+		/* compute flow widths */
+		total_width = fabs(sine) * dx + fabs(cosine) * dy;
+		*grad = slope * total_width;
+		*total_dir = 0;
+		for (n = 0; n < NDIRS; n++)
 		{
-			if (dem_row[i] != DEM_NO_DATA) {
-				index = i + grid_row_index;
-				NUMERIC_TYPE slope, aspect;
+			switch (n) {
+			case 0:
+				effective_width = (cos[1] > 0 ? cos[1] * dx : 0.0);
+				break;
+			case 2:
+				effective_width = (cos[0] < 0 ? -cos[0] * dx : 0.0);
+				break;
+			case 1:
+				effective_width = (sin[0] > 0 ? sin[0] * dy : 0.0);
+				break;
+			case 3:
+				effective_width = (sin[1] < 0 ? -sin[1] * dy : 0.0);
+				break;
+			default:
+				cout << "error flow_fractions " << 65 << endl;
+			}
+			dir[n] = (int)((effective_width / total_width) * 255.0 + 0.5);
+			*total_dir += dir[n];
+		}
+		break;
+	case 8:
+		/*For D8 flow directions, water discharges to ONE of its eight neighbors:
+		to one located in the direction of steepest descent. This requires the DEM
+		to be pre-filled for D8 routing scheme as flat area will confuse the model*/
+		steepest = -9999;
+		maxdrop = -9999;
+		/*Determine flow direction based on deepest drop */
+		for (n = 0; n < NDIRS; n++) {
+			/*Make sure flow is inside boundary*/
+			if (nelev[n] == OUTSIDEBASIN) {
+				dir[n] = 0;
+				drop[n] = 0;
+			}
+			else {
+				/*Find steepest descent*/
+				if (n == 0 || n == 2 || n == 4 || n == 6)
+					drop[n] = (celev - nelev[n]) / sqrt(dx * dx + dy * dy);
+				else
+					drop[n] = (celev - nelev[n]) / dx;
 
-				// todo: 这里是否应该只算右、右下、下、左下？
-				for (n = 0; n < NNEIGHBORS; n++) {
-					neighbor_index = index + Parptr->neighbor_ref[n];
-					neighbor_row = row + Parptr->neighbor_row_ref[n];
-					neighbor_col = i + Parptr->neighbor_col_ref[n];
-					// 优先判断 row 合法性，再访问 dem_data
-					if (neighbor_row >= 0 && neighbor_row < grid_rows) {
-						int row_start = wet_dry_bounds->dem_data[neighbor_row].start;
-						int row_end = wet_dry_bounds->dem_data[neighbor_row].end;
+				if ((drop[n] < 0.0) && (drop[n] > -0.001)) {
+					//printf("Reset minor negative flow slope from %f to 0.0\n", drop[n]);
+					drop[n] = 0.0;
+				}
 
-						if (valid_cell(neighbor_row, neighbor_col, row_start, row_end, grid_rows)) {
-							neighbor_water_table[n] = Parptr->waterLevelPD[neighbor_index];
-						}
-						else {
-							neighbor_water_table[n] = OUTSIDEBASIN;
-						}
+				if (drop[n] >= 0 && drop[n] > maxdrop) {
+					steepest = n;
+					maxdrop = drop[n];
+				}
+			}
+		}
+
+		*total_dir = 0;
+		if (steepest >= 0) {
+			dir[steepest] = 1.0;
+			*total_dir += dir[steepest];
+
+			/* This requires dx = dy */
+			if (steepest == 0 || steepest == 2 || steepest == 4 || steepest == 6)
+				total_width = sqrt(dx * dx + dy * dy);
+			else
+				total_width = dx;
+		}
+		else {
+			//cout << "one grid cell has minor sink, set flow width to cell size\n" << endl;
+			total_width = dx;
+		}
+		*grad = slope * total_width;
+
+		break;
+	default:
+		cout << "error flow_fractions " << 65 << endl;
+	}
+	delete[] sin;
+	delete[] cos;
+	delete[] drop;
+	return;
+}
+
+
+
+inline void HeadSlopeAspect(Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
+	const NUMERIC_TYPE * dem_row, const int row_start, int row_end, const int grid_cols_padded, NUMERIC_TYPE dx, NUMERIC_TYPE dy, WetDryRowBound* wet_dry_bounds)
+{
+	int n;
+	NUMERIC_TYPE neighbor_water_table[NNEIGHBORS];
+
+	int index = 0;
+	int neighbor_index;
+	int neighbor_row;
+	int neighbor_col;
+	/* let's assume for now that WaterLevel is the SOILPIX map is computed elsewhere */
+	for (int i = row_start; i < row_end; i++)
+	{
+		if (dem_row[i] != DEM_NO_DATA) {
+			index = i + grid_row_index;
+			NUMERIC_TYPE slope, aspect;
+
+			// todo: 这里是否应该只算右、右下、下、左下？
+			for (n = 0; n < NNEIGHBORS; n++) {
+				neighbor_index = index + Parptr->neighbor_ref[n];
+				neighbor_row = row + Parptr->neighbor_row_ref[n];
+				neighbor_col = i + Parptr->neighbor_col_ref[n];
+				// 优先判断 row 合法性，再访问 dem_data
+				if (neighbor_row >= 0 && neighbor_row < grid_rows) {
+					int row_start = wet_dry_bounds->dem_data[neighbor_row].start;
+					int row_end = wet_dry_bounds->dem_data[neighbor_row].end;
+
+					if (valid_cell(neighbor_row, neighbor_col, row_start, row_end, grid_rows)) {
+						neighbor_water_table[n] = Parptr->waterLevelPD[neighbor_index];
 					}
 					else {
 						neighbor_water_table[n] = OUTSIDEBASIN;
 					}
 				}
-
-				slope_aspect(dx, dy, Parptr->waterLevelPD[index], neighbor_water_table,
-					&slope, &aspect);
-				// D8：只有最陡坡向的dir被赋值为1，其余都为0；因此只流向最陡的方向
-				// D4：按照水力坡降计算分配比例
-				flow_fractions(dx, dy, slope, aspect, Parptr->waterLevelPD[index], neighbor_water_table,
-					&(Parptr->subFlowGradPD[index]), Parptr->subDirPD[index], &(Parptr->subTotalDirPD[index]));
-			}
-		}
-
-		return;
-	}
-
-
-
-	inline void HeadSlopeAspectForUpLyr(Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
-		const NUMERIC_TYPE * dem_row, const int row_start, int row_end, const int grid_cols_padded, NUMERIC_TYPE dx, NUMERIC_TYPE dy, WetDryRowBound* wet_dry_bounds,int i
-		//, const NUMERIC_TYPE *dem_grid
-	)
-	{
-		int n;
-		NUMERIC_TYPE neighbor_water_table[NNEIGHBORS];
-
-		int neighbor_index;
-		int neighbor_row;
-		int neighbor_col;
-
-		int index = i + grid_row_index;
-		NUMERIC_TYPE slope, aspect;
-
-		// todo: 这里是否应该只算右、右下、下、左下？
-		for (n = 0; n < NNEIGHBORS; n++) {
-			neighbor_index = index + Parptr->neighbor_ref[n];
-			neighbor_row = row + Parptr->neighbor_row_ref[n];
-			neighbor_col = i + Parptr->neighbor_col_ref[n];
-			// 先根据dem计算流向，因为如果是上游第1层流向下游第1层，2层流向2层，则每一层的流向都会和dem计算出来的一致
-			// 根据每个栅格第lyr层和其相邻栅格第lyr层的水头计算流向
-			if (valid_cell(neighbor_row, neighbor_col, wet_dry_bounds->dem_data[neighbor_row].start, wet_dry_bounds->dem_data[neighbor_row].end, grid_rows))
-			{
-				neighbor_water_table[n] = Parptr->waterLevelUpLyrPD[index];		
-			}
-			else {
-				neighbor_water_table[n] = OUTSIDEBASIN;
-			}
-		}
-				
-		slope_aspect(dx, dy, dem_row[i], neighbor_water_table,
-			&slope, &aspect);
-		// D8：只有最陡坡向的dir被赋值为1，其余都为0；因此只流向最陡的方向
-		// D4：按照水力坡降计算分配比例
-		flow_fractions(dx, dy, slope, aspect, Parptr->waterLevelUpLyrPD[index], neighbor_water_table,
-			&(Parptr->subFlowGradUpLyrPD[index]), Parptr->subDirUpLyrPD[index], &(Parptr->subTotalDirUpLyrPD[index]));
-			
-		
-
-		return;
-	}
-
-	inline float CalcTransmissivity(NUMERIC_TYPE SoilDepth, NUMERIC_TYPE WaterTable, NUMERIC_TYPE LateralKs,
-		NUMERIC_TYPE KsExponent, NUMERIC_TYPE DepthThresh)
-	{
-		float Transmissivity;		/* Transmissivity (m^2/s) */
-		float TransThresh;
-
-		if (fequal(KsExponent, 0.0))
-			Transmissivity = LateralKs * (SoilDepth - WaterTable);
-		else {
-			/* a smaller value of WaterTable variables indicates a higher actual water table depth */
-			if (WaterTable < DepthThresh) {
-				Transmissivity = (LateralKs / KsExponent) * (exp(-KsExponent * WaterTable) - exp(-KsExponent * SoilDepth));
-			}
-			else {
-				TransThresh = (LateralKs / KsExponent) * (exp(-KsExponent * DepthThresh) - exp(-KsExponent * SoilDepth));
-				if (SoilDepth < DepthThresh) {
-					printf("Warning: Soil DepthThreshold (%.2f) > the soil depth (%.2f)!\n", DepthThresh, SoilDepth);
-					printf("Transmissivity is set to zero!");
-				}
-				Transmissivity = (SoilDepth - WaterTable) / (SoilDepth - DepthThresh)*TransThresh;
-			}
-		}
-		
-		return Transmissivity ;
-	}
-
-
-	inline float CalcTransmissivity(NUMERIC_TYPE SoilDepth, NUMERIC_TYPE WaterTable, NUMERIC_TYPE LateralKs,
-		NUMERIC_TYPE KsExponent, NUMERIC_TYPE DepthThresh, NUMERIC_TYPE*  ksFactorHOfLyr, int curLyr)
-	{
-		float Transmissivity;		/* Transmissivity (m^2/s) */
-		float TransThresh;
-
-		if (fequal(KsExponent, 0.0))
-			Transmissivity = LateralKs * (SoilDepth - WaterTable);
-		else {
-			/* a smaller value of WaterTable variables indicates a higher actual water table depth */
-			if (WaterTable < DepthThresh) {
-				Transmissivity = (LateralKs / KsExponent) * (exp(-KsExponent * WaterTable) - exp(-KsExponent * SoilDepth));
-			}
-			else {
-				TransThresh = (LateralKs / KsExponent) * (exp(-KsExponent * DepthThresh) - exp(-KsExponent * SoilDepth));
-				if (SoilDepth < DepthThresh) {
-					printf("Warning: Soil DepthThreshold (%.2f) > the soil depth (%.2f)!\n", DepthThresh, SoilDepth);
-					printf("Transmissivity is set to zero!");
-				}
-				Transmissivity = (SoilDepth - WaterTable) / (SoilDepth - DepthThresh)*TransThresh;
-			}
-		}
-		Transmissivity *= ksFactorHOfLyr[curLyr];
-		return Transmissivity;
-	}
-
-	inline float CalcAvailableWater(int NRootLayers, NUMERIC_TYPE TotalDepth, NUMERIC_TYPE **RootDepth,
-		NUMERIC_TYPE **Porosity, NUMERIC_TYPE **FCap, NUMERIC_TYPE *TableDepth, NUMERIC_TYPE **Adjust,int index)
-
-	{
-		float AvailableWater;		/* amount of water available for movement (m) */
-
-		float DeepFCap;		    /* field capacity of the layer below the  deepest root layer */
-
-		float DeepLayerDepth;		/* depth of layer below deepest root zone layer */
-
-		float DeepPorosity;		/* porosity of the layer below the deepest root layer */
-
-		float Depth;			    /* depth below the ground surface (m) */
-		int lyr;			        /* counter */
-
-		AvailableWater = 0;
-		// 根据每一层的淹没情况（水位Depth），计算总共有多少水参与计算侧向壤中流
-		Depth = 0.0;
-		for (lyr = 0; lyr < NRootLayers && Depth < TotalDepth; lyr++) {
-			if (RootDepth[lyr][index] < (TotalDepth - Depth))
-				Depth += RootDepth[lyr][index];
-			else
-				Depth = TotalDepth;
-			if (Depth > TableDepth[index]) {
-				if ((Depth - TableDepth[index]) > RootDepth[lyr][index])  // 水位在i层之上
-					AvailableWater += (Porosity[lyr][index] - FCap[lyr][index]) * RootDepth[lyr][index] * Adjust[lyr][index];
-				else
-					AvailableWater += (Porosity[lyr][index] - FCap[lyr][index]) * (Depth - TableDepth[index]) * Adjust[lyr][index];
-			}
-		}
-
-		if (Depth < TotalDepth) {
-
-			DeepPorosity = Porosity[NRootLayers][index];
-			DeepFCap = FCap[NRootLayers][index];
-
-			DeepLayerDepth = TotalDepth - Depth;
-			Depth = TotalDepth;
-
-			if ((Depth - TableDepth[index]) > DeepLayerDepth)
-				AvailableWater += (DeepPorosity - DeepFCap) * DeepLayerDepth * Adjust[NRootLayers][index];
-				
-			else
-				AvailableWater += (DeepPorosity - DeepFCap) * (Depth - TableDepth[index]) *Adjust[NRootLayers][index];
-				
-		}
-
-		return AvailableWater;
-	}
-
-
-	inline float CalcAvailableWaterForUplyr(int NUpLayers, NUMERIC_TYPE TotalDepth, NUMERIC_TYPE **RootDepth,
-		NUMERIC_TYPE **Porosity, NUMERIC_TYPE **FCap, NUMERIC_TYPE *TableDepth, NUMERIC_TYPE **Adjust, NUMERIC_TYPE** soilMoisturePD, int index)
-
-	{
-		float AvailableWater;		/* amount of water available for movement (m) */
-
-		float DeepFCap;		    /* field capacity of the layer below the  deepest root layer */
-
-		float DeepLayerDepth;		/* depth of layer below deepest root zone layer */
-
-		float DeepPorosity;		/* porosity of the layer below the deepest root layer */
-
-		float Depth;			    /* depth below the ground surface (m) */
-		int lyr;			        /* counter */
-
-		AvailableWater = 0;
-		// 根据每一层的淹没情况（水位Depth），计算总共有多少水参与计算侧向壤中流
-		Depth = 0.0;
-		for (lyr = 0; lyr < NUpLayers && Depth < TotalDepth; lyr++) {
-			
-			if (soilMoisturePD[lyr][index] > FCap[lyr][index])
-			{
-				AvailableWater += (soilMoisturePD[lyr][index] - FCap[lyr][index]) * RootDepth[lyr][index] * Adjust[lyr][index];
-			}
-		}
-
-		return AvailableWater;
-	}
-
-	// 直接将水量加入河道栅格的水量，河道水深会在SGC2_ProcessH_Row方法计算
-	//inline void channel_grid_inc_inflow(NUMERIC_TYPE *volume_grid, int grid_index, NUMERIC_TYPE waterVol)
-	//{
-	//	volume_grid[grid_index] += waterVol;
-
-	//}
-	inline void channel_grid_inc_inflow(NUMERIC_TYPE * volume_row, int grid_row_index, NUMERIC_TYPE waterVol)
-	{
-		volume_row[grid_row_index] += waterVol;
-
-	}
-
-	
-	/*
-	0---- - 1---- - 2
-	7---- - *---- - 3
-	6---- - 5---- - 4
-	*/
-	inline void RouteSubSurface(const int row_start, int row_end,
-		Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
-		const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
-		NUMERIC_TYPE dx_col, NUMERIC_TYPE dy_col, WetDryRowBound* wet_dry_bounds, Pois*Poisptr, 
-		const NUMERIC_TYPE * sg_cell_cell_area, int j,const int cell_count, const int sg_row_start, const int * sg_cell_grid_index_lookup,
-		const NUMERIC_TYPE * sg_cell_SGC_BankFullHeight, const NUMERIC_TYPE * sg_cell_SGC_BankFullVolume, const NUMERIC_TYPE * sg_cell_SGC_c,
-		const SubGridFlowLookup * sg_cell_flow_lookup) {
-
-		NUMERIC_TYPE BankHeight;
-		NUMERIC_TYPE *Adjust;
-		NUMERIC_TYPE fract_used;
-		NUMERIC_TYPE depth;
-		NUMERIC_TYPE OutFlow;
-		NUMERIC_TYPE water_out_road;
-		NUMERIC_TYPE Transmissivity;
-		NUMERIC_TYPE AvailableWater;
-		int k;
-		int index;
-		
-
-		/* 省略 reset the saturated subsurface flow to zero */
-		for (int i = row_start; i < row_end; i++)
-		{
-			if (dem_row[i] != DEM_NO_DATA) {
-				// 省略 计算河床底部以上的侧面高程，如果BankHeight>土壤厚度说明/河床以上存在裸露岩石，反之说明河床高程之下是土壤
-				//Adjust = Parptr->multi_adjustPD[index];
-				fract_used = 0.0f;
-				water_out_road = 0.0;
-				int index = i + grid_row_index;
-				int source_index_this = row * Parptr->xsz + i;
-				// 计算河床底部以上的侧面高程，如果BankHeight>土壤厚度说明/河床以上存在裸露岩石，反之说明河床高程之下是土壤
-				//BankHeight = (Network[y][x].BankHeight > SoilMap[y][x].Depth) ?  SoilMap[y][x].Depth : Network[y][x].BankHeight;
-				// todo: 检查像元值对不对
-				BankHeight = Arrptr->SGCbfH[source_index_this] > Parptr->soilThicknessAllLyrsPD[index] ? Parptr->soilThicknessAllLyrsPD[index] : Arrptr->SGCbfH[source_index_this];
-				if (BankHeight < -1e-8)
-				{
-					cout << "index: " << index << BankHeight << endl;
-				}
-				int curSoilLyr = 0;
-				for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
-				{
-					if (Parptr->tableDepthPD[index] > Parptr->multi_soilDepthPD[lyr][index])
-					{
-						curSoilLyr ++;
-					}
-				}
-				//sg_cell_SGC_BankFullHeight[cell_index]
-				// 如果该栅格是SGC河道
-				if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0)) {			/* cell has a stream channel */
-
-					// 地下水位在河道底部之上，河堤的土壤水才补给河道
-					if (Parptr->tableDepthPD[index] < BankHeight) {
-						float gradient = 4.0 * (BankHeight - Parptr->tableDepthPD[index]);
-						if (gradient < 0.0)
-							gradient = 0.0;
-						Transmissivity =
-							CalcTransmissivity(BankHeight, Parptr->tableDepthPD[index],
-								Parptr->ksLatPD[index] * 0.001*0.000277778,
-								Parptr->KsLatExpValue,
-								Parptr->soilWaterDepthThresh
-								, Parptr->multi_ksFactorHOfLyr, curSoilLyr);
-
-						OutFlow = (Transmissivity * gradient * Parptr->gwTstep) / row_cell_area;  // m
-
-						/* check whether enough water is available for redistribution */
-						AvailableWater =
-							CalcAvailableWater(Parptr->multi_nRootLyrs,
-								BankHeight, Parptr->multi_soilThicknessPD,
-								Parptr->multi_soilPorosityPD,
-								Parptr->multi_soilFcPD,
-								Parptr->tableDepthPD, Parptr->multi_adjustPD, index);
-						// 如果剩余可供侧向壤中流的水不够outFlow计算出来的应该流走的量，就只能流走AvailableWater
-						OutFlow = (OutFlow > AvailableWater) ? AvailableWater : OutFlow;
-
-						/* remove water going to channel from the grid cell */
-						Parptr->satFlowPD[index] -= OutFlow;
-
-						/* contribute to channel segment lateral inflow todo：这里认真检查是否加到河道上了 */
-						//channel_grid_inc_inflow(volume_grid, index, OutFlow * row_cell_area);
-						// 这个实现只能单线程
-						//Parptr->subSurfaceLatFlow2ChTotal += OutFlow * row_cell_area;
-
-						Parptr->satFlow2ChPD[index] += OutFlow * row_cell_area;  // m3
-
-						if (Statesptr->save_poi == ON)
-						{
-							Poisptr->soil_lat_flowout_Grid_allLyr[index] += OutFlow * 1000.0;  // mm/gwstep
-							Poisptr->soil_lat_flowout_Grid[curSoilLyr][index] += OutFlow * 1000.0;  // m/gwstep -> mm/gwstep
-						}
-					}
-				}
 				else {
-					for (k = 0; k < NDIRS; k++) {
-						fract_used += (NUMERIC_TYPE)Parptr->subDirPD[index][k];
-					}
-					if (Parptr->subTotalDirPD[index] > 0)
-						fract_used /= (NUMERIC_TYPE)Parptr->subTotalDirPD[index];
-					else
-						fract_used = 0.;
+					neighbor_water_table[n] = OUTSIDEBASIN;
+				}
+			}
 
-					// 地下水位在土壤底部之上 
-					if (Parptr->tableDepthPD[index] < Parptr->soilThicknessAllLyrsPD[index]) {
-						// 地下水位在河道底部之下，depth取自身；否则，depth要取BankHeight，
-						depth = ((Parptr->tableDepthPD[index] > BankHeight) ?
-							Parptr->tableDepthPD[index] : BankHeight);
-						
-						Transmissivity = CalcTransmissivity(Parptr->soilThicknessAllLyrsPD[index], depth,
-							Parptr->ksLatPD[index]*0.001*0.000277778,  // 每个土壤柱的侧向饱和水力传导度是空间异质的, mm/h->m/s
-							Parptr->KsLatExpValue,   // DHSVM每个土壤柱只对应单一的土壤类型，这里将KsLatExp设置为用户可调的参数
+			slope_aspect(dx, dy, Parptr->waterLevelPD[index], neighbor_water_table,
+				&slope, &aspect);
+			// D8：只有最陡坡向的dir被赋值为1，其余都为0；因此只流向最陡的方向
+			// D4：按照水力坡降计算分配比例
+			flow_fractions(dx, dy, slope, aspect, Parptr->waterLevelPD[index], neighbor_water_table,
+				&(Parptr->subFlowGradPD[index]), Parptr->subDirPD[index], &(Parptr->subTotalDirPD[index]));
+		}
+	}
+
+	return;
+}
+
+
+
+inline void HeadSlopeAspectForUpLyr(Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
+	const NUMERIC_TYPE * dem_row, const int row_start, int row_end, const int grid_cols_padded, NUMERIC_TYPE dx, NUMERIC_TYPE dy, WetDryRowBound* wet_dry_bounds, int i
+	//, const NUMERIC_TYPE *dem_grid
+)
+{
+	int n;
+	NUMERIC_TYPE neighbor_water_table[NNEIGHBORS];
+
+	int neighbor_index;
+	int neighbor_row;
+	int neighbor_col;
+
+	int index = i + grid_row_index;
+	NUMERIC_TYPE slope, aspect;
+
+	// todo: 这里是否应该只算右、右下、下、左下？
+	for (n = 0; n < NNEIGHBORS; n++) {
+		neighbor_index = index + Parptr->neighbor_ref[n];
+		neighbor_row = row + Parptr->neighbor_row_ref[n];
+		neighbor_col = i + Parptr->neighbor_col_ref[n];
+		// 先根据dem计算流向，因为如果是上游第1层流向下游第1层，2层流向2层，则每一层的流向都会和dem计算出来的一致
+		// 根据每个栅格第lyr层和其相邻栅格第lyr层的水头计算流向
+		if (valid_cell(neighbor_row, neighbor_col, wet_dry_bounds->dem_data[neighbor_row].start, wet_dry_bounds->dem_data[neighbor_row].end, grid_rows))
+		{
+			neighbor_water_table[n] = Parptr->waterLevelUpLyrPD[index];
+		}
+		else {
+			neighbor_water_table[n] = OUTSIDEBASIN;
+		}
+	}
+
+	slope_aspect(dx, dy, dem_row[i], neighbor_water_table,
+		&slope, &aspect);
+	// D8：只有最陡坡向的dir被赋值为1，其余都为0；因此只流向最陡的方向
+	// D4：按照水力坡降计算分配比例
+	flow_fractions(dx, dy, slope, aspect, Parptr->waterLevelUpLyrPD[index], neighbor_water_table,
+		&(Parptr->subFlowGradUpLyrPD[index]), Parptr->subDirUpLyrPD[index], &(Parptr->subTotalDirUpLyrPD[index]));
+
+
+
+	return;
+}
+
+inline float CalcTransmissivity(NUMERIC_TYPE SoilDepth, NUMERIC_TYPE WaterTable, NUMERIC_TYPE LateralKs,
+	NUMERIC_TYPE KsExponent, NUMERIC_TYPE DepthThresh)
+{
+	float Transmissivity;		/* Transmissivity (m^2/s) */
+	float TransThresh;
+
+	if (fequal(KsExponent, 0.0))
+		Transmissivity = LateralKs * (SoilDepth - WaterTable);
+	else {
+		/* a smaller value of WaterTable variables indicates a higher actual water table depth */
+		if (WaterTable < DepthThresh) {
+			Transmissivity = (LateralKs / KsExponent) * (exp(-KsExponent * WaterTable) - exp(-KsExponent * SoilDepth));
+		}
+		else {
+			TransThresh = (LateralKs / KsExponent) * (exp(-KsExponent * DepthThresh) - exp(-KsExponent * SoilDepth));
+			if (SoilDepth < DepthThresh) {
+				printf("Warning: Soil DepthThreshold (%.2f) > the soil depth (%.2f)!\n", DepthThresh, SoilDepth);
+				printf("Transmissivity is set to zero!");
+			}
+			Transmissivity = (SoilDepth - WaterTable) / (SoilDepth - DepthThresh)*TransThresh;
+		}
+	}
+
+	return Transmissivity;
+}
+
+
+inline float CalcTransmissivity(NUMERIC_TYPE SoilDepth, NUMERIC_TYPE WaterTable, NUMERIC_TYPE LateralKs,
+	NUMERIC_TYPE KsExponent, NUMERIC_TYPE DepthThresh, NUMERIC_TYPE*  ksFactorHOfLyr, int curLyr)
+{
+	float Transmissivity;		/* Transmissivity (m^2/s) */
+	float TransThresh;
+
+	if (fequal(KsExponent, 0.0))
+		Transmissivity = LateralKs * (SoilDepth - WaterTable);
+	else {
+		/* a smaller value of WaterTable variables indicates a higher actual water table depth */
+		if (WaterTable < DepthThresh) {
+			Transmissivity = (LateralKs / KsExponent) * (exp(-KsExponent * WaterTable) - exp(-KsExponent * SoilDepth));
+		}
+		else {
+			TransThresh = (LateralKs / KsExponent) * (exp(-KsExponent * DepthThresh) - exp(-KsExponent * SoilDepth));
+			if (SoilDepth < DepthThresh) {
+				printf("Warning: Soil DepthThreshold (%.2f) > the soil depth (%.2f)!\n", DepthThresh, SoilDepth);
+				printf("Transmissivity is set to zero!");
+			}
+			Transmissivity = (SoilDepth - WaterTable) / (SoilDepth - DepthThresh)*TransThresh;
+		}
+	}
+	Transmissivity *= ksFactorHOfLyr[curLyr];
+	return Transmissivity;
+}
+
+inline float CalcAvailableWater(int NRootLayers, NUMERIC_TYPE TotalDepth, NUMERIC_TYPE **RootDepth,
+	NUMERIC_TYPE **Porosity, NUMERIC_TYPE **FCap, NUMERIC_TYPE *TableDepth, NUMERIC_TYPE **Adjust, int index)
+
+{
+	float AvailableWater;		/* amount of water available for movement (m) */
+
+	float DeepFCap;		    /* field capacity of the layer below the  deepest root layer */
+
+	float DeepLayerDepth;		/* depth of layer below deepest root zone layer */
+
+	float DeepPorosity;		/* porosity of the layer below the deepest root layer */
+
+	float Depth;			    /* depth below the ground surface (m) */
+	int lyr;			        /* counter */
+
+	AvailableWater = 0;
+	// 根据每一层的淹没情况（水位Depth），计算总共有多少水参与计算侧向壤中流
+	Depth = 0.0;
+	for (lyr = 0; lyr < NRootLayers && Depth < TotalDepth; lyr++) {
+		if (RootDepth[lyr][index] < (TotalDepth - Depth))
+			Depth += RootDepth[lyr][index];
+		else
+			Depth = TotalDepth;
+		if (Depth > TableDepth[index]) {
+			if ((Depth - TableDepth[index]) > RootDepth[lyr][index])  // 水位在i层之上
+				AvailableWater += (Porosity[lyr][index] - FCap[lyr][index]) * RootDepth[lyr][index] * Adjust[lyr][index];
+			else
+				AvailableWater += (Porosity[lyr][index] - FCap[lyr][index]) * (Depth - TableDepth[index]) * Adjust[lyr][index];
+		}
+	}
+
+	if (Depth < TotalDepth) {
+
+		DeepPorosity = Porosity[NRootLayers][index];
+		DeepFCap = FCap[NRootLayers][index];
+
+		DeepLayerDepth = TotalDepth - Depth;
+		Depth = TotalDepth;
+
+		if ((Depth - TableDepth[index]) > DeepLayerDepth)
+			AvailableWater += (DeepPorosity - DeepFCap) * DeepLayerDepth * Adjust[NRootLayers][index];
+
+		else
+			AvailableWater += (DeepPorosity - DeepFCap) * (Depth - TableDepth[index]) *Adjust[NRootLayers][index];
+
+	}
+
+	return AvailableWater;
+}
+
+
+inline float CalcAvailableWaterForUplyr(int NUpLayers, NUMERIC_TYPE TotalDepth, NUMERIC_TYPE **RootDepth,
+	NUMERIC_TYPE **Porosity, NUMERIC_TYPE **FCap, NUMERIC_TYPE *TableDepth, NUMERIC_TYPE **Adjust, NUMERIC_TYPE** soilMoisturePD, int index)
+
+{
+	float AvailableWater;		/* amount of water available for movement (m) */
+
+	float DeepFCap;		    /* field capacity of the layer below the  deepest root layer */
+
+	float DeepLayerDepth;		/* depth of layer below deepest root zone layer */
+
+	float DeepPorosity;		/* porosity of the layer below the deepest root layer */
+
+	float Depth;			    /* depth below the ground surface (m) */
+	int lyr;			        /* counter */
+
+	AvailableWater = 0;
+	// 根据每一层的淹没情况（水位Depth），计算总共有多少水参与计算侧向壤中流
+	Depth = 0.0;
+	for (lyr = 0; lyr < NUpLayers && Depth < TotalDepth; lyr++) {
+
+		if (soilMoisturePD[lyr][index] > FCap[lyr][index])
+		{
+			AvailableWater += (soilMoisturePD[lyr][index] - FCap[lyr][index]) * RootDepth[lyr][index] * Adjust[lyr][index];
+		}
+	}
+
+	return AvailableWater;
+}
+
+// 直接将水量加入河道栅格的水量，河道水深会在SGC2_ProcessH_Row方法计算
+//inline void channel_grid_inc_inflow(NUMERIC_TYPE *volume_grid, int grid_index, NUMERIC_TYPE waterVol)
+//{
+//	volume_grid[grid_index] += waterVol;
+
+//}
+inline void channel_grid_inc_inflow(NUMERIC_TYPE * volume_row, int grid_row_index, NUMERIC_TYPE waterVol)
+{
+	volume_row[grid_row_index] += waterVol;
+
+}
+
+
+/*
+0---- - 1---- - 2
+7---- - *---- - 3
+6---- - 5---- - 4
+*/
+inline void RouteSubSurface(const int row_start, int row_end,
+	Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
+	const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
+	NUMERIC_TYPE dx_col, NUMERIC_TYPE dy_col, WetDryRowBound* wet_dry_bounds, Pois*Poisptr,
+	const NUMERIC_TYPE * sg_cell_cell_area, int j, const int cell_count, const int sg_row_start, const int * sg_cell_grid_index_lookup,
+	const NUMERIC_TYPE * sg_cell_SGC_BankFullHeight, const NUMERIC_TYPE * sg_cell_SGC_BankFullVolume, const NUMERIC_TYPE * sg_cell_SGC_c,
+	const SubGridFlowLookup * sg_cell_flow_lookup) {
+
+	NUMERIC_TYPE BankHeight;
+	NUMERIC_TYPE *Adjust;
+	NUMERIC_TYPE fract_used;
+	NUMERIC_TYPE depth;
+	NUMERIC_TYPE OutFlow;
+	NUMERIC_TYPE water_out_road;
+	NUMERIC_TYPE Transmissivity;
+	NUMERIC_TYPE AvailableWater;
+	int k;
+	int index;
+
+
+	/* 省略 reset the saturated subsurface flow to zero */
+	for (int i = row_start; i < row_end; i++)
+	{
+		if (dem_row[i] != DEM_NO_DATA) {
+			// 省略 计算河床底部以上的侧面高程，如果BankHeight>土壤厚度说明/河床以上存在裸露岩石，反之说明河床高程之下是土壤
+			//Adjust = Parptr->multi_adjustPD[index];
+			fract_used = 0.0f;
+			water_out_road = 0.0;
+			int index = i + grid_row_index;
+			int source_index_this = row * Parptr->xsz + i;
+			// 计算河床底部以上的侧面高程，如果BankHeight>土壤厚度说明/河床以上存在裸露岩石，反之说明河床高程之下是土壤
+			//BankHeight = (Network[y][x].BankHeight > SoilMap[y][x].Depth) ?  SoilMap[y][x].Depth : Network[y][x].BankHeight;
+			// todo: 检查像元值对不对
+			BankHeight = Arrptr->SGCbfH[source_index_this] > Parptr->soilThicknessAllLyrsPD[index] ? Parptr->soilThicknessAllLyrsPD[index] : Arrptr->SGCbfH[source_index_this];
+			if (BankHeight < -1e-8)
+			{
+				cout << "index: " << index << BankHeight << endl;
+			}
+			int curSoilLyr = 0;
+			for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
+			{
+				if (Parptr->tableDepthPD[index] > Parptr->multi_soilDepthPD[lyr][index])
+				{
+					curSoilLyr++;
+				}
+			}
+			//sg_cell_SGC_BankFullHeight[cell_index]
+			// 如果该栅格是SGC河道
+			if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0)) {			/* cell has a stream channel */
+
+				// 地下水位在河道底部之上，河堤的土壤水才补给河道
+				if (Parptr->tableDepthPD[index] < BankHeight) {
+					float gradient = 4.0 * (BankHeight - Parptr->tableDepthPD[index]);
+					if (gradient < 0.0)
+						gradient = 0.0;
+					Transmissivity =
+						CalcTransmissivity(BankHeight, Parptr->tableDepthPD[index],
+							Parptr->ksLatPD[index] * 0.001*0.000277778,
+							Parptr->KsLatExpValue,
 							Parptr->soilWaterDepthThresh
 							, Parptr->multi_ksFactorHOfLyr, curSoilLyr);
 
-						//Transmissivity = CalcTransmissivity(Parptr->soilThicknessAllLyrsPD[index], depth,
-						//	Parptr->ksLatPD[index],  // 每个土壤柱的侧向饱和水力传导度是空间异质的
-						//	Parptr->KsLatExpValue,   // DHSVM每个土壤柱只对应单一的土壤类型，这里将KsLatExp设置为用户可调的参数
-						//	Parptr->soilWaterDepthThresh);
-						// 对于与河道相邻的栅格来说，如果它的侧向流补给河道栅格的土壤，则这里的outflow是按照栅格面积来计算的等效水深
-						OutFlow = (Transmissivity * fract_used * Parptr->subFlowGradPD[index] * Parptr->gwTstep) / row_cell_area;
+					OutFlow = (Transmissivity * gradient * Parptr->gwTstep) / row_cell_area;  // m
 
-						/* check whether enough water is available for redistribution ,AvailableWater (m)*/
-						AvailableWater =
-							CalcAvailableWater(Parptr->multi_nRootLyrs,
-								Parptr->soilThicknessAllLyrsPD[index], Parptr->multi_soilThicknessPD,
-								Parptr->multi_soilPorosityPD, Parptr->multi_soilFcPD,
-								Parptr->tableDepthPD, Parptr->multi_adjustPD, index);
-						OutFlow = (OutFlow > AvailableWater) ? AvailableWater : OutFlow;
-					}
-					else {
-						depth = Parptr->soilThicknessAllLyrsPD[index];
-						OutFlow = 0.0f;
-					}
+					/* check whether enough water is available for redistribution */
+					AvailableWater =
+						CalcAvailableWater(Parptr->multi_nRootLyrs,
+							BankHeight, Parptr->multi_soilThicknessPD,
+							Parptr->multi_soilPorosityPD,
+							Parptr->multi_soilFcPD,
+							Parptr->tableDepthPD, Parptr->multi_adjustPD, index);
+					// 如果剩余可供侧向壤中流的水不够outFlow计算出来的应该流走的量，就只能流走AvailableWater
+					OutFlow = (OutFlow > AvailableWater) ? AvailableWater : OutFlow;
 
-					/* Subsurface Component - Decrease water change by outwater */
-
+					/* remove water going to channel from the grid cell */
 					Parptr->satFlowPD[index] -= OutFlow;
-					
-					/* Assign the water to appropriate surrounding pixels */
-					if (Parptr->subTotalDirPD[index] > 0)
-						OutFlow /= (NUMERIC_TYPE)Parptr->subTotalDirPD[index];
-					else
-						OutFlow = 0.;
 
-					for (k = 0; k < NDIRS; k++) {
-						int neighbor_index = i + grid_row_index + Parptr->neighbor_ref[k];
-						int neighbor_row = row + Parptr->neighbor_row_ref[k];
-						int neighbor_col = i + Parptr->neighbor_col_ref[k];
-						if (valid_cell(neighbor_row, neighbor_col, wet_dry_bounds->dem_data[neighbor_row].start, wet_dry_bounds->dem_data[neighbor_row].end,grid_rows)) {
+					/* contribute to channel segment lateral inflow todo：这里认真检查是否加到河道上了 */
+					//channel_grid_inc_inflow(volume_grid, index, OutFlow * row_cell_area);
+					// 这个实现只能单线程
+					//Parptr->subSurfaceLatFlow2ChTotal += OutFlow * row_cell_area;
 
-							Parptr->satFlowPD[neighbor_index] += OutFlow * Parptr->subDirPD[index][k];
-							
-							//#pragma omp critical
-							//{
-							//	Parptr->satFlowPD[neighbor_index] += OutFlow * Parptr->subDirPD[index][k];
-							//}
-							//Parptr->satFlow2NeiborPD[neighbor_index] = OutFlow * Parptr->subDirPD[index][k] * row_cell_area;
-						}
-					}
-				}
-			}
-		}
-		//for (int cell_i = 0; cell_i < cell_count; cell_i++)
-		//{
-		//	int cell_index = sg_row_start + cell_i;
+					Parptr->satFlow2ChPD[index] += OutFlow * row_cell_area;  // m3
 
-		//	int grid_index = sg_cell_grid_index_lookup[cell_index];
-		//	int i = grid_index - grid_row_index;
-
-		//	// // 河道所在的栅格单元面积
-		//	const NUMERIC_TYPE cell_area = sg_cell_cell_area[cell_index];
-		//	// SGC河道单元底面积
-		//	NUMERIC_TYPE SGC_c = sg_cell_SGC_c[cell_index];
-		//	// 河道两侧蓄洪区面积
-		//	NUMERIC_TYPE fp_area = row_cell_area - SGC_c;
-		//	// 河道深度
-		//	NUMERIC_TYPE SGC_BankFullHeight = sg_cell_SGC_BankFullHeight[cell_index] * 1000.0;
-		//	int source_index_this = row * Parptr->xsz + i;
-		//	BankHeight = Arrptr->SGCbfH[source_index_this] > Parptr->soilThicknessAllLyrsPD[grid_index] ? Parptr->soilThicknessAllLyrsPD[grid_index] : Arrptr->SGCbfH[source_index_this];
-		//	if (BankHeight < -1e-8)
-		//	{
-		//		cout << "grid_index: " << grid_index << BankHeight << endl;
-		//	}
-
-
-		//	
-		//}
-		return;
-	}
-
-	inline void DistributeSatflow(const int row_start, int row_end,
-		Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
-		const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
-		 int NSoilLayers, int NRootLayers, Pois*Poisptr)
-	{
-		float DeepLayerDepth;		/* depth of the layer below the deepest root layer */
-		int i;			        /* counter */
-
-	   /*Following variables adde by Zhuoran*/
-		float DeepFCap;		/* field capacity of the layer below the deepest root layer */
-		float DeepPorosity;		/* porosity of the layer below the deepest root layer */
-		float DeepAvaWater;
-		float AvaWater;
-		float DeepWaterGap;
-		float WaterGap;
-		float ExtracWater;
-		float DeepExtracWater;
-		float Depth;
-		for (int i = row_start; i < row_end; i++)
-		{
-			if (dem_row[i] != DEM_NO_DATA) {
-				int index = i + grid_row_index;
-				int source_index_this = row * Parptr->xsz + i;
-
-				DeepPorosity = Parptr->multi_soilPorosityPD[NRootLayers][index];
-				DeepFCap = Parptr->multi_soilFcPD[NRootLayers][index];
-
-				/*end of adding variable*/
-				// 最下层土壤层的厚度= 总厚度 - 根系层的所有厚度之和
-				DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
-				for (int lyr = 0; lyr < NRootLayers; lyr++)
-					DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
-
-				/* Added 06/09/2016 by Zhuoran Duan(zhuoran.duan@pnnl.gov) */
-				/* When calculating lateral outflow, available water was calculated using all 3 root zone layers
-				and the deep layer underneath but outflow was extracted from the bottom deep soil layer. This
-				might lead to negative soil moisture in deep soil while the layer above it remains saturated. This tends
-				to happen more often in dry climate. In order to avoid negative deep soil moisture, here I add a loop
-				to redistribution of water extraction. The outflow starts from the (top) water table layer, extract the
-				excess water larger than field capacity. While there's no enough water from the current layer, extract
-				water from one layer below it until it reaches bottom layer. */
-
-				
-				/*New algorithm for SatFlow, remove water from top layer to bottom layer*/
-				Depth = 0.0;
-				// 如果是流出, 就从最顶层开始扣除
-				if (Parptr->satFlowPD[index] < 0.0) {
-					///* printf("SatFlow before distribution is %.6f\n",SatFlow);*/
-					for (int lyr = 0; lyr < NRootLayers && Depth < Parptr->soilThicknessAllLyrsPD[index]; lyr++) {
-						AvaWater = 0.0;
-						ExtracWater = 0.0;
-						if (Parptr->multi_soilThicknessPD[lyr][index] < (Parptr->soilThicknessAllLyrsPD[index] - Depth))
-							Depth += Parptr->multi_soilThicknessPD[lyr][index];
-						else
-							Depth = Parptr->soilThicknessAllLyrsPD[index];
-
-						/* if water table is in the ith root zone layer */
-						// 水位高于第i层土壤
-						if (Depth > Parptr->tableDepthPD[index]) {
-							/* fully saturated in the current layer */
-							if ((Depth - Parptr->tableDepthPD[index]) > Parptr->multi_soilThicknessPD[lyr][index])
-								AvaWater = (Parptr->multi_soilPorosityPD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-							else
-								AvaWater = (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];   // 这里和calcAvailableWater不一样，如果第i层没完全淹没，就只用Moist减去田间持水量
-						}
-						// 上个步长routeSubsurface里算出来的SatFlow如果比这里算出来的AvaWater大，说明之前计算的SatFlow太多了。ExtracWater是个负值，是第i层对应的新的可以扣除的水量
-						ExtracWater = (-Parptr->satFlowPD[index] > AvaWater) ? -AvaWater : Parptr->satFlowPD[index];
-						// 第i层的土壤湿度 - 需要扣除的比例
-
-						Parptr->multi_soilMoisturePD[lyr][index] += ExtracWater / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
-						
-						if (Statesptr->save_poi == ON)
-						{
-							// 如果不是河道栅格，才在这里计算POI点有多少水流出，河道的流出在RouteSubSurface计算
-							if (!(Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0))) {			/* cell has a stream channel */
-								Poisptr->soil_lat_flowout_Grid[lyr][index] += -ExtracWater * 1000.0;  // m/gwstep -> mm/gwstep
-								Poisptr->soil_lat_flowout_Grid_allLyr[index] += -ExtracWater * 1000.0;  // mm/gwstep
-								//if (fabs(Poisptr->soil_lat_flowout_Grid[lyr][index]) <= 1e-8) {
-								//	Poisptr->soil_lat_flowout_Grid[lyr][index] = 0.0;
-								//}
-							}
-							// 河道栅格也需要在这里，根据流入和流出后的净水量更新土壤水深
-							Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // cm
-							
-						}
-						// 给上个步长计算的SatFlow加上新的可以扣除的水量，看是否等于0，即之前第i层是否扣多了
-
-						Parptr->satFlowPD[index] -= ExtracWater;
-						
-						//printf("SatFlow after layer %d is %.6f\n",i,SatFlow);
-						// 如果没扣多
-						if (fabs(Parptr->satFlowPD[index]) <= 1e-8) {//  todo: 继续检查
-							//cout << index << ": " << fabs(Parptr->satFlowPD[index]) << endl;
-
-							Parptr->satFlowPD[index] = 0.0;
-							
-							break;
-						}
-					}
-					// 如果所有根系层扣完新计算的量之后，还是发现之前计算的Parptr->satFlowPD没被消耗完，就开始扣最深层的
-					if (Parptr->satFlowPD[index] < 0.0) {
-						DeepAvaWater = 0.0;
-						DeepExtracWater = 0.0;
-						// 根系层之下还有土壤层
-						if (Depth - Parptr->soilThicknessAllLyrsPD[index] <= -1e-8) {
-
-							Depth = Parptr->soilThicknessAllLyrsPD[index];
-							// 地下水位高于DeepLayer
-							if ((Depth - Parptr->tableDepthPD[index] - DeepLayerDepth) >= 1e-8 )
-								DeepAvaWater = (DeepPorosity - DeepFCap) * DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index];  // 仍然根据饱和水量计算最多有多少水可以侧向流出
-							else
-								DeepAvaWater = (Parptr->multi_soilMoisturePD[NRootLayers][index] - DeepFCap) * DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index];;  // 否则根据DeepLayer的土壤湿度计算，能有多少水侧向流出
-						}
-
-						//printf("Deep Layer Availabe Water is %.6f\n",DeepAvaWater);
-
-						DeepExtracWater = (-Parptr->satFlowPD[index] > DeepAvaWater) ? -DeepAvaWater : Parptr->satFlowPD[index];
-
-						Parptr->multi_soilMoisturePD[NRootLayers][index] += DeepExtracWater / (DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index]);
-						
-						if (Statesptr->save_poi == ON)
-						{
-
-							Poisptr->soil_lat_flowout_Grid[NRootLayers][index] += -DeepExtracWater * 1000.0;
-							Poisptr->soil_lat_flowout_Grid_allLyr[index] += -DeepExtracWater * 1000.0;
-							//if (fabs(Poisptr->soil_lat_flowin_Grid[NRootLayers][index]) <= 1e-8) {
-							//	Poisptr->soil_lat_flowin_Grid[NRootLayers][index] = 0.0;
-							//}
-							Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
-							
-						}
-
-						Parptr->satFlowPD[index] -= DeepExtracWater;
-						
-
-					}
-				}
-				// 如果是流入，就从最底层开始补给
-				if (Parptr->satFlowPD[index] > 0.0) {
-
-					Depth += DeepLayerDepth;
-					DeepWaterGap = 0.0;
-					DeepExtracWater = 0.0;
-					if (Depth - (Parptr->soilThicknessAllLyrsPD[index] - Parptr->tableDepthPD[index]) >= 1e-8) {
-						DeepWaterGap = (DeepPorosity - Parptr->multi_soilMoisturePD[NRootLayers][index]) * DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index];
-						DeepExtracWater = (Parptr->satFlowPD[index] > DeepWaterGap) ? DeepWaterGap : Parptr->satFlowPD[index];
-
-						Parptr->multi_soilMoisturePD[NRootLayers][index] += DeepExtracWater / (DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index]);
-						
-						if (Statesptr->save_poi == ON)
-						{
-							// 如果是河道栅格，则来自相邻像元补给的satFlowPD是以栅格面积计算的等效水深，这里仍然以栅格面积为基准计算
-							Poisptr->soil_lat_flowin_Grid[NRootLayers][index] += DeepExtracWater * 1000.0; // m/gwstep-> mm/gwstep
-							Poisptr->soil_lat_flowin_Grid_allLyr[index] += DeepExtracWater * 1000.0; // m/gwstep-> mm/gwstep
-							//if (fabs(Poisptr->soil_lat_flowin_Grid[NRootLayers][index]) <= 1e-8) {
-							//	Poisptr->soil_lat_flowin_Grid[NRootLayers][index] = 0.0;
-							//}
-							Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
-							
-						}
-
-						Parptr->satFlowPD[index] -= DeepExtracWater;
-						
-					}
-
-					if (Parptr->satFlowPD[index] > 0.0) {
-						for (int lyr = NRootLayers - 1; lyr >= 0; lyr--) {
-							WaterGap = 0.0;
-							ExtracWater = 0.0;
-							Depth += Parptr->multi_soilThicknessPD[lyr][index];
-							if (Depth - (Parptr->soilThicknessAllLyrsPD[index] - Parptr->tableDepthPD[index]) >= 1e-8 ) {
-								WaterGap = (Parptr->multi_soilPorosityPD[lyr][index] - Parptr->multi_soilMoisturePD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-								ExtracWater = (Parptr->satFlowPD[index] > WaterGap) ? WaterGap : Parptr->satFlowPD[index];
-
-								Parptr->multi_soilMoisturePD[lyr][index] += ExtracWater / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
-								
-								if (Statesptr->save_poi == ON)
-								{
-
-									Poisptr->soil_lat_flowin_Grid[lyr][index] += ExtracWater * 1000.0;   // m/gwstep -> mm/gwstep
-									Poisptr->soil_lat_flowin_Grid_allLyr[index] += ExtracWater * 1000.0; // m/gwstep-> mm/gwstep
-									//if (fabs(Poisptr->soil_lat_flowin_Grid[lyr][index]) <= 1e-8) {
-									//	Poisptr->soil_lat_flowin_Grid[lyr][index] = 0.0;
-									//}
-									Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // cm
-									
-								}
-
-								Parptr->satFlowPD[index] -= ExtracWater;
-							
-							}
-							if (fabs(Parptr->satFlowPD[index]) <= 1e-8)
-								break;
-
-						}
-					}
-				}
-				
-				//// 如果土壤饱和了，壤中流还剩余，就补给到地表径流
-				if (Parptr->satFlowPD[index] > 1e-8) {
-					//volume_grid[index] += Parptr->satFlowPD[index] * row_cell_area;
-					// 对于河道栅格，satFlowPD是以栅格面积为基准的等效水深，所以这里乘以row_cell_area等于体积
-					Parptr->satFlow2SurfPD[index] += Parptr->satFlowPD[index] * row_cell_area;
-
-					//float* latLong = getLatLongByIndex(index, grid_cols_padded, Parptr);
-					//bool inCh = (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0));
-					//cout << "Run WARNING:excess water in soil is " << Parptr->satFlowPD[index] << " index: " << index << " lat: " << latLong[0] << " lon: " << latLong[1] << " inCh: " << inCh << endl;
-					//delete[] latLong;
-					
 					if (Statesptr->save_poi == ON)
 					{
-						Poisptr->soil_lat_flowin_Grid_allLyr[index] += Parptr->satFlowPD[index] * 1000.0; // m/gwstep-> mm/gwstep
-						Poisptr->surf_water_depth_Grid[index] += Parptr->satFlowPD[index] * 1000.0;
-						
-					}
-					
-				}
-
-				// ******************************上层壤中流*********************************
-				// 如果是流出，就从最上层开始扣
-				//if (Parptr->satFlowUpPD[index] < 0.0) {
-				//	for (int lyr = 0; lyr < Parptr->lyrOfWaterTableUpLayer[index]; lyr++) {
-				//		AvaWater = (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-				//		// 上个步长routeSubsurface里算出来的SatFlow如果比这里算出来的AvaWater大，说明之前计算的SatFlow太多了。ExtracWater是个负值，是第i层对应的新的可以扣除的水量
-				//		ExtracWater = (-Parptr->satFlowUpPD[index] > AvaWater) ? -AvaWater : Parptr->satFlowPD[index];
-				//		// 第i层的土壤湿度 - 需要扣除的比例
-				//		Parptr->multi_soilMoisturePD[lyr][index] += ExtracWater / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
-				//		if (Statesptr->save_poi == ON)
-				//		{
-				//			Poisptr->soil_lat_flowin_Grid[lyr][index] += ExtracWater * 100.0 * 3600 / Parptr->gwTstep;  // m -> cm/h
-				//			if (fabs(Poisptr->soil_lat_flowin_Grid[lyr][index]) <= 1e-8) {
-				//				Poisptr->soil_lat_flowin_Grid[lyr][index] = 0.0;
-				//			}
-				//			Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * 100.0;  // cm
-				//		}
-				//		// 给上个步长计算的SatFlow加上新的可以扣除的水量，看是否等于0，即之前第i层是否扣多了
-				//		Parptr->satFlowUpPD[index] -= ExtracWater;
-
-				//		//printf("SatFlow after layer %d is %.6f\n",i,SatFlow);
-				//		// 如果没扣多
-				//		if (fabs(Parptr->satFlowUpPD[index]) <= 1e-8) {
-				//			//cout << index << ": " << fabs(Parptr->satFlowPD[index]) << endl;
-				//			Parptr->satFlowUpPD[index] = 0.0;
-				//			break;
-				//		}
-				//	}
-				//}
-				// 如果是流入，就从最上层开始往下补给
-				//if (Parptr->satFlowUpPD[index] > 1e-8)
-				//{
-				//	for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++) {
-
-				//		WaterGap = (Parptr->multi_soilPorosityPD[lyr][index] - Parptr->multi_soilMoisturePD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-				//		ExtracWater = (Parptr->satFlowUpPD[index] > WaterGap) ? WaterGap : Parptr->satFlowUpPD[index];
-
-				//		Parptr->multi_soilMoisturePD[lyr][index] += ExtracWater / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
-				//		if (Statesptr->save_poi == ON)
-				//		{
-				//			Poisptr->soil_lat_flowin_Grid[lyr][index] = ExtracWater * 100.0 * 3600 / Parptr->gwTstep;   // m -> cm/h
-				//			if (fabs(Poisptr->soil_lat_flowin_Grid[lyr][index]) <= 1e-8) {
-				//				Poisptr->soil_lat_flowin_Grid[lyr][index] = 0.0;
-				//			}
-				//			Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * 100.0;  // cm
-				//		}
-				//		Parptr->satFlowUpPD[index] -= ExtracWater;
-				//		if (fabs(Parptr->satFlowUpPD[index]) <= 1e-8)
-				//			break;
-				//	
-				//	}
-
-				//	//// 如果土壤饱和了，壤中流还剩余，就补给到地表径流
-				//	if (Parptr->satFlowUpPD[index] > 1e-8) {
-				//	
-				//		Parptr->satFlow2SurfPD[index] += Parptr->satFlowUpPD[index] * row_cell_area;
-
-				//		if (Statesptr->save_poi == ON)
-				//		{
-				//			Poisptr->surf_water_depth_Grid[index] += Parptr->satFlowUpPD[index];
-				//		}
-
-				//	}
-
-				//}
-				// ******************************上层壤中流*********************************
-				
-
-				
-			}
-		}
-	}
-
-	float* getLatLongByIndex(int index, int grid_cols_padded, Pars *Parptr) {
-		int col = index % grid_cols_padded;
-		int row = index / grid_cols_padded;
-		// 计算像元中心点的经纬度
-		float lon = Parptr->blx + (col + 0.5) * Parptr->dx;
-		float lat = Parptr->tly - (row + 0.5) * Parptr->dy;
-
-		// 动态分配数组，返回 lat 和 lon
-		float* result = new float[2];
-
-		result[0] = lat;
-		result[1] = lon;
-		return result;
-	}
-
-	inline void RouteSubSurfaceUpLayer(const int row_start, int row_end,
-		Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
-		const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
-		NUMERIC_TYPE dx_col, NUMERIC_TYPE dy_col, WetDryRowBound* wet_dry_bounds, Pois*Poisptr, const NUMERIC_TYPE *dem_grid) {
-
-		NUMERIC_TYPE BankHeight;
-		NUMERIC_TYPE *Adjust;
-		NUMERIC_TYPE fract_used;
-		NUMERIC_TYPE depth;
-		NUMERIC_TYPE OutFlow;
-		NUMERIC_TYPE water_out_road;
-		NUMERIC_TYPE Transmissivity;
-		NUMERIC_TYPE AvailableWater;
-		int k;
-		int index;
-		NUMERIC_TYPE* waterLevelPD; NUMERIC_TYPE* subFlowGradPD; unsigned char **subDirPD; unsigned int *subTotalDirPD;
-
-		NUMERIC_TYPE Storage = 0.0;
-		NUMERIC_TYPE ExcessFCap = 0.0;
-		
-		/* 省略 reset the saturated subsurface flow to zero */
-		for (int i = row_start; i < row_end; i++)
-		{
-			if (dem_row[i] != DEM_NO_DATA) {
-				// todo：先根据地下水位判断现在水位处于哪个层，如果不在表层，则：
-				// 如果下游是坡面:先根据上层的湿度计算上层的等效水位，找到水力坡降最大的方向，再用seims的方法计算有多少侧向水传递给下游，将这些侧向水流加入下游栅格的第一层，第一层满了则加入第二层，依次类推；
-				// 如果下游是河道，则上游根据上层的湿度计算上层的等效水位，下游水头取河道水面
-
-				// 省略 计算河床底部以上的侧面高程，如果BankHeight>土壤厚度说明/河床以上存在裸露岩石，反之说明河床高程之下是土壤
-				//Adjust = Parptr->multi_adjustPD[index];
-				fract_used = 0.0f;
-				water_out_road = 0.0;
-				int index = i + grid_row_index;
-				int source_index_this = row * Parptr->xsz + i;
-				// 计算河床底部以上的侧面高程，如果BankHeight>土壤厚度说明/河床以上存在裸露岩石，反之说明河床高程之下是土壤
-				//BankHeight = (Network[y][x].BankHeight > SoilMap[y][x].Depth) ?  SoilMap[y][x].Depth : Network[y][x].BankHeight;
-				// todo: 检查像元值对不对
-				BankHeight = Arrptr->SGCbfH[source_index_this] > Parptr->soilThicknessAllLyrsPD[index] ? Parptr->soilThicknessAllLyrsPD[index] : Arrptr->SGCbfH[source_index_this];
-				if (BankHeight < -1e-8)
-				{
-					cout << "index: " << index << BankHeight << endl;
-				}
-				//int curWaterTableUpLayer = 0;
-				NUMERIC_TYPE accSoilThickness = 0.0;
-				// 如果地下水位>第1层的土壤厚度，则计算地下水位现在处于哪一层
-				if (Parptr->tableDepthPD[index] > Parptr->multi_soilThicknessPD[0][index])
-				{
-					accSoilThickness = Parptr->multi_soilThicknessPD[0][index];
-					for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs - 1; lyr++)
-					{
-						// 如果地下水位在lyr层之下，则计算lyr层的水位深度
-						if (Parptr->tableDepthPD[index] > accSoilThickness)
-						{
-							Parptr->lyrOfWaterTableUpLayer[index]++;
-							accSoilThickness += Parptr->multi_soilThicknessPD[lyr+1][index];
-							Parptr->tableDepthUpLyrPD[index] = 0.0;
-							// 如果第lyr层的土壤湿度超出田间持水量，则上层水位位于这一层，且水头深度等于第lyr层(土壤孔隙度-土壤湿度)*土壤厚度
-							if (Parptr->multi_soilMoisturePD[lyr][index] > Parptr->multi_soilFcPD[lyr][index])
-							{
-								Storage = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * (Parptr->multi_soilPorosityPD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]);
-								ExcessFCap = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]);
-								
-								Parptr->tableDepthUpLyrPD[index] += (1 - ExcessFCap / Storage)*Parptr->multi_soilThicknessPD[lyr][index];
-							}// 否则上层水位深度直接加上当前层的土壤厚度
-							else {
-								Parptr->tableDepthUpLyrPD[index] += Parptr->multi_soilThicknessPD[lyr][index];
-							}
-						}
-					}
-					// 计算上层的地下水位
-					Parptr->waterLevelUpLyrPD[index] = dem_row[i] - Parptr->tableDepthUpLyrPD[index];
-					// 计算流向
-					HeadSlopeAspectForUpLyr(Parptr, Solverptr, Arrptr, grid_row_index, row, grid_rows, grid_cols, dem_row, row_start, row_end, grid_cols_padded, dx_col, dy_col, wet_dry_bounds,i);
-
-					// 假如地下水位在第2层，则对第1层进行计算;地下水位在第3层则对第1、2层计算
-					NUMERIC_TYPE curLyrAccThickness = 0.0;
-					for (int lyr  = 0; lyr < Parptr->lyrOfWaterTableUpLayer[index]; lyr++)
-					{
-						// 如果是河道
-						if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0)) {
-							// 如果当前层的水位深度小于河堤，才能发生侧向流
-							if (Parptr->tableDepthUpLyrPD[index] > 0.0 && Parptr->tableDepthUpLyrPD[index] < BankHeight) {
-								// todo 根据SIMES or DHSVM的方法计算上层侧向流量，如果是根据DHSVM算，则直接套用原来的公式，需要理清cell grid soil thickness取上面的一两层土壤还是全部土层？
-								// 如果是SEIMS，则一层一层算小于curWaterTableUpLayer的土壤层的侧向水流
-								float gradient = 4.0 * (BankHeight - Parptr->tableDepthUpLyrPD[index]);
-								if (gradient < 0.0)
-									gradient = 0.0;
-								Transmissivity =
-									CalcTransmissivity(BankHeight, Parptr->tableDepthUpLyrPD[index],
-										Parptr->ksLatPD[index] * 0.001*0.000277778,
-										Parptr->KsLatExpValue,
-										Parptr->soilWaterDepthThresh);
-
-								OutFlow = (Transmissivity * gradient * Parptr->gwTstep) / row_cell_area;
-
-								/* check whether enough water is available for redistribution */
-								AvailableWater =
-									CalcAvailableWaterForUplyr(Parptr->lyrOfWaterTableUpLayer[index],     // todo：待验证
-										BankHeight, Parptr->multi_soilThicknessPD,Parptr->multi_soilPorosityPD,Parptr->multi_soilFcPD,
-										Parptr->tableDepthUpLyrPD, Parptr->multi_adjustPD, Parptr->multi_soilMoisturePD, index);
-								// 如果剩余可供侧向壤中流的水不够outFlow计算出来的应该流走的量，就只能流走AvailableWater
-								OutFlow = (OutFlow > AvailableWater) ? AvailableWater : OutFlow;
-
-								/* remove water going to channel from the grid cell */
-								Parptr->satFlowUpPD[index] -= OutFlow;
-
-								/* contribute to channel segment lateral inflow todo：这里认真检查是否加到河道上了 */
-								//channel_grid_inc_inflow(volume_grid, index, OutFlow * row_cell_area);
-								// 这个实现只能单线程
-								//Parptr->subSurfaceLatFlow2ChTotal += OutFlow * row_cell_area;
-								Parptr->satFlow2ChPD[index] += OutFlow * row_cell_area;
-							}
-						}
-						else {  // 如果是坡面
-							for (k = 0; k < NDIRS; k++) {
-								fract_used += (NUMERIC_TYPE)Parptr->subDirUpLyrPD[index][k];
-							}
-							if (Parptr->subTotalDirUpLyrPD[index] > 0)
-								fract_used /= (NUMERIC_TYPE)Parptr->subTotalDirUpLyrPD[index];
-							else
-								fract_used = 0.;
-
-							// 上层水位在土壤底部之上 
-							if (Parptr->tableDepthUpLyrPD[index] > 0.0 && Parptr->tableDepthUpLyrPD[index] < Parptr->soilThicknessAllLyrsPD[index]) {
-								// 地下水位在河道底部之下，depth取自身；否则，depth要取BankHeight，
-
-								Transmissivity = CalcTransmissivity(Parptr->soilThicknessAllLyrsPD[index], Parptr->tableDepthUpLyrPD[index],
-									Parptr->ksLatPD[index] * 0.001*0.000277778,  // 每个土壤柱的侧向饱和水力传导度是空间异质的
-									Parptr->KsLatExpValue,   // DHSVM每个土壤柱只对应单一的土壤类型，这里将KsLatExp设置为用户可调的参数
-									Parptr->soilWaterDepthThresh);
-
-								OutFlow = (Transmissivity * fract_used * Parptr->subFlowGradPD[index] * Parptr->gwTstep) / row_cell_area;
-
-								/* check whether enough water is available for redistribution ,AvailableWater (m)*/
-								AvailableWater =
-									CalcAvailableWaterForUplyr(Parptr->lyrOfWaterTableUpLayer[index],     // todo：待验证
-										Parptr->soilThicknessAllLyrsPD[index], Parptr->multi_soilThicknessPD, Parptr->multi_soilPorosityPD, Parptr->multi_soilFcPD,
-										Parptr->tableDepthUpLyrPD, Parptr->multi_adjustPD, Parptr->multi_soilMoisturePD, index);
-								OutFlow = (OutFlow > AvailableWater) ? AvailableWater : OutFlow;
-							}
-							else {
-								depth = Parptr->soilThicknessAllLyrsPD[index];
-								OutFlow = 0.0f;
-							}
-
-							/* Subsurface Component - Decrease water change by outwater */
-							Parptr->satFlowUpPD[index] -= OutFlow;
-
-							/* Assign the water to appropriate surrounding pixels */
-							if (Parptr->subTotalDirUpLyrPD[index] > 0)
-								OutFlow /= (NUMERIC_TYPE)Parptr->subTotalDirUpLyrPD[index];
-							else
-								OutFlow = 0.;
-
-							for (k = 0; k < NDIRS; k++) {
-								int neighbor_index = i + grid_row_index + Parptr->neighbor_ref[k];
-								int neighbor_row = row + Parptr->neighbor_row_ref[k];
-								int neighbor_col = i + Parptr->neighbor_col_ref[k];
-								if (valid_cell(neighbor_row, neighbor_col, wet_dry_bounds->dem_data[neighbor_row].start, wet_dry_bounds->dem_data[neighbor_row].end, grid_rows)) {
-									Parptr->satFlowUpPD[neighbor_index] += OutFlow * Parptr->subDirUpLyrPD[index][k];
-									Parptr->satFlow2NeiborPD[neighbor_index] = OutFlow * Parptr->subDirUpLyrPD[index][k] * row_cell_area;
-								}
-							}
-						
-						}
+						Poisptr->soil_lat_flowout_Grid_allLyr[index] += OutFlow * 1000.0;  // mm/gwstep
+						Poisptr->soil_lat_flowout_Grid[curSoilLyr][index] += OutFlow * 1000.0;  // m/gwstep -> mm/gwstep
 					}
 				}
-			}
-		}
-
-		return;
-	}
-
-	float WaterTableDepth(Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, Pois*Poisptr, const NUMERIC_TYPE row_cell_area,  int NSoilLayers, int NRootLayers,int index)
-	{
-		NUMERIC_TYPE DeepFCap = 0.0;				/* field capacity of the layer below the deepest root layer */
-		NUMERIC_TYPE DeepLayerDepth = 0.0;		/* depth of layer below deepest root zone layer */
-		NUMERIC_TYPE DeepPorosity = 0.0;			/* porosity of the layer below the deepest  root layer */
-		NUMERIC_TYPE TableDepth = 0.0;				/* depth of the water table (m) */
-		NUMERIC_TYPE MoistureTransfer;				/* amount of soil moisture transferred from the current layer to the layer above (m) */
-		int i;																/* counter */
-		NUMERIC_TYPE TotalStorage = 0.0;
-		NUMERIC_TYPE ExcessFCap = 0.0;
-		NUMERIC_TYPE Storage = 0.0;
-		NUMERIC_TYPE DeepStorage = 0.0;
-		NUMERIC_TYPE DeepExcessFCap = 0.0;
-
-		MoistureTransfer = 0.0;
-
-
-		DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
-		DeepPorosity = Parptr->multi_soilPorosityPD[NRootLayers][index];  // RootLayers的最后一层不是DeepLayer
-		DeepFCap = Parptr->multi_soilFcPD[NRootLayers][index];
-
-		for (int lyr = 0; lyr < NRootLayers; lyr++)
-			DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
-		
-		/* Redistribute soil moisture.  I.e. water from supersaturated layers is
-		transferred to the layer immediately above */
-		// 如果deeplayer超饱和了，就计算其向上层传递多少水mm
-		if (Parptr->multi_soilMoisturePD[NRootLayers][index] - DeepPorosity >= -1e-8) {
-			MoistureTransfer = (Parptr->multi_soilMoisturePD[NRootLayers][index] - DeepPorosity) * DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index];
-			if (MoistureTransfer <= 1e-8)
-			{
-				MoistureTransfer = 0.0;
-			}
-			// 将最下层的湿度更新为土壤孔隙度
-
-			Parptr->multi_soilMoisturePD[NRootLayers][index] = DeepPorosity;
-			
-			if (Statesptr->save_poi == ON)
-			{
-
-				Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
-				
-			}
-			// 逐层向上计算
-			for (int lyr = NRootLayers - 1; lyr >= 0; lyr--) {
-
-				Parptr->multi_soilMoisturePD[lyr][index] += MoistureTransfer / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
-				
-				// 移动湿润锋面
-				if (Statesptr->use_change_acccum_depth && lyr == 0)
-				{
-					Parptr->accumuDepthPD[index] += MoistureTransfer * 1000.0;
-					if (Parptr->accumuDepthPD[index] < 1e-8)
-					{
-						Parptr->accumuDepthPD[index] = 0.0;
-					}
-					if (Parptr->accumuDepthPD[index] > Parptr->multi_soilThicknessPD[lyr][index] * 1000.0)
-					{
-						Parptr->accumuDepthPD[index] = Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
-					}
-				}
-
-				if (Statesptr->save_poi == ON)
-				{
-					if (MoistureTransfer <= 1e-8)
-					{
-						MoistureTransfer = 0.0;
-					}
-
-					//Poisptr->soil_perc_Grid[lyr][index] -= MoistureTransfer * 1000.0 / (Parptr->multi_adjustPD[lyr][index]);  // m/gwstep->mm/gwstep  相对于自己的深度变化
-					Poisptr->soil_perc_Grid[lyr][index] -= MoistureTransfer * 1000.0;  // m/gwstep->mm/gwstep  相对于自己的深度变化
-					Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // mm
-					
-				}
-				//Parptr->multi_soilPercoPD[lyr][index] -= MoistureTransfer / Parptr->multi_adjustPD[lyr][index];
-				Parptr->multi_soilPercoPD[lyr][index] -= MoistureTransfer;
-				// 如果这一层也饱和了
-				if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index] >= -1e-8) {
-					{
-						MoistureTransfer = (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-					}
-					if (MoistureTransfer <= 1e-8)
-					{
-						MoistureTransfer = 0.0;
-					}
-
-					Parptr->multi_soilMoisturePD[lyr][index] = Parptr->multi_soilPorosityPD[lyr][index];
-					
-					if (Statesptr->save_poi == ON)
-					{
-						//Poisptr->soil_perc_Grid[lyr][index] -= MoistureTransfer * 1000.0 / (Parptr->multi_adjustPD[lyr][index]);  // m/gwstep->mm/gwstep
-						Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // cm
-						
-					}
-				}
-				else {
-					MoistureTransfer = 0.0;
-					break;
-				}
-			}
-		}
-		else {
-			// 如果deeplayer没有超饱和，则不向上补给
-			MoistureTransfer = 0.0;
-		}
-		// 如果每一层都饱和了，则淹没地表，TableDepth为负值
-		if (MoistureTransfer >= 1e-8) {
-			/* Surface ponding occurs */
-			TableDepth = -MoistureTransfer;
-			if (Statesptr->save_poi == ON)
-			{
-
-				Poisptr->surf_water_depth_Grid[index] += -TableDepth * 1000.0;  // cm
-				
-			}
-		}
-		else {
-			/* Warning added by Pascal Storck, 08/15/2000 */
-			/* Based on a single bad parameter in a DHSVM input file (a third layer
-			vertical hydraulic conductivity that was 10 times smaller than the layer
-			above it), it was noted that DHSVM can develop what are basically perched
-			water tables.  These perched water tables greatly complicate the calculation
-			of the pixel water table depth because the soil below the perched table
-			is not completely saturated above field capacity.
-			For example, if we have three soil layers and a deep layer, all 1 meter thick,
-			and we saturate the second layer from the surface, what is, or should be, the water
-			table depth. Should we allow subsurface flow to occur, should we include the saturation
-			of disconnected overlying layers in the calculation of the hydraulic gradient.
-			At this point, just be cautious.  Using any combination of soil parameters or
-			intial water states which can cause the lower layers of the soil profile
-			to drain more quickly than water can flow down through the matrix will
-			result in mass balance problems.  I.e. water will be forced out of the cell
-			to the downslope, this water will be taken from the deepest soil layer, which
-			can cause the deep layer soil moisture to go negative. */
-
-			DeepStorage = DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index] * (DeepPorosity - DeepFCap);  // deeplayer最多容纳多少水
-			DeepExcessFCap = DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index] * (Parptr->multi_soilMoisturePD[NRootLayers][index] - DeepFCap);  // deeplayer当前的水量-田间持水量
-			// 如果deeplayer层不满
-			if (DeepExcessFCap <= -1e-8) {
-				TableDepth = Parptr->soilThicknessAllLyrsPD[index];  // deeplayer层的水也小于田间持水量，则地下水位设置为土壤厚度
 			}
 			else {
-				// 从下到上逐层判断地下水埋深在哪一层
-				TableDepth = Parptr->soilThicknessAllLyrsPD[index] - (DeepExcessFCap / DeepStorage)*DeepLayerDepth;   //  超出deeplayer以上的水深 = 土壤总厚度 -  deeplayer现存水量占deeplayer孔隙度的%数  * deeplayer的厚度
-
-				if (Parptr->multi_soilMoisturePD[NRootLayers][index] - DeepPorosity >= -1e-8) {
-					for (int lyr = NRootLayers - 1; lyr >= 0; lyr--) {
-						Storage = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * (Parptr->multi_soilPorosityPD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]);
-						ExcessFCap = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]);
-						// ExcessFCap < 0 意味着第i层土壤湿度小于田间持水量，则水位仍停留在下一层，一点也不涨
-						if (ExcessFCap < 0.0)
-							ExcessFCap = 0.0f;
-						// 如果第i层没饱和，根据第i层的土壤湿度计算地下水埋深
-						if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index] <= -1e-8) {
-							TableDepth -= (ExcessFCap / Storage)*Parptr->multi_soilThicknessPD[lyr][index];
-							break;
-
-						}
-						else {
-							// 如果第i层饱和了，地下水埋深中就减去第i层的厚度
-							TableDepth -= Parptr->multi_soilThicknessPD[lyr][index];
-						}
-					}
+				for (k = 0; k < NDIRS; k++) {
+					fract_used += (NUMERIC_TYPE)Parptr->subDirPD[index][k];
 				}
-			}
-		}
-		//printf("Table Depth is %.6f\n",TableDepth);
-		if (TableDepth - Parptr->soilThicknessAllLyrsPD[index] > 1e-8)
-			printf("TableDepth = %.4f, TotalDepth = %.4f\n", TableDepth, Parptr->soilThicknessAllLyrsPD[index]);
-		if (fabs(TableDepth - TableDepth) > 1e-8)
-			printf("TableDepth = %.2f", TableDepth);
-
-
-		return TableDepth;
-	}
-
-
-
-	inline void UnsaturatedFlow(const int row_start, int row_end,
-		Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
-		const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
-		int NSoilLayers, int NRootLayers, Pois*Poisptr)
-	{
-		float DeepDrainage;		/* amount of drainage from the lowest root
-									 zone to the layer below it (m) */
-		float DeepLayerDepth;		/* depth of the layer below the deepest root layer */
-		float Drainage;		    /* amount of water drained from each soil
-									 layer during the current timestep */
-		float Exponent;		    /* Brooks-Corey exponent */
-		float FieldCapacity;		/* amount of water in soil at field capacity (m) */
-		float MaxSoilWater;		/* maximum allowable amount of soil moiture in each layer (m) */
-		float SoilWater;		    /* amount of water in each soil layer (m) */
-
-		for (int i = row_start; i < row_end; i++)
-		{
-			if (dem_row[i] != DEM_NO_DATA) {
-				int index = i + grid_row_index;
-				DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
-				for (int lyr = 0; lyr < NRootLayers; lyr++)
-					DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
-
-				// xiaodw, 这里思路是先计算渗漏量，即使下层超饱和了，上层也向下层渗漏。在WaterTableDepth方法中再从下层往上层计算淹没，纠正过来
-				/* from top to bottom soil layer */
-
-				for (int lyr = 0; lyr < NRootLayers; lyr++) {
-
-					/* No movement if soil moisture is below field capacity */
-					if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index] >= 1e-8) {
-						Exponent = 2.0 / Parptr->multi_soilPoreIndexPD[lyr][index] + 3.0;
-
-						if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index] >= 1e-8)
-							/* this can happen because the moisture content can exceed the
-							porosity the way the algorithm is implemented */
-							Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr];
-						else
-							Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr] * pow((double)(Parptr->multi_soilMoisturePD[lyr][index] / Parptr->multi_soilPorosityPD[lyr][index]), (double)Exponent);
-						/* convert from mm/h to m */
-						Drainage = Drainage * Parptr->gwTstep * 0.0002777778 * 0.001;
-
-						/* percolation = drainage + perc from layer above渗透量（Perc[lyr]），它是当前步长与上步长渗透量的平均。 */
-						//Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * row_cell_area;  这里注释掉是因为都不按照体积计算，统一按照深度计算 
-						// xiaodw, 对河道只有两侧洪泛区发生渗漏 
-						Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * Parptr->multi_adjustPD[lyr][index];
-						
-						// Parptr->multi_adjustPD[lyr][index]是为了调整河道所在栅格的土壤层的体积
-						MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-						SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-						FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-						//MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index];
-						//SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index];
-						//FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index];
-
-						/* No unsaturated flow if the moisture content drops below field capacity */
-
-						if ((SoilWater - Parptr->multi_soilPercoPD[lyr][index] - FieldCapacity) <= 1e-8) {
-							Parptr->multi_soilPercoPD[lyr][index] = SoilWater - FieldCapacity;
-						}
-						
-						// 如果按照正常的扣除渗漏后，还是过饱和，则将过饱和的水都加入渗漏量
-						SoilWater -= Parptr->multi_soilPercoPD[lyr][index];
-						if (SoilWater - MaxSoilWater >= 1e-8) {
-							Parptr->multi_soilPercoPD[lyr][index] += SoilWater - MaxSoilWater;
-						}
-
-						/* Adjust the moisture content in the current layer, and the layer immediately below it */
-						Parptr->multi_soilMoisturePD[lyr][index] -= Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
-						//Parptr->multi_soilMoisturePD[lyr][index] -= Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr][index]);
-						
-						if (lyr < (NRootLayers - 1)) {
-
-							//Parptr->multi_soilMoisturePD[lyr + 1][index] += Parptr->multi_soilPercoPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr + 1][index] * Parptr->multi_adjustPD[lyr + 1][index]);
-							Parptr->multi_soilMoisturePD[lyr + 1][index] += Parptr->multi_soilPercoPD[lyr][index]  / (Parptr->multi_soilThicknessPD[lyr + 1][index] * Parptr->multi_adjustPD[lyr + 1][index]);
-							
-						}
-						if (Statesptr->use_change_acccum_depth && lyr == 0)
-						{
-							Parptr->accumuDepthPD[index] -= Parptr->multi_soilPercoPD[lyr][index] * 1000.0;
-							if (Parptr->accumuDepthPD[index] < 1e-8)
-							{
-								Parptr->accumuDepthPD[index] = 0.0;
-							}
-							if (Parptr->accumuDepthPD[index] > Parptr->multi_soilThicknessPD[lyr][index] * 1000.0)
-							{
-								Parptr->accumuDepthPD[index] = Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
-							}
-						}
-					}
-					else {
-						Parptr->multi_soilPercoPD[lyr][index] = 0.0;
-					}
-					Parptr->multi_soilWaterDepthPD[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
-					if (Statesptr->save_poi == ON)
-					{
-						//Poisptr->soil_perc_Grid[lyr][index] = Parptr->multi_soilPercoPD[lyr][index] * 100.0 * 3600 / Parptr->gwTstep;  // m->cm /h
-						Poisptr->soil_perc_Grid[lyr][index] += Parptr->multi_soilPercoPD[lyr][index] * 1000.0;  // m/gwstep->mm /gwstep
-						Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // mm
-						
-					}
-					
-					/* convert back to straight 1-d flux */
-					//Parptr->multi_soilPercoPD[lyr][index] /= row_cell_area;
-				}
-
-				// 之前是直接从最下层扣除侧向壤中流
-				/* Change: dont extract outflow from the bottom layer only. The new function DistributeSatFlow
-				extract water from top to bottom layer to avoid negative soil mositure (overdraw) in the bottom
-				layer (below root zone layers */
-				/* DeepDrainage = (Perc[NSoilLayers - 1] * PercArea[NSoilLayers - 1]) + SatFlow; */
-
-				//DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index] * row_cell_area);
-				DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index]);
-				//DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index] * Parptr->multi_adjustPD[NRootLayers - 1][index]);
-
-				Parptr->multi_soilMoisturePD[NRootLayers][index] += DeepDrainage / (DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index]);
-				
-				if (Statesptr->save_poi == ON)
-				{
-					Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
-				}
-
-				/* Calculate the depth of the water table based on the soil moisture
-				profile and adjust the soil moisture profile, to assure that the soil
-				moisture is never more than the maximum allowed soil moisture amount,
-				i.e. the porosity.  A negative water table depth means that the water is
-				ponding on the surface.  This amount of water becomes surface Runoff */
-
-				Parptr->tableDepthPD[index] = WaterTableDepth(Parptr, Solverptr, Arrptr, Statesptr, Poisptr, row_cell_area, NSoilLayers, NRootLayers, index);
-				
-
-				// 地下水位高出地表
-				if (Parptr->tableDepthPD[index] <= -1e-8) {
-					//volume_grid[index] += -(Parptr->tableDepthPD[index]) * row_cell_area;
-					//Parptr->PercExcess2SurfPD[index] += -(Parptr->tableDepthPD[index]) * row_cell_area;
-
-					Parptr->tableDepthPD[index] = 0.0;
-					
-				}
-
-			}
-		}
-	}
-
-
-	inline void UnsaturatedFlowGwVersion(const int row_start, int row_end,
-		Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
-		const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
-		int NSoilLayers, int NRootLayers, Pois*Poisptr)
-	{
-		NUMERIC_TYPE DeepDrainage;		/* amount of drainage from the lowest root
-									 zone to the layer below it (m) */
-		NUMERIC_TYPE DeepLayerDepth;		/* depth of the layer below the deepest root layer */
-		NUMERIC_TYPE Drainage;		    /* amount of water drained from each soil
-									 layer during the current timestep */
-		NUMERIC_TYPE Exponent;		    /* Brooks-Corey exponent */
-		NUMERIC_TYPE FieldCapacity;		/* amount of water in soil at field capacity (m) */
-		NUMERIC_TYPE MaxSoilWater;		/* maximum allowable amount of soil moiture in each layer (m) */
-		NUMERIC_TYPE SoilWater;		    /* amount of water in each soil layer (m) */
-		NUMERIC_TYPE gwDrainage;
-
-		for (int i = row_start; i < row_end; i++)
-		{
-			if (dem_row[i] != DEM_NO_DATA) {
-				int index = i + grid_row_index;
-				DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
-				for (int lyr = 0; lyr < NRootLayers; lyr++)
-					DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
-
-				// xiaodw, 这里思路是先计算渗漏量，即使下层超饱和了，上层也向下层渗漏。在WaterTableDepth方法中再从下层往上层计算淹没，纠正过来
-				// xiaodw，把最下层向地下水库的渗漏也计算出来
-				/* from top to bottom soil layer */
-
-				for (int lyr = 0; lyr <= NRootLayers; lyr++) {
-
-					/* No movement if soil moisture is below field capacity */
-					if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index] >= 1e-8) {
-						Exponent = 2.0 / (Parptr->multi_soilPoreIndexPD[lyr][index] * Parptr->poreIndexScaleFactor) + 3.0;
-
-						if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index] >= 1e-8)
-							/* this can happen because the moisture content can exceed the
-							porosity the way the algorithm is implemented */
-							Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr];
-						else
-							Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr] * pow((double)(Parptr->multi_soilMoisturePD[lyr][index] / Parptr->multi_soilPorosityPD[lyr][index]), (double)Exponent);
-						/* convert from mm/h to m */
-						Drainage = Drainage * Parptr->gwTstep * 0.0002777778 * 0.001;
-
-						/* percolation = drainage + perc from layer above渗透量（Perc[lyr]），它是当前步长与上步长渗透量的平均。 */
-						//Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * row_cell_area;  这里注释掉是因为都不按照体积计算，统一按照深度计算 
-						// xiaodw, 对河道只有两侧洪泛区发生渗漏 
-						Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * Parptr->multi_adjustPD[lyr][index];
-
-						// Parptr->multi_adjustPD[lyr][index]是为了调整河道所在栅格的土壤层的体积
-						MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-						SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-						FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-						//MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index];
-						//SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index];
-						//FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index];
-
-						/* No unsaturated flow if the moisture content drops below field capacity */
-
-						if ((SoilWater - Parptr->multi_soilPercoPD[lyr][index] - FieldCapacity) <= 1e-8) {
-							Parptr->multi_soilPercoPD[lyr][index] = SoilWater - FieldCapacity;
-						}
-
-						// 如果按照正常的扣除渗漏后，还是过饱和，则将过饱和的水都加入渗漏量
-						SoilWater -= Parptr->multi_soilPercoPD[lyr][index];
-						if (SoilWater - MaxSoilWater >= 1e-8) {
-							Parptr->multi_soilPercoPD[lyr][index] += SoilWater - MaxSoilWater;
-						}
-
-						// 最后一层只计算有多少水渗漏，不计算下一层的土壤湿度变化
-
-						/* Adjust the moisture content in the current layer, and the layer immediately below it */
-						Parptr->multi_soilMoisturePD[lyr][index] -= Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
-						//Parptr->multi_soilMoisturePD[lyr][index] -= Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr][index]);
-
-						if (lyr < (NRootLayers - 1)) {
-
-							//Parptr->multi_soilMoisturePD[lyr + 1][index] += Parptr->multi_soilPercoPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr + 1][index] * Parptr->multi_adjustPD[lyr + 1][index]);
-							Parptr->multi_soilMoisturePD[lyr + 1][index] += Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr + 1][index] * Parptr->multi_adjustPD[lyr + 1][index]);
-
-						}
-						if (Statesptr->use_change_acccum_depth && lyr == 0)
-						{
-							Parptr->accumuDepthPD[index] -= Parptr->multi_soilPercoPD[lyr][index] * 1000.0;
-							if (Parptr->accumuDepthPD[index] < 1e-8)
-							{
-								Parptr->accumuDepthPD[index] = 0.0;
-							}
-							if (Parptr->accumuDepthPD[index] > Parptr->multi_soilThicknessPD[lyr][index] * 1000.0)
-							{
-								Parptr->accumuDepthPD[index] = Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
-							}
-						}
-						
-
-						
-					}
-					else {
-						Parptr->multi_soilPercoPD[lyr][index] = 0.0;
-					}
-					Parptr->multi_soilWaterDepthPD[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
-					if (Statesptr->save_poi == ON)
-					{
-						//Poisptr->soil_perc_Grid[lyr][index] = Parptr->multi_soilPercoPD[lyr][index] * 100.0 * 3600 / Parptr->gwTstep;  // m->cm /h
-						Poisptr->soil_perc_Grid[lyr][index] += Parptr->multi_soilPercoPD[lyr][index] * 1000.0;  // m/gwstep->mm /gwstep
-						Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // mm
-
-					}
-
-					/* convert back to straight 1-d flux */
-					//Parptr->multi_soilPercoPD[lyr][index] /= row_cell_area;
-				}
-
-				// 之前是直接从最下层扣除侧向壤中流
-				/* Change: dont extract outflow from the bottom layer only. The new function DistributeSatFlow
-				extract water from top to bottom layer to avoid negative soil mositure (overdraw) in the bottom
-				layer (below root zone layers */
-				/* DeepDrainage = (Perc[NSoilLayers - 1] * PercArea[NSoilLayers - 1]) + SatFlow; */
-
-				//DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index] * row_cell_area);
-				DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index]);
-				//DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index] * Parptr->multi_adjustPD[NRootLayers - 1][index]);
-
-				Parptr->multi_soilMoisturePD[NRootLayers][index] += DeepDrainage / (DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index]);
-
-				if (Statesptr->save_poi == ON)
-				{
-					Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
-				}
-
-				/* Calculate the depth of the water table based on the soil moisture
-				profile and adjust the soil moisture profile, to assure that the soil
-				moisture is never more than the maximum allowed soil moisture amount,
-				i.e. the porosity.  A negative water table depth means that the water is
-				ponding on the surface.  This amount of water becomes surface Runoff */
-
-				Parptr->tableDepthPD[index] = WaterTableDepth(Parptr, Solverptr, Arrptr, Statesptr, Poisptr, row_cell_area, NSoilLayers, NRootLayers, index);
-
-
-				// 地下水位高出地表
-				if (Parptr->tableDepthPD[index] <= -1e-8) {
-					//volume_grid[index] += -(Parptr->tableDepthPD[index]) * row_cell_area;
-					//Parptr->PercExcess2SurfPD[index] += -(Parptr->tableDepthPD[index]) * row_cell_area;
-
-					Parptr->tableDepthPD[index] = 0.0;
-
-				}
-
-			}
-		}
-	}
-
-	inline void CalSoilPerc(Pars *Parptr,  int index, int lyr) {
-
-		float Drainage;		    /* amount of water drained from each soil
-									 layer during the current timestep */
-		float Exponent;		    /* Brooks-Corey exponent */
-		float FieldCapacity;		/* amount of water in soil at field capacity (m) */
-		float MaxSoilWater;		/* maximum allowable amount of soil moiture in each layer (m) */
-		float SoilWater;		    /* amount of water in each soil layer (m) */
-
-		Exponent = 2.0 / Parptr->multi_soilPoreIndexPD[lyr][index] + 3.0;
-
-		if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index] >= 1e-8)
-			/* this can happen because the moisture content can exceed the
-			porosity the way the algorithm is implemented */
-			Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr];
-		else
-			Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr] * pow((double)(Parptr->multi_soilMoisturePD[lyr][index] / Parptr->multi_soilPorosityPD[lyr][index]), (double)Exponent);
-		/* convert from mm/h to m */
-		Drainage = Drainage * Parptr->gwTstep * 0.0002777778 * 0.001;
-
-		/* percolation = drainage + perc from layer above渗透量（Perc[lyr]），它是当前步长与上步长渗透量的平均。 */
-		//Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * row_cell_area;  这里注释掉是因为都不按照体积计算，统一按照深度计算 
-		// xiaodw, 对河道只有两侧洪泛区发生渗漏 
-		Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * Parptr->multi_adjustPD[lyr][index];
-
-		// Parptr->multi_adjustPD[lyr][index]是为了调整河道所在栅格的土壤层的体积
-		MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-		SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-		FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
-		//MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index];
-		//SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index];
-		//FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index];
-
-		/* No unsaturated flow if the moisture content drops below field capacity */
-
-		if ((SoilWater - Parptr->multi_soilPercoPD[lyr][index] - FieldCapacity) <= 1e-8) {
-			Parptr->multi_soilPercoPD[lyr][index] = SoilWater - FieldCapacity;
-		}
-
-		// 如果按照正常的扣除渗漏后，还是过饱和，则将过饱和的水都加入渗漏量
-		SoilWater -= Parptr->multi_soilPercoPD[lyr][index];
-		if (SoilWater - MaxSoilWater >= 1e-8) {
-			Parptr->multi_soilPercoPD[lyr][index] += SoilWater - MaxSoilWater;
-		}
-		
-	}
-
-	inline void UnsaturatedFlowGwVersionV2(const int row_start, int row_end,
-		Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
-		const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
-		int NSoilLayers, int NRootLayers, Pois*Poisptr)
-	{
-		float DeepDrainage;		/* amount of drainage from the lowest root zone to the layer below it (m) */
-		float DeepLayerDepth;		/* depth of the layer below the deepest root layer */
-		float Drainage;		    /* amount of water drained from each soil layer during the current timestep (m) */
-		float Exponent;		    /* Brooks-Corey exponent */
-		float FieldCapacity;		/* amount of water in soil at field capacity (m) */
-		float MaxSoilWater;		/* maximum allowable amount of soil moiture in each layer (m) */
-		float SoilWater;		    /* amount of water in each soil layer (m) */
-		
-
-		for (int i = row_start; i < row_end; i++)
-		{
-			if (dem_row[i] != DEM_NO_DATA) {
-				int index = i + grid_row_index;
-				//DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
-				//for (int lyr = 0; lyr < NRootLayers; lyr++)
-				//	DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
-
-				DeepLayerDepth = Parptr->multi_soilThicknessPD[NRootLayers][index];
-				// 先计算最下层向地下水库渗漏
-				if (Parptr->GwStorageDepth < Parptr->GwStorageDepthMax)
-				{
-					CalSoilPerc(Parptr, index, NRootLayers);
-					// Parptr->multi_soilPercoPD[NRootLayers][index]   m->mm
-					if (Parptr->GwStorageDepth + Parptr->multi_soilPercoPD[NRootLayers][index] * 1000.0 > Parptr->GwStorageDepthMax)
-					{
-						Parptr->multi_soilPercoPD[NRootLayers][index] = (Parptr->GwStorageDepthMax - Parptr->GwStorageDepth) * 0.001;
-					}
-					Parptr->multi_soilMoisturePD[NRootLayers][index] -= Parptr->multi_soilPercoPD[NRootLayers][index] / (Parptr->multi_soilThicknessPD[NRootLayers][index] * Parptr->multi_adjustPD[NRootLayers][index]);
+				if (Parptr->subTotalDirPD[index] > 0)
+					fract_used /= (NUMERIC_TYPE)Parptr->subTotalDirPD[index];
+				else
+					fract_used = 0.;
+
+				// 地下水位在土壤底部之上 
+				if (Parptr->tableDepthPD[index] < Parptr->soilThicknessAllLyrsPD[index]) {
+					// 地下水位在河道底部之下，depth取自身；否则，depth要取BankHeight，
+					depth = ((Parptr->tableDepthPD[index] > BankHeight) ?
+						Parptr->tableDepthPD[index] : BankHeight);
+
+					Transmissivity = CalcTransmissivity(Parptr->soilThicknessAllLyrsPD[index], depth,
+						Parptr->ksLatPD[index] * 0.001*0.000277778,  // 每个土壤柱的侧向饱和水力传导度是空间异质的, mm/h->m/s
+						Parptr->KsLatExpValue,   // DHSVM每个土壤柱只对应单一的土壤类型，这里将KsLatExp设置为用户可调的参数
+						Parptr->soilWaterDepthThresh
+						, Parptr->multi_ksFactorHOfLyr, curSoilLyr);
+
+					//Transmissivity = CalcTransmissivity(Parptr->soilThicknessAllLyrsPD[index], depth,
+					//	Parptr->ksLatPD[index],  // 每个土壤柱的侧向饱和水力传导度是空间异质的
+					//	Parptr->KsLatExpValue,   // DHSVM每个土壤柱只对应单一的土壤类型，这里将KsLatExp设置为用户可调的参数
+					//	Parptr->soilWaterDepthThresh);
+					// 对于与河道相邻的栅格来说，如果它的侧向流补给河道栅格的土壤，则这里的outflow是按照栅格面积来计算的等效水深
+					OutFlow = (Transmissivity * fract_used * Parptr->subFlowGradPD[index] * Parptr->gwTstep) / row_cell_area;
+
+					/* check whether enough water is available for redistribution ,AvailableWater (m)*/
+					AvailableWater =
+						CalcAvailableWater(Parptr->multi_nRootLyrs,
+							Parptr->soilThicknessAllLyrsPD[index], Parptr->multi_soilThicknessPD,
+							Parptr->multi_soilPorosityPD, Parptr->multi_soilFcPD,
+							Parptr->tableDepthPD, Parptr->multi_adjustPD, index);
+					OutFlow = (OutFlow > AvailableWater) ? AvailableWater : OutFlow;
 				}
 				else {
-					Parptr->multi_soilPercoPD[NRootLayers][index] = 0.0;
+					depth = Parptr->soilThicknessAllLyrsPD[index];
+					OutFlow = 0.0f;
 				}
-				//CalSoilPerc(Parptr, index, NRootLayers);
-				//Parptr->multi_soilMoisturePD[NRootLayers][index] -= Parptr->multi_soilPercoPD[NRootLayers][index] / (Parptr->multi_soilThicknessPD[NRootLayers][index] * Parptr->multi_adjustPD[NRootLayers][index]);
-				// xiaodw, 这里思路是先计算渗漏量，即使下层超饱和了，上层也向下层渗漏。在WaterTableDepth方法中再从下层往上层计算淹没，纠正过来
-				/* from top to bottom soil layer */
 
-				for (int lyr = 0; lyr < NRootLayers; lyr++) {
+				/* Subsurface Component - Decrease water change by outwater */
 
-					/* No movement if soil moisture is below field capacity */
-					if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index] >= 1e-8) {
+				Parptr->satFlowPD[index] -= OutFlow;
 
-						CalSoilPerc(Parptr, index, lyr);
+				/* Assign the water to appropriate surrounding pixels */
+				if (Parptr->subTotalDirPD[index] > 0)
+					OutFlow /= (NUMERIC_TYPE)Parptr->subTotalDirPD[index];
+				else
+					OutFlow = 0.;
 
-						/* Adjust the moisture content in the current layer, and the layer immediately below it */
-						Parptr->multi_soilMoisturePD[lyr][index] -= Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
+				for (k = 0; k < NDIRS; k++) {
+					int neighbor_index = i + grid_row_index + Parptr->neighbor_ref[k];
+					int neighbor_row = row + Parptr->neighbor_row_ref[k];
+					int neighbor_col = i + Parptr->neighbor_col_ref[k];
+					if (valid_cell(neighbor_row, neighbor_col, wet_dry_bounds->dem_data[neighbor_row].start, wet_dry_bounds->dem_data[neighbor_row].end, grid_rows)) {
 
-						if (lyr < (NRootLayers - 1)) {
+						Parptr->satFlowPD[neighbor_index] += OutFlow * Parptr->subDirPD[index][k];
 
-							Parptr->multi_soilMoisturePD[lyr + 1][index] += Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr + 1][index] * Parptr->multi_adjustPD[lyr + 1][index]);
-
-						}
-						if (Statesptr->use_change_acccum_depth && lyr == 0)
-						{
-							Parptr->accumuDepthPD[index] -= Parptr->multi_soilPercoPD[lyr][index] * 1000.0;
-							if (Parptr->accumuDepthPD[index] < 1e-8)
-							{
-								Parptr->accumuDepthPD[index] = 0.0;
-							}
-							if (Parptr->accumuDepthPD[index] > Parptr->multi_soilThicknessPD[lyr][index] * 1000.0)
-							{
-								Parptr->accumuDepthPD[index] = Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
-							}
-						}
+						//#pragma omp critical
+						//{
+						//	Parptr->satFlowPD[neighbor_index] += OutFlow * Parptr->subDirPD[index][k];
+						//}
+						//Parptr->satFlow2NeiborPD[neighbor_index] = OutFlow * Parptr->subDirPD[index][k] * row_cell_area;
 					}
-					else {
-						Parptr->multi_soilPercoPD[lyr][index] = 0.0;
+				}
+			}
+		}
+	}
+	//for (int cell_i = 0; cell_i < cell_count; cell_i++)
+	//{
+	//	int cell_index = sg_row_start + cell_i;
+
+	//	int grid_index = sg_cell_grid_index_lookup[cell_index];
+	//	int i = grid_index - grid_row_index;
+
+	//	// // 河道所在的栅格单元面积
+	//	const NUMERIC_TYPE cell_area = sg_cell_cell_area[cell_index];
+	//	// SGC河道单元底面积
+	//	NUMERIC_TYPE SGC_c = sg_cell_SGC_c[cell_index];
+	//	// 河道两侧蓄洪区面积
+	//	NUMERIC_TYPE fp_area = row_cell_area - SGC_c;
+	//	// 河道深度
+	//	NUMERIC_TYPE SGC_BankFullHeight = sg_cell_SGC_BankFullHeight[cell_index] * 1000.0;
+	//	int source_index_this = row * Parptr->xsz + i;
+	//	BankHeight = Arrptr->SGCbfH[source_index_this] > Parptr->soilThicknessAllLyrsPD[grid_index] ? Parptr->soilThicknessAllLyrsPD[grid_index] : Arrptr->SGCbfH[source_index_this];
+	//	if (BankHeight < -1e-8)
+	//	{
+	//		cout << "grid_index: " << grid_index << BankHeight << endl;
+	//	}
+
+
+	//	
+	//}
+	return;
+}
+
+inline void DistributeSatflow(const int row_start, int row_end,
+	Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
+	const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
+	int NSoilLayers, int NRootLayers, Pois*Poisptr)
+{
+	float DeepLayerDepth;		/* depth of the layer below the deepest root layer */
+	int i;			        /* counter */
+
+   /*Following variables adde by Zhuoran*/
+	float DeepFCap;		/* field capacity of the layer below the deepest root layer */
+	float DeepPorosity;		/* porosity of the layer below the deepest root layer */
+	float DeepAvaWater;
+	float AvaWater;
+	float DeepWaterGap;
+	float WaterGap;
+	float ExtracWater;
+	float DeepExtracWater;
+	float Depth;
+	for (int i = row_start; i < row_end; i++)
+	{
+		if (dem_row[i] != DEM_NO_DATA) {
+			int index = i + grid_row_index;
+			int source_index_this = row * Parptr->xsz + i;
+
+			DeepPorosity = Parptr->multi_soilPorosityPD[NRootLayers][index];
+			DeepFCap = Parptr->multi_soilFcPD[NRootLayers][index];
+
+			/*end of adding variable*/
+			// 最下层土壤层的厚度= 总厚度 - 根系层的所有厚度之和
+			DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
+			for (int lyr = 0; lyr < NRootLayers; lyr++)
+				DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
+
+			/* Added 06/09/2016 by Zhuoran Duan(zhuoran.duan@pnnl.gov) */
+			/* When calculating lateral outflow, available water was calculated using all 3 root zone layers
+			and the deep layer underneath but outflow was extracted from the bottom deep soil layer. This
+			might lead to negative soil moisture in deep soil while the layer above it remains saturated. This tends
+			to happen more often in dry climate. In order to avoid negative deep soil moisture, here I add a loop
+			to redistribution of water extraction. The outflow starts from the (top) water table layer, extract the
+			excess water larger than field capacity. While there's no enough water from the current layer, extract
+			water from one layer below it until it reaches bottom layer. */
+
+
+			/*New algorithm for SatFlow, remove water from top layer to bottom layer*/
+			Depth = 0.0;
+			// 如果是流出, 就从最顶层开始扣除
+			if (Parptr->satFlowPD[index] < 0.0) {
+				///* printf("SatFlow before distribution is %.6f\n",SatFlow);*/
+				for (int lyr = 0; lyr < NRootLayers && Depth < Parptr->soilThicknessAllLyrsPD[index]; lyr++) {
+					AvaWater = 0.0;
+					ExtracWater = 0.0;
+					if (Parptr->multi_soilThicknessPD[lyr][index] < (Parptr->soilThicknessAllLyrsPD[index] - Depth))
+						Depth += Parptr->multi_soilThicknessPD[lyr][index];
+					else
+						Depth = Parptr->soilThicknessAllLyrsPD[index];
+
+					/* if water table is in the ith root zone layer */
+					// 水位高于第i层土壤
+					if (Depth > Parptr->tableDepthPD[index]) {
+						/* fully saturated in the current layer */
+						if ((Depth - Parptr->tableDepthPD[index]) > Parptr->multi_soilThicknessPD[lyr][index])
+							AvaWater = (Parptr->multi_soilPorosityPD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+						else
+							AvaWater = (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];   // 这里和calcAvailableWater不一样，如果第i层没完全淹没，就只用Moist减去田间持水量
 					}
-					Parptr->multi_soilWaterDepthPD[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
+					// 上个步长routeSubsurface里算出来的SatFlow如果比这里算出来的AvaWater大，说明之前计算的SatFlow太多了。ExtracWater是个负值，是第i层对应的新的可以扣除的水量
+					ExtracWater = (-Parptr->satFlowPD[index] > AvaWater) ? -AvaWater : Parptr->satFlowPD[index];
+					// 第i层的土壤湿度 - 需要扣除的比例
+
+					Parptr->multi_soilMoisturePD[lyr][index] += ExtracWater / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
+
 					if (Statesptr->save_poi == ON)
 					{
-						Poisptr->soil_perc_Grid[lyr][index] += Parptr->multi_soilPercoPD[lyr][index] * 1000.0;  // m/gwstep->mm /gwstep
-						Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // mm
+						// 如果不是河道栅格，才在这里计算POI点有多少水流出，河道的流出在RouteSubSurface计算
+						if (!(Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0))) {			/* cell has a stream channel */
+							Poisptr->soil_lat_flowout_Grid[lyr][index] += -ExtracWater * 1000.0;  // m/gwstep -> mm/gwstep
+							Poisptr->soil_lat_flowout_Grid_allLyr[index] += -ExtracWater * 1000.0;  // mm/gwstep
+							//if (fabs(Poisptr->soil_lat_flowout_Grid[lyr][index]) <= 1e-8) {
+							//	Poisptr->soil_lat_flowout_Grid[lyr][index] = 0.0;
+							//}
+						}
+						// 河道栅格也需要在这里，根据流入和流出后的净水量更新土壤水深
+						Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // cm
+
+					}
+					// 给上个步长计算的SatFlow加上新的可以扣除的水量，看是否等于0，即之前第i层是否扣多了
+
+					Parptr->satFlowPD[index] -= ExtracWater;
+
+					//printf("SatFlow after layer %d is %.6f\n",i,SatFlow);
+					// 如果没扣多
+					if (fabs(Parptr->satFlowPD[index]) <= 1e-8) {//  todo: 继续检查
+						//cout << index << ": " << fabs(Parptr->satFlowPD[index]) << endl;
+
+						Parptr->satFlowPD[index] = 0.0;
+
+						break;
+					}
+				}
+				// 如果所有根系层扣完新计算的量之后，还是发现之前计算的Parptr->satFlowPD没被消耗完，就开始扣最深层的
+				if (Parptr->satFlowPD[index] < 0.0) {
+					DeepAvaWater = 0.0;
+					DeepExtracWater = 0.0;
+					// 根系层之下还有土壤层
+					if (Depth - Parptr->soilThicknessAllLyrsPD[index] <= -1e-8) {
+
+						Depth = Parptr->soilThicknessAllLyrsPD[index];
+						// 地下水位高于DeepLayer
+						if ((Depth - Parptr->tableDepthPD[index] - DeepLayerDepth) >= 1e-8)
+							DeepAvaWater = (DeepPorosity - DeepFCap) * DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index];  // 仍然根据饱和水量计算最多有多少水可以侧向流出
+						else
+							DeepAvaWater = (Parptr->multi_soilMoisturePD[NRootLayers][index] - DeepFCap) * DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index];;  // 否则根据DeepLayer的土壤湿度计算，能有多少水侧向流出
+					}
+
+					//printf("Deep Layer Availabe Water is %.6f\n",DeepAvaWater);
+
+					DeepExtracWater = (-Parptr->satFlowPD[index] > DeepAvaWater) ? -DeepAvaWater : Parptr->satFlowPD[index];
+
+					Parptr->multi_soilMoisturePD[NRootLayers][index] += DeepExtracWater / (DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index]);
+
+					if (Statesptr->save_poi == ON)
+					{
+
+						Poisptr->soil_lat_flowout_Grid[NRootLayers][index] += -DeepExtracWater * 1000.0;
+						Poisptr->soil_lat_flowout_Grid_allLyr[index] += -DeepExtracWater * 1000.0;
+						//if (fabs(Poisptr->soil_lat_flowin_Grid[NRootLayers][index]) <= 1e-8) {
+						//	Poisptr->soil_lat_flowin_Grid[NRootLayers][index] = 0.0;
+						//}
+						Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
 
 					}
 
+					Parptr->satFlowPD[index] -= DeepExtracWater;
+
+
+				}
+			}
+			// 如果是流入，就从最底层开始补给
+			if (Parptr->satFlowPD[index] > 0.0) {
+
+				Depth += DeepLayerDepth;
+				DeepWaterGap = 0.0;
+				DeepExtracWater = 0.0;
+				if (Depth - (Parptr->soilThicknessAllLyrsPD[index] - Parptr->tableDepthPD[index]) >= 1e-8) {
+					DeepWaterGap = (DeepPorosity - Parptr->multi_soilMoisturePD[NRootLayers][index]) * DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index];
+					DeepExtracWater = (Parptr->satFlowPD[index] > DeepWaterGap) ? DeepWaterGap : Parptr->satFlowPD[index];
+
+					Parptr->multi_soilMoisturePD[NRootLayers][index] += DeepExtracWater / (DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index]);
+
+					if (Statesptr->save_poi == ON)
+					{
+						// 如果是河道栅格，则来自相邻像元补给的satFlowPD是以栅格面积计算的等效水深，这里仍然以栅格面积为基准计算
+						Poisptr->soil_lat_flowin_Grid[NRootLayers][index] += DeepExtracWater * 1000.0; // m/gwstep-> mm/gwstep
+						Poisptr->soil_lat_flowin_Grid_allLyr[index] += DeepExtracWater * 1000.0; // m/gwstep-> mm/gwstep
+						//if (fabs(Poisptr->soil_lat_flowin_Grid[NRootLayers][index]) <= 1e-8) {
+						//	Poisptr->soil_lat_flowin_Grid[NRootLayers][index] = 0.0;
+						//}
+						Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
+
+					}
+
+					Parptr->satFlowPD[index] -= DeepExtracWater;
+
 				}
 
-				// 之前是直接从最下层扣除侧向壤中流
-				/* Change: dont extract outflow from the bottom layer only. The new function DistributeSatFlow
-				extract water from top to bottom layer to avoid negative soil mositure (overdraw) in the bottom
-				layer (below root zone layers */
-				DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index]);
+				if (Parptr->satFlowPD[index] > 0.0) {
+					for (int lyr = NRootLayers - 1; lyr >= 0; lyr--) {
+						WaterGap = 0.0;
+						ExtracWater = 0.0;
+						Depth += Parptr->multi_soilThicknessPD[lyr][index];
+						if (Depth - (Parptr->soilThicknessAllLyrsPD[index] - Parptr->tableDepthPD[index]) >= 1e-8) {
+							WaterGap = (Parptr->multi_soilPorosityPD[lyr][index] - Parptr->multi_soilMoisturePD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+							ExtracWater = (Parptr->satFlowPD[index] > WaterGap) ? WaterGap : Parptr->satFlowPD[index];
 
-				Parptr->multi_soilMoisturePD[NRootLayers][index] += DeepDrainage / (DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index]);
+							Parptr->multi_soilMoisturePD[lyr][index] += ExtracWater / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
 
+							if (Statesptr->save_poi == ON)
+							{
+
+								Poisptr->soil_lat_flowin_Grid[lyr][index] += ExtracWater * 1000.0;   // m/gwstep -> mm/gwstep
+								Poisptr->soil_lat_flowin_Grid_allLyr[index] += ExtracWater * 1000.0; // m/gwstep-> mm/gwstep
+								//if (fabs(Poisptr->soil_lat_flowin_Grid[lyr][index]) <= 1e-8) {
+								//	Poisptr->soil_lat_flowin_Grid[lyr][index] = 0.0;
+								//}
+								Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // cm
+
+							}
+
+							Parptr->satFlowPD[index] -= ExtracWater;
+
+						}
+						if (fabs(Parptr->satFlowPD[index]) <= 1e-8)
+							break;
+
+					}
+				}
+			}
+
+			//// 如果土壤饱和了，壤中流还剩余，就补给到地表径流
+			if (Parptr->satFlowPD[index] > 1e-8) {
+				//volume_grid[index] += Parptr->satFlowPD[index] * row_cell_area;
+				// 对于河道栅格，satFlowPD是以栅格面积为基准的等效水深，所以这里乘以row_cell_area等于体积
+				Parptr->satFlow2SurfPD[index] += Parptr->satFlowPD[index] * row_cell_area;
+
+				//float* latLong = getLatLongByIndex(index, grid_cols_padded, Parptr);
+				//bool inCh = (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0));
+				//cout << "Run WARNING:excess water in soil is " << Parptr->satFlowPD[index] << " index: " << index << " lat: " << latLong[0] << " lon: " << latLong[1] << " inCh: " << inCh << endl;
+				//delete[] latLong;
 
 				if (Statesptr->save_poi == ON)
 				{
-					Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
-				}
-
-				/* Calculate the depth of the water table based on the soil moisture
-				profile and adjust the soil moisture profile, to assure that the soil
-				moisture is never more than the maximum allowed soil moisture amount,
-				i.e. the porosity.  A negative water table depth means that the water is
-				ponding on the surface.  This amount of water becomes surface Runoff */
-
-				Parptr->tableDepthPD[index] = WaterTableDepth(Parptr, Solverptr, Arrptr, Statesptr, Poisptr, row_cell_area, NSoilLayers, NRootLayers, index);
-
-
-				// 地下水位高出地表
-				if (Parptr->tableDepthPD[index] <= -1e-8) {
-
-					Parptr->tableDepthPD[index] = 0.0;
+					Poisptr->soil_lat_flowin_Grid_allLyr[index] += Parptr->satFlowPD[index] * 1000.0; // m/gwstep-> mm/gwstep
+					Poisptr->surf_water_depth_Grid[index] += Parptr->satFlowPD[index] * 1000.0;
 
 				}
 
+			}
+
+			// ******************************上层壤中流*********************************
+			// 如果是流出，就从最上层开始扣
+			//if (Parptr->satFlowUpPD[index] < 0.0) {
+			//	for (int lyr = 0; lyr < Parptr->lyrOfWaterTableUpLayer[index]; lyr++) {
+			//		AvaWater = (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+			//		// 上个步长routeSubsurface里算出来的SatFlow如果比这里算出来的AvaWater大，说明之前计算的SatFlow太多了。ExtracWater是个负值，是第i层对应的新的可以扣除的水量
+			//		ExtracWater = (-Parptr->satFlowUpPD[index] > AvaWater) ? -AvaWater : Parptr->satFlowPD[index];
+			//		// 第i层的土壤湿度 - 需要扣除的比例
+			//		Parptr->multi_soilMoisturePD[lyr][index] += ExtracWater / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
+			//		if (Statesptr->save_poi == ON)
+			//		{
+			//			Poisptr->soil_lat_flowin_Grid[lyr][index] += ExtracWater * 100.0 * 3600 / Parptr->gwTstep;  // m -> cm/h
+			//			if (fabs(Poisptr->soil_lat_flowin_Grid[lyr][index]) <= 1e-8) {
+			//				Poisptr->soil_lat_flowin_Grid[lyr][index] = 0.0;
+			//			}
+			//			Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * 100.0;  // cm
+			//		}
+			//		// 给上个步长计算的SatFlow加上新的可以扣除的水量，看是否等于0，即之前第i层是否扣多了
+			//		Parptr->satFlowUpPD[index] -= ExtracWater;
+
+			//		//printf("SatFlow after layer %d is %.6f\n",i,SatFlow);
+			//		// 如果没扣多
+			//		if (fabs(Parptr->satFlowUpPD[index]) <= 1e-8) {
+			//			//cout << index << ": " << fabs(Parptr->satFlowPD[index]) << endl;
+			//			Parptr->satFlowUpPD[index] = 0.0;
+			//			break;
+			//		}
+			//	}
+			//}
+			// 如果是流入，就从最上层开始往下补给
+			//if (Parptr->satFlowUpPD[index] > 1e-8)
+			//{
+			//	for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++) {
+
+			//		WaterGap = (Parptr->multi_soilPorosityPD[lyr][index] - Parptr->multi_soilMoisturePD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+			//		ExtracWater = (Parptr->satFlowUpPD[index] > WaterGap) ? WaterGap : Parptr->satFlowUpPD[index];
+
+			//		Parptr->multi_soilMoisturePD[lyr][index] += ExtracWater / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
+			//		if (Statesptr->save_poi == ON)
+			//		{
+			//			Poisptr->soil_lat_flowin_Grid[lyr][index] = ExtracWater * 100.0 * 3600 / Parptr->gwTstep;   // m -> cm/h
+			//			if (fabs(Poisptr->soil_lat_flowin_Grid[lyr][index]) <= 1e-8) {
+			//				Poisptr->soil_lat_flowin_Grid[lyr][index] = 0.0;
+			//			}
+			//			Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * 100.0;  // cm
+			//		}
+			//		Parptr->satFlowUpPD[index] -= ExtracWater;
+			//		if (fabs(Parptr->satFlowUpPD[index]) <= 1e-8)
+			//			break;
+			//	
+			//	}
+
+			//	//// 如果土壤饱和了，壤中流还剩余，就补给到地表径流
+			//	if (Parptr->satFlowUpPD[index] > 1e-8) {
+			//	
+			//		Parptr->satFlow2SurfPD[index] += Parptr->satFlowUpPD[index] * row_cell_area;
+
+			//		if (Statesptr->save_poi == ON)
+			//		{
+			//			Poisptr->surf_water_depth_Grid[index] += Parptr->satFlowUpPD[index];
+			//		}
+
+			//	}
+
+			//}
+			// ******************************上层壤中流*********************************
+
+
+
+		}
+	}
+}
+
+float* getLatLongByIndex(int index, int grid_cols_padded, Pars *Parptr) {
+	int col = index % grid_cols_padded;
+	int row = index / grid_cols_padded;
+	// 计算像元中心点的经纬度
+	float lon = Parptr->blx + (col + 0.5) * Parptr->dx;
+	float lat = Parptr->tly - (row + 0.5) * Parptr->dy;
+
+	// 动态分配数组，返回 lat 和 lon
+	float* result = new float[2];
+
+	result[0] = lat;
+	result[1] = lon;
+	return result;
+}
+
+inline void RouteSubSurfaceUpLayer(const int row_start, int row_end,
+	Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
+	const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
+	NUMERIC_TYPE dx_col, NUMERIC_TYPE dy_col, WetDryRowBound* wet_dry_bounds, Pois*Poisptr, const NUMERIC_TYPE *dem_grid) {
+
+	NUMERIC_TYPE BankHeight;
+	NUMERIC_TYPE *Adjust;
+	NUMERIC_TYPE fract_used;
+	NUMERIC_TYPE depth;
+	NUMERIC_TYPE OutFlow;
+	NUMERIC_TYPE water_out_road;
+	NUMERIC_TYPE Transmissivity;
+	NUMERIC_TYPE AvailableWater;
+	int k;
+	int index;
+	NUMERIC_TYPE* waterLevelPD; NUMERIC_TYPE* subFlowGradPD; unsigned char **subDirPD; unsigned int *subTotalDirPD;
+
+	NUMERIC_TYPE Storage = 0.0;
+	NUMERIC_TYPE ExcessFCap = 0.0;
+
+	/* 省略 reset the saturated subsurface flow to zero */
+	for (int i = row_start; i < row_end; i++)
+	{
+		if (dem_row[i] != DEM_NO_DATA) {
+			// todo：先根据地下水位判断现在水位处于哪个层，如果不在表层，则：
+			// 如果下游是坡面:先根据上层的湿度计算上层的等效水位，找到水力坡降最大的方向，再用seims的方法计算有多少侧向水传递给下游，将这些侧向水流加入下游栅格的第一层，第一层满了则加入第二层，依次类推；
+			// 如果下游是河道，则上游根据上层的湿度计算上层的等效水位，下游水头取河道水面
+
+			// 省略 计算河床底部以上的侧面高程，如果BankHeight>土壤厚度说明/河床以上存在裸露岩石，反之说明河床高程之下是土壤
+			//Adjust = Parptr->multi_adjustPD[index];
+			fract_used = 0.0f;
+			water_out_road = 0.0;
+			int index = i + grid_row_index;
+			int source_index_this = row * Parptr->xsz + i;
+			// 计算河床底部以上的侧面高程，如果BankHeight>土壤厚度说明/河床以上存在裸露岩石，反之说明河床高程之下是土壤
+			//BankHeight = (Network[y][x].BankHeight > SoilMap[y][x].Depth) ?  SoilMap[y][x].Depth : Network[y][x].BankHeight;
+			// todo: 检查像元值对不对
+			BankHeight = Arrptr->SGCbfH[source_index_this] > Parptr->soilThicknessAllLyrsPD[index] ? Parptr->soilThicknessAllLyrsPD[index] : Arrptr->SGCbfH[source_index_this];
+			if (BankHeight < -1e-8)
+			{
+				cout << "index: " << index << BankHeight << endl;
+			}
+			//int curWaterTableUpLayer = 0;
+			NUMERIC_TYPE accSoilThickness = 0.0;
+			// 如果地下水位>第1层的土壤厚度，则计算地下水位现在处于哪一层
+			if (Parptr->tableDepthPD[index] > Parptr->multi_soilThicknessPD[0][index])
+			{
+				accSoilThickness = Parptr->multi_soilThicknessPD[0][index];
+				for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs - 1; lyr++)
+				{
+					// 如果地下水位在lyr层之下，则计算lyr层的水位深度
+					if (Parptr->tableDepthPD[index] > accSoilThickness)
+					{
+						Parptr->lyrOfWaterTableUpLayer[index]++;
+						accSoilThickness += Parptr->multi_soilThicknessPD[lyr + 1][index];
+						Parptr->tableDepthUpLyrPD[index] = 0.0;
+						// 如果第lyr层的土壤湿度超出田间持水量，则上层水位位于这一层，且水头深度等于第lyr层(土壤孔隙度-土壤湿度)*土壤厚度
+						if (Parptr->multi_soilMoisturePD[lyr][index] > Parptr->multi_soilFcPD[lyr][index])
+						{
+							Storage = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * (Parptr->multi_soilPorosityPD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]);
+							ExcessFCap = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]);
+
+							Parptr->tableDepthUpLyrPD[index] += (1 - ExcessFCap / Storage)*Parptr->multi_soilThicknessPD[lyr][index];
+						}// 否则上层水位深度直接加上当前层的土壤厚度
+						else {
+							Parptr->tableDepthUpLyrPD[index] += Parptr->multi_soilThicknessPD[lyr][index];
+						}
+					}
+				}
+				// 计算上层的地下水位
+				Parptr->waterLevelUpLyrPD[index] = dem_row[i] - Parptr->tableDepthUpLyrPD[index];
+				// 计算流向
+				HeadSlopeAspectForUpLyr(Parptr, Solverptr, Arrptr, grid_row_index, row, grid_rows, grid_cols, dem_row, row_start, row_end, grid_cols_padded, dx_col, dy_col, wet_dry_bounds, i);
+
+				// 假如地下水位在第2层，则对第1层进行计算;地下水位在第3层则对第1、2层计算
+				NUMERIC_TYPE curLyrAccThickness = 0.0;
+				for (int lyr = 0; lyr < Parptr->lyrOfWaterTableUpLayer[index]; lyr++)
+				{
+					// 如果是河道
+					if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0)) {
+						// 如果当前层的水位深度小于河堤，才能发生侧向流
+						if (Parptr->tableDepthUpLyrPD[index] > 0.0 && Parptr->tableDepthUpLyrPD[index] < BankHeight) {
+							// todo 根据SIMES or DHSVM的方法计算上层侧向流量，如果是根据DHSVM算，则直接套用原来的公式，需要理清cell grid soil thickness取上面的一两层土壤还是全部土层？
+							// 如果是SEIMS，则一层一层算小于curWaterTableUpLayer的土壤层的侧向水流
+							float gradient = 4.0 * (BankHeight - Parptr->tableDepthUpLyrPD[index]);
+							if (gradient < 0.0)
+								gradient = 0.0;
+							Transmissivity =
+								CalcTransmissivity(BankHeight, Parptr->tableDepthUpLyrPD[index],
+									Parptr->ksLatPD[index] * 0.001*0.000277778,
+									Parptr->KsLatExpValue,
+									Parptr->soilWaterDepthThresh);
+
+							OutFlow = (Transmissivity * gradient * Parptr->gwTstep) / row_cell_area;
+
+							/* check whether enough water is available for redistribution */
+							AvailableWater =
+								CalcAvailableWaterForUplyr(Parptr->lyrOfWaterTableUpLayer[index],     // todo：待验证
+									BankHeight, Parptr->multi_soilThicknessPD, Parptr->multi_soilPorosityPD, Parptr->multi_soilFcPD,
+									Parptr->tableDepthUpLyrPD, Parptr->multi_adjustPD, Parptr->multi_soilMoisturePD, index);
+							// 如果剩余可供侧向壤中流的水不够outFlow计算出来的应该流走的量，就只能流走AvailableWater
+							OutFlow = (OutFlow > AvailableWater) ? AvailableWater : OutFlow;
+
+							/* remove water going to channel from the grid cell */
+							Parptr->satFlowUpPD[index] -= OutFlow;
+
+							/* contribute to channel segment lateral inflow todo：这里认真检查是否加到河道上了 */
+							//channel_grid_inc_inflow(volume_grid, index, OutFlow * row_cell_area);
+							// 这个实现只能单线程
+							//Parptr->subSurfaceLatFlow2ChTotal += OutFlow * row_cell_area;
+							Parptr->satFlow2ChPD[index] += OutFlow * row_cell_area;
+						}
+					}
+					else {  // 如果是坡面
+						for (k = 0; k < NDIRS; k++) {
+							fract_used += (NUMERIC_TYPE)Parptr->subDirUpLyrPD[index][k];
+						}
+						if (Parptr->subTotalDirUpLyrPD[index] > 0)
+							fract_used /= (NUMERIC_TYPE)Parptr->subTotalDirUpLyrPD[index];
+						else
+							fract_used = 0.;
+
+						// 上层水位在土壤底部之上 
+						if (Parptr->tableDepthUpLyrPD[index] > 0.0 && Parptr->tableDepthUpLyrPD[index] < Parptr->soilThicknessAllLyrsPD[index]) {
+							// 地下水位在河道底部之下，depth取自身；否则，depth要取BankHeight，
+
+							Transmissivity = CalcTransmissivity(Parptr->soilThicknessAllLyrsPD[index], Parptr->tableDepthUpLyrPD[index],
+								Parptr->ksLatPD[index] * 0.001*0.000277778,  // 每个土壤柱的侧向饱和水力传导度是空间异质的
+								Parptr->KsLatExpValue,   // DHSVM每个土壤柱只对应单一的土壤类型，这里将KsLatExp设置为用户可调的参数
+								Parptr->soilWaterDepthThresh);
+
+							OutFlow = (Transmissivity * fract_used * Parptr->subFlowGradPD[index] * Parptr->gwTstep) / row_cell_area;
+
+							/* check whether enough water is available for redistribution ,AvailableWater (m)*/
+							AvailableWater =
+								CalcAvailableWaterForUplyr(Parptr->lyrOfWaterTableUpLayer[index],     // todo：待验证
+									Parptr->soilThicknessAllLyrsPD[index], Parptr->multi_soilThicknessPD, Parptr->multi_soilPorosityPD, Parptr->multi_soilFcPD,
+									Parptr->tableDepthUpLyrPD, Parptr->multi_adjustPD, Parptr->multi_soilMoisturePD, index);
+							OutFlow = (OutFlow > AvailableWater) ? AvailableWater : OutFlow;
+						}
+						else {
+							depth = Parptr->soilThicknessAllLyrsPD[index];
+							OutFlow = 0.0f;
+						}
+
+						/* Subsurface Component - Decrease water change by outwater */
+						Parptr->satFlowUpPD[index] -= OutFlow;
+
+						/* Assign the water to appropriate surrounding pixels */
+						if (Parptr->subTotalDirUpLyrPD[index] > 0)
+							OutFlow /= (NUMERIC_TYPE)Parptr->subTotalDirUpLyrPD[index];
+						else
+							OutFlow = 0.;
+
+						for (k = 0; k < NDIRS; k++) {
+							int neighbor_index = i + grid_row_index + Parptr->neighbor_ref[k];
+							int neighbor_row = row + Parptr->neighbor_row_ref[k];
+							int neighbor_col = i + Parptr->neighbor_col_ref[k];
+							if (valid_cell(neighbor_row, neighbor_col, wet_dry_bounds->dem_data[neighbor_row].start, wet_dry_bounds->dem_data[neighbor_row].end, grid_rows)) {
+								Parptr->satFlowUpPD[neighbor_index] += OutFlow * Parptr->subDirUpLyrPD[index][k];
+								Parptr->satFlow2NeiborPD[neighbor_index] = OutFlow * Parptr->subDirUpLyrPD[index][k] * row_cell_area;
+							}
+						}
+
+					}
+				}
 			}
 		}
 	}
 
-	 inline NUMERIC_TYPE SGC2_interflow_multilayer(
-		 const int row_start, int row_end,
-		 const NUMERIC_TYPE depth_thresh,
-		 Pars *Parptr, const Solver *Solverptr, int grid_row_index,
-		 const NUMERIC_TYPE * dem_row,
-		 NUMERIC_TYPE *interflow_runoff_vol,
-		 NUMERIC_TYPE *interflow_2ch_vol,
-		 const NUMERIC_TYPE row_cell_area
+	return;
+}
 
-		 //const NUMERIC_TYPE row_cell_area
-		 //NUMERIC_TYPE* interflow_Row_POI,
-	 )
-	 {
-		 float k = 0.f;   // mm/h
-		 float ks = 0.f;
-		 float maxSoilWaterVol = 0.f;
-		 float soilWaterVol = 0.f;
-		 float fieldCapacityVol = 0.f;
-		 float interflowMiosture = 0.f;
-		 float runoffVolCurStep = 0.f;
-		 NUMERIC_TYPE interflow_genVol = C(0.0);
-		 if (row_end - row_start > 0) {
-			 for (int row_i = row_start; row_i < row_end; row_i++)
-			 {
-				 // 问题1：SEIMS里的单元有明确的上下游关系，这里要使用流向tif直接作为上下游关系的依据，还是用土壤水位差作为上下游的依据？
-				 // 问题2：green-ampt假设有一个明确的湿润锋面，适合干旱区的入渗；有人将其改造为适合湿润区的，但
-				 // 我们用的casc2d里的greenampt是否适合湿润区的模拟？
-				 // 问题3：为什么要除以流长（单元上的河道长度），对我而言流长是否是一个栅格单元的宽度？
-				 if (dem_row[row_i] != DEM_NO_DATA) {
-					 int index = row_i + grid_row_index;
-					 for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++) {
-						 if (Parptr->multi_soilMoisturePD[lyr][index] < Parptr->multi_soilFcPD[lyr][index])
-						 {
-							 continue;
-						 }
-						 if (Parptr->multi_ksFactorVOfLyr[lyr] > 0.0)
-						 {
-							 ks = Parptr->multi_ksFactorVOfLyr[lyr] *  Parptr->multi_soilKsPD[lyr][index];
-						 }
-						 else
-						 {
-							 ks = Parptr->multi_soilKsPD[lyr][index];
-						 }
-						 maxSoilWaterVol = Parptr->multi_soilPorosityPD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index]   * row_cell_area;  // m3
-						 if (Parptr->multi_soilMoisturePD[lyr][index] > Parptr->multi_soilPorosityPD[lyr][index]) {
-							 k = ks;
-						 }
-						 else {
-							 /// Using Clapp and Hornberger (1978) equation to calculate unsaturated hydraulic conductivity.
-							 float dcIndex = 2.f * Parptr->multi_soilPoreIndexPD[lyr][index] + 2.f; // pore disconnectedness index
-							 k = ks * pow(Parptr->multi_soilMoisturePD[lyr][index] / Parptr->multi_soilPorosityPD[lyr][index], dcIndex);
-							 //if (k <= 0.000001) k = 0.f;
-						 }
-						 // 1. / 3600. = 0.0002777777777777778
-						 // 当前土壤水分的当量水量
-						 soilWaterVol = Parptr->multi_soilThicknessPD[lyr][index]  * Parptr->multi_soilMoisturePD[lyr][index] * row_cell_area;  // m3
-						 // 田间持水量的当量水量
-						 fieldCapacityVol = Parptr->multi_soilThicknessPD[lyr][index]  * Parptr->multi_soilFcPD[lyr][index] * row_cell_area;
-						 // interflowGenVolPD m3,k from mm/h -> m/s
-						 if (Parptr->slopePD[index] <= 0.0)
-						 {
-							 Parptr->slopePD[index] = 0.001;
-						 }
-						 // 加一个lag系数，汇流（SWAT文档，问娇娇）
-						 Parptr->multi_interflowGenVolPD[lyr][index] = Parptr->multi_interflowCsValueOfLyr[lyr] * Parptr->multi_soilThicknessPD[lyr][index]  * Parptr->slopePD[index]
-							 * k * 0.0002777777777777778 * 0.001 * Parptr->multi_soilMoisturePD[lyr][index] * sqrt(row_cell_area)  * 	Solverptr->SGCtmpTstep;    // m3
+float WaterTableDepth(Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, Pois*Poisptr, const NUMERIC_TYPE row_cell_area, int NSoilLayers, int NRootLayers, int index)
+{
+	NUMERIC_TYPE DeepFCap = 0.0;				/* field capacity of the layer below the deepest root layer */
+	NUMERIC_TYPE DeepLayerDepth = 0.0;		/* depth of layer below deepest root zone layer */
+	NUMERIC_TYPE DeepPorosity = 0.0;			/* porosity of the layer below the deepest  root layer */
+	NUMERIC_TYPE TableDepth = 0.0;				/* depth of the water table (m) */
+	NUMERIC_TYPE MoistureTransfer;				/* amount of soil moisture transferred from the current layer to the layer above (m) */
+	int i;																/* counter */
+	NUMERIC_TYPE TotalStorage = 0.0;
+	NUMERIC_TYPE ExcessFCap = 0.0;
+	NUMERIC_TYPE Storage = 0.0;
+	NUMERIC_TYPE DeepStorage = 0.0;
+	NUMERIC_TYPE DeepExcessFCap = 0.0;
 
-						 //Parptr->multi_interflowGenVolPD[lyr][index] = Parptr->multi_interflowCsValueOfLyr[lyr] * Parptr->multi_soilThicknessPD[lyr][index] * 0.01f * Parptr->slopePD[index]
-							// * k * 0.0002777777777777778 * 0.001 * Parptr->multi_soilMoisturePD[lyr][index] * sqrt(row_cell_area)  * 	Solverptr->SGCtmpTstep;    // m3
+	MoistureTransfer = 0.0;
 
-						 // the unit is mm
-						 // 如果地下水储量 - 地下水径流量后，依然超出土壤孔隙度（土壤最大储水量），则地下水径流量=土壤水储量-最大储水量，原有逻辑感觉适合日尺度，不适合秒尺度
-						 // 改为即便超饱和，地下水径流仍然以ks为速率流失, 避免出现河道流量突变
-						 //if (soilWaterDep - interflowDep > maxSoilWaterDep) {
-						 //	Parptr->multi_interflowGenVolPD[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] - maxSoilWaterDep;
-						 //}
-						 if (soilWaterVol - Parptr->multi_interflowGenVolPD[lyr][index] > maxSoilWaterVol) {
-							 Parptr->multi_interflowGenVolPD[lyr][index] = soilWaterVol - maxSoilWaterVol;
-						 }
-						 else if (soilWaterVol - Parptr->multi_interflowGenVolPD[lyr][index] < fieldCapacityVol) {
-							 // 如果 减去后，小于田间持水量，则壤中流=土壤水储量-田间持水量，xiaodw
-							 Parptr->multi_interflowGenVolPD[lyr][index] = soilWaterVol - fieldCapacityVol;
-						 }
-						 Parptr->multi_interflowGenVolPD[lyr][index] = Max(0.f, Parptr->multi_interflowGenVolPD[lyr][index]);
-						 interflowMiosture = Parptr->multi_interflowGenVolPD[lyr][index] / (row_cell_area * Parptr->multi_soilThicknessPD[lyr][index] );  // m3/m3
 
-						 // 土壤水储量 - 壤中流径流量
-						 Parptr->multi_soilMoisturePD[lyr][index] -= interflowMiosture;
-						 //*interflowAvgBlock = *interflowAvgBlock + Parptr->multi_interflowGenVolPD[lyr][index];
-						 interflow_genVol += Parptr->multi_interflowGenVolPD[lyr][index];
+	DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
+	DeepPorosity = Parptr->multi_soilPorosityPD[NRootLayers][index];  // RootLayers的最后一层不是DeepLayer
+	DeepFCap = Parptr->multi_soilFcPD[NRootLayers][index];
 
-						 // 根据滞后系数计算实际汇流的量=(当前步长产流+之前的积累量)*滞后系数
-						 if (Parptr->interflow_lagindex > 0.0)
-						 {
-							 Parptr->multi_interflow2ChVolPD[lyr][index] = (Parptr->multi_interflowGenVolPD[lyr][index] + Parptr->multi_interflowRunoffVolPD[lyr][index]) * Parptr->interflow_lagindex;
-						 }
-						 else
-						 {
-							 Parptr->multi_interflow2ChVolPD[lyr][index] = (Parptr->multi_interflowGenVolPD[lyr][index] + Parptr->multi_interflowRunoffVolPD[lyr][index]) *
-								 (1 - exp(-Parptr->interflow_surlag / (Parptr->interflow_t_conc)));
-							 //Parptr->multi_interflow2ChVolPD[lyr][index] = (Parptr->multi_interflowGenVolPD[lyr][index] + Parptr->multi_interflowRunoffVolPD[lyr][index]) * (1 - exp(-Parptr->interflow_surlag / (Parptr->interflow_t_conc / (Solverptr->SGCtmpTstep * 0.00027777f))));
-						 }
+	for (int lyr = 0; lyr < NRootLayers; lyr++)
+		DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
 
-						 //cout << index << "  " << Parptr->multi_interflow2ChVolPD[lyr][index] << "   " << Parptr->multi_interflowGenVolPD[lyr][index] << "   " << Parptr->multi_interflowRunoffVolPD[lyr][index] << endl;
-						 // 更新壤中流形成的地表径流的库存量
-						 Parptr->multi_interflowRunoffVolPD[lyr][index] = Parptr->multi_interflowRunoffVolPD[lyr][index] + Parptr->multi_interflowGenVolPD[lyr][index] - Parptr->multi_interflow2ChVolPD[lyr][index];
-						 *interflow_2ch_vol = *interflow_2ch_vol + Parptr->multi_interflow2ChVolPD[lyr][index];
-						 *interflow_runoff_vol = *interflow_runoff_vol + Parptr->multi_interflowRunoffVolPD[lyr][index];
-					 }
-				 }
-			 }
-		 }
-		 return interflow_genVol;
-	 }
-	//-----------------------------------------------------------------------------
-	// FLOODPLAIN EVAPORATION
-	// with correction for sub grid channels
-	inline NUMERIC_TYPE SGC2_Evaporation_floodplain_row(
-		const States *Statesptr, const int row_start, int row_end,
-		const NUMERIC_TYPE depth_thresh,
-		const NUMERIC_TYPE row_cell_area,
-		const NUMERIC_TYPE evap_deltaH_step,
-		const NUMERIC_TYPE * evap_row,
-		const NUMERIC_TYPE * h_row,
-		NUMERIC_TYPE * volume_row, NUMERIC_TYPE * soilWaterDepth, NUMERIC_TYPE * soilMoisture, NUMERIC_TYPE * soilThickness, const int grid_row_index, NUMERIC_TYPE *Evap_Row_POI, NUMERIC_TYPE *soil_water_depth_row_POI)
-	{
-	#ifdef __INTEL_COMPILER
-		__assume_aligned(h_row, 64);
-		__assume_aligned(volume_row, 64);
-	#endif
-
-		NUMERIC_TYPE evap_loss = C(0.0);
-	#pragma ivdep
-	#pragma simd
-		for (int i = row_start; i < row_end; i++)
+	/* Redistribute soil moisture.  I.e. water from supersaturated layers is
+	transferred to the layer immediately above */
+	// 如果deeplayer超饱和了，就计算其向上层传递多少水mm
+	if (Parptr->multi_soilMoisturePD[NRootLayers][index] - DeepPorosity >= -1e-8) {
+		MoistureTransfer = (Parptr->multi_soilMoisturePD[NRootLayers][index] - DeepPorosity) * DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index];
+		if (MoistureTransfer <= 1e-8)
 		{
-			NUMERIC_TYPE h_new, dV = C(0.0);
-			NUMERIC_TYPE soil_water_depth_old, soil_water_depth_new, soil_moisture_new = C(0.0);
-			NUMERIC_TYPE h_old = h_row[i];
-			NUMERIC_TYPE evap_deltaV_step = evap_row[i] * row_cell_area;
-			int index = grid_row_index + i;
-			if (h_old > depth_thresh) // There is water to evaporate on the flood plain
+			MoistureTransfer = 0.0;
+		}
+		// 将最下层的湿度更新为土壤孔隙度
+
+		Parptr->multi_soilMoisturePD[NRootLayers][index] = DeepPorosity;
+
+		if (Statesptr->save_poi == ON)
+		{
+
+			Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
+
+		}
+		// 逐层向上计算
+		for (int lyr = NRootLayers - 1; lyr >= 0; lyr--) {
+
+			Parptr->multi_soilMoisturePD[lyr][index] += MoistureTransfer / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
+
+			// 移动湿润锋面
+			if (Statesptr->use_change_acccum_depth && lyr == 0)
 			{
-				// update depth by subtracting evap depth
-				h_new = h_old - evap_row[i];
-				//check for -ve depths
-				if (h_new < C(0.0))
+				Parptr->accumuDepthPD[index] += MoistureTransfer * 1000.0;
+				if (Parptr->accumuDepthPD[index] < 1e-8)
 				{
-					// reduce evap loss to account for dry bed (don't go below 0)
-					dV = h_old * row_cell_area;
+					Parptr->accumuDepthPD[index] = 0.0;
 				}
-				else
+				if (Parptr->accumuDepthPD[index] > Parptr->multi_soilThicknessPD[lyr][index] * 1000.0)
 				{
-					dV = evap_deltaV_step;
+					Parptr->accumuDepthPD[index] = Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
 				}
-				volume_row[i] -= dV;
 			}
-			else if (soilMoisture[i] > 0.0) {
-				// 土壤水蒸发
-				soilWaterDepth[i] = soilMoisture[i] * soilThickness[i];
-				soil_water_depth_new = soilWaterDepth[i] - evap_row[i];
-				
-				if (soil_water_depth_new < 0.0)
+
+			if (Statesptr->save_poi == ON)
+			{
+				if (MoistureTransfer <= 1e-8)
 				{
-					dV = soilWaterDepth[i] * row_cell_area;
+					MoistureTransfer = 0.0;
 				}
-				else
+
+				//Poisptr->soil_perc_Grid[lyr][index] -= MoistureTransfer * 1000.0 / (Parptr->multi_adjustPD[lyr][index]);  // m/gwstep->mm/gwstep  相对于自己的深度变化
+				Poisptr->soil_perc_Grid[lyr][index] -= MoistureTransfer * 1000.0;  // m/gwstep->mm/gwstep  相对于自己的深度变化
+				Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // mm
+
+			}
+			//Parptr->multi_soilPercoPD[lyr][index] -= MoistureTransfer / Parptr->multi_adjustPD[lyr][index];
+			Parptr->multi_soilPercoPD[lyr][index] -= MoistureTransfer;
+			// 如果这一层也饱和了
+			if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index] >= -1e-8) {
 				{
-					dV = evap_deltaV_step;
+					MoistureTransfer = (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index]) * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
 				}
-				soilWaterDepth[i] -= dV / row_cell_area;
-				soilMoisture[i] -= dV / row_cell_area / soilThickness[i];
-				if (soilMoisture[i] < 0.0)
+				if (MoistureTransfer <= 1e-8)
 				{
-					soilWaterDepth[i] = 0.0;
-					soilMoisture[i] = 0.0;
+					MoistureTransfer = 0.0;
 				}
-				//volume_row[i] -= dV;
+
+				Parptr->multi_soilMoisturePD[lyr][index] = Parptr->multi_soilPorosityPD[lyr][index];
+
+				if (Statesptr->save_poi == ON)
+				{
+					//Poisptr->soil_perc_Grid[lyr][index] -= MoistureTransfer * 1000.0 / (Parptr->multi_adjustPD[lyr][index]);  // m/gwstep->mm/gwstep
+					Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // cm
+
+				}
+			}
+			else {
+				MoistureTransfer = 0.0;
+				break;
+			}
+		}
+	}
+	else {
+		// 如果deeplayer没有超饱和，则不向上补给
+		MoistureTransfer = 0.0;
+	}
+	// 如果每一层都饱和了，则淹没地表，TableDepth为负值
+	if (MoistureTransfer >= 1e-8) {
+		/* Surface ponding occurs */
+		TableDepth = -MoistureTransfer;
+		if (Statesptr->save_poi == ON)
+		{
+
+			Poisptr->surf_water_depth_Grid[index] += -TableDepth * 1000.0;  // cm
+
+		}
+	}
+	else {
+		/* Warning added by Pascal Storck, 08/15/2000 */
+		/* Based on a single bad parameter in a DHSVM input file (a third layer
+		vertical hydraulic conductivity that was 10 times smaller than the layer
+		above it), it was noted that DHSVM can develop what are basically perched
+		water tables.  These perched water tables greatly complicate the calculation
+		of the pixel water table depth because the soil below the perched table
+		is not completely saturated above field capacity.
+		For example, if we have three soil layers and a deep layer, all 1 meter thick,
+		and we saturate the second layer from the surface, what is, or should be, the water
+		table depth. Should we allow subsurface flow to occur, should we include the saturation
+		of disconnected overlying layers in the calculation of the hydraulic gradient.
+		At this point, just be cautious.  Using any combination of soil parameters or
+		intial water states which can cause the lower layers of the soil profile
+		to drain more quickly than water can flow down through the matrix will
+		result in mass balance problems.  I.e. water will be forced out of the cell
+		to the downslope, this water will be taken from the deepest soil layer, which
+		can cause the deep layer soil moisture to go negative. */
+
+		DeepStorage = DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index] * (DeepPorosity - DeepFCap);  // deeplayer最多容纳多少水
+		DeepExcessFCap = DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index] * (Parptr->multi_soilMoisturePD[NRootLayers][index] - DeepFCap);  // deeplayer当前的水量-田间持水量
+		// 如果deeplayer层不满
+		if (DeepExcessFCap <= -1e-8) {
+			TableDepth = Parptr->soilThicknessAllLyrsPD[index];  // deeplayer层的水也小于田间持水量，则地下水位设置为土壤厚度
+		}
+		else {
+			// 从下到上逐层判断地下水埋深在哪一层
+			TableDepth = Parptr->soilThicknessAllLyrsPD[index] - (DeepExcessFCap / DeepStorage)*DeepLayerDepth;   //  超出deeplayer以上的水深 = 土壤总厚度 -  deeplayer现存水量占deeplayer孔隙度的%数  * deeplayer的厚度
+
+			if (Parptr->multi_soilMoisturePD[NRootLayers][index] - DeepPorosity >= -1e-8) {
+				for (int lyr = NRootLayers - 1; lyr >= 0; lyr--) {
+					Storage = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * (Parptr->multi_soilPorosityPD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]);
+					ExcessFCap = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] * (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]);
+					// ExcessFCap < 0 意味着第i层土壤湿度小于田间持水量，则水位仍停留在下一层，一点也不涨
+					if (ExcessFCap < 0.0)
+						ExcessFCap = 0.0f;
+					// 如果第i层没饱和，根据第i层的土壤湿度计算地下水埋深
+					if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index] <= -1e-8) {
+						TableDepth -= (ExcessFCap / Storage)*Parptr->multi_soilThicknessPD[lyr][index];
+						break;
+
+					}
+					else {
+						// 如果第i层饱和了，地下水埋深中就减去第i层的厚度
+						TableDepth -= Parptr->multi_soilThicknessPD[lyr][index];
+					}
+				}
+			}
+		}
+	}
+	//printf("Table Depth is %.6f\n",TableDepth);
+	if (TableDepth - Parptr->soilThicknessAllLyrsPD[index] > 1e-8)
+		printf("TableDepth = %.4f, TotalDepth = %.4f\n", TableDepth, Parptr->soilThicknessAllLyrsPD[index]);
+	if (fabs(TableDepth - TableDepth) > 1e-8)
+		printf("TableDepth = %.2f", TableDepth);
+
+
+	return TableDepth;
+}
+
+
+
+inline void UnsaturatedFlow(const int row_start, int row_end,
+	Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
+	const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
+	int NSoilLayers, int NRootLayers, Pois*Poisptr)
+{
+	float DeepDrainage;		/* amount of drainage from the lowest root
+								 zone to the layer below it (m) */
+	float DeepLayerDepth;		/* depth of the layer below the deepest root layer */
+	float Drainage;		    /* amount of water drained from each soil
+								 layer during the current timestep */
+	float Exponent;		    /* Brooks-Corey exponent */
+	float FieldCapacity;		/* amount of water in soil at field capacity (m) */
+	float MaxSoilWater;		/* maximum allowable amount of soil moiture in each layer (m) */
+	float SoilWater;		    /* amount of water in each soil layer (m) */
+
+	for (int i = row_start; i < row_end; i++)
+	{
+		if (dem_row[i] != DEM_NO_DATA) {
+			int index = i + grid_row_index;
+			DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
+			for (int lyr = 0; lyr < NRootLayers; lyr++)
+				DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
+
+			// xiaodw, 这里思路是先计算渗漏量，即使下层超饱和了，上层也向下层渗漏。在WaterTableDepth方法中再从下层往上层计算淹没，纠正过来
+			/* from top to bottom soil layer */
+
+			for (int lyr = 0; lyr < NRootLayers; lyr++) {
+
+				/* No movement if soil moisture is below field capacity */
+				if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index] >= 1e-8) {
+					Exponent = 2.0 / Parptr->multi_soilPoreIndexPD[lyr][index] + 3.0;
+
+					if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index] >= 1e-8)
+						/* this can happen because the moisture content can exceed the
+						porosity the way the algorithm is implemented */
+						Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr];
+					else
+						Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr] * pow((double)(Parptr->multi_soilMoisturePD[lyr][index] / Parptr->multi_soilPorosityPD[lyr][index]), (double)Exponent);
+					/* convert from mm/h to m */
+					Drainage = Drainage * Parptr->gwTstep * 0.0002777778 * 0.001;
+
+					/* percolation = drainage + perc from layer above渗透量（Perc[lyr]），它是当前步长与上步长渗透量的平均。 */
+					//Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * row_cell_area;  这里注释掉是因为都不按照体积计算，统一按照深度计算 
+					// xiaodw, 对河道只有两侧洪泛区发生渗漏 
+					Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * Parptr->multi_adjustPD[lyr][index];
+
+					// Parptr->multi_adjustPD[lyr][index]是为了调整河道所在栅格的土壤层的体积
+					MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+					SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+					FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+					//MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index];
+					//SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index];
+					//FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index];
+
+					/* No unsaturated flow if the moisture content drops below field capacity */
+
+					if ((SoilWater - Parptr->multi_soilPercoPD[lyr][index] - FieldCapacity) <= 1e-8) {
+						Parptr->multi_soilPercoPD[lyr][index] = SoilWater - FieldCapacity;
+					}
+
+					// 如果按照正常的扣除渗漏后，还是过饱和，则将过饱和的水都加入渗漏量
+					SoilWater -= Parptr->multi_soilPercoPD[lyr][index];
+					if (SoilWater - MaxSoilWater >= 1e-8) {
+						Parptr->multi_soilPercoPD[lyr][index] += SoilWater - MaxSoilWater;
+					}
+
+					/* Adjust the moisture content in the current layer, and the layer immediately below it */
+					Parptr->multi_soilMoisturePD[lyr][index] -= Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
+					//Parptr->multi_soilMoisturePD[lyr][index] -= Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr][index]);
+
+					if (lyr < (NRootLayers - 1)) {
+
+						//Parptr->multi_soilMoisturePD[lyr + 1][index] += Parptr->multi_soilPercoPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr + 1][index] * Parptr->multi_adjustPD[lyr + 1][index]);
+						Parptr->multi_soilMoisturePD[lyr + 1][index] += Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr + 1][index] * Parptr->multi_adjustPD[lyr + 1][index]);
+
+					}
+					if (Statesptr->use_change_acccum_depth && lyr == 0)
+					{
+						Parptr->accumuDepthPD[index] -= Parptr->multi_soilPercoPD[lyr][index] * 1000.0;
+						if (Parptr->accumuDepthPD[index] < 1e-8)
+						{
+							Parptr->accumuDepthPD[index] = 0.0;
+						}
+						if (Parptr->accumuDepthPD[index] > Parptr->multi_soilThicknessPD[lyr][index] * 1000.0)
+						{
+							Parptr->accumuDepthPD[index] = Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
+						}
+					}
+				}
+				else {
+					Parptr->multi_soilPercoPD[lyr][index] = 0.0;
+				}
+				Parptr->multi_soilWaterDepthPD[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
+				if (Statesptr->save_poi == ON)
+				{
+					//Poisptr->soil_perc_Grid[lyr][index] = Parptr->multi_soilPercoPD[lyr][index] * 100.0 * 3600 / Parptr->gwTstep;  // m->cm /h
+					Poisptr->soil_perc_Grid[lyr][index] += Parptr->multi_soilPercoPD[lyr][index] * 1000.0;  // m/gwstep->mm /gwstep
+					Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // mm
+
+				}
+
+				/* convert back to straight 1-d flux */
+				//Parptr->multi_soilPercoPD[lyr][index] /= row_cell_area;
+			}
+
+			// 之前是直接从最下层扣除侧向壤中流
+			/* Change: dont extract outflow from the bottom layer only. The new function DistributeSatFlow
+			extract water from top to bottom layer to avoid negative soil mositure (overdraw) in the bottom
+			layer (below root zone layers */
+			/* DeepDrainage = (Perc[NSoilLayers - 1] * PercArea[NSoilLayers - 1]) + SatFlow; */
+
+			//DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index] * row_cell_area);
+			DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index]);
+			//DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index] * Parptr->multi_adjustPD[NRootLayers - 1][index]);
+
+			Parptr->multi_soilMoisturePD[NRootLayers][index] += DeepDrainage / (DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index]);
+
+			if (Statesptr->save_poi == ON)
+			{
+				Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
+			}
+
+			/* Calculate the depth of the water table based on the soil moisture
+			profile and adjust the soil moisture profile, to assure that the soil
+			moisture is never more than the maximum allowed soil moisture amount,
+			i.e. the porosity.  A negative water table depth means that the water is
+			ponding on the surface.  This amount of water becomes surface Runoff */
+
+			Parptr->tableDepthPD[index] = WaterTableDepth(Parptr, Solverptr, Arrptr, Statesptr, Poisptr, row_cell_area, NSoilLayers, NRootLayers, index);
+
+
+			// 地下水位高出地表
+			if (Parptr->tableDepthPD[index] <= -1e-8) {
+				//volume_grid[index] += -(Parptr->tableDepthPD[index]) * row_cell_area;
+				//Parptr->PercExcess2SurfPD[index] += -(Parptr->tableDepthPD[index]) * row_cell_area;
+
+				Parptr->tableDepthPD[index] = 0.0;
+
+			}
+
+		}
+	}
+}
+
+
+inline void UnsaturatedFlowGwVersion(const int row_start, int row_end,
+	Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
+	const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
+	int NSoilLayers, int NRootLayers, Pois*Poisptr)
+{
+	NUMERIC_TYPE DeepDrainage;		/* amount of drainage from the lowest root
+								 zone to the layer below it (m) */
+	NUMERIC_TYPE DeepLayerDepth;		/* depth of the layer below the deepest root layer */
+	NUMERIC_TYPE Drainage;		    /* amount of water drained from each soil
+								 layer during the current timestep */
+	NUMERIC_TYPE Exponent;		    /* Brooks-Corey exponent */
+	NUMERIC_TYPE FieldCapacity;		/* amount of water in soil at field capacity (m) */
+	NUMERIC_TYPE MaxSoilWater;		/* maximum allowable amount of soil moiture in each layer (m) */
+	NUMERIC_TYPE SoilWater;		    /* amount of water in each soil layer (m) */
+	NUMERIC_TYPE gwDrainage;
+
+	for (int i = row_start; i < row_end; i++)
+	{
+		if (dem_row[i] != DEM_NO_DATA) {
+			int index = i + grid_row_index;
+			DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
+			for (int lyr = 0; lyr < NRootLayers; lyr++)
+				DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
+
+			// xiaodw, 这里思路是先计算渗漏量，即使下层超饱和了，上层也向下层渗漏。在WaterTableDepth方法中再从下层往上层计算淹没，纠正过来
+			// xiaodw，把最下层向地下水库的渗漏也计算出来
+			/* from top to bottom soil layer */
+
+			for (int lyr = 0; lyr <= NRootLayers; lyr++) {
+
+				/* No movement if soil moisture is below field capacity */
+				if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index] >= 1e-8) {
+					Exponent = 2.0 / (Parptr->multi_soilPoreIndexPD[lyr][index] * Parptr->poreIndexScaleFactor) + 3.0;
+
+					if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index] >= 1e-8)
+						/* this can happen because the moisture content can exceed the
+						porosity the way the algorithm is implemented */
+						Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr];
+					else
+						Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr] * pow((double)(Parptr->multi_soilMoisturePD[lyr][index] / Parptr->multi_soilPorosityPD[lyr][index]), (double)Exponent);
+					/* convert from mm/h to m */
+					Drainage = Drainage * Parptr->gwTstep * 0.0002777778 * 0.001;
+
+					/* percolation = drainage + perc from layer above渗透量（Perc[lyr]），它是当前步长与上步长渗透量的平均。 */
+					//Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * row_cell_area;  这里注释掉是因为都不按照体积计算，统一按照深度计算 
+					// xiaodw, 对河道只有两侧洪泛区发生渗漏 
+					Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * Parptr->multi_adjustPD[lyr][index];
+
+					// Parptr->multi_adjustPD[lyr][index]是为了调整河道所在栅格的土壤层的体积
+					MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+					SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+					FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+					//MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index];
+					//SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index];
+					//FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index];
+
+					/* No unsaturated flow if the moisture content drops below field capacity */
+
+					if ((SoilWater - Parptr->multi_soilPercoPD[lyr][index] - FieldCapacity) <= 1e-8) {
+						Parptr->multi_soilPercoPD[lyr][index] = SoilWater - FieldCapacity;
+					}
+
+					// 如果按照正常的扣除渗漏后，还是过饱和，则将过饱和的水都加入渗漏量
+					SoilWater -= Parptr->multi_soilPercoPD[lyr][index];
+					if (SoilWater - MaxSoilWater >= 1e-8) {
+						Parptr->multi_soilPercoPD[lyr][index] += SoilWater - MaxSoilWater;
+					}
+
+					// 最后一层只计算有多少水渗漏，不计算下一层的土壤湿度变化
+
+					/* Adjust the moisture content in the current layer, and the layer immediately below it */
+					Parptr->multi_soilMoisturePD[lyr][index] -= Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
+					//Parptr->multi_soilMoisturePD[lyr][index] -= Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr][index]);
+
+					if (lyr < (NRootLayers - 1)) {
+
+						//Parptr->multi_soilMoisturePD[lyr + 1][index] += Parptr->multi_soilPercoPD[lyr][index] * Parptr->multi_adjustPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr + 1][index] * Parptr->multi_adjustPD[lyr + 1][index]);
+						Parptr->multi_soilMoisturePD[lyr + 1][index] += Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr + 1][index] * Parptr->multi_adjustPD[lyr + 1][index]);
+
+					}
+					if (Statesptr->use_change_acccum_depth && lyr == 0)
+					{
+						Parptr->accumuDepthPD[index] -= Parptr->multi_soilPercoPD[lyr][index] * 1000.0;
+						if (Parptr->accumuDepthPD[index] < 1e-8)
+						{
+							Parptr->accumuDepthPD[index] = 0.0;
+						}
+						if (Parptr->accumuDepthPD[index] > Parptr->multi_soilThicknessPD[lyr][index] * 1000.0)
+						{
+							Parptr->accumuDepthPD[index] = Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
+						}
+					}
+
+
+
+				}
+				else {
+					Parptr->multi_soilPercoPD[lyr][index] = 0.0;
+				}
+				Parptr->multi_soilWaterDepthPD[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
+				if (Statesptr->save_poi == ON)
+				{
+					//Poisptr->soil_perc_Grid[lyr][index] = Parptr->multi_soilPercoPD[lyr][index] * 100.0 * 3600 / Parptr->gwTstep;  // m->cm /h
+					Poisptr->soil_perc_Grid[lyr][index] += Parptr->multi_soilPercoPD[lyr][index] * 1000.0;  // m/gwstep->mm /gwstep
+					Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // mm
+
+				}
+
+				/* convert back to straight 1-d flux */
+				//Parptr->multi_soilPercoPD[lyr][index] /= row_cell_area;
+			}
+
+			// 之前是直接从最下层扣除侧向壤中流
+			/* Change: dont extract outflow from the bottom layer only. The new function DistributeSatFlow
+			extract water from top to bottom layer to avoid negative soil mositure (overdraw) in the bottom
+			layer (below root zone layers */
+			/* DeepDrainage = (Perc[NSoilLayers - 1] * PercArea[NSoilLayers - 1]) + SatFlow; */
+
+			//DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index] * row_cell_area);
+			DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index]);
+			//DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index] * Parptr->multi_adjustPD[NRootLayers - 1][index]);
+
+			Parptr->multi_soilMoisturePD[NRootLayers][index] += DeepDrainage / (DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index]);
+
+			if (Statesptr->save_poi == ON)
+			{
+				Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
+			}
+
+			/* Calculate the depth of the water table based on the soil moisture
+			profile and adjust the soil moisture profile, to assure that the soil
+			moisture is never more than the maximum allowed soil moisture amount,
+			i.e. the porosity.  A negative water table depth means that the water is
+			ponding on the surface.  This amount of water becomes surface Runoff */
+
+			Parptr->tableDepthPD[index] = WaterTableDepth(Parptr, Solverptr, Arrptr, Statesptr, Poisptr, row_cell_area, NSoilLayers, NRootLayers, index);
+
+
+			// 地下水位高出地表
+			if (Parptr->tableDepthPD[index] <= -1e-8) {
+				//volume_grid[index] += -(Parptr->tableDepthPD[index]) * row_cell_area;
+				//Parptr->PercExcess2SurfPD[index] += -(Parptr->tableDepthPD[index]) * row_cell_area;
+
+				Parptr->tableDepthPD[index] = 0.0;
+
+			}
+
+		}
+	}
+}
+
+inline void CalSoilPerc(Pars *Parptr, int index, int lyr) {
+
+	float Drainage;		    /* amount of water drained from each soil
+								 layer during the current timestep */
+	float Exponent;		    /* Brooks-Corey exponent */
+	float FieldCapacity;		/* amount of water in soil at field capacity (m) */
+	float MaxSoilWater;		/* maximum allowable amount of soil moiture in each layer (m) */
+	float SoilWater;		    /* amount of water in each soil layer (m) */
+
+	Exponent = 2.0 / Parptr->multi_soilPoreIndexPD[lyr][index] + 3.0;
+
+	if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilPorosityPD[lyr][index] >= 1e-8)
+		/* this can happen because the moisture content can exceed the
+		porosity the way the algorithm is implemented */
+		Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr];
+	else
+		Drainage = Parptr->multi_soilKsPD[lyr][index] * Parptr->multi_ksFactorVOfLyr[lyr] * pow((double)(Parptr->multi_soilMoisturePD[lyr][index] / Parptr->multi_soilPorosityPD[lyr][index]), (double)Exponent);
+	/* convert from mm/h to m */
+	Drainage = Drainage * Parptr->gwTstep * 0.0002777778 * 0.001;
+
+	/* percolation = drainage + perc from layer above渗透量（Perc[lyr]），它是当前步长与上步长渗透量的平均。 */
+	//Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * row_cell_area;  这里注释掉是因为都不按照体积计算，统一按照深度计算 
+	// xiaodw, 对河道只有两侧洪泛区发生渗漏 
+	Parptr->multi_soilPercoPD[lyr][index] = 0.5 * (Parptr->multi_soilPercoPD[lyr][index] + Drainage) * Parptr->multi_adjustPD[lyr][index];
+
+	// Parptr->multi_adjustPD[lyr][index]是为了调整河道所在栅格的土壤层的体积
+	MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+	SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+	FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index] * Parptr->multi_adjustPD[lyr][index];
+	//MaxSoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilPorosityPD[lyr][index];
+	//SoilWater = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index];
+	//FieldCapacity = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index];
+
+	/* No unsaturated flow if the moisture content drops below field capacity */
+
+	if ((SoilWater - Parptr->multi_soilPercoPD[lyr][index] - FieldCapacity) <= 1e-8) {
+		Parptr->multi_soilPercoPD[lyr][index] = SoilWater - FieldCapacity;
+	}
+
+	// 如果按照正常的扣除渗漏后，还是过饱和，则将过饱和的水都加入渗漏量
+	SoilWater -= Parptr->multi_soilPercoPD[lyr][index];
+	if (SoilWater - MaxSoilWater >= 1e-8) {
+		Parptr->multi_soilPercoPD[lyr][index] += SoilWater - MaxSoilWater;
+	}
+
+}
+
+inline void UnsaturatedFlowGwVersionV2(const int row_start, int row_end,
+	Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, States *Statesptr, int grid_row_index, int row, const int grid_rows, const int grid_cols,
+	const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE row_cell_area, const int grid_cols_padded, NUMERIC_TYPE * volume_grid,
+	int NSoilLayers, int NRootLayers, Pois*Poisptr)
+{
+	float DeepDrainage;		/* amount of drainage from the lowest root zone to the layer below it (m) */
+	float DeepLayerDepth;		/* depth of the layer below the deepest root layer */
+	float Drainage;		    /* amount of water drained from each soil layer during the current timestep (m) */
+	float Exponent;		    /* Brooks-Corey exponent */
+	float FieldCapacity;		/* amount of water in soil at field capacity (m) */
+	float MaxSoilWater;		/* maximum allowable amount of soil moiture in each layer (m) */
+	float SoilWater;		    /* amount of water in each soil layer (m) */
+
+
+	for (int i = row_start; i < row_end; i++)
+	{
+		if (dem_row[i] != DEM_NO_DATA) {
+			int index = i + grid_row_index;
+			//DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
+			//for (int lyr = 0; lyr < NRootLayers; lyr++)
+			//	DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
+
+			DeepLayerDepth = Parptr->multi_soilThicknessPD[NRootLayers][index];
+			// 先计算最下层向地下水库渗漏
+			if (Parptr->GwStorageDepth < Parptr->GwStorageDepthMax)
+			{
+				CalSoilPerc(Parptr, index, NRootLayers);
+				// Parptr->multi_soilPercoPD[NRootLayers][index]   m->mm
+				if (Parptr->GwStorageDepth + Parptr->multi_soilPercoPD[NRootLayers][index] * 1000.0 > Parptr->GwStorageDepthMax)
+				{
+					Parptr->multi_soilPercoPD[NRootLayers][index] = (Parptr->GwStorageDepthMax - Parptr->GwStorageDepth) * 0.001;
+				}
+				Parptr->multi_soilMoisturePD[NRootLayers][index] -= Parptr->multi_soilPercoPD[NRootLayers][index] / (Parptr->multi_soilThicknessPD[NRootLayers][index] * Parptr->multi_adjustPD[NRootLayers][index]);
+			}
+			else {
+				Parptr->multi_soilPercoPD[NRootLayers][index] = 0.0;
+			}
+			//CalSoilPerc(Parptr, index, NRootLayers);
+			//Parptr->multi_soilMoisturePD[NRootLayers][index] -= Parptr->multi_soilPercoPD[NRootLayers][index] / (Parptr->multi_soilThicknessPD[NRootLayers][index] * Parptr->multi_adjustPD[NRootLayers][index]);
+			// xiaodw, 这里思路是先计算渗漏量，即使下层超饱和了，上层也向下层渗漏。在WaterTableDepth方法中再从下层往上层计算淹没，纠正过来
+			/* from top to bottom soil layer */
+
+			for (int lyr = 0; lyr < NRootLayers; lyr++) {
+
+				/* No movement if soil moisture is below field capacity */
+				if (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index] >= 1e-8) {
+
+					CalSoilPerc(Parptr, index, lyr);
+
+					/* Adjust the moisture content in the current layer, and the layer immediately below it */
+					Parptr->multi_soilMoisturePD[lyr][index] -= Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_adjustPD[lyr][index]);
+
+					if (lyr < (NRootLayers - 1)) {
+
+						Parptr->multi_soilMoisturePD[lyr + 1][index] += Parptr->multi_soilPercoPD[lyr][index] / (Parptr->multi_soilThicknessPD[lyr + 1][index] * Parptr->multi_adjustPD[lyr + 1][index]);
+
+					}
+					if (Statesptr->use_change_acccum_depth && lyr == 0)
+					{
+						Parptr->accumuDepthPD[index] -= Parptr->multi_soilPercoPD[lyr][index] * 1000.0;
+						if (Parptr->accumuDepthPD[index] < 1e-8)
+						{
+							Parptr->accumuDepthPD[index] = 0.0;
+						}
+						if (Parptr->accumuDepthPD[index] > Parptr->multi_soilThicknessPD[lyr][index] * 1000.0)
+						{
+							Parptr->accumuDepthPD[index] = Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
+						}
+					}
+				}
+				else {
+					Parptr->multi_soilPercoPD[lyr][index] = 0.0;
+				}
+				Parptr->multi_soilWaterDepthPD[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
+				if (Statesptr->save_poi == ON)
+				{
+					Poisptr->soil_perc_Grid[lyr][index] += Parptr->multi_soilPercoPD[lyr][index] * 1000.0;  // m/gwstep->mm /gwstep
+					Poisptr->soil_water_depth_Grid[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;  // mm
+
+				}
+
+			}
+
+			// 之前是直接从最下层扣除侧向壤中流
+			/* Change: dont extract outflow from the bottom layer only. The new function DistributeSatFlow
+			extract water from top to bottom layer to avoid negative soil mositure (overdraw) in the bottom
+			layer (below root zone layers */
+			DeepDrainage = (Parptr->multi_soilPercoPD[NRootLayers - 1][index]);
+
+			Parptr->multi_soilMoisturePD[NRootLayers][index] += DeepDrainage / (DeepLayerDepth * Parptr->multi_adjustPD[NRootLayers][index]);
+
+
+			if (Statesptr->save_poi == ON)
+			{
+				Poisptr->soil_water_depth_Grid[NRootLayers][index] = Parptr->multi_soilMoisturePD[NRootLayers][index] * Parptr->multi_soilThicknessPD[NRootLayers][index] * 1000.0;  // cm
+			}
+
+			/* Calculate the depth of the water table based on the soil moisture
+			profile and adjust the soil moisture profile, to assure that the soil
+			moisture is never more than the maximum allowed soil moisture amount,
+			i.e. the porosity.  A negative water table depth means that the water is
+			ponding on the surface.  This amount of water becomes surface Runoff */
+
+			Parptr->tableDepthPD[index] = WaterTableDepth(Parptr, Solverptr, Arrptr, Statesptr, Poisptr, row_cell_area, NSoilLayers, NRootLayers, index);
+
+
+			// 地下水位高出地表
+			if (Parptr->tableDepthPD[index] <= -1e-8) {
+
+				Parptr->tableDepthPD[index] = 0.0;
+
+			}
+
+		}
+	}
+}
+
+inline NUMERIC_TYPE SGC2_interflow_multilayer(
+	const int row_start, int row_end,
+	const NUMERIC_TYPE depth_thresh,
+	Pars *Parptr, const Solver *Solverptr, int grid_row_index,
+	const NUMERIC_TYPE * dem_row,
+	NUMERIC_TYPE *interflow_runoff_vol,
+	NUMERIC_TYPE *interflow_2ch_vol,
+	const NUMERIC_TYPE row_cell_area
+
+	//const NUMERIC_TYPE row_cell_area
+	//NUMERIC_TYPE* interflow_Row_POI,
+)
+{
+	float k = 0.f;   // mm/h
+	float ks = 0.f;
+	float maxSoilWaterVol = 0.f;
+	float soilWaterVol = 0.f;
+	float fieldCapacityVol = 0.f;
+	float interflowMiosture = 0.f;
+	float runoffVolCurStep = 0.f;
+	NUMERIC_TYPE interflow_genVol = C(0.0);
+	if (row_end - row_start > 0) {
+		for (int row_i = row_start; row_i < row_end; row_i++)
+		{
+			// 问题1：SEIMS里的单元有明确的上下游关系，这里要使用流向tif直接作为上下游关系的依据，还是用土壤水位差作为上下游的依据？
+			// 问题2：green-ampt假设有一个明确的湿润锋面，适合干旱区的入渗；有人将其改造为适合湿润区的，但
+			// 我们用的casc2d里的greenampt是否适合湿润区的模拟？
+			// 问题3：为什么要除以流长（单元上的河道长度），对我而言流长是否是一个栅格单元的宽度？
+			if (dem_row[row_i] != DEM_NO_DATA) {
+				int index = row_i + grid_row_index;
+				for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++) {
+					if (Parptr->multi_soilMoisturePD[lyr][index] < Parptr->multi_soilFcPD[lyr][index])
+					{
+						continue;
+					}
+					if (Parptr->multi_ksFactorVOfLyr[lyr] > 0.0)
+					{
+						ks = Parptr->multi_ksFactorVOfLyr[lyr] * Parptr->multi_soilKsPD[lyr][index];
+					}
+					else
+					{
+						ks = Parptr->multi_soilKsPD[lyr][index];
+					}
+					maxSoilWaterVol = Parptr->multi_soilPorosityPD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * row_cell_area;  // m3
+					if (Parptr->multi_soilMoisturePD[lyr][index] > Parptr->multi_soilPorosityPD[lyr][index]) {
+						k = ks;
+					}
+					else {
+						/// Using Clapp and Hornberger (1978) equation to calculate unsaturated hydraulic conductivity.
+						float dcIndex = 2.f * Parptr->multi_soilPoreIndexPD[lyr][index] + 2.f; // pore disconnectedness index
+						k = ks * pow(Parptr->multi_soilMoisturePD[lyr][index] / Parptr->multi_soilPorosityPD[lyr][index], dcIndex);
+						//if (k <= 0.000001) k = 0.f;
+					}
+					// 1. / 3600. = 0.0002777777777777778
+					// 当前土壤水分的当量水量
+					soilWaterVol = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilMoisturePD[lyr][index] * row_cell_area;  // m3
+					// 田间持水量的当量水量
+					fieldCapacityVol = Parptr->multi_soilThicknessPD[lyr][index] * Parptr->multi_soilFcPD[lyr][index] * row_cell_area;
+					// interflowGenVolPD m3,k from mm/h -> m/s
+					if (Parptr->slopePD[index] <= 0.0)
+					{
+						Parptr->slopePD[index] = 0.001;
+					}
+					// 加一个lag系数，汇流（SWAT文档，问娇娇）
+					Parptr->multi_interflowGenVolPD[lyr][index] = Parptr->multi_interflowCsValueOfLyr[lyr] * Parptr->multi_soilThicknessPD[lyr][index] * Parptr->slopePD[index]
+						* k * 0.0002777777777777778 * 0.001 * Parptr->multi_soilMoisturePD[lyr][index] * sqrt(row_cell_area)  * 	Solverptr->SGCtmpTstep;    // m3
+
+					//Parptr->multi_interflowGenVolPD[lyr][index] = Parptr->multi_interflowCsValueOfLyr[lyr] * Parptr->multi_soilThicknessPD[lyr][index] * 0.01f * Parptr->slopePD[index]
+					   // * k * 0.0002777777777777778 * 0.001 * Parptr->multi_soilMoisturePD[lyr][index] * sqrt(row_cell_area)  * 	Solverptr->SGCtmpTstep;    // m3
+
+					// the unit is mm
+					// 如果地下水储量 - 地下水径流量后，依然超出土壤孔隙度（土壤最大储水量），则地下水径流量=土壤水储量-最大储水量，原有逻辑感觉适合日尺度，不适合秒尺度
+					// 改为即便超饱和，地下水径流仍然以ks为速率流失, 避免出现河道流量突变
+					//if (soilWaterDep - interflowDep > maxSoilWaterDep) {
+					//	Parptr->multi_interflowGenVolPD[lyr][index] = Parptr->multi_soilMoisturePD[lyr][index] - maxSoilWaterDep;
+					//}
+					if (soilWaterVol - Parptr->multi_interflowGenVolPD[lyr][index] > maxSoilWaterVol) {
+						Parptr->multi_interflowGenVolPD[lyr][index] = soilWaterVol - maxSoilWaterVol;
+					}
+					else if (soilWaterVol - Parptr->multi_interflowGenVolPD[lyr][index] < fieldCapacityVol) {
+						// 如果 减去后，小于田间持水量，则壤中流=土壤水储量-田间持水量，xiaodw
+						Parptr->multi_interflowGenVolPD[lyr][index] = soilWaterVol - fieldCapacityVol;
+					}
+					Parptr->multi_interflowGenVolPD[lyr][index] = Max(0.f, Parptr->multi_interflowGenVolPD[lyr][index]);
+					interflowMiosture = Parptr->multi_interflowGenVolPD[lyr][index] / (row_cell_area * Parptr->multi_soilThicknessPD[lyr][index]);  // m3/m3
+
+					// 土壤水储量 - 壤中流径流量
+					Parptr->multi_soilMoisturePD[lyr][index] -= interflowMiosture;
+					//*interflowAvgBlock = *interflowAvgBlock + Parptr->multi_interflowGenVolPD[lyr][index];
+					interflow_genVol += Parptr->multi_interflowGenVolPD[lyr][index];
+
+					// 根据滞后系数计算实际汇流的量=(当前步长产流+之前的积累量)*滞后系数
+					if (Parptr->interflow_lagindex > 0.0)
+					{
+						Parptr->multi_interflow2ChVolPD[lyr][index] = (Parptr->multi_interflowGenVolPD[lyr][index] + Parptr->multi_interflowRunoffVolPD[lyr][index]) * Parptr->interflow_lagindex;
+					}
+					else
+					{
+						Parptr->multi_interflow2ChVolPD[lyr][index] = (Parptr->multi_interflowGenVolPD[lyr][index] + Parptr->multi_interflowRunoffVolPD[lyr][index]) *
+							(1 - exp(-Parptr->interflow_surlag / (Parptr->interflow_t_conc)));
+						//Parptr->multi_interflow2ChVolPD[lyr][index] = (Parptr->multi_interflowGenVolPD[lyr][index] + Parptr->multi_interflowRunoffVolPD[lyr][index]) * (1 - exp(-Parptr->interflow_surlag / (Parptr->interflow_t_conc / (Solverptr->SGCtmpTstep * 0.00027777f))));
+					}
+
+					//cout << index << "  " << Parptr->multi_interflow2ChVolPD[lyr][index] << "   " << Parptr->multi_interflowGenVolPD[lyr][index] << "   " << Parptr->multi_interflowRunoffVolPD[lyr][index] << endl;
+					// 更新壤中流形成的地表径流的库存量
+					Parptr->multi_interflowRunoffVolPD[lyr][index] = Parptr->multi_interflowRunoffVolPD[lyr][index] + Parptr->multi_interflowGenVolPD[lyr][index] - Parptr->multi_interflow2ChVolPD[lyr][index];
+					*interflow_2ch_vol = *interflow_2ch_vol + Parptr->multi_interflow2ChVolPD[lyr][index];
+					*interflow_runoff_vol = *interflow_runoff_vol + Parptr->multi_interflowRunoffVolPD[lyr][index];
+				}
+			}
+		}
+	}
+	return interflow_genVol;
+}
+//-----------------------------------------------------------------------------
+// FLOODPLAIN EVAPORATION
+// with correction for sub grid channels
+inline NUMERIC_TYPE SGC2_Evaporation_floodplain_row(
+	const States *Statesptr, const int row_start, int row_end,
+	const NUMERIC_TYPE depth_thresh,
+	const NUMERIC_TYPE row_cell_area,
+	const NUMERIC_TYPE evap_deltaH_step,
+	const NUMERIC_TYPE * evap_row,
+	const NUMERIC_TYPE * h_row,
+	NUMERIC_TYPE * volume_row, NUMERIC_TYPE * soilWaterDepth, NUMERIC_TYPE * soilMoisture, NUMERIC_TYPE * soilThickness, const int grid_row_index, NUMERIC_TYPE *Evap_Row_POI, NUMERIC_TYPE *soil_water_depth_row_POI)
+{
+#ifdef __INTEL_COMPILER
+	__assume_aligned(h_row, 64);
+	__assume_aligned(volume_row, 64);
+#endif
+
+	NUMERIC_TYPE evap_loss = C(0.0);
+#pragma ivdep
+#pragma simd
+	for (int i = row_start; i < row_end; i++)
+	{
+		NUMERIC_TYPE h_new, dV = C(0.0);
+		NUMERIC_TYPE soil_water_depth_old, soil_water_depth_new, soil_moisture_new = C(0.0);
+		NUMERIC_TYPE h_old = h_row[i];
+		NUMERIC_TYPE evap_deltaV_step = evap_row[i] * row_cell_area;
+		int index = grid_row_index + i;
+		if (h_old > depth_thresh) // There is water to evaporate on the flood plain
+		{
+			// update depth by subtracting evap depth
+			h_new = h_old - evap_row[i];
+			//check for -ve depths
+			if (h_new < C(0.0))
+			{
+				// reduce evap loss to account for dry bed (don't go below 0)
+				dV = h_old * row_cell_area;
 			}
 			else
 			{
-				// 无蒸发
-				dV = 0.0;
+				dV = evap_deltaV_step;
 			}
-			evap_loss += dV; //mass-balance for a standard cell
-			if (Statesptr->save_poi)
-			{
-				Evap_Row_POI[i] += dV * 1000.0 / row_cell_area;
-				soil_water_depth_row_POI[i] = soilMoisture[i] * soilThickness[i] * 1000.0;
-			}
-			 
+			volume_row[i] -= dV;
 		}
-		return evap_loss;
-	}
+		else if (soilMoisture[i] > 0.0) {
+			// 土壤水蒸发
+			soilWaterDepth[i] = soilMoisture[i] * soilThickness[i];
+			soil_water_depth_new = soilWaterDepth[i] - evap_row[i];
 
-	inline NUMERIC_TYPE Expo(NUMERIC_TYPE xx, NUMERIC_TYPE upper /* = 20.f */, NUMERIC_TYPE lower /* = -20.f */) {
-		if (xx < lower) xx = lower;
-		if (xx > upper) xx = upper;
-		return exp(xx);
-	}
+			if (soil_water_depth_new < 0.0)
+			{
+				dV = soilWaterDepth[i] * row_cell_area;
+			}
+			else
+			{
+				dV = evap_deltaV_step;
+			}
+			soilWaterDepth[i] -= dV / row_cell_area;
+			soilMoisture[i] -= dV / row_cell_area / soilThickness[i];
+			if (soilMoisture[i] < 0.0)
+			{
+				soilWaterDepth[i] = 0.0;
+				soilMoisture[i] = 0.0;
+			}
+			//volume_row[i] -= dV;
+		}
+		else
+		{
+			// 无蒸发
+			dV = 0.0;
+		}
+		evap_loss += dV; //mass-balance for a standard cell
+		if (Statesptr->save_poi)
+		{
+			Evap_Row_POI[i] += dV * 1000.0 / row_cell_area;
+			soil_water_depth_row_POI[i] = soilMoisture[i] * soilThickness[i] * 1000.0;
+		}
 
-	/* AET Priestley Talor Hargreaves */
-	inline NUMERIC_TYPE SGC2_Evaporation_floodplain_row_PT(
-		const States *Statesptr, const int row_start, int row_end,
-		const NUMERIC_TYPE depth_thresh,
-		const NUMERIC_TYPE row_cell_area,
-		const NUMERIC_TYPE evap_deltaH_step,
-		const NUMERIC_TYPE * evap_row,
-		const NUMERIC_TYPE * h_row,
-		NUMERIC_TYPE * volume_row, NUMERIC_TYPE * soilWaterDepth, NUMERIC_TYPE * soilMoisture, NUMERIC_TYPE * soilThickness, 
-		const int grid_row_index, NUMERIC_TYPE *Evap_Row_POI, NUMERIC_TYPE *soil_water_depth_row_POI, Pars *Parptr)
-	{
+	}
+	return evap_loss;
+}
+
+inline NUMERIC_TYPE Expo(NUMERIC_TYPE xx, NUMERIC_TYPE upper /* = 20.f */, NUMERIC_TYPE lower /* = -20.f */) {
+	if (xx < lower) xx = lower;
+	if (xx > upper) xx = upper;
+	return exp(xx);
+}
+
+/* AET Priestley Talor Hargreaves */
+inline NUMERIC_TYPE SGC2_Evaporation_floodplain_row_PT(
+	const States *Statesptr, const int row_start, int row_end,
+	const NUMERIC_TYPE depth_thresh,
+	const NUMERIC_TYPE row_cell_area,
+	const NUMERIC_TYPE evap_deltaH_step,
+	const NUMERIC_TYPE * evap_row,
+	const NUMERIC_TYPE * h_row,
+	NUMERIC_TYPE * volume_row, NUMERIC_TYPE * soilWaterDepth, NUMERIC_TYPE * soilMoisture, NUMERIC_TYPE * soilThickness,
+	const int grid_row_index, NUMERIC_TYPE *Evap_Row_POI, NUMERIC_TYPE *soil_water_depth_row_POI, Pars *Parptr)
+{
 #ifdef __INTEL_COMPILER
-		__assume_aligned(h_row, 64);
-		__assume_aligned(volume_row, 64);
+	__assume_aligned(h_row, 64);
+	__assume_aligned(volume_row, 64);
 #endif
 
-		NUMERIC_TYPE evap_loss = C(0.0);
+	NUMERIC_TYPE evap_loss = C(0.0);
 #pragma ivdep
 #pragma simd
-		for (int i = row_start; i < row_end; i++)
+	for (int i = row_start; i < row_end; i++)
+	{
+		NUMERIC_TYPE h_new, dV = C(0.0);
+		NUMERIC_TYPE soil_water_depth_old, soil_water_depth_new, soil_moisture_new = C(0.0);
+		NUMERIC_TYPE h_old = h_row[i];
+		NUMERIC_TYPE evap_deltaV_step = evap_row[i] * row_cell_area;
+		int index = grid_row_index + i;
+		NUMERIC_TYPE evz = 0.0;
+		NUMERIC_TYPE evzp = 0.0;  // 上一层的潜在蒸发
+		NUMERIC_TYPE aet_lyr = 0.0;
+		NUMERIC_TYPE xx = 0.0;		 // 干旱性指数
+		NUMERIC_TYPE evap_deltaH_stepMM = evap_deltaH_step * 1000.0;
+		NUMERIC_TYPE esleft = evap_deltaH_stepMM;
+		NUMERIC_TYPE soilThicknessMM, soilDepthsMM = 0.0;
+		NUMERIC_TYPE dep = 0.0;
+
+		// 只对指定层计算蒸发
+		for (int lyr = 0; lyr < Parptr->multi_nSoilEvapLyrs; lyr++)
 		{
-			NUMERIC_TYPE h_new, dV = C(0.0);
-			NUMERIC_TYPE soil_water_depth_old, soil_water_depth_new, soil_moisture_new = C(0.0);
-			NUMERIC_TYPE h_old = h_row[i];
-			NUMERIC_TYPE evap_deltaV_step = evap_row[i] * row_cell_area;
-			int index = grid_row_index + i;
-			NUMERIC_TYPE evz = 0.0;
-			NUMERIC_TYPE evzp = 0.0;  // 上一层的潜在蒸发
-			NUMERIC_TYPE aet_lyr = 0.0;
-			NUMERIC_TYPE xx = 0.0;		 // 干旱性指数
-			NUMERIC_TYPE evap_deltaH_stepMM = evap_deltaH_step * 1000.0;
-			NUMERIC_TYPE esleft = evap_deltaH_stepMM;
-			NUMERIC_TYPE soilThicknessMM, soilDepthsMM = 0.0;
-			NUMERIC_TYPE dep = 0.0;
-			
-			// 只对指定层计算蒸发
-			for (int lyr = 0; lyr < Parptr->multi_nSoilEvapLyrs; lyr++)
-			{
 
-				soilDepthsMM = Parptr->multi_soilDepthPD[lyr][index] * 1000.0;
-				soilThicknessMM = Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
-				evz = evap_deltaH_stepMM * soilDepthsMM /
-					(soilDepthsMM + exp(2.374f - 0.00713f * soilDepthsMM));
-				aet_lyr = evz - evzp * Parptr->esco;
+			soilDepthsMM = Parptr->multi_soilDepthPD[lyr][index] * 1000.0;
+			soilThicknessMM = Parptr->multi_soilThicknessPD[lyr][index] * 1000.0;
+			evz = evap_deltaH_stepMM * soilDepthsMM /
+				(soilDepthsMM + exp(2.374f - 0.00713f * soilDepthsMM));
+			aet_lyr = evz - evzp * Parptr->esco;
 
-				evzp = evz;
-				// 根据土壤水分调整
-				if (Parptr->multi_soilMoisturePD[lyr][index] < Parptr->multi_soilFcPD[lyr][index]) {
-					xx = 2.5f * (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]) / Parptr->multi_soilFcPD[lyr][index]; ///  non dimension  
-					aet_lyr *= Expo(xx, 20.0, -20.0);  /// 限制指数输入值的上下限
-				}
-				aet_lyr = min(aet_lyr, Parptr->multi_soilMoisturePD[lyr][index] * soilThicknessMM * Parptr->etco);
-				if (aet_lyr < 0.f || aet_lyr != aet_lyr) aet_lyr = 0.0;
-				if (aet_lyr > esleft) aet_lyr = esleft;
-				/// adjust soil storage, potential evap
-				if (Parptr->multi_soilMoisturePD[lyr][index] * soilThicknessMM > aet_lyr) {
-					esleft -= aet_lyr;
-					Parptr->multi_soilMoisturePD[lyr][index] = max(UTIL_ZERO, (Parptr->multi_soilMoisturePD[lyr][index] * soilThicknessMM - aet_lyr) / soilThicknessMM);
-				}
-				else {
-					esleft -= soilThicknessMM;
-					Parptr->multi_soilMoisturePD[lyr][index] = 0.f;
-				}
+			evzp = evz;
+			// 根据土壤水分调整
+			if (Parptr->multi_soilMoisturePD[lyr][index] < Parptr->multi_soilFcPD[lyr][index]) {
+				xx = 2.5f * (Parptr->multi_soilMoisturePD[lyr][index] - Parptr->multi_soilFcPD[lyr][index]) / Parptr->multi_soilFcPD[lyr][index]; ///  non dimension  
+				aet_lyr *= Expo(xx, 20.0, -20.0);  /// 限制指数输入值的上下限
 			}
-
-			if (Statesptr->save_poi)
-			{
-				Evap_Row_POI[i] += dV * 1000.0 / row_cell_area;
-				soil_water_depth_row_POI[i] = soilMoisture[i] * soilThickness[i] * 1000.0;
+			aet_lyr = min(aet_lyr, Parptr->multi_soilMoisturePD[lyr][index] * soilThicknessMM * Parptr->etco);
+			if (aet_lyr < 0.f || aet_lyr != aet_lyr) aet_lyr = 0.0;
+			if (aet_lyr > esleft) aet_lyr = esleft;
+			/// adjust soil storage, potential evap
+			if (Parptr->multi_soilMoisturePD[lyr][index] * soilThicknessMM > aet_lyr) {
+				esleft -= aet_lyr;
+				Parptr->multi_soilMoisturePD[lyr][index] = max(UTIL_ZERO, (Parptr->multi_soilMoisturePD[lyr][index] * soilThicknessMM - aet_lyr) / soilThicknessMM);
 			}
-
+			else {
+				esleft -= soilThicknessMM;
+				Parptr->multi_soilMoisturePD[lyr][index] = 0.f;
+			}
 		}
-		return evap_loss;
-	}
 
-	inline void Xaj_3Layers_UpdateSoil(int index, Pars *Parptr, const States *Statesptr, NUMERIC_TYPE *EvapGrid_POI, NUMERIC_TYPE ** soil_water_depth_POI, NUMERIC_TYPE ES,
-		NUMERIC_TYPE wu0, NUMERIC_TYPE EU, NUMERIC_TYPE wl0, NUMERIC_TYPE EL, NUMERIC_TYPE wd0, NUMERIC_TYPE ED) {
-		// ---------- 更新各层土壤水状态 ----------
-		Parptr->multi_soilMoisturePD[0][index] = getmax(0.0, (wu0 - EU) * 0.001 / Parptr->multi_soilThicknessPD[0][index]);  // wu0 - EU（mm)->%
-		Parptr->multi_soilMoisturePD[1][index] = getmax(0.0, (wl0 - EL) * 0.001 / Parptr->multi_soilThicknessPD[1][index]);
-		Parptr->multi_soilMoisturePD[2][index] = getmax(0.0, (wd0 - ED) * 0.001 / Parptr->multi_soilThicknessPD[2][index]);
-		// ---------- 保存蒸发输出 ----------
-		Parptr->es[index] = ES;    // mm
-		Parptr->eu[index] = EU;    // mm
-		Parptr->el[index] = EL;
-		Parptr->ed[index] = ED;
-		// ---------- 保存观测点蒸发 ----------
-		if (Statesptr->save_poi) {
-			EvapGrid_POI[index] += ES + EU + EL + ED;
-
-			soil_water_depth_POI[0][index] = Parptr->multi_soilMoisturePD[0][index] * Parptr->multi_soilThicknessPD[0][index] * 1000.0;  // mm
-			soil_water_depth_POI[1][index] = Parptr->multi_soilMoisturePD[1][index] * Parptr->multi_soilThicknessPD[1][index] * 1000.0;  // mm
-			soil_water_depth_POI[2][index] = Parptr->multi_soilMoisturePD[2][index] * Parptr->multi_soilThicknessPD[2][index] * 1000.0;  // mm
+		if (Statesptr->save_poi)
+		{
+			Evap_Row_POI[i] += dV * 1000.0 / row_cell_area;
+			soil_water_depth_row_POI[i] = soilMoisture[i] * soilThickness[i] * 1000.0;
 		}
-	}
-	inline NUMERIC_TYPE Xaj_3Layers_Evap(NUMERIC_TYPE SURF,NUMERIC_TYPE evap_remain, NUMERIC_TYPE * ES, NUMERIC_TYPE * EU, NUMERIC_TYPE * EL, NUMERIC_TYPE * ED,
-		const NUMERIC_TYPE wu0,  const NUMERIC_TYPE wl0, const NUMERIC_TYPE lm, NUMERIC_TYPE fp_area,Pars *Parptr) {
 
-		NUMERIC_TYPE dV = 0.0;
-		if (SURF >= evap_remain) {
-			//surf[i] = SURF - evap_remain;
-			*EU = 0.0; 
-			*EL = 0.0;  
+	}
+	return evap_loss;
+}
+
+inline void Xaj_3Layers_UpdateSoil(int index, Pars *Parptr, const States *Statesptr, NUMERIC_TYPE *EvapGrid_POI, NUMERIC_TYPE ** soil_water_depth_POI, NUMERIC_TYPE ES,
+	NUMERIC_TYPE wu0, NUMERIC_TYPE EU, NUMERIC_TYPE wl0, NUMERIC_TYPE EL, NUMERIC_TYPE wd0, NUMERIC_TYPE ED) {
+	// ---------- 更新各层土壤水状态 ----------
+	Parptr->multi_soilMoisturePD[0][index] = getmax(0.0, (wu0 - EU) * 0.001 / Parptr->multi_soilThicknessPD[0][index]);  // wu0 - EU（mm)->%
+	Parptr->multi_soilMoisturePD[1][index] = getmax(0.0, (wl0 - EL) * 0.001 / Parptr->multi_soilThicknessPD[1][index]);
+	Parptr->multi_soilMoisturePD[2][index] = getmax(0.0, (wd0 - ED) * 0.001 / Parptr->multi_soilThicknessPD[2][index]);
+	// ---------- 保存蒸发输出 ----------
+	Parptr->es[index] = ES;    // mm
+	Parptr->eu[index] = EU;    // mm
+	Parptr->el[index] = EL;
+	Parptr->ed[index] = ED;
+	// ---------- 保存观测点蒸发 ----------
+	if (Statesptr->save_poi) {
+		EvapGrid_POI[index] += ES + EU + EL + ED;
+
+		soil_water_depth_POI[0][index] = Parptr->multi_soilMoisturePD[0][index] * Parptr->multi_soilThicknessPD[0][index] * 1000.0;  // mm
+		soil_water_depth_POI[1][index] = Parptr->multi_soilMoisturePD[1][index] * Parptr->multi_soilThicknessPD[1][index] * 1000.0;  // mm
+		soil_water_depth_POI[2][index] = Parptr->multi_soilMoisturePD[2][index] * Parptr->multi_soilThicknessPD[2][index] * 1000.0;  // mm
+	}
+}
+inline NUMERIC_TYPE Xaj_3Layers_Evap(NUMERIC_TYPE SURF, NUMERIC_TYPE evap_remain, NUMERIC_TYPE * ES, NUMERIC_TYPE * EU, NUMERIC_TYPE * EL, NUMERIC_TYPE * ED,
+	const NUMERIC_TYPE wu0, const NUMERIC_TYPE wl0, const NUMERIC_TYPE lm, NUMERIC_TYPE fp_area, Pars *Parptr) {
+
+	NUMERIC_TYPE dV = 0.0;
+	if (SURF >= evap_remain) {
+		//surf[i] = SURF - evap_remain;
+		*EU = 0.0;
+		*EL = 0.0;
+		*ED = 0.0;
+		*ES = evap_remain;
+		dV = evap_remain * fp_area * 0.001;
+		evap_remain = 0.0;
+
+		//volume_row[i] -= dV;    // m3
+	}
+	else {
+
+		// ---------- Step 0: 地表蒸发 ----------
+		if (SURF > 0.0)
+		{
+			*ES = SURF;
+			evap_remain -= SURF;
+			dV = SURF * fp_area  * 0.001;
+			//volume_row[i] -= dV;   // m3
+		}
+
+		// ---------- Step 1: 上层蒸发 ----------
+		*EU = min(wu0, evap_remain);    // 原文是EU = K * EM, 这里直接使用PET而不是pan evaporation(EM)，因此水量充足时EU直接等于PET，不需要乘以k. 
+		evap_remain -= *EU;
+
+		// ---------- Step 2: 中层蒸发 ----------
+		if (evap_remain <= UTIL_ZERO) {
+			*EL = 0.0;
+		}
+		else {
+			if (wl0 >= Parptr->c * lm) {  // 中层水量 大于 中层最大允许参与蒸发的量，中层水量充足
+				*EL = evap_remain * wl0 / lm;  // 剩余蒸发量 * 中层水量 / 中层Fc. 同理，这里原文是EL = (K*EM-EU)* WL/LM，也不需要乘以K，evap_remain就是K×EM-EU
+			}
+			else if (wl0 >= Parptr->c * evap_remain) { //  中层水量 大于 中层应提供蒸发的量
+				*EL = Parptr->c * evap_remain;
+			}
+			else {
+				*EL = wl0;
+			}
+			evap_remain -= *EL;
+		}
+
+		// ---------- Step 3: 深层蒸发 ----------
+		if (evap_remain > UTIL_ZERO && wl0 < Parptr->c * lm && wl0 < Parptr->c * (evap_remain + *EL)) { // 中层水量 < c*中层Fc
+			*ED = Parptr->c * (evap_remain + *EL) - wl0;   // evap_remain + EL是中层蒸发之前的量，等于K* EM-EU，这里是中层蒸发之前的量-中层水量，全部交给深层蒸发
+		}
+		else {
 			*ED = 0.0;
-			*ES = evap_remain;
-			dV = evap_remain * fp_area * 0.001;
-			evap_remain = 0.0;
-
-			//volume_row[i] -= dV;    // m3
 		}
-		else {
-
-			// ---------- Step 0: 地表蒸发 ----------
-			if (SURF > 0.0)
-			{
-				*ES = SURF;
-				evap_remain -= SURF;
-				dV = SURF * fp_area  * 0.001;
-				//volume_row[i] -= dV;   // m3
-			}
-
-			// ---------- Step 1: 上层蒸发 ----------
-			*EU = min(wu0, evap_remain);    // 原文是EU = K * EM, 这里直接使用PET而不是pan evaporation(EM)，因此水量充足时EU直接等于PET，不需要乘以k. 
-			evap_remain -= *EU;
-
-			// ---------- Step 2: 中层蒸发 ----------
-			if (evap_remain <= UTIL_ZERO) {
-				*EL = 0.0;
-			}
-			else {
-				if (wl0 >= Parptr->c * lm) {  // 中层水量 大于 中层最大允许参与蒸发的量，中层水量充足
-					*EL = evap_remain * wl0 / lm;  // 剩余蒸发量 * 中层水量 / 中层Fc. 同理，这里原文是EL = (K*EM-EU)* WL/LM，也不需要乘以K，evap_remain就是K×EM-EU
-				}
-				else if (wl0 >= Parptr->c * evap_remain) { //  中层水量 大于 中层应提供蒸发的量
-					*EL = Parptr->c * evap_remain;
-				}
-				else {
-					*EL = wl0;
-				}
-				evap_remain -= *EL;
-			}
-
-			// ---------- Step 3: 深层蒸发 ----------
-			if (evap_remain > UTIL_ZERO && wl0 < Parptr->c * lm && wl0 < Parptr->c * (evap_remain + *EL)) { // 中层水量 < c*中层Fc
-				*ED = Parptr->c * (evap_remain + *EL) - wl0;   // evap_remain + EL是中层蒸发之前的量，等于K* EM-EU，这里是中层蒸发之前的量-中层水量，全部交给深层蒸发
-			}
-			else {
-				*ED = 0.0;
-			}
-		}
-
-		return dV;
 	}
 
-	inline NUMERIC_TYPE SGC2_Evaporation_XAJ_3Layer(
-		const States *Statesptr, const int row_start, int row_end,
-		const NUMERIC_TYPE row_cell_area,
-		const NUMERIC_TYPE * evap_grid, const NUMERIC_TYPE * h_grid, NUMERIC_TYPE * volume_row, NUMERIC_TYPE * volume_row_ch, const NUMERIC_TYPE * dem_grid,
-		const int grid_row_index, NUMERIC_TYPE *EvapGrid_POI, NUMERIC_TYPE ** soil_water_depth_POI, Pars *Parptr, Arrays * Arrptr, const NUMERIC_TYPE * sg_cell_cell_area, int j,
-		const int cell_count, const int sg_row_start, const int * sg_cell_grid_index_lookup,
-		const NUMERIC_TYPE * sg_cell_SGC_BankFullHeight, const NUMERIC_TYPE * sg_cell_SGC_BankFullVolume, const NUMERIC_TYPE * sg_cell_SGC_c,
-		const SubGridFlowLookup * sg_cell_flow_lookup) {
+	return dV;
+}
 
-		NUMERIC_TYPE total_evap = C(0.0);
+inline NUMERIC_TYPE SGC2_Evaporation_XAJ_3Layer(
+	const States *Statesptr, const int row_start, int row_end,
+	const NUMERIC_TYPE row_cell_area,
+	const NUMERIC_TYPE * evap_grid, const NUMERIC_TYPE * h_grid, NUMERIC_TYPE * volume_row, NUMERIC_TYPE * volume_row_ch, const NUMERIC_TYPE * dem_grid,
+	const int grid_row_index, NUMERIC_TYPE *EvapGrid_POI, NUMERIC_TYPE ** soil_water_depth_POI, Pars *Parptr, Arrays * Arrptr, const NUMERIC_TYPE * sg_cell_cell_area, int j,
+	const int cell_count, const int sg_row_start, const int * sg_cell_grid_index_lookup,
+	const NUMERIC_TYPE * sg_cell_SGC_BankFullHeight, const NUMERIC_TYPE * sg_cell_SGC_BankFullVolume, const NUMERIC_TYPE * sg_cell_SGC_c,
+	const SubGridFlowLookup * sg_cell_flow_lookup) {
+
+	NUMERIC_TYPE total_evap = C(0.0);
 
 #pragma ivdep
 #pragma simd
-		for (int i = row_start; i < row_end; i++)
-		{
-			int index = grid_row_index + i;
-			int source_index_this = j * Parptr->xsz + i;
-			NUMERIC_TYPE PET = evap_grid[index] * 1000.0;          // 潜在蒸散发,mm
-			NUMERIC_TYPE ES = 0.0, EU = 0.0, EL = 0.0, ED = 0.0;  // 地表, 上层，中层，下层蒸发
+	for (int i = row_start; i < row_end; i++)
+	{
+		int index = grid_row_index + i;
+		int source_index_this = j * Parptr->xsz + i;
+		NUMERIC_TYPE PET = evap_grid[index] * 1000.0;          // 潜在蒸散发,mm
+		NUMERIC_TYPE ES = 0.0, EU = 0.0, EL = 0.0, ED = 0.0;  // 地表, 上层，中层，下层蒸发
 
-			if (dem_grid[index] != DEM_NO_DATA) {
-				// 河道先跳过
-				if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0))
-				{
-					continue;
-				}
-				// 蓄洪区
-				NUMERIC_TYPE SURF = (h_grid[index] + volume_row[i] / row_cell_area) * 1000.0;        // 地表水 + 降雨
-				NUMERIC_TYPE wu0 = Parptr->multi_soilMoisturePD[0][index] * Parptr->multi_soilThicknessPD[0][index] * 1000.0;           // 上层土壤水,mm
-				NUMERIC_TYPE wl0 = Parptr->multi_soilMoisturePD[1][index] * Parptr->multi_soilThicknessPD[1][index] * 1000.0;            // 中层土壤水,mm
-				NUMERIC_TYPE wd0 = Parptr->multi_soilMoisturePD[2][index] * Parptr->multi_soilThicknessPD[2][index] * 1000.0;            // 深层土壤水,mm
-				NUMERIC_TYPE lm = Parptr->multi_soilFcPD[1][index] * Parptr->multi_soilThicknessPD[1][index] * 1000.0;               // 中层允许参与蒸发的最大水分，即fc,mm
-
-
-				NUMERIC_TYPE evap_remain = PET;
-				NUMERIC_TYPE h_new, dV = C(0.0);
-				// 计算蒸发的地表水体积、地表水深度、上层深度、中层深度、底层深度
-				dV = Xaj_3Layers_Evap(SURF, evap_remain, &ES, &EU, &EL, &ED, wu0, wl0, lm, row_cell_area, Parptr);
-				// 更新土壤湿度
-				Xaj_3Layers_UpdateSoil(index, Parptr, Statesptr, EvapGrid_POI, soil_water_depth_POI, ES, wu0, EU, wl0, EL, wd0, ED);
-				volume_row[i] -= dV;
-				total_evap += (ES + EU + EL + ED);
-			}
-		}
-
-		for (int cell_i = 0; cell_i < cell_count; cell_i++)
-		{
-			int cell_index = sg_row_start + cell_i;
-
-			int grid_index = sg_cell_grid_index_lookup[cell_index];
-			int i = grid_index - grid_row_index;
-			NUMERIC_TYPE PET = evap_grid[grid_index] * 1000.0;          // 潜在蒸散发,mm
-			NUMERIC_TYPE ES = 0.0, EU = 0.0, EL = 0.0, ED = 0.0;  // 河道水, 河道底部土壤，地表(ES在这里特指洪泛区的地表), 上层，中层，下层蒸发
-			NUMERIC_TYPE ES_CH = 0.0, EU_CH;  // 河道水, 河道底部土壤
-			NUMERIC_TYPE dV = 0.0, dVFp = 0.0, dVCh = 0.0;
-			// 上个时间步长结束时的水深
-			const NUMERIC_TYPE h_prev = h_grid[grid_index];
-			// // 河道所在的栅格单元面积
-			const NUMERIC_TYPE cell_area = sg_cell_cell_area[cell_index];
-			// SGC河道单元底面积
-			NUMERIC_TYPE SGC_c = sg_cell_SGC_c[cell_index];
-			// 河道两侧蓄洪区面积
-			NUMERIC_TYPE fp_area = row_cell_area - SGC_c;
-			// 河道深度
-			NUMERIC_TYPE SGC_BankFullHeight = sg_cell_SGC_BankFullHeight[cell_index] * 1000.0;
-			//if (h_grid == nullptr || h_grid == NULL) {
-			//	std::cerr << "[ERROR] h_grid allocation failed!" << std::endl;
-			//}
-			NUMERIC_TYPE h_old_fp = h_grid[grid_index] > 0.0 ? (h_grid[grid_index] + volume_row[i] / fp_area) * 1000.0 : volume_row[i] / fp_area * 1000.0;  // m->mm
-			NUMERIC_TYPE h_old_ch = (h_grid[grid_index] + volume_row_ch[i] / SGC_c) * 1000.0 + SGC_BankFullHeight;  // m->mm
-			NUMERIC_TYPE h_new_ch = h_old_ch - PET;                // mm
-
-			NUMERIC_TYPE wu0 = Parptr->multi_soilMoisturePD[0][grid_index] * Parptr->multi_soilThicknessPD[0][grid_index] * 1000.0;           // 上层土壤水,mm
-			NUMERIC_TYPE wl0 = Parptr->multi_soilMoisturePD[1][grid_index] * Parptr->multi_soilThicknessPD[1][grid_index] * 1000.0;            // 中层土壤水,mm
-			NUMERIC_TYPE wd0 = Parptr->multi_soilMoisturePD[2][grid_index] * Parptr->multi_soilThicknessPD[2][grid_index] * 1000.0;            // 深层土壤水,mm
-			NUMERIC_TYPE lm = Parptr->multi_soilFcPD[1][grid_index] * Parptr->multi_soilThicknessPD[1][grid_index] * 1000.0;               // 中层允许参与蒸发的最大水分，即fc,mm
-
-			// 蓄洪区的蒸发计算和普通格子方法一样，唯一区别是使用蓄洪区的面积
-			// 计算蒸发的地表水体积、地表水深度、上层深度、中层深度、底层深度
-			NUMERIC_TYPE evap_remain = PET;
-			dVFp = Xaj_3Layers_Evap(h_old_fp, evap_remain, &ES, &EU, &EL, &ED, wu0, wl0, lm, fp_area, Parptr);
-			// 更新蓄洪区土壤湿度
-			Xaj_3Layers_UpdateSoil(grid_index, Parptr, Statesptr, EvapGrid_POI, soil_water_depth_POI, ES, wu0, EU, wl0, EL, wd0, ED);
-
-			// 河道内部单独计算
-			// 河道里原本有水
-			if (h_old_ch > 0.0)
+		if (dem_grid[index] != DEM_NO_DATA) {
+			// 河道先跳过
+			if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0))
 			{
-				// 按PET蒸发之后还是有水
-				if (h_new_ch > 0.0)
-				{
-					ES_CH = PET;
-					EU_CH = 0.0;
-					dVCh = ES_CH * SGC_c * 0.001;   // m3
-				}
-				else
-				{
-					// 先把河道的水扣完
-					ES_CH = h_old_ch;
-					dVCh = ES_CH * SGC_c * 0.001;
-					NUMERIC_TYPE evap_remain = PET - ES_CH;
-					// 如果土壤厚度 > 河堤深度, 河道底部土壤以中层蒸发速率(AET=PET*土壤湿度/田间持水量)继续蒸发
-					NUMERIC_TYPE ch_soilDepth = (Parptr->soilThicknessAllLyrsPD[grid_index] - SGC_BankFullHeight);
-					EU_CH = 0.0;
-					// 河道土壤对应其栅格的第几层
-					int bedLyr = Parptr->sgcBedSoilLyrPD[grid_index];
-					// 当河道底部有土壤，且有剩余蒸发量，且底部土壤湿度大于0时，更新河道底部土壤层的湿度
-					if (ch_soilDepth > UTIL_ZERO && evap_remain >= UTIL_ZERO && Parptr->multi_soilMoisturePD[bedLyr][grid_index] > 0.0)
-					{
-						EU_CH = evap_remain * Parptr->multi_soilMoisturePD[bedLyr][grid_index] / Parptr->multi_soilFcPD[bedLyr][grid_index];  // 剩余蒸发量 * 中层水量 / 中层Fc. 
-					}
-					EU_CH = min(Parptr->multi_soilMoisturePD[bedLyr][grid_index] * Parptr->multi_soilThicknessPD[bedLyr][grid_index], EU_CH);
-					Parptr->multi_soilMoisturePD[bedLyr][grid_index] -= EU_CH * SGC_c / (Parptr->multi_soilThicknessPD[bedLyr][grid_index] * row_cell_area);
-				}
+				continue;
+			}
+			// 蓄洪区
+			NUMERIC_TYPE SURF = (h_grid[index] + volume_row[i] / row_cell_area) * 1000.0;        // 地表水 + 降雨
+			NUMERIC_TYPE wu0 = Parptr->multi_soilMoisturePD[0][index] * Parptr->multi_soilThicknessPD[0][index] * 1000.0;           // 上层土壤水,mm
+			NUMERIC_TYPE wl0 = Parptr->multi_soilMoisturePD[1][index] * Parptr->multi_soilThicknessPD[1][index] * 1000.0;            // 中层土壤水,mm
+			NUMERIC_TYPE wd0 = Parptr->multi_soilMoisturePD[2][index] * Parptr->multi_soilThicknessPD[2][index] * 1000.0;            // 深层土壤水,mm
+			NUMERIC_TYPE lm = Parptr->multi_soilFcPD[1][index] * Parptr->multi_soilThicknessPD[1][index] * 1000.0;               // 中层允许参与蒸发的最大水分，即fc,mm
 
-				// 更新河道和蓄洪区水量
-				//volume_row[grid_index- grid_row_index] -= dV;   // m3
-				volume_row[i] -= dVFp;
-				volume_row_ch[i] -= dVCh;
-				total_evap += (ES + EU + EL + ED);
 
+			NUMERIC_TYPE evap_remain = PET;
+			NUMERIC_TYPE h_new, dV = C(0.0);
+			// 计算蒸发的地表水体积、地表水深度、上层深度、中层深度、底层深度
+			dV = Xaj_3Layers_Evap(SURF, evap_remain, &ES, &EU, &EL, &ED, wu0, wl0, lm, row_cell_area, Parptr);
+			// 更新土壤湿度
+			Xaj_3Layers_UpdateSoil(index, Parptr, Statesptr, EvapGrid_POI, soil_water_depth_POI, ES, wu0, EU, wl0, EL, wd0, ED);
+			volume_row[i] -= dV;
+			total_evap += (ES + EU + EL + ED);
+		}
+	}
+
+	for (int cell_i = 0; cell_i < cell_count; cell_i++)
+	{
+		int cell_index = sg_row_start + cell_i;
+
+		int grid_index = sg_cell_grid_index_lookup[cell_index];
+		int i = grid_index - grid_row_index;
+		NUMERIC_TYPE PET = evap_grid[grid_index] * 1000.0;          // 潜在蒸散发,mm
+		NUMERIC_TYPE ES = 0.0, EU = 0.0, EL = 0.0, ED = 0.0;  // 河道水, 河道底部土壤，地表(ES在这里特指洪泛区的地表), 上层，中层，下层蒸发
+		NUMERIC_TYPE ES_CH = 0.0, EU_CH;  // 河道水, 河道底部土壤
+		NUMERIC_TYPE dV = 0.0, dVFp = 0.0, dVCh = 0.0;
+		// 上个时间步长结束时的水深
+		const NUMERIC_TYPE h_prev = h_grid[grid_index];
+		// // 河道所在的栅格单元面积
+		const NUMERIC_TYPE cell_area = sg_cell_cell_area[cell_index];
+		// SGC河道单元底面积
+		NUMERIC_TYPE SGC_c = sg_cell_SGC_c[cell_index];
+		// 河道两侧蓄洪区面积
+		NUMERIC_TYPE fp_area = row_cell_area - SGC_c;
+		// 河道深度
+		NUMERIC_TYPE SGC_BankFullHeight = sg_cell_SGC_BankFullHeight[cell_index] * 1000.0;
+		//if (h_grid == nullptr || h_grid == NULL) {
+		//	std::cerr << "[ERROR] h_grid allocation failed!" << std::endl;
+		//}
+		NUMERIC_TYPE h_old_fp = h_grid[grid_index] > 0.0 ? (h_grid[grid_index] + volume_row[i] / fp_area) * 1000.0 : volume_row[i] / fp_area * 1000.0;  // m->mm
+		NUMERIC_TYPE h_old_ch = (h_grid[grid_index] + volume_row_ch[i] / SGC_c) * 1000.0 + SGC_BankFullHeight;  // m->mm
+		NUMERIC_TYPE h_new_ch = h_old_ch - PET;                // mm
+
+		NUMERIC_TYPE wu0 = Parptr->multi_soilMoisturePD[0][grid_index] * Parptr->multi_soilThicknessPD[0][grid_index] * 1000.0;           // 上层土壤水,mm
+		NUMERIC_TYPE wl0 = Parptr->multi_soilMoisturePD[1][grid_index] * Parptr->multi_soilThicknessPD[1][grid_index] * 1000.0;            // 中层土壤水,mm
+		NUMERIC_TYPE wd0 = Parptr->multi_soilMoisturePD[2][grid_index] * Parptr->multi_soilThicknessPD[2][grid_index] * 1000.0;            // 深层土壤水,mm
+		NUMERIC_TYPE lm = Parptr->multi_soilFcPD[1][grid_index] * Parptr->multi_soilThicknessPD[1][grid_index] * 1000.0;               // 中层允许参与蒸发的最大水分，即fc,mm
+
+		// 蓄洪区的蒸发计算和普通格子方法一样，唯一区别是使用蓄洪区的面积
+		// 计算蒸发的地表水体积、地表水深度、上层深度、中层深度、底层深度
+		NUMERIC_TYPE evap_remain = PET;
+		dVFp = Xaj_3Layers_Evap(h_old_fp, evap_remain, &ES, &EU, &EL, &ED, wu0, wl0, lm, fp_area, Parptr);
+		// 更新蓄洪区土壤湿度
+		Xaj_3Layers_UpdateSoil(grid_index, Parptr, Statesptr, EvapGrid_POI, soil_water_depth_POI, ES, wu0, EU, wl0, EL, wd0, ED);
+
+		// 河道内部单独计算
+		// 河道里原本有水
+		if (h_old_ch > 0.0)
+		{
+			// 按PET蒸发之后还是有水
+			if (h_new_ch > 0.0)
+			{
+				ES_CH = PET;
+				EU_CH = 0.0;
+				dVCh = ES_CH * SGC_c * 0.001;   // m3
+			}
+			else
+			{
+				// 先把河道的水扣完
+				ES_CH = h_old_ch;
+				dVCh = ES_CH * SGC_c * 0.001;
+				NUMERIC_TYPE evap_remain = PET - ES_CH;
+				// 如果土壤厚度 > 河堤深度, 河道底部土壤以中层蒸发速率(AET=PET*土壤湿度/田间持水量)继续蒸发
+				NUMERIC_TYPE ch_soilDepth = (Parptr->soilThicknessAllLyrsPD[grid_index] - SGC_BankFullHeight);
+				EU_CH = 0.0;
+				// 河道土壤对应其栅格的第几层
+				int bedLyr = Parptr->sgcBedSoilLyrPD[grid_index];
+				// 当河道底部有土壤，且有剩余蒸发量，且底部土壤湿度大于0时，更新河道底部土壤层的湿度
+				if (ch_soilDepth > UTIL_ZERO && evap_remain >= UTIL_ZERO && Parptr->multi_soilMoisturePD[bedLyr][grid_index] > 0.0)
+				{
+					EU_CH = evap_remain * Parptr->multi_soilMoisturePD[bedLyr][grid_index] / Parptr->multi_soilFcPD[bedLyr][grid_index];  // 剩余蒸发量 * 中层水量 / 中层Fc. 
+				}
+				EU_CH = min(Parptr->multi_soilMoisturePD[bedLyr][grid_index] * Parptr->multi_soilThicknessPD[bedLyr][grid_index], EU_CH);
+				Parptr->multi_soilMoisturePD[bedLyr][grid_index] -= EU_CH * SGC_c / (Parptr->multi_soilThicknessPD[bedLyr][grid_index] * row_cell_area);
 			}
 
-			return total_evap;
+			// 更新河道和蓄洪区水量
+			//volume_row[grid_index- grid_row_index] -= dV;   // m3
+			volume_row[i] -= dVFp;
+			volume_row_ch[i] -= dVCh;
+			total_evap += (ES + EU + EL + ED);
+
 		}
+
+		return total_evap;
 	}
+}
 
 
 
 
 
-	inline NUMERIC_TYPE Desorption(int Dt, float MoistContent, float Porosity, float Ks,
-		float Press, float m)
-	{
-		float Sorptivity;		/* sorptivity */
-		float DesorptionVolume;	/* total desorption volume during timestep */
+inline NUMERIC_TYPE Desorption(int Dt, float MoistContent, float Porosity, float Ks,
+	float Press, float m)
+{
+	float Sorptivity;		/* sorptivity */
+	float DesorptionVolume;	/* total desorption volume during timestep */
 
-		/* Eq. 46, Wigmosta et al [1994] */
+	/* Eq. 46, Wigmosta et al [1994] */
 
-		if (MoistContent > Porosity)
-			MoistContent = Porosity;
+	if (MoistContent > Porosity)
+		MoistContent = Porosity;
 
-		/*   Sorptivity =  */
-		/*     pow((double) ((8 * Porosity * Ks * Press)/(3.0*(1 + 3*m) * (1 + 4*m))), */
-		/* 	(double) 0.5) *  */
-		/* 	  pow((double) (MoistContent/Porosity), (double) (1.0/(2.0 * m) + 2)); */
+	/*   Sorptivity =  */
+	/*     pow((double) ((8 * Porosity * Ks * Press)/(3.0*(1 + 3*m) * (1 + 4*m))), */
+	/* 	(double) 0.5) *  */
+	/* 	  pow((double) (MoistContent/Porosity), (double) (1.0/(2.0 * m) + 2)); */
 
-		Sorptivity = sqrt((double)
-			((8 * Porosity * Ks * Press) /
-			(3.0 * (1 + 3 * m) * (1 + 4 * m)))) *
-			pow((double)(MoistContent / Porosity), (double)(1.0 / (2.0 * m) + 2));
+	Sorptivity = sqrt((double)
+		((8 * Porosity * Ks * Press) /
+		(3.0 * (1 + 3 * m) * (1 + 4 * m)))) *
+		pow((double)(MoistContent / Porosity), (double)(1.0 / (2.0 * m) + 2));
 
-		/* Eq. 45, Wigmosta et al [1994] */
+	/* Eq. 45, Wigmosta et al [1994] */
 
-	  /*  DesorptionVolume = Sorptivity * pow((double) Dt * SECPHOUR, (double) 0.5); */
-		DesorptionVolume = Sorptivity * sqrt((double)Dt);
+  /*  DesorptionVolume = Sorptivity * pow((double) Dt * SECPHOUR, (double) 0.5); */
+	DesorptionVolume = Sorptivity * sqrt((double)Dt);
 
-		return DesorptionVolume;
+	return DesorptionVolume;
+}
+
+inline NUMERIC_TYPE SoilEvaporation_DHSVM(int Dt, float Temp, float Slope, float Gamma, float Lv,
+	float AirDens, float Vpd, float NetRad, float RaSoil,
+	float Transpiration, float Porosity, float FCap, float Ks,
+	float Press, float m, float RootDepth,
+	float *MoistContent, float Adjust)
+{
+	float DesorptionVolume;	/* Amount of water the soil can deliver to the
+								 atmosphere during a timestep (mm) */
+	float EPot;			/* Potential evaporation from soil during timestep (mm) */
+	float SoilEvap;		/* Amount of evaporation directly from the soil (mm) */
+	float SoilMoisture;   /* Amount of water in surface soil layer (mm) */
+	float MoistThrhld;    /* threshold that limits evap to maintain soil at a moisture level */
+	float tmp;
+
+	DesorptionVolume = Desorption(Dt, *MoistContent, Porosity, Ks, Press, m);
+
+	/* Eq.4 Wigmosta et al [1994] */
+
+	/* Calculate the density of pure water as a function of temperature.
+	   Thiesen, Scheel-Diesselhorst Equation (in Handbook of hydrology, fig
+	   11.1.1) */
+
+
+
+	   /* The potential evaporation rate accounts for the amount of moisture that
+		  the atmosphere can absorb.  If we do not account for the amount of
+		  evaporation from overlying evaporation, we can end up with the situation
+		  that all vegetation layers and the soil layer transpire/evaporate at the
+		  potential rate, resulting in an overprediction of the actual evaporation
+		  rate.  Thus we subtract the amount of evaporation that has already
+		  been calculated for overlying layers from the potential evaporation.
+		  Another mechanism that could be used to account for this would be to
+		  decrease the vapor pressure deficit while going down through the canopy
+		  (not implemented here) */
+
+	EPot = 0;
+
+	/* Eq.8 Wigmosta et al [1994] */
+
+	SoilEvap = MIN(EPot, DesorptionVolume);
+	SoilEvap *= Adjust;
+	SoilMoisture = *MoistContent * RootDepth * Adjust;
+
+	MoistThrhld = FCap;
+	tmp = MoistThrhld * RootDepth * Adjust;
+	if (SoilEvap > SoilMoisture - tmp) {
+		SoilEvap = SoilMoisture - tmp;
+		//*MoistContent = MoistThrhld;
 	}
-
-	inline NUMERIC_TYPE SoilEvaporation_DHSVM(int Dt, float Temp, float Slope, float Gamma, float Lv,
-		float AirDens, float Vpd, float NetRad, float RaSoil,
-		float Transpiration, float Porosity, float FCap, float Ks,
-		float Press, float m, float RootDepth,
-		float *MoistContent, float Adjust)
-	{
-		float DesorptionVolume;	/* Amount of water the soil can deliver to the
-									 atmosphere during a timestep (mm) */
-		float EPot;			/* Potential evaporation from soil during timestep (mm) */
-		float SoilEvap;		/* Amount of evaporation directly from the soil (mm) */
-		float SoilMoisture;   /* Amount of water in surface soil layer (mm) */
-		float MoistThrhld;    /* threshold that limits evap to maintain soil at a moisture level */
-		float tmp;
-
-		DesorptionVolume = Desorption(Dt, *MoistContent, Porosity, Ks, Press, m);
-
-		/* Eq.4 Wigmosta et al [1994] */
-
-		/* Calculate the density of pure water as a function of temperature.
-		   Thiesen, Scheel-Diesselhorst Equation (in Handbook of hydrology, fig
-		   11.1.1) */
-
-
-
-		/* The potential evaporation rate accounts for the amount of moisture that
-		   the atmosphere can absorb.  If we do not account for the amount of
-		   evaporation from overlying evaporation, we can end up with the situation
-		   that all vegetation layers and the soil layer transpire/evaporate at the
-		   potential rate, resulting in an overprediction of the actual evaporation
-		   rate.  Thus we subtract the amount of evaporation that has already
-		   been calculated for overlying layers from the potential evaporation.
-		   Another mechanism that could be used to account for this would be to
-		   decrease the vapor pressure deficit while going down through the canopy
-		   (not implemented here) */
-
-		EPot = 0;
-
-		/* Eq.8 Wigmosta et al [1994] */
-
-		SoilEvap = MIN(EPot, DesorptionVolume);
-		SoilEvap *= Adjust;
-		SoilMoisture = *MoistContent * RootDepth * Adjust;
-
-		MoistThrhld = FCap;
-		tmp = MoistThrhld * RootDepth * Adjust;
-		if (SoilEvap > SoilMoisture - tmp) {
-			SoilEvap = SoilMoisture - tmp;
-			//*MoistContent = MoistThrhld;
-		}
-		else {
-			SoilMoisture -= SoilEvap;
-			//*MoistContent = SoilMoisture / (RootDepth * Adjust);
-		}
-		return SoilEvap;
+	else {
+		SoilMoisture -= SoilEvap;
+		//*MoistContent = SoilMoisture / (RootDepth * Adjust);
 	}
+	return SoilEvap;
+}
 
-	inline NUMERIC_TYPE SoilEvaporation_DHSVM_simple(int Dt, float Porosity, float FCap, float Ks,
-		float Press, float m, float RootDepth,
-		float *MoistContent, float Adjust)
-	{
-		float DesorptionVolume;	/* Amount of water the soil can deliver to the
-									 atmosphere during a timestep (mm) */
-		float EPot;			/* Potential evaporation from soil during timestep (mm) */
-		float SoilEvap;		/* Amount of evaporation directly from the soil (mm) */
-		float SoilMoisture;   /* Amount of water in surface soil layer (mm) */
-		float MoistThrhld;    /* threshold that limits evap to maintain soil at a moisture level */
-		float tmp;
+inline NUMERIC_TYPE SoilEvaporation_DHSVM_simple(int Dt, float Porosity, float FCap, float Ks,
+	float Press, float m, float RootDepth,
+	float *MoistContent, float Adjust)
+{
+	float DesorptionVolume;	/* Amount of water the soil can deliver to the
+								 atmosphere during a timestep (mm) */
+	float EPot;			/* Potential evaporation from soil during timestep (mm) */
+	float SoilEvap;		/* Amount of evaporation directly from the soil (mm) */
+	float SoilMoisture;   /* Amount of water in surface soil layer (mm) */
+	float MoistThrhld;    /* threshold that limits evap to maintain soil at a moisture level */
+	float tmp;
 
-		DesorptionVolume = Desorption(Dt, *MoistContent, Porosity, Ks, Press, m);
+	DesorptionVolume = Desorption(Dt, *MoistContent, Porosity, Ks, Press, m);
 
-		/* Eq.4 Wigmosta et al [1994] */
+	/* Eq.4 Wigmosta et al [1994] */
 
-		/* Calculate the density of pure water as a function of temperature.
-		   Thiesen, Scheel-Diesselhorst Equation (in Handbook of hydrology, fig
-		   11.1.1) */
+	/* Calculate the density of pure water as a function of temperature.
+	   Thiesen, Scheel-Diesselhorst Equation (in Handbook of hydrology, fig
+	   11.1.1) */
 
 
 
-		   /* The potential evaporation rate accounts for the amount of moisture that
-			  the atmosphere can absorb.  If we do not account for the amount of
-			  evaporation from overlying evaporation, we can end up with the situation
-			  that all vegetation layers and the soil layer transpire/evaporate at the
-			  potential rate, resulting in an overprediction of the actual evaporation
-			  rate.  Thus we subtract the amount of evaporation that has already
-			  been calculated for overlying layers from the potential evaporation.
-			  Another mechanism that could be used to account for this would be to
-			  decrease the vapor pressure deficit while going down through the canopy
-			  (not implemented here) */
+	   /* The potential evaporation rate accounts for the amount of moisture that
+		  the atmosphere can absorb.  If we do not account for the amount of
+		  evaporation from overlying evaporation, we can end up with the situation
+		  that all vegetation layers and the soil layer transpire/evaporate at the
+		  potential rate, resulting in an overprediction of the actual evaporation
+		  rate.  Thus we subtract the amount of evaporation that has already
+		  been calculated for overlying layers from the potential evaporation.
+		  Another mechanism that could be used to account for this would be to
+		  decrease the vapor pressure deficit while going down through the canopy
+		  (not implemented here) */
 
-		EPot = 0;
+	EPot = 0;
 
-		/* Eq.8 Wigmosta et al [1994] */
+	/* Eq.8 Wigmosta et al [1994] */
 
-		SoilEvap = MIN(EPot, DesorptionVolume);
-		SoilEvap *= Adjust;
-		SoilMoisture = *MoistContent * RootDepth * Adjust;
+	SoilEvap = MIN(EPot, DesorptionVolume);
+	SoilEvap *= Adjust;
+	SoilMoisture = *MoistContent * RootDepth * Adjust;
 
-		MoistThrhld = FCap;
-		tmp = MoistThrhld * RootDepth * Adjust;
-		if (SoilEvap > SoilMoisture - tmp) {
-			SoilEvap = SoilMoisture - tmp;
-			//*MoistContent = MoistThrhld;
-		}
-		else {
-			SoilMoisture -= SoilEvap;
-			//*MoistContent = SoilMoisture / (RootDepth * Adjust);
-		}
-		return SoilEvap;
+	MoistThrhld = FCap;
+	tmp = MoistThrhld * RootDepth * Adjust;
+	if (SoilEvap > SoilMoisture - tmp) {
+		SoilEvap = SoilMoisture - tmp;
+		//*MoistContent = MoistThrhld;
 	}
+	else {
+		SoilMoisture -= SoilEvap;
+		//*MoistContent = SoilMoisture / (RootDepth * Adjust);
+	}
+	return SoilEvap;
+}
 
 inline NUMERIC_TYPE SGC2_Freeze_floodplain_row(
 	const int row_start, int row_end,
@@ -5234,7 +5234,7 @@ inline NUMERIC_TYPE SGC2_Freeze_floodplain_row(
 	NUMERIC_TYPE* Freeze_Row,
 	NUMERIC_TYPE temperature_step, // 温度
 	const NUMERIC_TYPE * h_row,
-	NUMERIC_TYPE * volume_row, 
+	NUMERIC_TYPE * volume_row,
 	NUMERIC_TYPE * snow)
 {
 #ifdef __INTEL_COMPILER
@@ -5268,7 +5268,7 @@ inline NUMERIC_TYPE SGC2_Freeze_floodplain_row(
 			// update snow cover thickness
 			Freeze_Row[i] = dV / row_cell_area;
 			snow[i] += Freeze_Row[i];
-			
+
 		}
 		reduce_freeze_loss += dV; //mass-balance for a standard cell
 	}
@@ -5352,8 +5352,8 @@ inline NUMERIC_TYPE SGC2_Snow_Glacier_Melt_row(const int j,
 	const NUMERIC_TYPE row_cell_area,
 	const NUMERIC_TYPE * dem_row,
 	NUMERIC_TYPE * volume_row,
-	WetDryRowBound * wet_dry_bounds, const States *Statesptr, 
-	Pars *Parptr,const Solver *Solverptr,
+	WetDryRowBound * wet_dry_bounds, const States *Statesptr,
+	Pars *Parptr, const Solver *Solverptr,
 	NUMERIC_TYPE temperature_step, // 温度
 	NUMERIC_TYPE* SnowMelt_Row, NUMERIC_TYPE * GlacierMelt_Row,
 	NUMERIC_TYPE* Snow, NUMERIC_TYPE* Glacier
@@ -5397,7 +5397,8 @@ inline NUMERIC_TYPE SGC2_Snow_Glacier_Melt_row(const int j,
 				SnowMelt_Row[i] = meltDeltaHStep;
 				GlacierMelt_Row[i] = 0.0;
 				dV = meltDeltaHStep * row_cell_area;
-			}else if (Glacier[i] > ZERO_LIMIT) {
+			}
+			else if (Glacier[i] > ZERO_LIMIT) {
 				meltDeltaHStep = Parptr->FddGlacier * (temperature_step - Parptr->melt_temperature) * Solverptr->SGCtmpTstep / 1000.0;
 				if (meltDeltaHStep > Glacier[i])
 				{
@@ -5427,7 +5428,7 @@ inline NUMERIC_TYPE SGC2_Snow_Glacier_Melt_row(const int j,
 
 // routine for uniform rainfall
 inline NUMERIC_TYPE SGC2_Uniform_Rainfall_row(const int j,
-	const NUMERIC_TYPE rain_deltaV_step,const NUMERIC_TYPE row_cell_area,
+	const NUMERIC_TYPE rain_deltaV_step, const NUMERIC_TYPE row_cell_area,
 	const NUMERIC_TYPE * dem_row,
 	NUMERIC_TYPE * volume_row, NUMERIC_TYPE * delta_volume_row_ch,
 	WetDryRowBound * wet_dry_bounds, const States *Statesptr, NUMERIC_TYPE* Rain_Row_POI,
@@ -5451,7 +5452,7 @@ inline NUMERIC_TYPE SGC2_Uniform_Rainfall_row(const int j,
 
 #pragma ivdep
 #pragma simd reduction (+:loc_rainfall_total)
-	
+
 	for (int i = row_start; i < row_end; i++)
 	{
 		//NUMERIC_TYPE dV = (dem_row[i] != C(1e10)) ? rain_step_dV : C(0.0);
@@ -5472,7 +5473,7 @@ inline NUMERIC_TYPE SGC2_Uniform_Rainfall_row(const int j,
 			{
 				Rain_Row_POI[i] += rain_deltaV_step * 1000.0 / row_cell_area;    // mm
 			}
-			
+
 		}
 
 	}
@@ -5490,7 +5491,7 @@ inline NUMERIC_TYPE SGC2_Uniform_Rainfall_row(const int j,
 		NUMERIC_TYPE SGC_BankFullHeight = sg_cell_SGC_BankFullHeight[cell_index] * 1000.0;
 		NUMERIC_TYPE SGC_c = sg_cell_SGC_c[cell_index];  // SGC河道单元底面积
 		// xiaodw, mm/h -> m/s -> m3
-		dV = rain_deltaV_step ;
+		dV = rain_deltaV_step;
 		dVCh = dV * SGC_c / row_cell_area;
 		dVFp = dV - dVCh;
 		volume_row[i] += dVFp;    // 蓄洪区
@@ -5510,7 +5511,7 @@ inline NUMERIC_TYPE SGC2_Distrubuted_Rainfall_row(const int j,
 	const NUMERIC_TYPE * dem_row, const NUMERIC_TYPE * rainmask_row,
 	NUMERIC_TYPE * volume_row, NUMERIC_TYPE *  delta_volume_row_ch,
 	WetDryRowBound * wet_dry_bounds, const States * Statesptr, const NUMERIC_TYPE row_cell_area, NUMERIC_TYPE* Rain_Row_POI,
-	Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr,  int grid_row_index,
+	Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, int grid_row_index,
 	const int cell_count, const int sg_row_start, const int * sg_cell_grid_index_lookup, const NUMERIC_TYPE * sg_cell_cell_area,
 	const NUMERIC_TYPE * sg_cell_SGC_BankFullHeight, const NUMERIC_TYPE * sg_cell_SGC_BankFullVolume, const NUMERIC_TYPE * sg_cell_SGC_c,
 	const SubGridFlowLookup * sg_cell_flow_lookup)
@@ -5524,8 +5525,8 @@ inline NUMERIC_TYPE SGC2_Distrubuted_Rainfall_row(const int j,
 	wet_dry_bounds->fp_vol[j] = wet_dry_bounds->dem_data[j];
 
 #ifdef __INTEL_COMPILER
-				__assume_aligned(dem_row, 64);
-				__assume_aligned(volume_row, 64);
+	__assume_aligned(dem_row, 64);
+	__assume_aligned(volume_row, 64);
 #endif
 
 #pragma ivdep
@@ -5537,7 +5538,7 @@ inline NUMERIC_TYPE SGC2_Distrubuted_Rainfall_row(const int j,
 		NUMERIC_TYPE dV;
 		int index = grid_row_index + i;
 		int source_index_this = j * Parptr->xsz + i;
-		
+
 		if (dem_row[i] != DEM_NO_DATA)
 		{
 			// 如果该栅格是SGC河道，则降雨被分为河道上的降雨和其两侧蓄洪区的降雨，volume_row特指蓄洪区的降雨，volume_bed是河道上的降雨
@@ -5566,7 +5567,7 @@ inline NUMERIC_TYPE SGC2_Distrubuted_Rainfall_row(const int j,
 
 		// // 河道所在的栅格单元面积
 		const NUMERIC_TYPE cell_area = sg_cell_cell_area[cell_index];
-		
+
 		NUMERIC_TYPE SGC_BankFullHeight = sg_cell_SGC_BankFullHeight[cell_index] * 1000.0;
 		NUMERIC_TYPE SGC_c = sg_cell_SGC_c[cell_index];  // SGC河道单元底面积
 		// xiaodw, mm/h -> m/s -> m3
@@ -5632,11 +5633,11 @@ void SGC2_BCs(const int grid_cols, const int grid_rows, const int grid_cols_padd
 			// First for each edge number work out where it is on the boundary,
 			// the associated edge pixels and whether it's facing in the x or y
 			// direction
-			#if defined (_XDW_DEBUG) && _XDW_DEBUG > 0
+#if defined (_XDW_DEBUG) && _XDW_DEBUG > 0
 			cout << "BCi: " << BCi << " ws.Ident: " << ws.Ident[BCi];
-			#endif // IS_DEBUG
+#endif // IS_DEBUG
 
-			
+
 			// 根据BCi所处的位置给cell_length和cell_width赋值
 			// 第一行
 			if (BCi < grid_cols)
@@ -5656,9 +5657,9 @@ void SGC2_BCs(const int grid_cols, const int grid_rows, const int grid_cols_padd
 				sign = -1;
 				cell_length = dy_col[j];
 				cell_width = dx_col[j];
-				#if defined (_XDW_DEBUG) && _XDW_DEBUG > 0
+#if defined (_XDW_DEBUG) && _XDW_DEBUG > 0
 				cout << " north cell_length: " << cell_length << " cell_width: " << cell_width << endl;
-				#endif
+#endif
 				//printf("North %d, %d\n", i, lyr);
 				//int j2 = (int)floor((double)index / grid_cols_padded);
 				//int i2 = index - lyr*grid_cols_padded;
@@ -5758,7 +5759,7 @@ void SGC2_BCs(const int grid_cols, const int grid_rows, const int grid_cols_padd
 			// Now calculate flows
 			switch (ws.Ident[BCi])
 			{
-			// 计算bci中规定的边界(边或点)上的流量之和
+				// 计算bci中规定的边界(边或点)上的流量之和
 			case FREE1: // FREE boundary
 			{
 				if (h_grid[index] + ws.ws_cell.sg_cell_SGC_BankFullHeight[BCi] > depth_thresh)
@@ -5871,7 +5872,7 @@ void SGC2_BCs(const int grid_cols, const int grid_rows, const int grid_cols_padd
 			case QFIX4:// QFIX boundary
 			{
 				//*qptr=-sign*ws.Val[BCi]*Parptr->dx; //CCS_deletion
-				NUMERIC_TYPE q = -sign*ws.Val[BCi] * Q_multiplier;
+				NUMERIC_TYPE q = -sign * ws.Val[BCi] * Q_multiplier;
 				q_FP_combined[q_index] = q;
 				q_FP_old[q_fp_old_index] = q;
 				q_SG_old[q_sg_old_index] = C(0.0);
@@ -5929,7 +5930,7 @@ void SGC2_PointSources_Vol_row(const int y, const int grid_cols,
 	PointSourceRowList * ps_layout,
 	WetDryRowBound* wet_dry_bounds,
 	NUMERIC_TYPE * out_Qpoint_timestep_pos, NUMERIC_TYPE * out_Qpoint_timestep_neg,
-	const NUMERIC_TYPE max_Froude)
+	const NUMERIC_TYPE max_Froude, const States *Statesptr, LfpCouplingInfo * LfpCouplingInfoPtr)
 {
 	NUMERIC_TYPE Qpoint_timestep_pos = C(0.0);
 	NUMERIC_TYPE Qpoint_timestep_neg = C(0.0);
@@ -5937,59 +5938,79 @@ void SGC2_PointSources_Vol_row(const int y, const int grid_cols,
 	const int row_cols_padded = ps_layout->row_cols_padded;
 	const int row_start = y * row_cols_padded;
 	WaterSource ps_info = ps_layout->ps_info;
-	for (int i = 0; i < ps_count; i++)
-	{
-		int ws_index = row_start + i;
-
-		NUMERIC_TYPE h;
-		// Set initial dV and himp as zero
-		NUMERIC_TYPE dV = C(0.0);
-		int grid_index;
-		int ps_x = ps_info.ws_cell.sg_cell_x[ws_index];
-		int ps_y = ps_info.ws_cell.sg_cell_y[ws_index];
-		// location in vector
-		grid_index = ps_info.ws_cell.sg_cell_grid_index_lookup[ws_index];
-		// different boundary conditions
-		switch (ps_info.Ident[ws_index])
+	if (Statesptr->use_seims_bc) {
+		for (int i = 0; i < ps_count; i++)
 		{
-			//NOTE HVAR and HFIX applied after update H
-		case QVAR5: //QVAR ps.Val already set to the interpolated value
-		case QFIX4:
-			dV = ps_info.Val[ws_index] * Q_multiplier * delta_time; // QFIX // Calculate change in volume
-			break;
-		case FREE6:
-			h = h_grid[grid_index] + ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index];
-			if (h > depth_thresh)
-			{
-				NUMERIC_TYPE cell_width = getmin(dx_col[ps_y], dy_col[ps_y]);
-				NUMERIC_TYPE FP_g_friction_squared = ps_info.g_friction_squared_FP[ws_index];
-				NUMERIC_TYPE SGC_g_friction_squared = ps_info.g_friction_squared_SG[ws_index];
+			int ws_index = row_start + i;
 
-				NUMERIC_TYPE q_free_FP_corrected = SGC2_CalcPointFREE(h_grid[grid_index], ps_info.ws_cell.sg_cell_SGC_width[ws_index], ps_info.Val[ws_index],
-					depth_thresh, delta_time, cell_width, g,
-					SGC_g_friction_squared, FP_g_friction_squared,
-					ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index], ps_info.ws_cell.sg_cell_SGC_group[ws_index],
-					-1, &ps_info.Q_FP_old[ws_index], &ps_info.Q_SG_old[ws_index], SGCptr, max_Froude);
-
-				NUMERIC_TYPE Qfree = q_free_FP_corrected + ps_info.Q_SG_old[ws_index];
-				dV = Qfree * delta_time;
-			}
-			break;
-		}
-
-		if (dV != C(0.0))
-		{
-			wet_dry_bounds->fp_vol[ps_y].start = min(wet_dry_bounds->fp_vol[ps_y].start, ps_x);
-			wet_dry_bounds->fp_vol[ps_y].end = max(wet_dry_bounds->fp_vol[ps_y].end, ps_x + 1);
-			// update the cell volume change and in point source Q
-			volume_row[ps_x] += dV; // Add volume to SGCdVol for use later by update H e.g wait for main update H before calculating H
-			// Update Qpoint
-			if (dV > 0)
-				Qpoint_timestep_pos += dV;
-			else
-				Qpoint_timestep_neg += dV;
+			NUMERIC_TYPE h;
+			// Set initial dV and himp as zero
+			NUMERIC_TYPE dV = C(0.0);
+			int grid_index;
+			int ps_x = ps_info.ws_cell.sg_cell_x[ws_index];
+			int ps_y = ps_info.ws_cell.sg_cell_y[ws_index];
+			// location in vector
+			grid_index = ps_info.ws_cell.sg_cell_grid_index_lookup[ws_index];
+			char * bc_name = ps_info.Name[ws_index];
+			dV = LfpCouplingInfoPtr->seims_up_map[bc_name].qIn * Q_multiplier * delta_time; // QFIX // Calculate change in volume
 		}
 	}
+	else {
+		for (int i = 0; i < ps_count; i++)
+		{
+			int ws_index = row_start + i;
+
+			NUMERIC_TYPE h;
+			// Set initial dV and himp as zero
+			NUMERIC_TYPE dV = C(0.0);
+			int grid_index;
+			int ps_x = ps_info.ws_cell.sg_cell_x[ws_index];
+			int ps_y = ps_info.ws_cell.sg_cell_y[ws_index];
+			// location in vector
+			grid_index = ps_info.ws_cell.sg_cell_grid_index_lookup[ws_index];
+			// different boundary conditions
+			switch (ps_info.Ident[ws_index])
+			{
+				//NOTE HVAR and HFIX applied after update H
+			case QVAR5: //QVAR ps.Val already set to the interpolated value
+			case QFIX4:
+				dV = ps_info.Val[ws_index] * Q_multiplier * delta_time; // QFIX // Calculate change in volume
+				break;
+			case FREE6:
+				h = h_grid[grid_index] + ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index];
+				if (h > depth_thresh)
+				{
+					NUMERIC_TYPE cell_width = getmin(dx_col[ps_y], dy_col[ps_y]);
+					NUMERIC_TYPE FP_g_friction_squared = ps_info.g_friction_squared_FP[ws_index];
+					NUMERIC_TYPE SGC_g_friction_squared = ps_info.g_friction_squared_SG[ws_index];
+
+					NUMERIC_TYPE q_free_FP_corrected = SGC2_CalcPointFREE(h_grid[grid_index], ps_info.ws_cell.sg_cell_SGC_width[ws_index], ps_info.Val[ws_index],
+						depth_thresh, delta_time, cell_width, g,
+						SGC_g_friction_squared, FP_g_friction_squared,
+						ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index], ps_info.ws_cell.sg_cell_SGC_group[ws_index],
+						-1, &ps_info.Q_FP_old[ws_index], &ps_info.Q_SG_old[ws_index], SGCptr, max_Froude);
+
+					NUMERIC_TYPE Qfree = q_free_FP_corrected + ps_info.Q_SG_old[ws_index];
+					dV = Qfree * delta_time;
+				}
+				break;
+			}
+
+			if (dV != C(0.0))
+			{
+				wet_dry_bounds->fp_vol[ps_y].start = min(wet_dry_bounds->fp_vol[ps_y].start, ps_x);
+				wet_dry_bounds->fp_vol[ps_y].end = max(wet_dry_bounds->fp_vol[ps_y].end, ps_x + 1);
+				// update the cell volume change and in point source Q
+				volume_row[ps_x] += dV; // Add volume to SGCdVol for use later by update H e.g wait for main update H before calculating H
+				// Update Qpoint
+				if (dV > 0)
+					Qpoint_timestep_pos += dV;
+				else
+					Qpoint_timestep_neg += dV;
+			}
+		}
+	}
+
 	(*out_Qpoint_timestep_pos) = Qpoint_timestep_pos;
 	(*out_Qpoint_timestep_neg) = Qpoint_timestep_neg;
 }
@@ -6033,7 +6054,7 @@ void SGC2_PointSources_H_row(const int y, const int grid_cols,
 			// HVAR 'Val' already updated with the interpolated value for current time
 			new_h = ps_info.Val[ws_index];
 			new_h -= ps_info.ws_cell.sg_cell_dem[ws_index]; // get depth
-			
+
 			if (ps_info.ws_cell.sg_cell_SGC_width[ws_index] > C(0.0))
 			{
 				// sub-grid channel
@@ -6086,7 +6107,7 @@ inline void SGC2_UpdateVol_floodplain_row(const int j, const int grid_row_index,
 	const NUMERIC_TYPE * Qx_grid, const NUMERIC_TYPE * Qy_grid,
 	NUMERIC_TYPE * volume_grid, NUMERIC_TYPE * delta_volume_row, NUMERIC_TYPE * delta_volume_row_ch, NUMERIC_TYPE * h_grid,
 
-	const WetDryRowBound * wet_dry_bounds, NUMERIC_TYPE * Q_Row_POI, NUMERIC_TYPE * Vol_Row_POI, Pars *Parptr,Arrays *Arrptr, Pois *Poisptr, const States *Statesptr,
+	const WetDryRowBound * wet_dry_bounds, NUMERIC_TYPE * Q_Row_POI, NUMERIC_TYPE * Vol_Row_POI, Pars *Parptr, Arrays *Arrptr, Pois *Poisptr, const States *Statesptr,
 	const int cell_count, const int sg_row_start, const int * sg_cell_grid_index_lookup)
 {
 	bool not_last_row = (j < grid_rows - 1);
@@ -6133,7 +6154,7 @@ inline void SGC2_UpdateVol_floodplain_row(const int j, const int grid_row_index,
 	// 栅格单元上的水量 + 流量变化 + 降雨 - 蒸发 - 下渗
 #pragma ivdep
 #pragma simd
-	for (int i = row_start; i < row_end; i++)  
+	for (int i = row_start; i < row_end; i++)
 	{
 		int index = grid_row_index + i;
 		int index_right = index + 1;
@@ -6152,7 +6173,7 @@ inline void SGC2_UpdateVol_floodplain_row(const int j, const int grid_row_index,
 			//	Poisptr->Qx_Grid[index] += delta_time * (Qx_grid[index] - Qx_grid[index_right]) * 1000.0 / row_cell_area;
 			//	Poisptr->Qy_Grid[index] += delta_time * (Qy_grid[index] - Qy_grid[index_below]) * 1000.0 / row_cell_area;
 			//}
-			
+
 			// xiaodw，如果是河道像元则统计多少水来自于河道像元本身的产流，多少水来自于河道像元的直接侧向输出，多少水来自于上游单元的地表
 			// xiaodw, 如果是河道则将河床的水量变化加入
 			if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0)) {
@@ -6351,7 +6372,7 @@ inline NUMERIC_TYPE SGC2_Infil_UpdateVol_sub_grid_row(const int sg_row_start, co
 			// 上个时间步长结束时的水深加上当前时间步长的降雨量
 			NUMERIC_TYPE h_old = h_prev + volume_row[grid_index - grid_row_index] / cell_area;
 			// 扣除河道内的下渗
-			NUMERIC_TYPE h_new = h_old - infil_row* Solverptr->SGCtmpTstep;
+			NUMERIC_TYPE h_new = h_old - infil_row * Solverptr->SGCtmpTstep;
 
 			// 如果河道内的水超出了河道上底之上 或 河道内有水但未超过河道上底
 			if ((h_old + SGC_BankFullHeight) > 0.0)
@@ -6426,7 +6447,7 @@ inline NUMERIC_TYPE SGC2_Infil_UpdateVol_sub_grid_row(const int sg_row_start, co
 			row_infil_loss -= infil_dV;
 			// 从水量中扣除实际下渗量
 			volume_row[grid_index - grid_row_index] += infil_dV;
-			
+
 			//volume_grid[grid_index] += infil_dV;
 		}
 	}
@@ -6454,10 +6475,10 @@ inline NUMERIC_TYPE SGC2_Freeze_UpdateVol_sub_grid_row(const int sg_row_start, c
 	const NUMERIC_TYPE freeze_row,
 	WetDryRowBound * wet_dry_bounds,
 	const SGCprams *SGCptr,
-	const int SGCd8flag, const Solver *Solverptr, NUMERIC_TYPE * volume_row, 
+	const int SGCd8flag, const Solver *Solverptr, NUMERIC_TYPE * volume_row,
 	const int grid_row_index, NUMERIC_TYPE* Freeze_Row, NUMERIC_TYPE * snow)
 {
-	
+
 	NUMERIC_TYPE row_freeze_loss = C(0.0);
 #if defined(__INTEL_COMPILER) || defined(_MSC_VER)
 	__assume(sg_row_start % GRID_ALIGN_WIDTH == 0);
@@ -6541,7 +6562,7 @@ inline NUMERIC_TYPE SGC2_Freeze_UpdateVol_sub_grid_row(const int sg_row_start, c
 						// floodplain上的冻结量，
 						freeze_dV -= (cell_freeze * cell_area);
 						Freeze_Row[grid_index - grid_row_index] = h_old - h_new;
-						
+
 					}
 				}
 				// 扣除蒸发前，河水就低于河道上底depth_thresh
@@ -6644,7 +6665,7 @@ inline NUMERIC_TYPE SGC2_Evap_UpdateVol_sub_grid_row(const int sg_row_start, con
 			// 河道里本来有水
 			if ((h_old + SGC_BankFullHeight) > depth_thresh)
 			{
-				
+
 				NUMERIC_TYPE cell_area = sg_cell_cell_area[cell_index];
 				// 扣除蒸发后，河道里的水在河道上底之下
 				if (h_new < C(0.0))
@@ -6681,8 +6702,8 @@ inline NUMERIC_TYPE SGC2_Evap_UpdateVol_sub_grid_row(const int sg_row_start, con
 						// calculate loss in vol
 						// 能进入这个if，则evap_dV这时还等于0
 						// 蒸发量 = （新水深 - 旧水深）*sgc河道单元底面积，evap_dV必然<0
-						evap_dV -= SGC2_CalcUpV(h_old, SGC_c, gr, SGCptr); //Calculate channel volume 
-						evap_dV += SGC2_CalcUpV(h_new, SGC_c, gr, SGCptr); //Calculate channel volume 
+						evap_dV -= SGC2_CalcUpV(h_old, SGC_c, gr, SGCptr); //Calculate channel volume
+						evap_dV += SGC2_CalcUpV(h_new, SGC_c, gr, SGCptr); //Calculate channel volume
 					}
 					// old water level must be above bank height and the channel is smaller than a cell width
 					// but the new water level is below bank height, evap mass loss for bank transition
@@ -6708,7 +6729,7 @@ inline NUMERIC_TYPE SGC2_Evap_UpdateVol_sub_grid_row(const int sg_row_start, con
 					// normal flood plain evap - for the region between depth_thresh and zero.
 					// this cell would have been skipped by the flood plain calculation, as the depth is below depth_thresh
 					// evepouration needs to be calculated for this cell to allow for evapouration from the channel
-					// 
+					//
 					evap_dV -= (evap_grid->data[grid_index] * cell_area);
 
 				} //else water is fully above the sub-grid, no need to update here
@@ -6727,7 +6748,7 @@ inline NUMERIC_TYPE SGC2_Evap_UpdateVol_sub_grid_row(const int sg_row_start, con
 
 
 	// PFU separate loop for subgrid flow_dV (needed if evap=0)
-	#pragma ivdep
+#pragma ivdep
 	for (int cell_i = 0; cell_i < cell_count; cell_i++)
 	{
 		int cell_index = sg_row_start + cell_i;
@@ -6744,8 +6765,8 @@ inline NUMERIC_TYPE SGC2_Evap_UpdateVol_sub_grid_row(const int sg_row_start, con
 		// 0 qx (west side flows inward: add)
 		int flow_index = sg_cell_flow_lookup_item.flow_add[0];
 		//This adds the subgrid flow to the cell volume
-		flow_dV += (flow_index != -1) ? sg_flow_Q[flow_index] : C(0.0); 
-		
+		flow_dV += (flow_index != -1) ? sg_flow_Q[flow_index] : C(0.0);
+
 		// 0 qx (east side flows outward: subtract)
 		flow_index = sg_cell_flow_lookup_item.flow_subtract[0];
 		flow_dV -= (flow_index != -1) ? sg_flow_Q[flow_index] : C(0.0);
@@ -6880,7 +6901,7 @@ inline NUMERIC_TYPE SGC2_ProcessH_Row(const int j, const int grid_cols, const in
 			// 水量
 			Poisptr->Vol_Grid[index] = volume_grid[index];
 		}
-		
+
 	}
 
 	const int sg_row_start = j * sg_row_mem_size;//  sub_grid_layout->row_cols_padded;
@@ -7038,7 +7059,7 @@ void SGC2_UpdateHazard_row(const int j, const int grid_row_index,
 		NUMERIC_TYPE Vx = getmax(FABS(Vx_west), FABS(Vx_east));
 		NUMERIC_TYPE Vy = getmax(FABS(Vy_north), FABS(Vy_south));
 
-		NUMERIC_TYPE Vc = SQRT(Vx*Vx + Vy*Vy);
+		NUMERIC_TYPE Vc = SQRT(Vx*Vx + Vy * Vy);
 		NUMERIC_TYPE depth = h_grid[index] + SGC_BankFullHeight_grid[index];
 		NUMERIC_TYPE hazard = depth * (Vc + C(1.5)); // Changed to equation from DEFRA 2006 (ALD)
 		maxHazard_grid[index] = getmax(hazard, maxHazard_grid[index]);
@@ -7104,7 +7125,7 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 	WetDryRowBound *wet_dry_bounds, NUMERIC_TYPE *tmp_row,
 	const NUMERIC_TYPE* Qx_grid, const NUMERIC_TYPE* Qy_grid,
 	const NUMERIC_TYPE * cell_area_col, const NUMERIC_TYPE * dx_col, const NUMERIC_TYPE * dy_col,
-	const NUMERIC_TYPE * dem_grid, 
+	const NUMERIC_TYPE * dem_grid,
 
 	const SubGridRowList * sub_grid_layout, const SubGridState * sub_grid_state,
 	PointSourceRowList * ps_layout,
@@ -7118,10 +7139,10 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 	Pars *Parptr,
 	Fnames *Fnameptr,
 	const Solver *Solverptr,
-	Pois *Poisptr, 
+	Pois *Poisptr,
 	const SGCprams *SGCptr, Arrays *Arrptr,
 	//DynamicRain<> & dynamic_rain, removed JCN
-	VolumeHeightUpdateInfo * update_info, NUMERIC_TYPE *infilAvgBlock, int * infilValidCount
+	VolumeHeightUpdateInfo * update_info, NUMERIC_TYPE *infilAvgBlock, int * infilValidCount, LfpCouplingInfo * LfpCouplingInfoPtr
 	//NUMERIC_TYPE last_gw_time,NUMERIC_TYPE *PercolationVol, NUMERIC_INT  sumNCells, NUMERIC_TYPE * sumGndQ2Rch, NUMERIC_TYPE * GwStorageDepth
 )
 {
@@ -7150,7 +7171,7 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 	const NUMERIC_TYPE * sg_cell_cell_area = sub_grid_layout->cell_info.sg_cell_cell_area;
 	const int * sg_cell_SGC_is_large = sub_grid_layout->cell_info.sg_cell_SGC_is_large;
 
-//	const NUMERIC_TYPE * sg_flow_ChannelRatio = sub_grid_state->sg_flow_ChannelRatio;
+	//	const NUMERIC_TYPE * sg_flow_ChannelRatio = sub_grid_state->sg_flow_ChannelRatio;
 	const NUMERIC_TYPE * sg_flow_Q = sub_grid_state->sg_flow_Q;
 
 	NUMERIC_TYPE q_pos, q_neg;
@@ -7168,14 +7189,14 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 
 		const int sg_row_start = j * sub_grid_layout->row_cols_padded;
 		const int cell_row_count = sub_grid_layout->cell_row_count[j];
-		
+
 #if defined(__INTEL_COMPILER) || defined(_MSC_VER)
 		__assume(grid_row_index % GRID_ALIGN_WIDTH == 0);
 #endif
 		// delta_volume_row是一维数组grid_cols_padded ，用来存储当前处理行的数据
 		NUMERIC_TYPE * delta_volume_row = tmp_row;
 		//NUMERIC_TYPE * delta_volume_grid_ch = tmp_row_ch;
-		
+
 		//NUMERIC_TYPE * delta_volume_row_dhsvm = new NUMERIC_TYPE[grid_cols_padded];
 		//memset(delta_volume_row_dhsvm, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
 #ifdef __INTEL_COMPILER
@@ -7199,12 +7220,12 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 		__assume_aligned(sg_cell_SGC_c, 64);
 		__assume_aligned(sg_cell_cell_area, 64);
 		__assume_aligned(sg_cell_SGC_is_large, 64);
-//		__assume_aligned(sg_flow_ChannelRatio, 64);
+		//		__assume_aligned(sg_flow_ChannelRatio, 64);
 		__assume_aligned(sg_flow_Q, 64);
 
 #endif		
 
-		SGC2_PointSources_Vol_row(j, grid_cols, delta_time, curr_time, depth_thresh, g, Q_multiplier, dx_col, dy_col, h_grid, SGCptr, delta_volume_row, ps_layout, wet_dry_bounds, &q_pos, &q_neg, Parptr->max_Froude);
+		SGC2_PointSources_Vol_row(j, grid_cols, delta_time, curr_time, depth_thresh, g, Q_multiplier, dx_col, dy_col, h_grid, SGCptr, delta_volume_row, ps_layout, wet_dry_bounds, &q_pos, &q_neg, Parptr->max_Froude, Statesptr, LfpCouplingInfoPtr);
 		block_Qpoint_timestep_pos += q_pos;
 		block_Qpoint_timestep_neg += q_neg;
 
@@ -7247,7 +7268,7 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 			// 记录当前时间步长每个栅格上的降雨量
 			block_rain_total += SGC2_Uniform_Rainfall_row(j, rain_step_dV, row_cell_area,
 				dem_grid + grid_row_index,  // pointer to start of row
-				delta_volume_row, Parptr->delta_volume_grid_ch + grid_row_index, wet_dry_bounds, Statesptr,  Poisptr->Rain_Grid + grid_row_index,
+				delta_volume_row, Parptr->delta_volume_grid_ch + grid_row_index, wet_dry_bounds, Statesptr, Poisptr->Rain_Grid + grid_row_index,
 				Parptr, Solverptr, Arrptr, grid_row_index, sub_grid_layout->cell_row_count[j], sg_row_start, sg_cell_grid_index_lookup, sg_cell_cell_area, sg_cell_SGC_BankFullHeight,
 				sg_cell_SGC_BankFullVolume, sg_cell_SGC_c, sg_cell_flow_lookup);
 		}
@@ -7259,8 +7280,8 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 			if (temperature_step > Parptr->melt_temperature) {
 				block_evap_loss -= SGC2_Snow_Glacier_Melt_row(j, row_cell_area,
 					dem_grid + grid_row_index, // pointer to start of row
-					delta_volume_row, wet_dry_bounds, Statesptr, 
-					Parptr, Solverptr,  temperature_step, 
+					delta_volume_row, wet_dry_bounds, Statesptr,
+					Parptr, Solverptr, temperature_step,
 					Poisptr->SnowMelt_Grid + grid_row_index, Poisptr->GlacierMelt_Grid + grid_row_index,
 					Parptr->snow + grid_row_index_no_padding, Parptr->glacier + grid_row_index_no_padding);
 			}
@@ -7276,16 +7297,16 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 			int evap_row_end = wet_dry_bounds->dem_data[j].end;
 			if (Statesptr->use_percolation_singlelayer == ON || Statesptr->use_interflow_singlelayer == ON || Statesptr->use_green_ampt_singlelayer == ON)
 			{
-				block_evap_loss += SGC2_Evaporation_floodplain_row(Statesptr,evap_row_start, evap_row_end, depth_thresh, row_cell_area, evap_deltaH_step,
-					evap_grid->data + grid_row_index,h_grid + grid_row_index, // pointer to start of row
-					delta_volume_row, Parptr->soilWaterDepthPD + grid_row_index, Parptr->multi_soilMoisturePD[0] + grid_row_index, 
+				block_evap_loss += SGC2_Evaporation_floodplain_row(Statesptr, evap_row_start, evap_row_end, depth_thresh, row_cell_area, evap_deltaH_step,
+					evap_grid->data + grid_row_index, h_grid + grid_row_index, // pointer to start of row
+					delta_volume_row, Parptr->soilWaterDepthPD + grid_row_index, Parptr->multi_soilMoisturePD[0] + grid_row_index,
 					Parptr->multi_soilThicknessPD[0] + grid_row_index, grid_row_index, Poisptr->Evap_Grid + grid_row_index, Poisptr->soil_water_depth_Grid[0] + grid_row_index);
 			}
 			else if (Statesptr->use_percolation_multilayer == ON || Statesptr->use_interflow_multilayer == ON || Statesptr->use_green_ampt_multilayer == ON)
 			{
-				block_evap_loss += SGC2_Evaporation_floodplain_row(Statesptr,evap_row_start, evap_row_end, depth_thresh, row_cell_area, evap_deltaH_step,
+				block_evap_loss += SGC2_Evaporation_floodplain_row(Statesptr, evap_row_start, evap_row_end, depth_thresh, row_cell_area, evap_deltaH_step,
 					evap_grid->data + grid_row_index, h_grid + grid_row_index, // pointer to start of row
-					delta_volume_row, Parptr->multi_soilWaterDepthPD[0] + grid_row_index, Parptr->multi_soilMoisturePD[0] + grid_row_index, 
+					delta_volume_row, Parptr->multi_soilWaterDepthPD[0] + grid_row_index, Parptr->multi_soilMoisturePD[0] + grid_row_index,
 					Parptr->multi_soilThicknessPD[0] + grid_row_index, grid_row_index, Poisptr->Evap_Grid + grid_row_index, Poisptr->soil_water_depth_Grid[0] + grid_row_index);
 			}
 			else if (Statesptr->use_seims_aet == ON)
@@ -7296,10 +7317,10 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 					Parptr->multi_soilThicknessPD[0] + grid_row_index, grid_row_index, Poisptr->Evap_Grid + grid_row_index, Poisptr->soil_water_depth_Grid[0] + grid_row_index, Parptr);
 			}
 			else if (Statesptr->use_xaj_evap == ON) {
-				block_evap_loss += SGC2_Evaporation_XAJ_3Layer(Statesptr,evap_row_start, evap_row_end, row_cell_area, evap_grid->data, h_grid, 
-					delta_volume_row, Parptr->delta_volume_grid_ch + grid_row_index, dem_grid , grid_row_index, Poisptr->Evap_Grid, Poisptr->soil_water_depth_Grid, Parptr, Arrptr, sg_cell_cell_area, j,
+				block_evap_loss += SGC2_Evaporation_XAJ_3Layer(Statesptr, evap_row_start, evap_row_end, row_cell_area, evap_grid->data, h_grid,
+					delta_volume_row, Parptr->delta_volume_grid_ch + grid_row_index, dem_grid, grid_row_index, Poisptr->Evap_Grid, Poisptr->soil_water_depth_Grid, Parptr, Arrptr, sg_cell_cell_area, j,
 					sub_grid_layout->cell_row_count[j], sg_row_start, sg_cell_grid_index_lookup, sg_cell_SGC_BankFullHeight, sg_cell_SGC_BankFullVolume, sg_cell_SGC_c, sg_cell_flow_lookup
-					);
+				);
 			}
 			//  使用DHSVM的soil evaporation
 			//if (Statesptr->use_dhsvm == ON)
@@ -7331,11 +7352,11 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 			NUMERIC_TYPE infilAvgRow = C(0.0);
 			NUMERIC_TYPE infilAccRow = C(0.0);
 			block_infil_loss += SGC2_Infil_floodplain_row_green_ampt(infilt_row_start, infilt_row_end, depth_thresh, row_cell_area, evap_deltaH_step,
-				h_grid + grid_row_index,dem_grid + grid_row_index,Poisptr->Infilt_Grid + grid_row_index,Parptr->soilWaterDepthPD + grid_row_index,
+				h_grid + grid_row_index, dem_grid + grid_row_index, Poisptr->Infilt_Grid + grid_row_index, Parptr->soilWaterDepthPD + grid_row_index,
 				//dist_infil_grid, // pointer to start of distributed infiltratioon grid
 				delta_volume_row, Parptr->porosityPD, Parptr->initSoilMoisturePD, Parptr->capillarySuctionPD, Parptr->ksPD, Parptr->ks_factor,
 				Parptr->accumuDepthPD, Parptr->rootDepthPD, Parptr->infilPD, Parptr->infilCapacitySurplusPD, Parptr->soilMoisturePD, Poisptr->soil_water_depth_Grid[0] + grid_row_index,
-				Parptr, Solverptr, Statesptr,grid_row_index, infilAvgBlock, infilValidCount);
+				Parptr, Solverptr, Statesptr, grid_row_index, infilAvgBlock, infilValidCount);
 			//if (infilt_row_end - infilt_row_start > 0)
 			//{
 			//	countRows++;
@@ -7352,7 +7373,7 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 				//dist_infil_grid, // pointer to start of distributed infiltratioon grid
 				delta_volume_row, Parptr->multi_soilPorosityPD[0], Parptr->multi_soilInitMoisturePD[0], Parptr->capillarySuctionPD, Parptr->multi_soilKsPD[0], Parptr->ksFactorInfil,
 				Parptr->accumuDepthPD, Parptr->multi_soilThicknessPD[0], Parptr->infilPD, Parptr->infilCapacitySurplusPD, Parptr->multi_soilMoisturePD[0], Poisptr->soil_water_depth_Grid[0] + grid_row_index,
-				Parptr, Solverptr, Statesptr,grid_row_index, infilAvgBlock, infilValidCount);
+				Parptr, Solverptr, Statesptr, grid_row_index, infilAvgBlock, infilValidCount);
 			//block_infil_loss += SGC2_Infil_UpdateVol_sub_grid_row(sg_row_start, cell_row_count, grid_cols, grid_cols_padded,
 			//	depth_thresh, evap_deltaH_step, delta_time, sg_cell_grid_index_lookup, sg_cell_x, sg_cell_y, sg_cell_SGC_BankFullHeight, sg_cell_SGC_BankFullVolume,
 			//	sg_cell_cell_area, sg_cell_flow_lookup, sg_flow_Q, Qx_grid, Qy_grid, sg_cell_SGC_group, sg_cell_SGC_c, sg_cell_SGC_is_large,
@@ -7362,13 +7383,13 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 			NUMERIC_TYPE infilAvgRow = C(0.0);
 			NUMERIC_TYPE infilAccRow = C(0.0);
 
-			block_infil_loss += SGC2_Infil_floodplain_row_wetspa(infilt_row_start, infilt_row_end, depth_thresh, row_cell_area, 
-				h_grid, dem_grid , Poisptr->Infilt_Grid + grid_row_index, Poisptr->InfiltCh_Grid + grid_row_index, Parptr->multi_soilWaterDepthPD[0] + grid_row_index,
-				delta_volume_row, Parptr->delta_volume_grid_ch + grid_row_index, Parptr->multi_soilPorosityPD[0],  Parptr->multi_soilThicknessPD[0], Parptr->infilPD, Parptr->infilChPD, Parptr->multi_soilMoisturePD[0], Poisptr->soil_water_depth_Grid[0] + grid_row_index,
-				Parptr, Solverptr, Arrptr,Statesptr, grid_row_index, infilAvgBlock, infilValidCount, j,
-				sub_grid_layout->cell_row_count[j], sg_row_start, sg_cell_grid_index_lookup, sg_cell_cell_area,sg_cell_SGC_BankFullHeight, sg_cell_SGC_BankFullVolume, sg_cell_SGC_c, sg_cell_flow_lookup
-				);
-			
+			block_infil_loss += SGC2_Infil_floodplain_row_wetspa(infilt_row_start, infilt_row_end, depth_thresh, row_cell_area,
+				h_grid, dem_grid, Poisptr->Infilt_Grid + grid_row_index, Poisptr->InfiltCh_Grid + grid_row_index, Parptr->multi_soilWaterDepthPD[0] + grid_row_index,
+				delta_volume_row, Parptr->delta_volume_grid_ch + grid_row_index, Parptr->multi_soilPorosityPD[0], Parptr->multi_soilThicknessPD[0], Parptr->infilPD, Parptr->infilChPD, Parptr->multi_soilMoisturePD[0], Poisptr->soil_water_depth_Grid[0] + grid_row_index,
+				Parptr, Solverptr, Arrptr, Statesptr, grid_row_index, infilAvgBlock, infilValidCount, j,
+				sub_grid_layout->cell_row_count[j], sg_row_start, sg_cell_grid_index_lookup, sg_cell_cell_area, sg_cell_SGC_BankFullHeight, sg_cell_SGC_BankFullVolume, sg_cell_SGC_c, sg_cell_flow_lookup
+			);
+
 		}
 		// constant value infiltration in sgc mode 
 		else if (Statesptr->calc_infiltration == ON) {
@@ -7379,18 +7400,18 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 				Parptr->InfilRate, // pointer to start of distributed infiltratioon grid
 				Parptr->soilWaterDepth + grid_row_index,
 				delta_volume_row, Parptr, Solverptr, Poisptr->Infilt_Grid + grid_row_index, grid_row_index, sg_row_start, cell_row_count, sg_cell_grid_index_lookup,
-				sg_cell_SGC_BankFullHeight, sg_cell_cell_area );
+				sg_cell_SGC_BankFullHeight, sg_cell_cell_area);
 			block_infil_loss += SGC2_Infil_UpdateVol_sub_grid_row(sg_row_start, cell_row_count, grid_cols, grid_cols_padded,
 				depth_thresh, evap_deltaH_step, delta_time, sg_cell_grid_index_lookup, sg_cell_x, sg_cell_y, sg_cell_SGC_BankFullHeight, sg_cell_SGC_BankFullVolume,
 				sg_cell_cell_area, sg_cell_flow_lookup, sg_flow_Q, Qx_grid, Qy_grid, sg_cell_SGC_group, sg_cell_SGC_c, sg_cell_SGC_is_large,
-				volume_grid, h_grid, Parptr->InfilRate, wet_dry_bounds, SGCptr, Statesptr->SGCd8, Solverptr, delta_volume_row,grid_row_index, Poisptr->Infilt_Grid + grid_row_index);
+				volume_grid, h_grid, Parptr->InfilRate, wet_dry_bounds, SGCptr, Statesptr->SGCd8, Solverptr, delta_volume_row, grid_row_index, Poisptr->Infilt_Grid + grid_row_index);
 		}
 		else {
 			printf("Please input infiltration\infilfile\infilfile&green_ampt param in par file.");
 		}
 
 		// xiaodw, 在这里将DHSVM算出来的水量添加到delta_volume_row
-		
+
 		if (Statesptr->use_dhsvm == ON)
 		{
 			for (int i = infilt_row_start; i < infilt_row_end; i++)
@@ -7424,7 +7445,7 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 						//delta_volume_row[i] += Parptr->satFlow2SurfPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 						Parptr->delta_volumn_dhsvm_PD[index] += Parptr->satFlow2SurfPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 					}
-					
+
 
 					if (Parptr->PercExcess2SurfPD[index] > 0.0) {
 						//volume_grid[index] += Parptr->satFlowPD[index] * cell_area_col[j] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
@@ -7433,11 +7454,11 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 					}
 
 
-					
+
 				}
 			}
 		}
-		
+
 
 		// calculate water freeze
 		if (Statesptr->use_snow_glacier == ON)
@@ -7447,11 +7468,11 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 				int freeze_row_start = wet_dry_bounds->dem_data[j].start;
 				int freeze_row_end = wet_dry_bounds->dem_data[j].end;
 
-				block_freeze_loss += SGC2_Freeze_floodplain_row(freeze_row_start, freeze_row_end, depth_thresh, row_cell_area, 
-					Parptr,Solverptr, Poisptr->Freeze_Grid + grid_row_index, temperature_step,
+				block_freeze_loss += SGC2_Freeze_floodplain_row(freeze_row_start, freeze_row_end, depth_thresh, row_cell_area,
+					Parptr, Solverptr, Poisptr->Freeze_Grid + grid_row_index, temperature_step,
 					h_grid + grid_row_index, // pointer to start of row
 					delta_volume_row, Parptr->snow + grid_row_index_no_padding);
-				NUMERIC_TYPE freeze_deltaH_rate= Parptr->FddSnow * Parptr->Frr * (temperature_step - Parptr->melt_temperature) ;
+				NUMERIC_TYPE freeze_deltaH_rate = Parptr->FddSnow * Parptr->Frr * (temperature_step - Parptr->melt_temperature);
 				block_evap_loss += SGC2_Freeze_UpdateVol_sub_grid_row(sg_row_start, cell_row_count, grid_cols, grid_cols_padded,
 					depth_thresh, evap_deltaH_step, delta_time, sg_cell_grid_index_lookup, sg_cell_x, sg_cell_y, sg_cell_SGC_BankFullHeight, sg_cell_SGC_BankFullVolume,
 					sg_cell_cell_area, sg_cell_flow_lookup, sg_flow_Q, Qx_grid, Qy_grid, sg_cell_SGC_group, sg_cell_SGC_c, sg_cell_SGC_is_large,
@@ -7464,8 +7485,8 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 		// xiaodw 20250318修订，仅根据降雨、蒸发、下渗更新洪泛区干湿边界内每个栅格上的水量；根据流量变化更新栅格水量的方法是SGC2_UpdateVol_floodplain_by_Q，在前面
 		//const int sg_row_start = j * sub_grid_layout->row_cols_padded;
 		//const int cell_row_count = sub_grid_layout->cell_row_count[j];
-		SGC2_UpdateVol_floodplain_row(j, grid_row_index, grid_cols, grid_rows, grid_cols_padded, delta_time, row_cell_area, Qx_grid, Qy_grid, 
-			volume_grid, delta_volume_row, Parptr->delta_volume_grid_ch + grid_row_index, h_grid, wet_dry_bounds,Poisptr->Qx_Grid+ grid_row_index, Poisptr->Vol_Grid + grid_row_index,Parptr,Arrptr,Poisptr, Statesptr,
+		SGC2_UpdateVol_floodplain_row(j, grid_row_index, grid_cols, grid_rows, grid_cols_padded, delta_time, row_cell_area, Qx_grid, Qy_grid,
+			volume_grid, delta_volume_row, Parptr->delta_volume_grid_ch + grid_row_index, h_grid, wet_dry_bounds, Poisptr->Qx_Grid + grid_row_index, Poisptr->Vol_Grid + grid_row_index, Parptr, Arrptr, Poisptr, Statesptr,
 			cell_row_count, sg_row_start, sg_cell_grid_index_lookup);
 
 		if (Statesptr->use_dhsvm == ON)
@@ -7490,8 +7511,8 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 		// note could use row_cell_area, currently looks up for each cell (SGC2_Evap_UpdateVol_sub_grid_row function can be used for single row or all rows with altered memory structure)
 		block_evap_loss += SGC2_Evap_UpdateVol_sub_grid_row(sg_row_start, cell_row_count, grid_cols, grid_cols_padded,
 			depth_thresh, evap_deltaH_step, delta_time, sg_cell_grid_index_lookup, sg_cell_x, sg_cell_y, sg_cell_SGC_BankFullHeight, sg_cell_SGC_BankFullVolume,
-			sg_cell_cell_area, sg_cell_flow_lookup, sg_flow_Q,  Qx_grid, Qy_grid, sg_cell_SGC_group, sg_cell_SGC_c, sg_cell_SGC_is_large,
-			volume_grid, h_grid, evap_grid, wet_dry_bounds, SGCptr, Statesptr->SGCd8, Poisptr->Q_Ch,Statesptr);
+			sg_cell_cell_area, sg_cell_flow_lookup, sg_flow_Q, Qx_grid, Qy_grid, sg_cell_SGC_group, sg_cell_SGC_c, sg_cell_SGC_is_large,
+			volume_grid, h_grid, evap_grid, wet_dry_bounds, SGCptr, Statesptr->SGCd8, Poisptr->Q_Ch, Statesptr);
 		SGC2_PointSources_H_row(j, grid_cols, delta_time, curr_time, depth_thresh, cell_area_col, SGCptr, h_grid, volume_grid, ps_layout, wet_dry_bounds, &q_pos, &q_neg);
 		block_Qpoint_timestep_pos += q_pos;
 		block_Qpoint_timestep_neg += q_neg;
@@ -7623,7 +7644,7 @@ NUMERIC_TYPE SGC2_InitHBounds(const int grid_cols, const int grid_rows, const in
 	SubGridState * sub_grid_state,
 	const NUMERIC_TYPE * cell_area_col,
 	NUMERIC_TYPE * h_grid, NUMERIC_TYPE * volume_grid,
-	WetDryRowBound* wet_dry_bounds, const SGCprams * SGCptr,const NUMERIC_TYPE * dem_grid, Pois *Poisptr)
+	WetDryRowBound* wet_dry_bounds, const SGCprams * SGCptr, const NUMERIC_TYPE * dem_grid, Pois *Poisptr)
 {
 	NUMERIC_TYPE Hmax = C(0.0);
 
@@ -7655,7 +7676,7 @@ NUMERIC_TYPE SGC2_InitHBounds(const int grid_cols, const int grid_rows, const in
 			NUMERIC_TYPE row_Hmax = SGC2_ProcessH_Row(j, grid_cols, grid_cols_padded, depth_thresh,
 				cell_area_col[j],
 				sub_grid_layout->row_cols_padded, sub_grid_layout->cell_row_count[j],
-				h_grid, volume_grid, sg_cell_x, sg_cell_y, sg_cell_grid_index_lookup, sg_cell_SGC_BankFullHeight, sg_cell_SGC_BankFullVolume, sg_cell_cell_area, sg_cell_SGC_group, sg_cell_SGC_c, sg_cell_SGC_is_large, wet_dry_bounds, SGCptr,dem_grid, Poisptr);
+				h_grid, volume_grid, sg_cell_x, sg_cell_y, sg_cell_grid_index_lookup, sg_cell_SGC_BankFullHeight, sg_cell_SGC_BankFullVolume, sg_cell_cell_area, sg_cell_SGC_group, sg_cell_SGC_c, sg_cell_SGC_is_large, wet_dry_bounds, SGCptr, dem_grid, Poisptr);
 
 
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
@@ -7771,7 +7792,7 @@ void SGC2_UpdateLoadBalance(const int grid_rows, const int grid_cols_padded,
 			//	rows_in_block, percent_rows_in_block, work_this_block1, percent_work1);
 
 		}
-//#endif
+		//#endif
 	}
 	else
 	{
@@ -7820,7 +7841,7 @@ void SGC2_DomainVolumeAndFloodArea_block(const int block_index, const int grid_c
 #pragma simd reduction(+: block_flood_area)
 		for (int i = 0; i < grid_cols; i++)
 		{
-			int index = i + j*grid_cols_padded;
+			int index = i + j * grid_cols_padded;
 			// 统计水深>阈值的单元的面积和
 			// only count height above the flood plain ( If sub-grid used channel depth is negative)
 			block_flood_area += (h_grid[index] > depth_thresh) ? dA : C(0.0);
@@ -7829,7 +7850,7 @@ void SGC2_DomainVolumeAndFloodArea_block(const int block_index, const int grid_c
 		for (int i = 0; i < grid_cols; i++)
 		{
 			// 统计水深>阈值的单元的体积和
-			int index = i + j*grid_cols_padded;
+			int index = i + j * grid_cols_padded;
 			block_domain_volume += volume_grid[index];
 		}
 	}
@@ -7924,7 +7945,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	//{
 	//	Parptr->PoiSaveInt = delta_time;
 	//}
-	
+
 	int thread_n = omp_get_thread_num();
 	NUMERIC_TYPE * tmp_row = tmp_thread_data[omp_get_thread_num()];
 	//NUMERIC_TYPE * tmp_row_ch = tmp_thread_data_ch[omp_get_thread_num()];
@@ -8062,7 +8083,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 #if _SGM_BY_BLOCKS == 0
 			// 计算sub grid河道上的流量，包含河道内+河道上底之上且范围在河道宽度内
 			ProcessSubGridQBlock(j, grid_cols_padded, depth_thresh, delta_time, g, sub_grid_layout_rows, sub_grid_state_rows, SGCptr, h_grid,
-				wet_dry_bounds, Qx_grid, Qy_grid, Qx_old_grid, Qy_old_grid, Parptr->max_Froude, Poisptr->Q_Ch, Parptr->sgcStartH, Statesptr,row_cell_area);
+				wet_dry_bounds, Qx_grid, Qy_grid, Qx_old_grid, Qy_old_grid, Parptr->max_Froude, Poisptr->Q_Ch, Parptr->sgcStartH, Statesptr, row_cell_area);
 			if (curr_time >= Parptr->SaveTotal && Statesptr->SGCvoutput == ON)
 			{
 				SGC2_UpdateVelocitySubGrid_block(j, grid_cols_padded, depth_thresh, delta_time, sub_grid_layout_rows, sub_grid_state_rows, SGCptr, h_grid);
@@ -8094,10 +8115,10 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 				SGC2_UpdateVelocitySubGrid_block(j, grid_cols_padded, depth_thresh, delta_time, sub_grid_layout_blocks, sub_grid_state_blocks, SGCptr, h_grid);
 			}
 		}
-	}	
 	}
-	{
-		
+}
+{
+
 #endif
 
 	// this block of code is executed by the first thread that finishes it's updateQ (with nowait clause) 
@@ -8147,27 +8168,27 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			Statesptr, Parptr, boundary_cond, SGCptr, Parptr->max_Froude);
 
 		if (Statesptr->calc_evap == ON)
-		  {
-		    // evap_deltaH_step = InterpolateTimeSeries(evap_time_series, curr_time); //constant rate across whole floodplain
-		    for (int j = 0; j < evap_time_series->count; j++) {
-		      if (evap_time_series->time[j] > curr_time) {
-			evap_deltaH_step = evap_time_series->value[j];
-			break;
-		      }
-		    }
-		    evap_deltaH_step *= delta_time;
-		    for (int j = 0; j < grid_cols_padded * grid_rows; j++) {
-		      evap_grid->data[j] = evap_deltaH_step;
-		    }
-		  }
+		{
+			// evap_deltaH_step = InterpolateTimeSeries(evap_time_series, curr_time); //constant rate across whole floodplain
+			for (int j = 0; j < evap_time_series->count; j++) {
+				if (evap_time_series->time[j] > curr_time) {
+					evap_deltaH_step = evap_time_series->value[j];
+					break;
+				}
+			}
+			evap_deltaH_step *= delta_time;
+			for (int j = 0; j < grid_cols_padded * grid_rows; j++) {
+				evap_grid->data[j] = evap_deltaH_step;
+			}
+		}
 		else if (Statesptr->calc_evap == TIME_SPACE)
-		  {
-		    for (int j =0; j < grid_cols_padded * grid_rows; j++) {
-		      evap_grid->data[j] *= delta_time;
-		      if (evap_grid->data[j] > 0.0)
-			evap_deltaH_step = evap_grid->data[j];
-		    }
-		  }
+		{
+			for (int j = 0; j < grid_cols_padded * grid_rows; j++) {
+				evap_grid->data[j] *= delta_time;
+				if (evap_grid->data[j] > 0.0)
+					evap_deltaH_step = evap_grid->data[j];
+			}
+		}
 		// 下渗累积量
 		//if (Statesptr->calc_evap == ON)
 		//{
@@ -8197,9 +8218,9 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			{
 				if (Statesptr->use_temperature == OFF)
 				{
-					cout << "You have to specify a temperature timeseries file when using glacier and melt model. Please set 'temperature' file in par file."  << endl;
+					cout << "You have to specify a temperature timeseries file when using glacier and melt model. Please set 'temperature' file in par file." << endl;
 				}
-				
+
 				if (temperature_step <= Parptr->melt_temperature)
 				{
 					snow_deltaH_step = rain_deltaH_step;
@@ -8227,7 +8248,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 #endif
 	// Toby suggest DamFlowVolume go here!!! FEOL
 #pragma omp barrier // ensure all threads have finished their updateQ (nowait) and single section
-	
+
 	if (Statesptr->DamMode == ON)
 	{
 #pragma omp single
@@ -8285,8 +8306,8 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		}
 	}
 
-	
-	
+
+
 	//cout << "*********************************333*********************************** " << endl;
 	if (Statesptr->routing_mass_check == ON || weir_bridges->row_cols_padded > 0 || Statesptr->hazard == ON)
 	{
@@ -8351,7 +8372,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		{
 
 			//#pragma omp barrier
-			#pragma omp single
+#pragma omp single
 			{
 				int padding_count = grid_cols_padded - grid_cols;
 				int padding = sizeof(NUMERIC_TYPE) * padding_count;
@@ -8373,7 +8394,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							Parptr->satFlow2NeiborPD[index] = 0.0;
 							Parptr->PercExcess2SurfPD[index] = 0.0;
 
-							
+
 							Parptr->waterLevelPD[index] = dem_grid[index] - Parptr->tableDepthPD[index];
 							if (Statesptr->save_poi == ON) {
 								/*Poisptr->Rain_Grid[index] = 0.0;
@@ -8392,7 +8413,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 									//Poisptr->soil_lat_flowout_Grid[lyr][index] = 0.0;
 									//Poisptr->soil_perc_Grid[lyr][index] = 0.0;
 									Poisptr->soil_water_depth_Grid[lyr][index] = 0.0;
-									
+
 								}
 
 							}
@@ -8402,9 +8423,9 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			}
 
 			// ----------------------------------------地下水多线程版----------------------------------
-			#pragma omp barrier
+#pragma omp barrier
 			{
-				#pragma omp for schedule(static)
+#pragma omp for schedule(static)
 				//#pragma omp for schedule(static) nowait
 				for (int block_index = 0; block_index < wet_dry_bounds->block_count; block_index++)
 				{
@@ -8426,7 +8447,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 						}
 
 
-						
+
 					}
 				}
 			}
@@ -8445,7 +8466,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 						int infilt_row_end = wet_dry_bounds->dem_data[j].end;
 						int grid_row_index = j * grid_cols_padded;
 						HeadSlopeAspect(Parptr, Solverptr, Arrptr, grid_row_index, j, grid_rows, grid_cols, dem_grid + grid_row_index, infilt_row_start, infilt_row_end, grid_cols_padded, dx_col[j], dy_col[j], wet_dry_bounds);
-				
+
 					}
 				}
 			}
@@ -8467,7 +8488,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 						RouteSubSurface(infilt_row_start, infilt_row_end, Parptr, Solverptr, Arrptr, Statesptr, grid_row_index, j, grid_rows, grid_cols,
 							dem_grid + grid_row_index, cell_area_col[j], grid_cols_padded, volume_grid, dx_col[j], dy_col[j], wet_dry_bounds, Poisptr,
 							sub_grid_layout_rows->cell_info.sg_cell_cell_area, j,
-							sub_grid_layout_rows->cell_row_count[j], sg_row_start, sg_cell_grid_index_lookup, sub_grid_layout_rows->cell_info.sg_cell_SGC_BankFullHeight, 
+							sub_grid_layout_rows->cell_row_count[j], sg_row_start, sg_cell_grid_index_lookup, sub_grid_layout_rows->cell_info.sg_cell_SGC_BankFullHeight,
 							sub_grid_layout_rows->cell_info.sg_cell_SGC_BankFullVolume, sub_grid_layout_rows->cell_info.sg_cell_SGC_c, sub_grid_layout_rows->flow_info.sg_cell_flow_lookup);
 					}
 				}
@@ -8526,35 +8547,35 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	// xiaodw, calculate sumNCells(all valuable dem cells) and sumNSgcCells at first time once
 #pragma omp single nowait 
 	{
-	if (Parptr->sumNSgcCells == 0) {
-		int sumNCells = 0;
-		NUMERIC_TYPE sum_cell_area = 0.f;
-		const int start_y = 0;
-		const int end_y = Parptr->ysz;
-		int count = 0;
-		for (int j = start_y; j < end_y; j++)
-		{
-			int infilt_row_start = wet_dry_bounds->dem_data[j].start;
-			int infilt_row_end = wet_dry_bounds->dem_data[j].end;
-			int grid_row_index = j * grid_cols_padded;
-			sumNCells += (infilt_row_end - infilt_row_start);
-			sum_cell_area += cell_area_col[j] * (infilt_row_end - infilt_row_start);
-		}
-		Parptr->sumNCells = sumNCells;
-		Parptr->avgCellArea = sum_cell_area / sumNCells;
-
-		int sumNSgcCells = 0;
 		if (Parptr->sumNSgcCells == 0) {
+			int sumNCells = 0;
+			NUMERIC_TYPE sum_cell_area = 0.f;
+			const int start_y = 0;
+			const int end_y = Parptr->ysz;
+			int count = 0;
+			for (int j = start_y; j < end_y; j++)
+			{
+				int infilt_row_start = wet_dry_bounds->dem_data[j].start;
+				int infilt_row_end = wet_dry_bounds->dem_data[j].end;
+				int grid_row_index = j * grid_cols_padded;
+				sumNCells += (infilt_row_end - infilt_row_start);
+				sum_cell_area += cell_area_col[j] * (infilt_row_end - infilt_row_start);
+			}
+			Parptr->sumNCells = sumNCells;
+			Parptr->avgCellArea = sum_cell_area / sumNCells;
 
-		for (int j = start_y; j < end_y; j++)
-		{
-			const int cell_count = sub_grid_layout_rows->cell_row_count[j];
-			sumNSgcCells += cell_count;
+			int sumNSgcCells = 0;
+			if (Parptr->sumNSgcCells == 0) {
+
+				for (int j = start_y; j < end_y; j++)
+				{
+					const int cell_count = sub_grid_layout_rows->cell_row_count[j];
+					sumNSgcCells += cell_count;
+				}
+
+				Parptr->sumNSgcCells = sumNSgcCells;
+			}
 		}
-			
-			Parptr->sumNSgcCells = sumNSgcCells;
-		}
-	}
 	}
 #pragma omp barrier
 #pragma omp single
@@ -8599,7 +8620,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							Parptr->subSurfaceLatFlow2ChTotal += Parptr->satFlow2ChPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 							// 来自洪泛区地表的水
 							Parptr->surfaceFlow2ChTotal += Parptr->surflow2ChPD[index];
-							
+
 							// 来自自身降雨扣除入渗后的水
 							Parptr->surfaceHydro2ChTotal += Parptr->hydro2ChPD[index];
 
@@ -8614,19 +8635,19 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							//}
 
 						}
-						
+
 
 						if (Parptr->satFlow2SurfPD[index] > 0.0) {
 							//volume_grid[index] += Parptr->satFlow2SurfPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 							Parptr->subSurfaceLatFlow2SurfTotal += Parptr->satFlow2SurfPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 						}
-						
+
 						// 渗漏造成的地表溢流
 						if (Parptr->PercExcess2SurfPD[index] > 0.0)
 						{
 							Parptr->subSurfacePerc2SurfTotal += Parptr->PercExcess2SurfPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 						}
-						
+
 						for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
 						{
 							// cm
@@ -8637,7 +8658,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							}
 
 						}
-						
+
 
 
 
@@ -8647,7 +8668,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 
 			}
 
-	
+
 
 
 			if (curr_time - last_gw_time >= Parptr->gwTstep)
@@ -8676,7 +8697,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							}
 						}
 					}
-					
+
 				}
 				Parptr->PercolationDepth /= Parptr->sumNCells;
 
@@ -8705,7 +8726,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 				//const int * sg_cell_grid_index_lookup = sub_grid_layout_rows->cell_info.sg_cell_grid_index_lookup;
 				Parptr->gwQPerSgcCell = Parptr->sumGndQ2Rch / Parptr->sumNSgcCells;    // m3/s
 
-				
+
 				/*Parptr->subSurfaceLatFlow2Channel_rate = (Parptr->subSurfaceLatFlow2ChTotal - Parptr->subSurfaceLatFlowTotal2Ch_Last) / Parptr->gwTstep;
 				Parptr->subSurfaceLatFlowTotal2Ch_Last = Parptr->subSurfaceLatFlow2ChTotal;
 				Parptr->subSurfaceLatFlow2Surf_rate = (Parptr->subSurfaceLatFlow2SurfTotal - Parptr->subSurfaceLatFlowTotal2Surf_Last) / Parptr->gwTstep;
@@ -8721,7 +8742,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		}
 	}
 
-	
+
 	//cout << "*********************************555*********************************** " << endl;
 
 
@@ -8729,7 +8750,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	//each thread clears the tmp_row, before using in SGC2_UpdateVolumeHeight_block
 	memset(tmp_row, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
 	//memset(tmp_row_ch, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
-	
+
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #pragma omp for reduction (+:reduce_evap_loss, reduce_rain_total,reduce_infil_loss,reduce_Qpoint_timestep_pos, reduce_Qpoint_timestep_neg,infil,infilCount) schedule(static)
 	//#pragma omp for reduction (+:reduce_evap_loss, reduce_rain_total,reduce_infil_loss,reduce_Qpoint_timestep_pos, reduce_Qpoint_timestep_neg,infil,infilCount) schedule(static)
@@ -8749,7 +8770,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		block_Hmax = SGC2_UpdateVolumeHeight_block(block_index, grid_cols, grid_rows, grid_cols_padded,
 			curr_time, delta_time, depth_thresh, g,
 			evap_deltaH_step, evap_grid, rain_deltaH_step, snow_deltaH_step, rain_grid, dist_infil_grid,
-			wet_dry_bounds, tmp_row, 
+			wet_dry_bounds, tmp_row,
 			Qx_grid, Qy_grid,
 			cell_area_col, dx_col, dy_col,
 			dem_grid,
@@ -8757,7 +8778,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			ps_layout, route_dynamic_list,
 			h_grid, volume_grid,
 			SGC_BankFullHeight_grid,
-			Statesptr, Parptr, Fnameptr, Solverptr, Poisptr, SGCptr, Arrptr, &update_info, &infilAvgBlock, &infilValidCount
+			Statesptr, Parptr, Fnameptr, Solverptr, Poisptr, SGCptr, Arrptr, &update_info, &infilAvgBlock, &infilValidCount, LfpCouplingInfoPtr
 			//last_gw_time,&Parptr->PercolationVol, Parptr->sumNCells, &Parptr->sumGndQ2Rch, &Parptr->GwStorageDepth
 		);
 		if (Statesptr->use_green_ampt_singlelayer == ON)
@@ -8794,7 +8815,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		{
 			for (int i = 0; i < grid_cols; i++)
 			{
-				int index = i + j*grid_cols_padded;
+				int index = i + j * grid_cols_padded;
 				initHtm_grid[index] = (NULLVAL);
 			}
 		}
@@ -8897,7 +8918,7 @@ NUMERIC_TYPE SGC2_CalculateVelocity_public(const int index, const int index_next
 {
 	return SGC2_CalculateVelocity(index, index_next, Q_grid, h_grid, dem_grid, width);
 }
-void SGC2_CalcLinksQ(SuperGridLinksList * Super_linksptr, NUMERIC_TYPE * volume_grid, const NUMERIC_TYPE * h_grid, 
+void SGC2_CalcLinksQ(SuperGridLinksList * Super_linksptr, NUMERIC_TYPE * volume_grid, const NUMERIC_TYPE * h_grid,
 	const NUMERIC_TYPE delta_time, const NUMERIC_TYPE g, const NUMERIC_TYPE depth_thresh, const NUMERIC_TYPE max_Froude, WetDryRowBound * wet_dry_bounds)
 {
 	int i;
@@ -8920,7 +8941,7 @@ void SGC2_CalcLinksQ(SuperGridLinksList * Super_linksptr, NUMERIC_TYPE * volume_
 			NUMERIC_TYPE dh = (surface_elevation0)-(surface_elevation1);
 			surface_slope = -dh / Super_linksptr->dx[i];
 			q_tmp = CalculateQ(surface_slope, hflow, delta_time, g, area, Super_linksptr->gn2[i], Super_linksptr->Qold[i], max_Froude);
-			NUMERIC_TYPE dv = q_tmp*delta_time;
+			NUMERIC_TYPE dv = q_tmp * delta_time;
 			volume_grid[Super_linksptr->link_index_SGC[i]] -= dv;
 			volume_grid[Super_linksptr->link_index_2D[i]] += dv;
 		}

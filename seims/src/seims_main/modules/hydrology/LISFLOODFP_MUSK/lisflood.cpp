@@ -9,7 +9,7 @@ webpage -	http://www.ggy.bris.ac.uk/research/hydrology/models/lisflood
 contact -	Professor Paul Bates, email: paul.bates@Bristol.ac.uk,
 Tel: +44-117-928-9108, Fax: +44-117-928-7878
 
-*/ 
+*/
 
 
 #include "lisflood.h"
@@ -20,11 +20,11 @@ Tel: +44-117-928-9108, Fax: +44-117-928-7878
 #include "swe/fv1.h"
 #include "swe/dg2.h"
 #ifdef CUDA
-	#include "cuda/acc/cuda_acc_simulate.cuh"													
-	#include "cuda/fv1/cuda_fv1_simulate.cuh"
-	#include "cuda/dg2/cuda_dg2_simulate.cuh"
-	#include "cuda/fv2/cuda_fv2_simulate.cuh"
-    #include "cuda/acc_nugrid/cuda_acc_nugrid_simulate.cuh"
+#include "cuda/acc/cuda_acc_simulate.cuh"													
+#include "cuda/fv1/cuda_fv1_simulate.cuh"
+#include "cuda/dg2/cuda_dg2_simulate.cuh"
+#include "cuda/fv2/cuda_fv2_simulate.cuh"
+#include "cuda/acc_nugrid/cuda_acc_nugrid_simulate.cuh"
 #endif
 
 #include "lisflood2/file_tool.h"
@@ -38,64 +38,64 @@ Tel: +44-117-928-9108, Fax: +44-117-928-7878
 void printversion(int verbose)
 // printout header with program and version number
 {
-  printf("***************************\n");
-  printf(" BASINFLOOD version %d.%d.%d (%s)\n", LF_VersionMajor, LF_VersionMinor, LF_VersionInc, NUMERIC_TYPE_NAME);
-  if (verbose == ON)
-  {
+	printf("***************************\n");
+	printf(" BASINFLOOD version %d.%d.%d (%s)\n", LF_VersionMajor, LF_VersionMinor, LF_VersionInc, NUMERIC_TYPE_NAME);
+	if (verbose == ON)
+	{
 #if defined (__INTEL_COMPILER)
-	  printf("Intel Compiler version: %d\n", __INTEL_COMPILER);
+		printf("Intel Compiler version: %d\n", __INTEL_COMPILER);
 
-	  //https://software.intel.com/en-us/node/514528
-	  printf("CPU instructions used:");
+		//https://software.intel.com/en-us/node/514528
+		printf("CPU instructions used:");
 #if defined (__AVX2__)
-	  printf(" AVX2");
+		printf(" AVX2");
 #endif
 #if defined (__AVX__)
-	  printf(" AVX");
+		printf(" AVX");
 #endif
 #if defined (__SSE4_2__)
-	  printf(" SSE_4.2");
+		printf(" SSE_4.2");
 #endif
 #if defined (__SSE4_1__)
-	  printf(" SSE_4.1");
+		printf(" SSE_4.1");
 #endif
 #if defined (__SSE3__)
-	  printf(" SSE3");
+		printf(" SSE3");
 #endif
 #if defined (__SSE2__)
-	  printf(" SSE2");
+		printf(" SSE2");
 #endif
 #if defined (__SSE__)
-	  printf(" SSE");
+		printf(" SSE");
 #endif
-	  printf("\n");
+		printf("\n");
 
 #endif
-  }
+	}
 
 #if defined (CUDA)
-  printf("CUDA supported\n");
+	printf("CUDA supported\n");
 #endif
 #if defined (_PROFILE_MODE) && _PROFILE_MODE > 0
-  printf("Profile Mode Enabled: %d\n", _PROFILE_MODE);
+	printf("Profile Mode Enabled: %d\n", _PROFILE_MODE);
 #endif
 #if defined (_SGM_BY_BLOCKS) && _SGM_BY_BLOCKS > 0
-  printf("_SGM_BY_BLOCKS: %d\n", _SGM_BY_BLOCKS);
+	printf("_SGM_BY_BLOCKS: %d\n", _SGM_BY_BLOCKS);
 #endif
 #if defined (_BALANCE_TYPE) && _BALANCE_TYPE > 0
-  printf("_BALANCE_TYPE: %d\n", _BALANCE_TYPE);
+	printf("_BALANCE_TYPE: %d\n", _BALANCE_TYPE);
 #endif
 #if defined (_ONLY_RECT) && _ONLY_RECT == 1
-  printf("Rectangular channels only.\n");
+	printf("Rectangular channels only.\n");
 #endif
 #if defined (_DISABLE_WET_DRY) && _DISABLE_WET_DRY == 1
-  printf("_DISABLE_WET_DRY.\n");
+	printf("_DISABLE_WET_DRY.\n");
 #endif
 #if defined (_CALCULATE_Q_MODE) && (_CALCULATE_Q_MODE != 0)
-  printf("_CALCULATE_Q_MODE %d.\n", _CALCULATE_Q_MODE);
+	printf("_CALCULATE_Q_MODE %d.\n", _CALCULATE_Q_MODE);
 #endif
 
-  printf("***************************\n\n");
+	printf("***************************\n\n");
 }
 
 //-------------------DataTypes.cpp-------------------------
@@ -161,6 +161,10 @@ void AllocateWaterSource(int count, WaterSource * waterSource)
 
 	waterSource->Ident = (ESourceType*)memory_allocate(count * sizeof(ESourceType));
 	waterSource->Val = (NUMERIC_TYPE*)memory_allocate(count * sizeof(NUMERIC_TYPE));
+	waterSource->Name = (char**)malloc(count * sizeof(char*));
+	for (int i = 0; i < count; ++i) {
+		waterSource->Name[i] = (char*)malloc(80 * sizeof(char));
+	}
 	waterSource->timeSeries = (TimeSeries**)memory_allocate(count * sizeof(TimeSeries*));
 	waterSource->Q_FP_old = (NUMERIC_TYPE*)memory_allocate(count * sizeof(NUMERIC_TYPE));
 	waterSource->Q_SG_old = (NUMERIC_TYPE*)memory_allocate(count * sizeof(NUMERIC_TYPE));
@@ -1195,7 +1199,13 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	}
 	if (Statesptr->binarystartfile == ON) LoadBinaryStart(Fnameptr, Statesptr, Parptr, Arrptr, SGCptr, verbosemode);
 
-	LoadBCs(Fnameptr, Statesptr, Parptr, BCptr, LfpCouplingInfoPtr,verbosemode);
+	LoadBCs_SEIMS(Fnameptr, Statesptr, Parptr, BCptr, LfpCouplingInfoPtr, verbosemode);
+
+
+	LoadBCs(Fnameptr, Statesptr, Parptr, BCptr, LfpCouplingInfoPtr, verbosemode);
+
+
+
 	LoadPOIs(Fnameptr, Statesptr, Parptr, Poisptr, verbosemode);
 	LoadBCVar(Fnameptr, Statesptr, Parptr, BCptr, CSTypePtr, Arrptr, ChannelSegmentsVecPtr, verbosemode);
 	LoadManningsn(Fnameptr, Parptr, Arrptr, verbosemode);
