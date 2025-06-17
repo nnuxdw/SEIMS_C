@@ -359,7 +359,7 @@ void SetArrayValue(int* arr, int value, int length)
 
 void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr,
 	Stage *Locptr, ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr,
-	DamData *Damptr, LISFLOODFPContext* LFPContextPtr, LfpCouplingInfo * LfpCouplingInfoPtr)
+	DamData *Damptr, LISFLOODFPContext* LFPContextPtr, SuperGridLinksList* Super_linksptr, LfpCouplingInfo * LfpCouplingInfoPtr)
 {
 	if (LFPContextPtr->verbose == ON)
 	{
@@ -436,7 +436,7 @@ void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parp
 	//	}
 	//Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
 	//	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr)
-	Fast_MainInit(Fnameptr, Fptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Locptr, ChannelSegments, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr, LfpCouplingInfoPtr);
+	Fast_MainInit(Fnameptr, Fptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Locptr, ChannelSegments, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr, Super_linksptr,LfpCouplingInfoPtr);
 }
 
 
@@ -1199,10 +1199,10 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	}
 	if (Statesptr->binarystartfile == ON) LoadBinaryStart(Fnameptr, Statesptr, Parptr, Arrptr, SGCptr, verbosemode);
 
-	LoadBCs_SEIMS(Fnameptr, Statesptr, Parptr, BCptr, LfpCouplingInfoPtr, verbosemode);
+	LoadBCs_SEIMS(Fnameptr, Statesptr, Parptr, BCptr, verbosemode);
 
 
-	LoadBCs(Fnameptr, Statesptr, Parptr, BCptr, LfpCouplingInfoPtr, verbosemode);
+	LoadBCs(Fnameptr, Statesptr, Parptr, BCptr, verbosemode);
 
 
 
@@ -1610,7 +1610,7 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 		// SGC模拟
 		//Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr, ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, int verbose)
 
-		Fast_MainStart(Fnameptr, FpsPtr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Stageptr, CSTypePtr, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr, LfpCouplingInfoPtr); //Damptr added by FEOL
+		Fast_MainStart(Fnameptr, FpsPtr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Stageptr, CSTypePtr, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr, Super_linksptr, LfpCouplingInfoPtr); //Damptr added by FEOL
 	}
 	else if (Statesptr->fv1 == ON)
 	{

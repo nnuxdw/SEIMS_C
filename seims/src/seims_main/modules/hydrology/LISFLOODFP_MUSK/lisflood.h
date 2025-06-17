@@ -764,7 +764,8 @@ struct States {
 	int calc_distributed_infiltration; // uses a file to use spatially distributed infiltration rates
 	int use_green_ampt_singlelayer; // 是否使用Green-ampt下渗算法
 	int use_green_ampt_multilayer; // 是否使用Green-ampt下渗算法
-	int use_wetspa_sur_mr;              // 是否使用wetspa SER_MR下渗算法
+	int use_wetspa_single_layer;              // 是否使用wetspa SER_MR下渗算法
+	int use_wetspa_multi_layer;              // 是否使用wetspa SER_MR下渗算法
 	int use_seims_aet;                      // 是否使用SEIMS AET蒸发算法
 	int use_xaj_evap;                      // 是否使用新安江模型蒸发算法
 	int use_interflow_singlelayer; // 是否使用壤中流
@@ -1618,6 +1619,7 @@ struct RouteDynamicList
 	int * route_list_i_lookup_qy;
 
 };
+
 struct LISFLOODFPContext {
 	int grid_cols;
 	int grid_rows;
@@ -1662,12 +1664,13 @@ struct LISFLOODFPContext {
 	NetCDFVariable* evap_grid;
 	TimeSeries* rain_time_series;
 	TimeSeries* temperature_time_series;
-	NUMERIC_TYPE* rain_grid;
+	//NUMERIC_TYPE* rain_grid;
 	NUMERIC_TYPE* dist_infil_grid;
+	NUMERIC_TYPE* rain_grid_padded;
 
 	WetDryRowBound* wet_dry_bounds;
 	PointSourceRowList* ps_layout;
-	BoundaryCondition* boundary_cond;
+	BoundaryCondition* boundaryCondition;
 	WeirLayout* weirs_weirs;
 	WeirLayout* weirs_bridges;
 	RouteDynamicList* route_dynamic_list;
@@ -1706,6 +1709,33 @@ struct LISFLOODFPContext {
 
 };
 
+struct LISFLOODFPPtrs {
+	int argc;
+	char* argv[2];
+	Arrays Arrptr;
+	Files FpsPtr;
+	Fnames Fnameptr;
+	States Statesptr;
+	Pars Parptr;
+	Solver Solverptr;
+	Pois Poisptr;
+	BoundCs BCptr;
+	Stage Stageptr;
+	SGCprams SGCptr;
+	DamData Damptr;
+	Stage Locptr;
+
+	vector<ChannelSegmentType> ChannelSegmentsVecPtr;
+	LISFLOODFPContext LFPContextPtr;
+	SuperGridLinksList Super_linksptr;
+	char tmpFileNamePtr[255];
+	char tmpSysCmdPtr[255];
+
+	int counter;
+
+
+};
+
 struct SeimsUpstream {
 	int seims_id;
 	//char* inflow_pt_name;
@@ -1720,11 +1750,13 @@ struct SeimsUpstream {
 };
 
 struct LfpCouplingInfo {
-	std::map<string, SeimsUpstream> seims_up_map;
+	map<string, SeimsUpstream> seims_up_map;
 	int seims_down_id;
 	vector<NUMERIC_TYPE> qOutList;
 	NUMERIC_TYPE qOutOneSeimsStep;
+	vector<int> lfp_ids;  // 等于一个id对应的lfpSetFirst+lfpSetOther，为了获取Lfp模拟的连续串联子流域的最下游的子流域，作为输出流量的子流域，下标0的代表连续串联子流域的数量
 };
+
 
 void AllocateRoutingDynamicList(int rows, int grid_cols_padded, RouteDynamicList * route_dynamic_list);
 
@@ -1796,8 +1828,8 @@ void LoadRiver(Fnames *, States *, Pars *, vector<ChannelSegmentType> *, Arrays 
 void UpdateChannelsVector(States *, ChannelSegmentType *, vector<QID7_Store> *, QID7_Store *, int *); // CCS
 void LoadStart(Fnames *, States *, Pars *, Arrays *, SGCprams *, const int verbose);
 void LoadStartQ2D(Fnames*, Pars*, Arrays*, const int verbose);
-void LoadBCs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, LfpCouplingInfo * LfpCouplingInfoPtr, const int verbose);
-void LoadBCs_SEIMS(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, LfpCouplingInfo * LfpCouplingInfoPtr, const int verbose);
+void LoadBCs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, const int verbose);
+void LoadBCs_SEIMS(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, const int verbose);
 // xdw add, 加载兴趣点，以输出降雨、入渗、蒸发、水深、流量变化
 void LoadPOIs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Pois *Poisptr, const int verbose);
 void LoadBCVar(Fnames *, States *, Pars *, BoundCs *, ChannelSegmentType *, Arrays *, vector<ChannelSegmentType> *, const int verbose);
@@ -1820,7 +1852,8 @@ void loadSoilPropertiesInterflow(Fnames *Fnameptr, Pars *Parptr, int m_nCells);
 void loadSoilPropertiesPerco_Multilayer(Fnames *Fnameptr, Pars *Parptr, States *Statesptr, int m_nCells);
 void loadSoilPropertiesGW(Fnames *Fnameptr, Pars *Parptr, int m_nCells);
 void loadSoilPropertiesDHSVM(Fnames *Fnameptr, Pars *Parptr, int m_nCells);
-void loadSoilPropertiesWetspa(Fnames *Fnameptr, Pars *Parptr, int m_nCells);
+void loadSoilPropertiesWetspaSingleLayer(Fnames *Fnameptr, Pars *Parptr, int m_nCells);
+void loadSoilPropertiesWetspaMultiLayer(Fnames *Fnameptr, Pars *Parptr, int m_nCells);
 void LoadProperty(int type, string paramName, NUMERIC_TYPE * paramPtr, char * filename, NUMERIC_TYPE value, int m_nCells);
 void loadGlacierSnowProperties(Fnames *Fnameptr, Pars *Parptr, int m_nCells);
 void LoadTimeVaringTemperature(Fnames *Fnameptr, Arrays *Arrptr, const int verbose);

@@ -1574,7 +1574,7 @@ void LoadPOIs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Pois *Poisptr, 
 //-----------------------------------------------------------------------------------
 // LOADS FILE GIVING IDENTIFIERS FOR EACH BOUNDARY CELL FROM .bci FILE
 // (e.g. HFIX, QVAR etc)
-void LoadBCs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, LfpCouplingInfo * LfpCouplingInfoPtr, const int verbose)
+void LoadBCs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr,  const int verbose)
 {
 	int numBCs, i, j, BCi1, BCi2, tmpi;
 	NUMERIC_TYPE start, finish;
@@ -1911,7 +1911,7 @@ void LoadBCs(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, 
 	return;
 }
 
-void LoadBCs_SEIMS(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr, LfpCouplingInfo * LfpCouplingInfoPtr, const int verbose)
+void LoadBCs_SEIMS(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *BCptr,  const int verbose)
 {
 
 
@@ -1987,9 +1987,8 @@ void LoadBCs_SEIMS(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *B
 				BCptr->PS_Val[pi] = C(-1.0);  // 可选，实际不使用
 				strcpy(BCptr->PS_Name + pi * 80, qname);  // 把 “06602400” 存进去
 
-				if (verbose == ON)
-					printf("QFIX at point [%" NUM_FMT ", %" NUM_FMT "] (%d,%d), ID=%s\n",
-						px, py, BCptr->xpi[pi], BCptr->ypi[pi], qname);
+				printf("QFIX at point [%" NUM_FMT ", %" NUM_FMT "] (%d,%d), ID=%s\n",
+					px, py, BCptr->xpi[pi], BCptr->ypi[pi], qname);
 				BCptr->numPS++;
 			}
 			else {
@@ -2799,13 +2798,25 @@ void loadSoilPropertiesDHSVM(Fnames *Fnameptr, Pars *Parptr, int m_nCells) {
 
 }
 
-void loadSoilPropertiesWetspa(Fnames *Fnameptr, Pars *Parptr, int m_nCells) {
+void loadSoilPropertiesWetspaSingleLayer(Fnames *Fnameptr, Pars *Parptr, int m_nCells) {
+	Parptr->runoffCo = new NUMERIC_TYPE[m_nCells];
+	LoadProperty(Parptr->useRunoffCoType, "RunoffCo", Parptr->runoffCo, Fnameptr->runoffCoFile, 0, m_nCells);
+	// rootDepth
+	Parptr->rootDepth = new NUMERIC_TYPE[m_nCells];
+	LoadProperty(Parptr->useRootDepthType, "root_depth", Parptr->rootDepth, Fnameptr->rootDepthFile, Parptr->rootDepthValue, m_nCells);
+	// porosity
+	Parptr->porosity = new NUMERIC_TYPE[m_nCells];
+	LoadProperty(Parptr->usePorosityType, "porosity", Parptr->porosity, Fnameptr->porosityFile, Parptr->porosityValue, m_nCells);
+	// initSoilMoisture
+	Parptr->initSoilMoisture = new NUMERIC_TYPE[m_nCells];
+	LoadProperty(Parptr->useInitSoilMoistureType, "soil_moisture", Parptr->initSoilMoisture, Fnameptr->initSoilMoistureFile, Parptr->initSoilMoistureValue, m_nCells);
+
+}
+void loadSoilPropertiesWetspaMultiLayer(Fnames *Fnameptr, Pars *Parptr, int m_nCells) {
 	Parptr->runoffCo = new NUMERIC_TYPE[m_nCells];
 	LoadProperty(Parptr->useRunoffCoType, "RunoffCo", Parptr->runoffCo, Fnameptr->runoffCoFile, 0, m_nCells);
 
-
 }
-
 void LoadProperty(int type, string paramName, NUMERIC_TYPE * paramPtr, char * filename, NUMERIC_TYPE value, int m_nCells) {
 	//paramPtr = new float[m_nCells];
 	if (type == FILE_TYPE)

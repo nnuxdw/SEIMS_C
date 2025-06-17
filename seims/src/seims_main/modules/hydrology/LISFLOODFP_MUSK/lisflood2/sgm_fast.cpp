@@ -2709,34 +2709,38 @@ inline NUMERIC_TYPE SGC2_Infil_floodplain_row_wetspa(
 
 
 		//*************计算河道的入渗******************
-
-		// 河道里原本有水
-		if (h_old_ch > 0.0) {
-			// 河道土壤对应其栅格的第几层
-			int bedLyr = Parptr->sgcBedSoilLyrPD[grid_index];
-			// 河道底部所在层土壤饱和则不入渗
-			if (Parptr->multi_soilMoisturePD[bedLyr][grid_index] >= Parptr->multi_soilPorosityPD[bedLyr][grid_index]) {
+		if (Statesptr->use_wetspa_multi_layer)
+		{
+			// 河道里原本有水
+			if (h_old_ch > 0.0) {
+				// 河道土壤对应其栅格的第几层
+				int bedLyr = Parptr->sgcBedSoilLyrPD[grid_index];
+				// 河道底部所在层土壤饱和则不入渗
+				if (Parptr->multi_soilMoisturePD[bedLyr][grid_index] >= Parptr->multi_soilPorosityPD[bedLyr][grid_index]) {
+					infilChPD[grid_index] = 0.0f;
+					dVCh = 0.0;
+				}
+				// 河道底部所在层土壤不饱和则入渗
+				else {
+					NUMERIC_TYPE ch_soilDepth = (Parptr->soilThicknessAllLyrsPD[grid_index] - SGC_BankFullHeight);
+					// 当河道底部有土壤，且河道水深+降雨-蒸发>0(有待入渗的水,h_old + SGC_BankFullHeight > 0.0肯定满足)，且底部土壤湿度<孔隙度时，更新河道底部土壤的湿度
+					if (ch_soilDepth > UTIL_ZERO  && Parptr->multi_soilMoisturePD[bedLyr][grid_index] < Parptr->multi_soilPorosityPD[bedLyr][grid_index])
+					{
+						dVCh = cal_infil_wetspa(Parptr, Solverptr, h_old_ch, grid_index, Parptr->multi_soilMoisturePD[bedLyr], Parptr->multi_soilPorosityPD[bedLyr], Parptr->multi_soilThicknessPD[bedLyr], infilChPD, SGC_c);
+						Parptr->multi_soilMoisturePD[bedLyr][grid_index] += infilChPD[grid_index] * SGC_c / (Parptr->multi_soilThicknessPD[bedLyr][grid_index] * row_cell_area);
+					}
+				}
+			}
+			// 河道里原本没有水（已加降雨-蒸发）
+			else
+			{
 				infilChPD[grid_index] = 0.0f;
 				dVCh = 0.0;
 			}
-			// 河道底部所在层土壤不饱和则入渗
-			else {
-				NUMERIC_TYPE ch_soilDepth = (Parptr->soilThicknessAllLyrsPD[grid_index] - SGC_BankFullHeight);
-				// 当河道底部有土壤，且河道水深+降雨-蒸发>0(有待入渗的水,h_old + SGC_BankFullHeight > 0.0肯定满足)，且底部土壤湿度<孔隙度时，更新河道底部土壤的湿度
-				if (ch_soilDepth > UTIL_ZERO  && Parptr->multi_soilMoisturePD[bedLyr][grid_index] < Parptr->multi_soilPorosityPD[bedLyr][grid_index])
-				{
-					dVCh = cal_infil_wetspa(Parptr, Solverptr, h_old_ch, grid_index, Parptr->multi_soilMoisturePD[bedLyr], Parptr->multi_soilPorosityPD[bedLyr], Parptr->multi_soilThicknessPD[bedLyr], infilChPD, SGC_c);
-					Parptr->multi_soilMoisturePD[bedLyr][grid_index] += infilChPD[grid_index] * SGC_c / (Parptr->multi_soilThicknessPD[bedLyr][grid_index] * row_cell_area);
-				}
-			}
 		}
-		// 河道里原本没有水（已加降雨-蒸发）
-		else
-		{
-			infilChPD[grid_index] = 0.0f;
+		else {
 			dVCh = 0.0;
 		}
-
 		// 从地表水量中减去
 		volume_row[i] -= dVFp;
 		// 从河道水量中减去
@@ -5938,7 +5942,7 @@ void SGC2_PointSources_Vol_row(const int y, const int grid_cols,
 	const int row_cols_padded = ps_layout->row_cols_padded;
 	const int row_start = y * row_cols_padded;
 	WaterSource ps_info = ps_layout->ps_info;
-	if (Statesptr->use_seims_bc) {
+	
 		for (int i = 0; i < ps_count; i++)
 		{
 			int ws_index = row_start + i;
@@ -5951,51 +5955,47 @@ void SGC2_PointSources_Vol_row(const int y, const int grid_cols,
 			int ps_y = ps_info.ws_cell.sg_cell_y[ws_index];
 			// location in vector
 			grid_index = ps_info.ws_cell.sg_cell_grid_index_lookup[ws_index];
-			char * bc_name = ps_info.Name[ws_index];
-			dV = LfpCouplingInfoPtr->seims_up_map[bc_name].qIn * Q_multiplier * delta_time; // QFIX // Calculate change in volume
-		}
-	}
-	else {
-		for (int i = 0; i < ps_count; i++)
-		{
-			int ws_index = row_start + i;
 
-			NUMERIC_TYPE h;
-			// Set initial dV and himp as zero
-			NUMERIC_TYPE dV = C(0.0);
-			int grid_index;
-			int ps_x = ps_info.ws_cell.sg_cell_x[ws_index];
-			int ps_y = ps_info.ws_cell.sg_cell_y[ws_index];
-			// location in vector
-			grid_index = ps_info.ws_cell.sg_cell_grid_index_lookup[ws_index];
-			// different boundary conditions
-			switch (ps_info.Ident[ws_index])
-			{
-				//NOTE HVAR and HFIX applied after update H
-			case QVAR5: //QVAR ps.Val already set to the interpolated value
-			case QFIX4:
-				dV = ps_info.Val[ws_index] * Q_multiplier * delta_time; // QFIX // Calculate change in volume
-				break;
-			case FREE6:
-				h = h_grid[grid_index] + ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index];
-				if (h > depth_thresh)
-				{
-					NUMERIC_TYPE cell_width = getmin(dx_col[ps_y], dy_col[ps_y]);
-					NUMERIC_TYPE FP_g_friction_squared = ps_info.g_friction_squared_FP[ws_index];
-					NUMERIC_TYPE SGC_g_friction_squared = ps_info.g_friction_squared_SG[ws_index];
-
-					NUMERIC_TYPE q_free_FP_corrected = SGC2_CalcPointFREE(h_grid[grid_index], ps_info.ws_cell.sg_cell_SGC_width[ws_index], ps_info.Val[ws_index],
-						depth_thresh, delta_time, cell_width, g,
-						SGC_g_friction_squared, FP_g_friction_squared,
-						ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index], ps_info.ws_cell.sg_cell_SGC_group[ws_index],
-						-1, &ps_info.Q_FP_old[ws_index], &ps_info.Q_SG_old[ws_index], SGCptr, max_Froude);
-
-					NUMERIC_TYPE Qfree = q_free_FP_corrected + ps_info.Q_SG_old[ws_index];
-					dV = Qfree * delta_time;
+			if (Statesptr->use_seims_bc) {
+				char * bc_name = ps_info.Name[ws_index];
+				if (LfpCouplingInfoPtr->seims_up_map.count(bc_name)) {
+					dV = LfpCouplingInfoPtr->seims_up_map[bc_name].qIn * Q_multiplier * delta_time; // QFIX // Calculate change in volume
+					//cout << "ws_index: " << ws_index << "  grid_index: " << grid_index << "  dV: " << dV << endl;
 				}
-				break;
-			}
 
+			}
+			else {
+
+				// different boundary conditions
+				switch (ps_info.Ident[ws_index])
+				{
+					//NOTE HVAR and HFIX applied after update H
+				case QVAR5: //QVAR ps.Val already set to the interpolated value
+				case QFIX4:
+					dV = ps_info.Val[ws_index] * Q_multiplier * delta_time; // QFIX // Calculate change in volume
+					break;
+				case FREE6:
+					h = h_grid[grid_index] + ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index];
+					if (h > depth_thresh)
+					{
+						NUMERIC_TYPE cell_width = getmin(dx_col[ps_y], dy_col[ps_y]);
+						NUMERIC_TYPE FP_g_friction_squared = ps_info.g_friction_squared_FP[ws_index];
+						NUMERIC_TYPE SGC_g_friction_squared = ps_info.g_friction_squared_SG[ws_index];
+
+						NUMERIC_TYPE q_free_FP_corrected = SGC2_CalcPointFREE(h_grid[grid_index], ps_info.ws_cell.sg_cell_SGC_width[ws_index], ps_info.Val[ws_index],
+							depth_thresh, delta_time, cell_width, g,
+							SGC_g_friction_squared, FP_g_friction_squared,
+							ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index], ps_info.ws_cell.sg_cell_SGC_group[ws_index],
+							-1, &ps_info.Q_FP_old[ws_index], &ps_info.Q_SG_old[ws_index], SGCptr, max_Froude);
+
+						NUMERIC_TYPE Qfree = q_free_FP_corrected + ps_info.Q_SG_old[ws_index];
+						dV = Qfree * delta_time;
+					}
+					break;
+				}
+
+			}
+			
 			if (dV != C(0.0))
 			{
 				wet_dry_bounds->fp_vol[ps_y].start = min(wet_dry_bounds->fp_vol[ps_y].start, ps_x);
@@ -6008,8 +6008,10 @@ void SGC2_PointSources_Vol_row(const int y, const int grid_cols,
 				else
 					Qpoint_timestep_neg += dV;
 			}
+
 		}
-	}
+	
+	
 
 	(*out_Qpoint_timestep_pos) = Qpoint_timestep_pos;
 	(*out_Qpoint_timestep_neg) = Qpoint_timestep_neg;
@@ -6188,7 +6190,11 @@ inline void SGC2_UpdateVol_floodplain_row(const int j, const int grid_row_index,
 				}
 			}
 			// 把来自dhsvm垂向和侧向过程的水加入栅格水量
-			dV += Parptr->delta_volumn_dhsvm_PD[index];
+			if (Statesptr->use_dhsvm == ON)
+			{
+				dV += Parptr->delta_volumn_dhsvm_PD[index];
+			}
+			
 			dV += delta_volume_row[i]; // delta_volume_row是栅格单元上的降雨-蒸发-下渗量
 			if (dV != C(0.0))
 			{
@@ -6308,9 +6314,11 @@ inline void SGC2_UpdateVol_floodplain_by_Q(const int j, const int grid_row_index
 			}
 
 			// xiaodw，如果是河道像元则统计多少水来自于河道像元本身的产流，多少水来自于河道像元的直接侧向输出，多少水来自于上游单元的地表
-			if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0)) {
-				// 来自洪泛区地表的水
-				Parptr->surflow2ChPD[index] = dV;
+			if (Statesptr->use_dhsvm == ON){
+				if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0)) {
+					// 来自洪泛区地表的水
+					Parptr->surflow2ChPD[index] = dV;
+				}
 			}
 			if (dV != C(0.0))
 			{
@@ -7174,7 +7182,7 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 	//	const NUMERIC_TYPE * sg_flow_ChannelRatio = sub_grid_state->sg_flow_ChannelRatio;
 	const NUMERIC_TYPE * sg_flow_Q = sub_grid_state->sg_flow_Q;
 
-	NUMERIC_TYPE q_pos, q_neg;
+	NUMERIC_TYPE q_pos = 0.0, q_neg = 0.0;
 
 	const int start_y = wet_dry_bounds->block_row_bounds[block_index].start;
 	const int end_y = wet_dry_bounds->block_row_bounds[block_index].end;
@@ -7299,8 +7307,8 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 			{
 				block_evap_loss += SGC2_Evaporation_floodplain_row(Statesptr, evap_row_start, evap_row_end, depth_thresh, row_cell_area, evap_deltaH_step,
 					evap_grid->data + grid_row_index, h_grid + grid_row_index, // pointer to start of row
-					delta_volume_row, Parptr->soilWaterDepthPD + grid_row_index, Parptr->multi_soilMoisturePD[0] + grid_row_index,
-					Parptr->multi_soilThicknessPD[0] + grid_row_index, grid_row_index, Poisptr->Evap_Grid + grid_row_index, Poisptr->soil_water_depth_Grid[0] + grid_row_index);
+					delta_volume_row, Parptr->soilWaterDepthPD + grid_row_index, Parptr->soilMoisturePD + grid_row_index,
+					Parptr->rootDepthPD + grid_row_index, grid_row_index, Poisptr->Evap_Grid + grid_row_index, Poisptr->soil_water_depth_Grid[0] + grid_row_index);
 			}
 			else if (Statesptr->use_percolation_multilayer == ON || Statesptr->use_interflow_multilayer == ON || Statesptr->use_green_ampt_multilayer == ON)
 			{
@@ -7379,7 +7387,19 @@ NUMERIC_TYPE SGC2_UpdateVolumeHeight_block(const int block_index,
 			//	sg_cell_cell_area, sg_cell_flow_lookup, sg_flow_Q, Qx_grid, Qy_grid, sg_cell_SGC_group, sg_cell_SGC_c, sg_cell_SGC_is_large,
 			//	volume_grid, h_grid, Parptr->InfilRate, wet_dry_bounds, SGCptr, Statesptr->SGCd8, Solverptr, delta_volume_row, grid_row_index, Poisptr->Infilt_Grid + grid_row_index);
 		}
-		else if (Statesptr->use_wetspa_sur_mr == ON) {
+		else if (Statesptr->use_wetspa_single_layer == ON) {
+			NUMERIC_TYPE infilAvgRow = C(0.0);
+			NUMERIC_TYPE infilAccRow = C(0.0);
+
+			block_infil_loss += SGC2_Infil_floodplain_row_wetspa(infilt_row_start, infilt_row_end, depth_thresh, row_cell_area,
+				h_grid, dem_grid, Poisptr->Infilt_Grid + grid_row_index, Poisptr->InfiltCh_Grid + grid_row_index, Parptr->soilWaterDepthPD + grid_row_index,
+				delta_volume_row, Parptr->delta_volume_grid_ch + grid_row_index, Parptr->porosityPD, Parptr->rootDepthPD, Parptr->infilPD, Parptr->infilChPD, Parptr->soilMoisturePD, Poisptr->soil_water_depth_Grid[0] + grid_row_index,
+				Parptr, Solverptr, Arrptr, Statesptr, grid_row_index, infilAvgBlock, infilValidCount, j,
+				sub_grid_layout->cell_row_count[j], sg_row_start, sg_cell_grid_index_lookup, sg_cell_cell_area, sg_cell_SGC_BankFullHeight, sg_cell_SGC_BankFullVolume, sg_cell_SGC_c, sg_cell_flow_lookup
+			);
+
+		}
+		else if (Statesptr->use_wetspa_multi_layer == ON) {
 			NUMERIC_TYPE infilAvgRow = C(0.0);
 			NUMERIC_TYPE infilAccRow = C(0.0);
 
@@ -8977,7 +8997,7 @@ void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesp
 			for (int j = 0; j < LFPContext->grid_cols_padded * LFPContext->grid_rows; j++)
 				LFPContext->evap_grid->data[j] /= (86400. * 1000.);  // convert from mm/day to m/s
 		}
-
+		
 		// read dynamic rain grid and write to rain grid
 		if (Statesptr->rainfallmask)
 		{
@@ -9001,8 +9021,8 @@ void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesp
 					int dest_bytes_per_row = sizeof(NUMERIC_TYPE) * LFPContext->grid_cols_padded;
 					int padding = sizeof(NUMERIC_TYPE) * padding_count;
 					// make padding rainfall
-					memcpy(LFPContext->rain_grid + dest_row_index, LFPContext->rainfall_no_padding + source_row_index, source_bytes_per_row);
-					memset(LFPContext->rain_grid + dest_row_index + LFPContext->grid_cols, 0, padding);
+					memcpy(LFPContext->rain_grid_padded + dest_row_index, LFPContext->rainfall_no_padding + source_row_index, source_bytes_per_row);
+					memset(LFPContext->rain_grid_padded + dest_row_index + LFPContext->grid_cols, 0, padding);
 				}
 				// update last_rain_time
 				LFPContext->last_rain_time += Solverptr->rain_time_step;
@@ -9029,7 +9049,7 @@ void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesp
 		LFPContext->dx_col, LFPContext->dy_col, LFPContext->cell_area_col,
 		LFPContext->Fp_xwidth, LFPContext->Fp_ywidth,
 		LFPContext->sub_grid_layout_rows, LFPContext->sub_grid_state_rows, LFPContext->sub_grid_layout_blocks, LFPContext->sub_grid_state_blocks,
-		LFPContext->evap_time_series, LFPContext->evap_grid, LFPContext->rain_time_series, LFPContext->temperature_time_series, LFPContext->rain_grid, LFPContext->dist_infil_grid, LFPContext->wet_dry_bounds, LFPContext->ps_layout, LFPContext->boundary_cond,
+		LFPContext->evap_time_series, LFPContext->evap_grid, LFPContext->rain_time_series, LFPContext->temperature_time_series, LFPContext->rain_grid_padded, LFPContext->dist_infil_grid, LFPContext->wet_dry_bounds, LFPContext->ps_layout, LFPContext->boundaryCondition,
 		LFPContext->weirs_weirs, LFPContext->weirs_bridges,
 		LFPContext->route_dynamic_list, LFPContext->route_V_ratio_per_sec_qx, LFPContext->route_V_ratio_per_sec_qy,
 		Statesptr, Parptr, Fnameptr, Solverptr, Poisptr, Arrptr, SGCptr, Fptr, Locptr, Damptr, Super_linksptr,
@@ -9058,18 +9078,18 @@ void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesp
 		LFPContext->ps_layout->Qpoint_pos = reduce_Qpoint_timestep_pos / delta_time;
 		LFPContext->ps_layout->Qpoint_neg = reduce_Qpoint_timestep_neg / delta_time;
 		// 把每个小时间段的流量存储到输出数组
-		LfpCouplingInfoPtr->qOutList.push_back(reduce_Qpoint_timestep_neg);
+		LfpCouplingInfoPtr->qOutList.push_back(-reduce_Qpoint_timestep_neg);
 
 		// Point sources
-		// xiaodw，关键：这里才是point source作为输入和输出流量边界，汇总到boundary_cond。
+		// xiaodw，关键：这里才是point source作为输入和输出流量边界，汇总到boundaryCondition。
 		// Qpoint_pos的最终来源是SGC2_PointSources_Vol_row和SGC2_PointSources_H_row，专门计算点源输入和输出
-		LFPContext->boundary_cond->Qin += LFPContext->ps_layout->Qpoint_pos;
+		LFPContext->boundaryCondition->Qin += LFPContext->ps_layout->Qpoint_pos;
 		// Qout 是所有出水口的流量，输出的时候，打印的是对应时刻的流量，不是massint内对应的平均流量或总流量
-		LFPContext->boundary_cond->Qout -= LFPContext->ps_layout->Qpoint_neg;
+		LFPContext->boundaryCondition->Qout -= LFPContext->ps_layout->Qpoint_neg;
 
 		// calculate volume in and volume out
-		LFPContext->boundary_cond->VolInMT += LFPContext->boundary_cond->Qin*delta_time;
-		LFPContext->boundary_cond->VolOutMT += LFPContext->boundary_cond->Qout*delta_time;
+		LFPContext->boundaryCondition->VolInMT += LFPContext->boundaryCondition->Qin*delta_time;
+		LFPContext->boundaryCondition->VolOutMT += LFPContext->boundaryCondition->Qout*delta_time;
 
 		Solverptr->vol2 = reduce_domain_volume;
 		Solverptr->FArea = reduce_flood_area;
@@ -9201,17 +9221,17 @@ void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesp
 			// calc losses for this mass interval
 			NUMERIC_TYPE loss = (Parptr->InfilTotalLoss - Parptr->InfilLoss) + (Parptr->EvapTotalLoss - Parptr->EvapLoss) - (Parptr->RainTotalLoss - Parptr->RainLoss);
 
-			//Solverptr->Qerror=boundary_cond->Qin-boundary_cond->Qout-(Solverptr->vol2+loss-Solverptr->vol1)/Parptr->MassInt;
+			//Solverptr->Qerror=boundaryCondition->Qin-boundaryCondition->Qout-(Solverptr->vol2+loss-Solverptr->vol1)/Parptr->MassInt;
 			// New version using VolInMT and VolOutMT
 			// volume error
 
-			Solverptr->Verror = LFPContext->boundary_cond->VolInMT - LFPContext->boundary_cond->VolOutMT - (Solverptr->vol2 + loss - Solverptr->vol1) + Damptr->DamLoss;
+			Solverptr->Verror = LFPContext->boundaryCondition->VolInMT - LFPContext->boundaryCondition->VolOutMT - (Solverptr->vol2 + loss - Solverptr->vol1) + Damptr->DamLoss;
 
 			// Q error
 			Solverptr->Qerror = Solverptr->Verror / Parptr->MassInt;
 			// reset to 0.0
-			LFPContext->boundary_cond->VolInMT = C(0.0);
-			LFPContext->boundary_cond->VolOutMT = C(0.0);
+			LFPContext->boundaryCondition->VolInMT = C(0.0);
+			LFPContext->boundaryCondition->VolOutMT = C(0.0);
 			Damptr->DamLoss = C(0.0);
 			double infil_rate = (Parptr->InfilTotalLoss - Parptr->InfilLoss) / Parptr->MassInt;  // m3/s
 			double evap_rate = (Parptr->EvapTotalLoss - Parptr->EvapLoss) / Parptr->MassInt;  // m3/s
@@ -9276,8 +9296,8 @@ void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesp
 				fix_small_negative(Parptr->RainTotalLoss - (Parptr->InfilTotalLoss + Parptr->EvapTotalLoss)));
 #else
 			fprintf(Fptr->mass_fp, "%-12.3" NUM_FMT" %-10.4" NUM_FMT" %-10.4" NUM_FMT" %-10li %12.4e %12.4e  %-11.3" NUM_FMT" %-10.3" NUM_FMT" %-15.6" NUM_FMT" %12.4e %12.4e %12.4e       %12.4e %12.4e %12.4e %12.4e %12.4e %12.4e ",
-				LFPContext->curr_time, delta_time, Solverptr->MinTstep, Solverptr->itCount, Solverptr->FArea, Solverptr->vol2, LFPContext->boundary_cond->Qin,
-				Solverptr->Hds, LFPContext->boundary_cond->Qout, Solverptr->Qerror, Solverptr->Verror, Parptr->RainTotalLoss - (Parptr->InfilTotalLoss + Parptr->EvapTotalLoss),
+				LFPContext->curr_time, delta_time, Solverptr->MinTstep, Solverptr->itCount, Solverptr->FArea, Solverptr->vol2, LFPContext->boundaryCondition->Qin,
+				Solverptr->Hds, LFPContext->boundaryCondition->Qout, Solverptr->Qerror, Solverptr->Verror, Parptr->RainTotalLoss - (Parptr->InfilTotalLoss + Parptr->EvapTotalLoss),
 				rain_rate, rain_depth_rate_per_cell, infil_rate, infil_depth_rate_per_cell, evap_rate, evap_depth_rate_per_cell);
 			if (Statesptr->use_interflow_singlelayer == ON)
 			{
@@ -9512,7 +9532,7 @@ void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesp
 				LFPContext->sub_grid_layout_rows, LFPContext->sub_grid_state_rows,
 
 				LFPContext->dx_col, LFPContext->dy_col,
-				Solverptr, Statesptr, Parptr, Fnameptr, LFPContext->boundary_cond, SGCptr,
+				Solverptr, Statesptr, Parptr, Fnameptr, LFPContext->boundaryCondition, SGCptr,
 				&Statesptr->output_params,
 				Parptr->SaveNo,
 				Statesptr->save_depth, Statesptr->save_elev, Statesptr->save_Qs,

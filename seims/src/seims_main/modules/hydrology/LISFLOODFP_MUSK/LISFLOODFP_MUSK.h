@@ -64,49 +64,49 @@ private:
 	//int m_inputSubbsnID; ///< current subbasin ID, 0 for the entire watershed
 
 	float* m_subbsnID;/// subbasin grid (subbasins ID)
-	int counter;
-	string seims_start_time;
+	//string seims_start_time;
 
 	// Instances of Structures
-	Arrays Raster;
-	Files Fps;
-	Fnames ParFp;
-	States SimStates;
-	Pars Params;
-	Solver ParSolver;
-	Pois PoisHandler;
-	BoundCs Bounds;
-	Stage OutLocs;
-	SGCprams SGCchanprams;
-	DamData DamDataprams;
-	vector<ChannelSegmentType> ChannelSegments;
-	LISFLOODFPContext LFPContext;
-	LfpCouplingInfo LfpCoupleInfo;
+	//Arrays Raster;
+	//Files Fps;
+	//Fnames ParFp;
+	//States SimStates;
+	//Pars Params;
+	//Solver ParSolver;
+	//Pois PoisHandler;
+	//BoundCs Bounds;
+	//Stage OutLocs;
+	//SGCprams SGCchanprams;
+	//DamData DamDataprams;
+	//vector<ChannelSegmentType> ChannelSegments;
+	//LISFLOODFPContext LFPContext;
+	//LfpCouplingInfo LfpCoupleInfo;
 	//int verbosemode;
 
 
-	struct Arrays *Arrptr;
-	struct Files* FpsPtr;
-	struct Fnames *Fnameptr;
-	struct States *Statesptr;
-	struct Pars *Parptr;
-	struct Solver *Solverptr;
-	struct Pois *Poisptr;
-	struct BoundCs *BCptr;
-	struct Stage *Stageptr;
-	struct SGCprams *SGCptr;
-	struct DamData *Damptr;
-	struct Stage *Locptr;
-	char* tmpFileNamePtr;
-	char* tmpSysCmdPtr;
-	vector<ChannelSegmentType> *ChannelSegmentsVecPtr;
-	struct SuperGridLinksList *Super_linksptr;
-	struct LISFLOODFPContext* LFPContextPtr;
-	struct LfpCouplingInfo * LfpCouplingInfoPtr;
+	//struct Arrays *Arrptr;
+	//struct Files* FpsPtr;
+	//struct Fnames *Fnameptr;
+	//struct States *Statesptr;
+	//struct Pars *Parptr;
+	//struct Solver *Solverptr;
+	//struct Pois *Poisptr;
+	//struct BoundCs *BCptr;
+	//struct Stage *Stageptr;
+	//struct SGCprams *SGCptr;
+	//struct DamData *Damptr;
+	//struct Stage *Locptr;
+	//char* tmpFileNamePtr;
+	//char* tmpSysCmdPtr;
+	//vector<ChannelSegmentType> *ChannelSegmentsVecPtr;
+	//struct SuperGridLinksList *Super_linksptr;
+
+	//struct LISFLOODFPContext* LFPContextPtr;
 
 	unordered_set<int> lfpSetFirst;  // lfp首个子流域
 	unordered_set<int> lfpSetOther;  // lfp剩余子流域
 	unordered_map<int, LfpCouplingInfo> coupling_map; // key is the first id of lfp's subbasin
+	unordered_map<int, LISFLOODFPPtrs> ptrs_map; // key is the first id of lfp's subbasin
 
 
 	void RunCalculation();
@@ -115,7 +115,7 @@ private:
 
 	void updateCurrentTimestamp(int * current_timestamp, LISFLOODFPContext* LFPContextPtr);
 
-	void parseCouplingFile(const string& filepath, unordered_set<int>& lfpSetFirst, unordered_set<int>& lfpSetOther, unordered_map<int, LfpCouplingInfo>& coupling_map);
+	void parseCouplingFile(const string& filepath, unordered_set<int>& lfpSetFirst, unordered_set<int>& lfpSetOther, unordered_map<int, LfpCouplingInfo>& coupling_map, unordered_map<int, LISFLOODFPPtrs>& ptrs_map);
 
 
 	/************************************MUSK_CH**********************************/

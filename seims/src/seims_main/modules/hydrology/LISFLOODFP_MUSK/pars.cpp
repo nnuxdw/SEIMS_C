@@ -547,77 +547,81 @@ void CheckParam(char* param_name, char* param_value_ptr, int line_number, Fnames
 		return;
 	}
 	// ks
-	if (read_string_param(param_name, line_number, param_value_ptr, "ga_ks_file", Fnameptr->ksFile, verbose, mode))
+	if (read_string_param(param_name, line_number, param_value_ptr, "ks_file", Fnameptr->ksFile, verbose, mode))
 	{
 		Parptr->useKsType = FILE_TYPE;
 		return;
 	}
-	if (read_numeric_param(param_name, line_number, param_value_ptr, "ga_ks_value", &Parptr->ksValue, verbose, mode) )
+	if (read_numeric_param(param_name, line_number, param_value_ptr, "ks_value", &Parptr->ksValue, verbose, mode) )
 	{
 		Parptr->useKsType = VALUE_TYPE;
 		return;
 	}
-	if (read_numeric_param(param_name, line_number, param_value_ptr, "ga_ks_factor", &Parptr->ks_factor, verbose, mode))
+	if (read_numeric_param(param_name, line_number, param_value_ptr, "ks_factor", &Parptr->ks_factor, verbose, mode))
 	{
 		printf("ga_ks_factor changed to %" NUM_FMT" \n", Parptr->ks_factor);
 		return;
 	}
 	// initSoilMoisture
-	if (read_string_param(param_name, line_number, param_value_ptr, "ga_soil_moisture_file", Fnameptr->initSoilMoistureFile, verbose, mode))
+	if (read_string_param(param_name, line_number, param_value_ptr, "soil_moisture_file", Fnameptr->initSoilMoistureFile, verbose, mode))
 	{
 		Parptr->useInitSoilMoistureType = FILE_TYPE;
 		return;
 	}
-	if (read_numeric_param(param_name, line_number, param_value_ptr, "ga_soil_moisture_value", &Parptr->initSoilMoistureValue, verbose, mode))
+	if (read_numeric_param(param_name, line_number, param_value_ptr, "soil_moisture_value", &Parptr->initSoilMoistureValue, verbose, mode))
 	{
 		Parptr->useInitSoilMoistureType = VALUE_TYPE;
 		return;
 	}
 	// porosity
-	if (read_string_param(param_name, line_number, param_value_ptr, "ga_porosity_file", Fnameptr->porosityFile, verbose, mode))
+	if (read_string_param(param_name, line_number, param_value_ptr, "porosity_file", Fnameptr->porosityFile, verbose, mode))
 	{
 		Parptr->usePorosityType = FILE_TYPE;
 		return;
 	}
-	if (read_numeric_param(param_name, line_number, param_value_ptr, "ga_porosity_value", &Parptr->porosityValue, verbose, mode))
+	if (read_numeric_param(param_name, line_number, param_value_ptr, "porosity_value", &Parptr->porosityValue, verbose, mode))
 	{
 		Parptr->usePorosityType = VALUE_TYPE;
 		return;
 	}
 	// clay
-	if (read_string_param(param_name, line_number, param_value_ptr, "ga_clay_file", Fnameptr->clayFile, verbose, mode))
+	if (read_string_param(param_name, line_number, param_value_ptr, "clay_file", Fnameptr->clayFile, verbose, mode))
 	{
 		Parptr->useClayType = FILE_TYPE;
 		return;
 	}
-	if (read_numeric_param(param_name, line_number, param_value_ptr, "ga_clay_value", &Parptr->clayValue, verbose, mode))
+	if (read_numeric_param(param_name, line_number, param_value_ptr, "clay_value", &Parptr->clayValue, verbose, mode))
 	{
 		Parptr->useClayType = VALUE_TYPE;
 		return;
 	}
 	// sand
-	if (read_string_param(param_name, line_number, param_value_ptr, "ga_sand_file", Fnameptr->sandFile, verbose, mode))
+	if (read_string_param(param_name, line_number, param_value_ptr, "sand_file", Fnameptr->sandFile, verbose, mode))
 	{
 		Parptr->useSandType = FILE_TYPE;
 		return;
 	}
-	if (read_numeric_param(param_name, line_number, param_value_ptr, "ga_sand_value", &Parptr->sandValue, verbose, mode))
+	if (read_numeric_param(param_name, line_number, param_value_ptr, "sand_value", &Parptr->sandValue, verbose, mode))
 	{
 		Parptr->useSandType = VALUE_TYPE;
 		return;
 	}
 	// rootDepth
-	if (read_string_param(param_name, line_number, param_value_ptr, "ga_root_depth_file", Fnameptr->rootDepthFile, verbose, mode))
+	if (read_string_param(param_name, line_number, param_value_ptr, "root_depth_file", Fnameptr->rootDepthFile, verbose, mode))
 	{
 		Parptr->useRootDepthType = FILE_TYPE;
 		return;
 	}
-	if (read_numeric_param(param_name, line_number, param_value_ptr, "ga_root_depth_value", &Parptr->rootDepthValue, verbose, mode))
+	if (read_numeric_param(param_name, line_number, param_value_ptr, "root_depth_value", &Parptr->rootDepthValue, verbose, mode))
 	{
 		Parptr->useRootDepthType = VALUE_TYPE;
 		return;
 	}
-	
+	if (read_string_param(param_name, line_number, param_value_ptr, "field_capacity_file", Fnameptr->fieldCapacityFile, verbose, mode))
+	{
+		Parptr->useFieldCapacityType = FILE_TYPE;
+		return;
+	}
 	//-------------------------------interflow_singlelayer--------------------------------
 	if (read_empty_param(param_name, line_number, param_value_ptr, "use_interflow_singlelayer", verbose, mode)) // Enable interflow
 	{
@@ -897,9 +901,14 @@ void CheckParam(char* param_name, char* param_value_ptr, int line_number, Fnames
 	
 	
 	//-------------------------------Wetspa--------------------------------
-	if (read_empty_param(param_name, line_number, param_value_ptr, "use_wetspa_sur_mr", verbose, mode))
+	if (read_empty_param(param_name, line_number, param_value_ptr, "use_wetspa_single_layer", verbose, mode))
 	{
-		Statesptr->use_wetspa_sur_mr = ON;
+		Statesptr->use_wetspa_single_layer = ON;
+		return;
+	}
+	if (read_empty_param(param_name, line_number, param_value_ptr, "use_wetspa_multi_layer", verbose, mode))
+	{
+		Statesptr->use_wetspa_multi_layer = ON;
 		return;
 	}
 
