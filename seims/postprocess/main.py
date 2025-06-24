@@ -18,6 +18,8 @@ from postprocess.config import parse_ini_configuration
 from postprocess.plot_timeseries import TimeSeriesPlots
 from postprocess.plot_timeseries import plot_runoff_components
 from postprocess.plot_timeseries import plot_runoff_difference
+from postprocess.plot_timeseries import plot_multi_source_soil_layers
+
 
 
 def main():
@@ -29,9 +31,19 @@ def main():
         "Total Runoff": "Q.txt"
     }
     basedir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\-90_124556_38_819347_longterm_model\OUTPUT'
-    plot_runoff_components(basedir,file_dict,173)
+    # plot_runoff_components(basedir,file_dict,173)
     ###--------------------xiaodw, plot QI+QS+QG-Q into one chart
-    plot_runoff_difference(basedir,file_dict,173)
+    # plot_runoff_difference(basedir,file_dict,173)
+
+    ###--------------------xiaodw, plot 2DArray into one chart
+    subbasin_id = 173
+    solst_file = os.path.join(basedir,'SOLST.txt')
+    file_dict = {
+        "Soil Moisture(mm)": "SOLST.txt",
+        "Porosity Depth(mm)": "PorosityDepth.txt",
+        "FieldCap Depth(mm)": "FieldCapDepth.txt"
+    }
+    plot_multi_source_soil_layers(basedir,file_dict, subbasin_id)
 
     """Main workflow."""
     cfg = parse_ini_configuration()

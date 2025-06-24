@@ -35,6 +35,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_SOL_UL, UNIT_DEPTH_MM, DESC_SOL_UL, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_SOL_SUMSAT, UNIT_DEPTH_MM, DESC_SOL_SUMSAT, Source_ParameterDB, DT_Raster1D);
 
+	mdi.AddParameter(VAR_FIELDCAP, UNIT_VOL_FRA_M3M3, DESC_FIELDCAP, Source_ParameterDB, DT_Raster2D);
+
     mdi.AddInput(VAR_NEPR, UNIT_DEPTH_MM, DESC_NEPR, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_TMEAN, UNIT_TEMP_DEG, DESC_TMEAN, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_DPST, UNIT_DEPTH_MM, DESC_DPST, Source_Module, DT_Raster1D);
@@ -47,6 +49,9 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, DT_Array2D);
     mdi.AddOutput(VAR_SOL_SW, UNIT_DEPTH_MM, DESC_SOL_SW, DT_Raster1D);
 
+
+
+
     //ljj++
     mdi.AddParameter(VAR_POROST, UNIT_VOL_FRA_M3M3, DESC_POROST, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_SOILTHICK, UNIT_LEN_M, DESC_SOILTHICK, Source_ParameterDB, DT_Raster2D);
@@ -57,6 +62,9 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     //mdi.AddInput(VAR_SOLICE, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module_Optional, DT_Array2D);   // xiaodw, don't need soil ice now
     mdi.AddInput(VAR_PCP, UNIT_DEPTH_MM, DESC_PCP, Source_Module, DT_Raster1D); /// ITP_P
     mdi.AddInput(VAR_PET, UNIT_DEPTH_MM, DESC_PET, Source_Module, DT_Raster1D);
+
+	mdi.AddOutput(VAR_FIELDCAPDEP, UNIT_DEPTH_MM, DESC_FIELDCAPDEP, DT_Array2D);
+	mdi.AddOutput(VAR_POROSTDEP, UNIT_DEPTH_MM, DESC_POROSTDEP, DT_Array2D);
 
     // write out the XML file.
     string res = mdi.GetXMLDocument();

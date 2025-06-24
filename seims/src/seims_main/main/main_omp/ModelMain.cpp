@@ -298,7 +298,9 @@ void ModelMain::AppendOutputData(const time_t time) {
                         StringMatch(param->BasicName, VAR_SOLWC) || 
                         StringMatch(param->BasicName, VAR_SOWB)   || // soil water balance
 						//xdw++
-						StringMatch(param->BasicName, VAR_SOL_ST)  // soil water balance
+						StringMatch(param->BasicName, VAR_SOL_ST)  ||// soil water balance
+						StringMatch(param->BasicName, VAR_FIELDCAPDEP) ||
+						StringMatch(param->BasicName, VAR_POROSTDEP)
                     ) {
                         // TODO: more conditions will be added in the future.
                         //for modules in which only the results of output subbasins are calculated.

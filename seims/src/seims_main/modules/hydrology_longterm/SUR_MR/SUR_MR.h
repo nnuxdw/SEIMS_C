@@ -131,6 +131,12 @@ private:
     float* m_lakesto;
     float* m_pet;
 
+	//xdw++
+	/// m_soilPor * m_soilThk
+	float** m_soilPorDepth;
+	/// m_soilFC * m_soilThk
+	float** m_soilFCDepth;
+
 	int m_nSubbsns;
 };
 #endif /* SEIMS_MODULE_SUR_MR_H */

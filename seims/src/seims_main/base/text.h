@@ -652,7 +652,9 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_EXCP "EXCP" /// m_exsPcp, excess precipitation, which could be depressed or generated as runoff
 #define VAR_EXT_COEF "EXT_COEF" /// m_lightExtCoef, light extinction coefficient
 #define VAR_FERTILIZER_LOOKUP "FertilizerLookup" /// m_fertLookup, Fertilizer lookup table
-#define VAR_FIELDCAP "FieldCap"                     /// Soil field capacity"
+#define VAR_FIELDCAP "FieldCap"                     /// Soil field capacity
+#define VAR_FIELDCAPDEP "FieldCapDepth"                     /// Soil field capacity * soil thickness
+#define VAR_POROSTDEP "PorosityDepth"                     /// Soil porpsity * soil thickness
 #define VAR_FLAT "flat"
 #define VAR_FLOWDIR "FLOW_DIR"
 #define VAR_FLOWWIDTH "FlowWidth"
@@ -1426,6 +1428,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_EXT_COEF "light extinction coefficient"
 #define DESC_FERTILIZER_LOOKUP "Fertilizer lookup table"
 #define DESC_FIELDCAP "Soil field capacity"
+#define DESC_FIELDCAPDEP "Soil field capacity depth"            /// Soil field capacity * soil thickness
+#define DESC_POROSTDEP "Soil porosity Depth"                     /// Soil porpsity * soil thickness
 #define DESC_FLAT "lateral flow in soil layer"
 #define DESC_FLOWDIR "Flow direction by the rule of TauDEM"
 #define DESC_FLOWIN_INDEX_D8 "The index of flow in (D8) cell in the compressed array, and the first element in each sub-array is the number of flow in cells in this sub-array"

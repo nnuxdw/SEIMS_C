@@ -644,16 +644,42 @@ string PrintInfo::getOutputTimeSeriesHeader() {
         //headers.emplace_back("MoistureDepth");
     } else if (StringMatch(m_OutputID, VAR_GWWB)) {
         headers.emplace_back("Time");
-        headers.emplace_back("Percolation (mm)");
-        headers.emplace_back("Revaporization (mm)");
-        headers.emplace_back("Deep Percolation (mm)");
-        headers.emplace_back("Baseflow (mm)");
-        headers.emplace_back("Groundwater storage (mm)");
-        headers.emplace_back("Baseflow discharge (m3/s)");
+        headers.emplace_back("Percolation(mm)");
+        headers.emplace_back("Revaporization(mm)");
+        headers.emplace_back("DeepPercolation(mm)");
+        headers.emplace_back("Baseflow(mm)");
+        headers.emplace_back("Groundwaterstorage(mm)");
+        headers.emplace_back("Baseflowdischarge(m3/s)");
     }
 	else if (StringMatch(m_OutputID, VAR_SOL_ST)) {
 		headers.emplace_back("Time");
-		headers.emplace_back("SoilMoisture (mm)");
+		headers.emplace_back("SoilMoisture0(mm)");
+		headers.emplace_back("SoilMoisture1(mm)");
+		headers.emplace_back("SoilMoisture2(mm)");
+		headers.emplace_back("SoilMoisture3(mm)");
+		headers.emplace_back("SoilMoisture4(mm)");
+		headers.emplace_back("SoilMoisture5(mm)");
+		headers.emplace_back("SoilMoisture6(mm)");
+	}
+	else if (StringMatch(m_OutputID, VAR_FIELDCAPDEP)) {
+		headers.emplace_back("Time");
+		headers.emplace_back("SoilCapDep0(mm)");
+		headers.emplace_back("SoilCapDep1(mm)");
+		headers.emplace_back("SoilCapDep2(mm)");
+		headers.emplace_back("SoilCapDep3(mm)");
+		headers.emplace_back("SoilCapDep4(mm)");
+		headers.emplace_back("SoilCapDep5(mm)");
+		headers.emplace_back("SoilCapDep6(mm)");
+	}
+	else if (StringMatch(m_OutputID, VAR_POROSTDEP)) {
+		headers.emplace_back("Time");
+		headers.emplace_back("SoilPorDep0(mm)");
+		headers.emplace_back("SoilPorDep1(mm)");
+		headers.emplace_back("SoilPorDep2(mm)");
+		headers.emplace_back("SoilPorDep3(mm)");
+		headers.emplace_back("SoilPorDep4(mm)");
+		headers.emplace_back("SoilPorDep5(mm)");
+		headers.emplace_back("SoilPorDep6(mm)");
 	}
 	else if (StringMatch(m_OutputID, "T_RECH")) {
         headers.emplace_back("Time");

@@ -438,3 +438,92 @@ def plot_runoff_difference(basedir, file_dict, subbasin_id):
     plt.savefig(output_path, dpi=300)
     print(f"误差图已保存到: {output_path}")
     plt.show()
+
+
+def read_soil_layers(file_path, subbasin_id):
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
+
+    capturing = False
+    data_rows = []
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        if line.startswith("Subbasin:"):
+            current_id = int(line.split(":")[1].strip())
+            capturing = (current_id == subbasin_id)
+            continue
+
+        if capturing:
+            if line.startswith("Time"):
+                continue
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            timestamp = parts[0] + " " + parts[1]
+            values = [float(val) for val in parts[2:]]
+            data_rows.append([timestamp] + values)
+
+        # 可选停止读取逻辑
+        if capturing and line.startswith("Subbasin:") and int(line.split(":")[1]) != subbasin_id:
+            break
+
+    df = pd.DataFrame(data_rows)
+    df.columns = ["Time"] + [f"Layer{i}" for i in range(len(df.columns)-1)]
+    df["Time"] = pd.to_datetime(df["Time"])
+    df.set_index("Time", inplace=True)
+
+    return df
+
+def plot_multi_source_soil_layers(basedir, file_dict, subbasin_id):
+    # 读取所有文件，构造成 {label: dataframe}
+    data_by_label = {}
+    for label, filename in file_dict.items():
+        path = os.path.join(basedir, filename)
+        try:
+            df = read_soil_layers(path, subbasin_id)
+            data_by_label[label] = df
+        except Exception as e:
+            print(f"读取 {label} 失败：{e}")
+
+    if not data_by_label:
+        print("没有有效数据可绘制")
+        return
+
+    # 假设所有文件的土层数一致，取第一个 DataFrame 的列数
+    first_df = next(iter(data_by_label.values()))
+    num_layers = first_df.shape[1]
+    layer_names = first_df.columns
+
+    fig, axes = plt.subplots(num_layers, 1, figsize=(12, 2.5 * num_layers), sharex=True)
+
+    if num_layers == 1:
+        axes = [axes]
+
+    for i, layer_name in enumerate(layer_names):
+        ax = axes[i]
+        for label, df in data_by_label.items():
+            if layer_name in df.columns:
+                ax.plot(df.index, df[layer_name], label=label)
+        ax.set_ylabel(f"{layer_name} (mm)")
+        ax.set_title(f"{layer_name} - Subbasin {subbasin_id}")
+        ax.grid(True)
+        ax.legend()
+
+    axes[-1].set_xlabel("Date")
+    plt.tight_layout()
+
+    # 自动构造保存路径
+    file_stem = "_".join([key.replace(" ", "") for key in file_dict.keys()])
+    filename = f"{file_stem}_subbasin{subbasin_id}.png"
+    save_path = os.path.join(basedir, filename)
+
+    plt.savefig(save_path, dpi=300)
+    print(f"图已保存到: {save_path}")
+
+    plt.show()
+
+
