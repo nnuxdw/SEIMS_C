@@ -32,6 +32,9 @@ SSR_DA::~SSR_DA() {
 }
 
 bool SSR_DA::FlowInSoil(const int id) {
+	// xdw++
+	float surFlowOld = m_surfRf[id];
+	int subbasinId = CVT_INT(m_subbsnID[id]);
     int frez =0;
     float s0 = Max(m_slope[id], 0.01f);
     // float flowWidth = m_CellWth;
@@ -96,6 +99,23 @@ bool SSR_DA::FlowInSoil(const int id) {
         }
         m_soilWtrSto[id][j] += qUp; // mm
 
+#ifdef DEBUG_SSR_DA
+		if (CVT_INT(m_subbsnID[id]) == 173)
+		{
+			if (m_soilWtrSto[id][j] <= m_soilAWC[id][j]) {
+				std::cout << "----------- Subsurface Flow Debug Info -----------" << std::endl;
+				std::cout << "  HRU ID                : " << id << std::endl;
+				std::cout << "  Soil Layer            : " << j << " / " << m_nSoilLyrs[id] << std::endl;
+				std::cout << "  Soil Moisture (before): " << smOld << " mm" << std::endl;
+				std::cout << "  Field Capacity (AWC)  : " << m_soilAWC[id][j] << " mm" << std::endl;
+				std::cout << "  Soil Moisture (after) : " << m_soilWtrSto[id][j] << " mm" << std::endl;
+				std::cout << "--------------------------------------------------" << std::endl;
+
+				std::cout << endl;
+
+			}
+		}
+#endif
         // if soil moisture is below the field capacity, no interflow will be generated
         //if (m_soilWtrSto[id][j] <= m_soilFC[id][j]) continue;
         if (m_soilWtrSto[id][j] <= m_soilAWC[id][j]) continue;
@@ -192,6 +212,8 @@ bool SSR_DA::FlowInSoil(const int id) {
 
         m_soilWtrSto[id][j] -= m_soilPerco[id][j];
         m_soilWtrSto[id][j] -= m_subSurfRf[id][j];
+		float soilWtrStoNexLyrOld = 0.0f;
+		if (j < CVT_INT(m_nSoilLyrs[id]) - 1) soilWtrStoNexLyrOld = m_soilWtrSto[id][j + 1];
         if (j < CVT_INT(m_nSoilLyrs[id]) - 1) m_soilWtrSto[id][j + 1] += m_soilPerco[id][j];
         m_soilWtrSto[id][j] = Max(UTIL_ZERO, m_soilWtrSto[id][j]);
         m_cellFlow[id][j] += m_subSurfRf[id][j];
@@ -238,6 +260,39 @@ bool SSR_DA::FlowInSoil(const int id) {
             }
         }
         m_soilWtrStoPrfl[id] += m_soilWtrSto[id][j];
+
+#ifdef DEBUG_SSR_DA
+		if (CVT_INT(m_subbsnID[id]) == 173)
+		{
+			std::cout << "----------- Subsurface Flow Debug Info -----------" << std::endl;
+			std::cout << "  HRU ID                : " << id << std::endl;
+			std::cout << "  Soil Layer            : " << j << " / " << m_nSoilLyrs[id] << std::endl;
+			std::cout << "  Soil Moisture (before): " << smOld << " mm" << std::endl;
+			std::cout << "  Soil Moisture (after) : " << m_soilWtrSto[id][j] << " mm" << std::endl;
+			std::cout << "  Upstream qUp          : " << qUp << " mm" << std::endl;
+			std::cout << "  SubSurfRf             : " << m_subSurfRf[id][j] << " mm" << std::endl;
+			std::cout << "  SubSurfRfVol          : " << m_subSurfRfVol[id][j] << " m3" << std::endl;
+			std::cout << "  Percolation           : " << m_soilPerco[id][j] << " mm" << std::endl;
+			std::cout << "  Soil MoistNex (before): " << soilWtrStoNexLyrOld << " mm" << std::endl;
+			std::cout << "  Soil MoistNex (after) : " << m_soilWtrSto[id][j + 1] << " mm" << std::endl;
+			std::cout << "  Percolation           : " << m_soilPerco[id][j] << " mm" << std::endl;
+			
+			std::cout << "  surFlow (before)      : " << surFlowOld << " mm" << std::endl;
+			std::cout << "  surFlow (after)       : " << m_surfRf[id] << " mm" << std::endl;
+			std::cout << "  Soil Saturation       : " << m_soilSat[id][j] << " mm" << std::endl;
+			std::cout << "  Field Capacity (AWC)  : " << m_soilAWC[id][j] << " mm" << std::endl;
+			std::cout << "  Ks                    : " << m_ks[id][j] << " mm/h" << std::endl;
+			std::cout << "  TTlag                 : " << m_TTlag[id][j] << " [-]" << std::endl;
+			std::cout << "  flowWidth             : " << flowWidth << " m" << std::endl;
+			std::cout << "  slope (s0)            : " << s0 << " [-]" << std::endl;
+			std::cout << "--------------------------------------------------" << std::endl;
+
+			std::cout << endl;
+		}
+
+#endif // DEBUG_SSR_DA
+
+
         if (m_soilWtrSto[id][j] != m_soilWtrSto[id][j] || m_soilWtrSto[id][j] < 0.f) {
             cout << "cell id: " << id << ", layer: " << j << ", moisture is less than zero: "
                     << m_soilWtrSto[id][j] << ", subsurface runoff: " << m_subSurfRf[id][j] << ", depth:"
