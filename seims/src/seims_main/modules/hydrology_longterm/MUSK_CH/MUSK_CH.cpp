@@ -670,6 +670,7 @@ bool MUSK_CH::ChannelFlow(const int i) {
 
 		//	qiUp += m_qiRchOut[*upRchID];
 		//}
+		if (m_qiRchOut[*upRchID] > 0.f) qiUp += m_qiRchOut[*upRchID];
 		if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
 		//cout<<i<<"   "<<*upRchID<<"   "<< m_Ch2GW[*upRchID]<<endl;
 	}

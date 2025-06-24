@@ -49,7 +49,7 @@ from calibration.userdef import write_param_values_to_mongodb, output_population
 accepted_objnames = ['NSE', 'RSR', 'PBIAS', 'R-square', 'RMSE', 'lnNSE', 'NSE1', 'NSE3']
 
 # step can be one of 'Q', 'SED', 'QSED', 'NUTRIENT', or 'CUSTOMIZE'.
-step = 'TEST'
+step = 'CUSTOMIZE'
 filter_ind = False  # Filter for valid population for the next generation
 # Definitions of Multiobjectives:
 multiobj = dict()
@@ -71,7 +71,7 @@ elif step == 'NUTRIENT':
     multiobj.setdefault('SED', [['NSE', 1., -100]])
 #ljj++
 elif step == 'TEST':
-    #negative is minimal 
+    #negative is minimal
     #the number can be any float
     # multiobj.setdefault('Q_1444', [['NSE', 1., -100, '>0'], ['PBIAS', -1., 500.]])
     # multiobj.setdefault('Q_1289', [['NSE', 1., -100, '>0'], ['PBIAS', -1., 500.]])
@@ -85,12 +85,12 @@ elif step == 'TEST':
 #######
 else:
     # Customize your own multiobjective here, such as:
-    multiobj.setdefault('Q', [['NSE', 3., 0., '>0.'],
+    multiobj.setdefault('Q_173', [['NSE', 3., 0., '>0.'],
                               ['RSR', -1., 2., '<2.'],
                               ['PBIAS', -1., 50., '<50.']])
-    multiobj.setdefault('SED', [['NSE', 3., 0., '>0.'],
-                                ['RSR', -1., 2., '<2.'],
-                                ['PBIAS', -1., 100., '<100.']])
+    # multiobj.setdefault('SED', [['NSE', 3., 0., '>0.'],
+    #                             ['RSR', -1., 2., '<2.'],
+    #                             ['PBIAS', -1., 100., '<100.']])
 
 # Check object variables
 if not multiobj:
@@ -222,14 +222,33 @@ def main(cfg):
             invalid_pops = list(futures.map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
         except ImportError or ImportWarning:  # Python build-in map (serial)
             invalid_pops = list(map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
+        # for tmpind in invalid_pops:
+        #     labels = list()  # TODO, find an elegant way to get labels.
+        #     tmpfitnessv = list()
+        #     for k, v in list(multiobj.items()):
+        #         tmpvalues, tmplabel = tmpind.cali.efficiency_values(k, object_names[k])
+        #         tmpfitnessv += tmpvalues[:]
+        #         labels += tmplabel[:]
+        #     tmpind.fitness.values = tuple(tmpfitnessv)
         for tmpind in invalid_pops:
-            labels = list()  # TODO, find an elegant way to get labels.
+            labels = list()
             tmpfitnessv = list()
-            for k, v in list(multiobj.items()):
-                tmpvalues, tmplabel = tmpind.cali.efficiency_values(k, object_names[k])
-                tmpfitnessv += tmpvalues[:]
-                labels += tmplabel[:]
-            tmpind.fitness.values = tuple(tmpfitnessv)
+            try:
+                for k, v in list(multiobj.items()):
+                    tmpvalues, tmplabel = tmpind.cali.efficiency_values(k, object_names[k])
+                    tmpfitnessv += tmpvalues[:]
+                    labels += tmplabel[:]
+
+                # 如果结果合法才赋值
+                if len(tmpfitnessv) == len(multi_weight):
+                    tmpind.fitness.values = tuple(tmpfitnessv)
+                else:
+                    raise ValueError("模型返回指标维度不一致！")
+
+            except Exception as e:
+                print(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, 原因: {e}")
+                scoop_log(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, 原因: {e}")
+                tmpind.fitness.values = tuple([9999.0] * len(multi_weight))  # 用极差值惩罚模型失败者
 
         # Filter for a valid solution
         if filter_ind:

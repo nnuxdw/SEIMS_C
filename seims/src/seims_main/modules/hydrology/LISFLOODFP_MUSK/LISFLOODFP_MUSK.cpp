@@ -1295,14 +1295,15 @@ int LISFLOODFP_MUSK::Execute() {
 						float qsUp = m_qsRchOut[upRchID];
 						float qiUp = m_qiRchOut[upRchID];
 						float qgUp = m_qgRchOut[upRchID];
+						upstream.qIn = (qsUp + qiUp + qgUp);
 						// test
-						if (upRchID == 16)
-						{
-							upstream.qIn = (qsUp + qiUp + qgUp)*5000.0;
-						}
-						else {
-							upstream.qIn = (qsUp + qiUp + qgUp)*50.0;
-						}
+						//if (upRchID == 16)
+						//{
+						//	upstream.qIn = (qsUp + qiUp + qgUp)*5000.0;
+						//}
+						//else {
+						//	upstream.qIn = (qsUp + qiUp + qgUp)*50.0;
+						//}
 						
 					}
 					LISFLOODFPPtrs& LFPPtrs = ptrs_map[reachIndex];

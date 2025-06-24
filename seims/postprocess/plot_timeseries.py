@@ -14,6 +14,8 @@ from __future__ import absolute_import, unicode_literals
 import os
 import sys
 from datetime import datetime
+import pandas as pd
+
 
 if os.path.abspath(os.path.join(sys.path[0], '..')) not in sys.path:
     sys.path.insert(0, os.path.abspath(os.path.join(sys.path[0], '..')))
@@ -311,3 +313,128 @@ class TimeSeriesPlots(object):
             timerange = '%s-%s' % (self.sim_data_value[0][0].strftime('%Y-%m-%d'),
                                    self.sim_data_value[-1][0].strftime('%Y-%m-%d'))
             save_png_eps(plt, self.ws, param + '-' + timerange, self.plot_cfg)
+
+
+def read_runoff_file(file_path):
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
+
+    runoff_data = {}
+    current_subbasin = None
+    current_data = []
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        if line.startswith("Subbasin:"):
+            # 保存上一个subbasin的数据
+            if current_subbasin is not None and current_data:
+                df = pd.DataFrame(current_data, columns=["Date", "Value"])
+                df["Date"] = pd.to_datetime(df["Date"])
+                df.set_index("Date", inplace=True)
+                runoff_data[current_subbasin] = df
+                current_data = []
+
+            # 新subbasin编号
+            current_subbasin = int(line.split(":")[1].strip())
+        else:
+            # 正常的时间+数值行
+            parts = line.split()
+            if len(parts) >= 2:
+                date = parts[0]
+                value = float(parts[-1])
+                current_data.append((date, value))
+
+    # 收尾处理最后一个subbasin
+    if current_subbasin is not None and current_data:
+        df = pd.DataFrame(current_data, columns=["Date", "Value"])
+        df["Date"] = pd.to_datetime(df["Date"])
+        df.set_index("Date", inplace=True)
+        runoff_data[current_subbasin] = df
+
+    return runoff_data  # dict[subbasin] = DataFrame
+
+"""xiaodw, plot Q,QI,QS,QG into one chart"""
+def plot_runoff_components(basedir, file_dict, subbasin_id):
+    """
+    file_dict: dict，如 {
+        "Surface Runoff": "surf.txt",
+        "Interflow": "interflow.txt",
+        "Groundwater": "gw.txt",
+        "Total Runoff": "total.txt"
+    }
+    basedir: 文件所在目录 + 图像保存目录
+    subbasin_id: 要提取的子流域编号（整数）
+    """
+    plt.figure(figsize=(12, 6))
+
+    for label, file_name in file_dict.items():
+        file_path = os.path.join(basedir, file_name)
+        runoff_dict = read_runoff_file(file_path)
+
+        if subbasin_id not in runoff_dict:
+            print(f"跳过 {file_path}，未找到 Subbasin {subbasin_id}")
+            continue
+
+        df = runoff_dict[subbasin_id]
+        plt.plot(df.index, df['Value'], label=label)
+
+    plt.title(f"Runoff Components for Subbasin {subbasin_id}")
+    plt.xlabel("Date")
+    plt.ylabel("Runoff (unit based on input)")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+
+    # 保存图像
+    output_path = os.path.join(basedir, "Q_all.png")
+    plt.savefig(output_path, dpi=300)
+    print(f"图已保存到: {output_path}")
+
+    # 显示图像
+    plt.show()
+
+"""xiaodw, plot QI+QS+QG-Q into one chart"""
+def plot_runoff_difference(basedir, file_dict, subbasin_id):
+    """
+    对 file_dict 中前 len-1 项求和，与最后一个总项比较，绘制差值序列
+    """
+    runoff_data = {}
+    for label, file_name in file_dict.items():
+        file_path = os.path.join(basedir, file_name)
+        runoff_dict = read_runoff_file(file_path)
+
+        if subbasin_id not in runoff_dict:
+            print(f"{label} 跳过（未包含 Subbasin {subbasin_id}）")
+            return
+
+        runoff_data[label] = runoff_dict[subbasin_id]["Value"]
+
+    # 确保时间索引对齐
+    all_series = list(runoff_data.values())
+    for s in all_series[1:]:
+        if not s.index.equals(all_series[0].index):
+            raise ValueError("时间索引不一致，不能进行逐点相加")
+
+    component_labels = list(file_dict.keys())
+    sum_series = sum(runoff_data[label] for label in component_labels[:-1])
+    total_series = runoff_data[component_labels[-1]]
+    diff_series = sum_series - total_series
+
+    # 画图
+    plt.figure(figsize=(12, 4))
+    plt.plot(diff_series.index, diff_series.values, label="(QS + QI + QG) - Q")
+    plt.axhline(0, color='gray', linestyle='--')
+    plt.title(f"Difference Between Component Sum and Total Runoff (Subbasin {subbasin_id})")
+    plt.xlabel("Date")
+    plt.ylabel("Difference")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+
+    output_path = os.path.join(basedir, "Q_diff.png")
+    plt.savefig(output_path, dpi=300)
+    print(f"误差图已保存到: {output_path}")
+    plt.show()

@@ -650,7 +650,12 @@ string PrintInfo::getOutputTimeSeriesHeader() {
         headers.emplace_back("Baseflow (mm)");
         headers.emplace_back("Groundwater storage (mm)");
         headers.emplace_back("Baseflow discharge (m3/s)");
-    } else if (StringMatch(m_OutputID, "T_RECH")) {
+    }
+	else if (StringMatch(m_OutputID, VAR_SOL_ST)) {
+		headers.emplace_back("Time");
+		headers.emplace_back("SoilMoisture (mm)");
+	}
+	else if (StringMatch(m_OutputID, "T_RECH")) {
         headers.emplace_back("Time");
         headers.emplace_back("QS");
         headers.emplace_back("QI");

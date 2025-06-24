@@ -436,7 +436,11 @@ void SSR_DA::Get2DData(const char* key, int* nrows, int* ncols, float*** data) {
         *data = m_subSurfRf;
     } else if (StringMatch(sk, VAR_SSRUVOL)) {
         *data = m_subSurfRfVol;
-    } else {
+    }else if (StringMatch(sk, VAR_SOL_ST)) {
+		*data = m_soilWtrSto;
+
+	}
+	else {
         throw ModelException(MID_SSR_DA, "Get2DData", "Output " + sk + " does not exist.");
     }
 }
@@ -459,7 +463,7 @@ bool SSR_DA::CheckInputData() {
     CHECK_POINTER(MID_SSR_DA, m_soilSat);
     //CHECK_POINTER(MID_SSR_DA, m_soilFC);
     CHECK_POINTER(MID_SSR_DA, m_soilWP);
-    CHECK_POINTER(MID_SSR_DA, m_soilWtrSto);
+    //CHECK_POINTER(MID_SSR_DA, m_soilWtrSto);
     CHECK_POINTER(MID_SSR_DA, m_soilWtrStoPrfl);
     //CHECK_POINTER(MID_SSR_DA, m_soilTemp);     //  xiaodw comment, don't need soil temperature now
     CHECK_POINTER(MID_SSR_DA, m_chWidth);

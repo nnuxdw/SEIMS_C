@@ -101,6 +101,9 @@ int SUR_MR::Execute() {
         }
         float hWater = 0.f;
         hWater = m_netPcp[i] + m_deprSto[i];
+		/// debug
+		float netPcp = m_netPcp[i];
+		float deprSto = m_deprSto[i];
         if (hWater > 0.f && m_landUse[i] !=18) {
             /// update total soil water content
             m_soilWtrStoPrfl[i] = 0.f;
@@ -173,6 +176,9 @@ int SUR_MR::Execute() {
 
 				//runoff percentage
 				float runoffPercentage;
+#ifndef DEBUG_SUR_MR
+				cout << i << ": " << m_potRfCoef[i] << endl;
+#endif
 				if (m_potRfCoef[i] > 0.99f || (m_landUse[i] == LANDUSE_ID_GLC)) {
 					runoffPercentage = 1.f;
 				}
@@ -208,6 +214,7 @@ void SUR_MR::SetValue(const char* key, const float value) {
     else if (StringMatch(sk, VAR_K_RUN)) m_rfExp = value;
     else if (StringMatch(sk, VAR_P_MAX)) m_maxPcpRf = value;
     else if (StringMatch(sk, VAR_S_FROZEN)) m_soilFrozenWtrRatio = value;
+	else if (StringMatch(sk, VAR_SUBBSNID_NUM)) m_nSubbsns = CVT_INT(value);
     else {
         throw ModelException(MID_SUR_MR, "SetValue", "Parameter " + sk + " does not exist.");
     }
@@ -267,9 +274,11 @@ void SUR_MR::Get1DData(const char* key, int* n, float** data) {
 void SUR_MR::Get2DData(const char* key, int* nRows, int* nCols, float*** data) {
     InitialOutputs();
     string sk(key);
-    *nRows = m_nCells;
-    *nCols = m_maxSoilLyrs;
+    //*nRows = m_nCells;
+    //*nCols = m_maxSoilLyrs;
     if (StringMatch(sk, VAR_SOL_ST)) {
+		*nRows = m_nCells;
+		*nCols = m_maxSoilLyrs;
         *data = m_soilWtrSto;
     } else {
         throw ModelException(MID_SUR_MR, "Get2DData", "Output " + sk + " does not exist.");

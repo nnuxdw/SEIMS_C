@@ -130,5 +130,7 @@ private:
     float* m_pcp;
     float* m_lakesto;
     float* m_pet;
+
+	int m_nSubbsns;
 };
 #endif /* SEIMS_MODULE_SUR_MR_H */

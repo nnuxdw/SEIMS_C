@@ -134,12 +134,12 @@ int ReservoirMethod::Execute() {
         }
         groundStorage += gwBank / curBasinArea[subID] * 1000.f;
         groundStorage = Max(groundStorage, 0.f);
-        // if (groundStorage > m_GWMAX) {
-        //     groundRunoff += groundStorage - m_GWMAX;
-        //     //groundQ = groundRunoff * curCellsNum * QGConvert; // groundwater discharge (m3/s)
-        //     groundQ = groundRunoff * curBasinArea[subID] * QGConvert; 
-        //     groundStorage = m_GWMAX;
-        // }
+         if (groundStorage > m_GWMAX) {
+             groundRunoff += groundStorage - m_GWMAX;
+             //groundQ = groundRunoff * curCellsNum * QGConvert; // groundwater discharge (m3/s)
+             groundQ = groundRunoff * curBasinArea[subID] * QGConvert; 
+             groundStorage = m_GWMAX;
+         }
 
         /**** Set values for current subbasin ****/
         curSub->SetPet(fPET);

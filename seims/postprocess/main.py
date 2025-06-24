@@ -16,13 +16,29 @@ if os.path.abspath(os.path.join(sys.path[0], '..')) not in sys.path:
 
 from postprocess.config import parse_ini_configuration
 from postprocess.plot_timeseries import TimeSeriesPlots
+from postprocess.plot_timeseries import plot_runoff_components
+from postprocess.plot_timeseries import plot_runoff_difference
 
 
 def main():
+    ###--------------------xiaodw, plot Q,QI,QS,QG into one chart
+    file_dict = {
+        "Surface Runoff": "QS.txt",
+        "Interflow": "QI.txt",
+        "Groundwater": "QG.txt",
+        "Total Runoff": "Q.txt"
+    }
+    basedir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\-90_124556_38_819347_longterm_model\OUTPUT'
+    plot_runoff_components(basedir,file_dict,173)
+    ###--------------------xiaodw, plot QI+QS+QG-Q into one chart
+    plot_runoff_difference(basedir,file_dict,173)
+
     """Main workflow."""
     cfg = parse_ini_configuration()
 
     TimeSeriesPlots(cfg).generate_plots()
+
+
 
 
 if __name__ == "__main__":

@@ -233,7 +233,7 @@ void ModelMain::AppendOutputData(const time_t time) {
             throw ModelException("ModelMain", "Output",
                                  "Output id " + (*it)->getOutputID() + " does not have corresponding module.");
         }
-
+		
         //process every output file
         for (auto itemIt = (*it)->m_PrintItems.begin(); itemIt < (*it)->m_PrintItems.end(); ++itemIt) {
             PrintInfoItem* item = *itemIt;
@@ -296,7 +296,9 @@ void ModelMain::AppendOutputData(const time_t time) {
                         StringMatch(param->BasicName, VAR_SOILT) || 
                         StringMatch(param->BasicName, VAR_SOLICE) || 
                         StringMatch(param->BasicName, VAR_SOLWC) || 
-                        StringMatch(param->BasicName, VAR_SOWB)    // soil water balance
+                        StringMatch(param->BasicName, VAR_SOWB)   || // soil water balance
+						//xdw++
+						StringMatch(param->BasicName, VAR_SOL_ST)  // soil water balance
                     ) {
                         // TODO: more conditions will be added in the future.
                         //for modules in which only the results of output subbasins are calculated.

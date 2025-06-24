@@ -153,7 +153,7 @@ def import_array_to_mongodb_flowinindex(gfs, array, fname):
         meta_dict['ID'] = fname
         meta_dict['DESCRIPTION'] = fname
         meta_dict['NUMBER'] = 2 * (rows-1)
-        
+
         myfile = gfs.new_file(filename=fname, metadata=meta_dict)
         for j in range(0, rows):
             cur_col = list()
@@ -191,7 +191,7 @@ def import_array_to_mongodb_flowoutindex(gfs, array, fname):
         meta_dict['ID'] = fname
         meta_dict['DESCRIPTION'] = fname
         meta_dict['NUMBER'] = 2 * (rows-1)
-        
+
         myfile = gfs.new_file(filename=fname, metadata=meta_dict)
         for j in range(0, rows):
             cur_col = list()
@@ -207,7 +207,7 @@ def import_array_to_mongodb_flowoutindex(gfs, array, fname):
 def workflow(cfg, db_name, csv_path,field_num):
     client = ConnectMongoDB(cfg.hostname, cfg.port)
     conn = client.get_conn()
-    
+
     db_model_field = conn[db_name]
     dblist = conn.list_database_names()
     # if db_name in dblist:
@@ -225,7 +225,7 @@ def workflow(cfg, db_name, csv_path,field_num):
 
     csv_files = FileClass.get_full_filename_by_suffixes(csv_path, ['.csv'])
     field_count = field_num  #地块数量
-    prefix = 0  
+    prefix = 0
     # Create mask file
     mask_name = '%d_MASK' % prefix
     mask_array = [[1] * field_count]
@@ -255,7 +255,46 @@ def workflow(cfg, db_name, csv_path,field_num):
                 import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
 
 
+def sum_cellarea_by_fid(input_csv: str, output_csv: str):
+    # 读取CSV文件
+    df = pd.read_csv(input_csv)
+
+    # 按FID分组求CELLAREA之和
+    summed_df = df.groupby('FID', as_index=False)['CELLAREA'].sum()
+
+    # 写入新的CSV文件
+    summed_df.to_csv(output_csv, index=False)
+    print(f"结果已保存到 {output_csv}")
 
 if __name__ == "__main__":
     from config import parse_ini_configuration
-    seims_cfg = parse_ini_configuration()  
+
+    seims_cfg = parse_ini_configuration()
+    client = ConnectMongoDB(seims_cfg.hostname, seims_cfg.port)
+    db_name = '-90_124556_38_819347_longterm_model'
+    conn = client.get_conn()
+    db_model_field = conn[db_name]
+    spatial_gfs = GridFS(db_model_field, DBTableNames.gridfs_spatial)
+
+    bug_type = 1
+    if bug_type == 0:
+        ##--------------------- 重新导入celllat.csv，修复经纬度和投影坐标互换的问题 -----------------------
+
+        csv_file = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\workspace\csv\celllat.csv'
+        prefix = 0
+        param_arrays = read_field_arrays_from_csv(csv_file)
+        for key, value in list(param_arrays.items()):
+            pondVal = value
+            import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
+    elif bug_type == 1:
+        ##--------------------- 重新导入cellarea.csv，修复面积入库和读取错误的问题 -----------------------
+        cellarea_csv = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\workspace\csv\cellarea.csv'
+        modify_cellarea_csv = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\workspace\csv\cellarea_modify.csv'
+        sum_cellarea_by_fid(cellarea_csv, modify_cellarea_csv)
+        prefix = 0
+        param_arrays = read_field_arrays_from_csv(modify_cellarea_csv)
+        for key, value in list(param_arrays.items()):
+            pondVal = value
+            import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
+
+
