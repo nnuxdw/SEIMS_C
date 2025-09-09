@@ -56,7 +56,8 @@ class ImportPrecipitation(object):
 
             for j, clim_data_v in enumerate(clim_data_item):
                 if StringClass.string_in_list(clim_flds[j], station_id):
-                    precipitation.append(float(clim_data_v))
+                    val = float(clim_data_v) if clim_data_v.strip() != '' else 0.0
+                    precipitation.append(val)
             utc_time = HydroClimateUtilClass.get_utcdatetime_from_field_values(clim_flds,
                                                                                clim_data_item,
                                                                                tsysin, tzonein)

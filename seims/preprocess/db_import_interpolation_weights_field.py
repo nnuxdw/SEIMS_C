@@ -449,7 +449,7 @@ class ImportWeightData_field(object):
 
         # count number of valid cells  field number
         row, num = field_center_list.shape
-        
+
         # read stations information from database
         metadic = {RasterMetadata.subbasin: subbsn_id,
                    RasterMetadata.cellnum: num}
@@ -645,7 +645,11 @@ def main():
     client = ConnectMongoDB(seims_cfg.hostname, seims_cfg.port)
     conn = client.get_conn()
 
-    ImportWeightData_field.workflow(seims_cfg, conn, 0)
+    # base_dir = r'/data/user/xiaodw/software/WISE/data/poyang_lake1'
+    base_dir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
+    csv_path = base_dir + os.sep + 'workspace/csv'
+    field_center_file = csv_path + os.sep + 'fields_center.csv'
+    ImportWeightData_field.workflow(seims_cfg, field_center_file, 'poyang_lake1_longterm_model')
 
     client.close()
 

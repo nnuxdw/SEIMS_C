@@ -37,7 +37,7 @@ from scenario_analysis.visualization import plot_pareto_front_single, plot_hyper
 from calibration.config import CaliConfig, get_optimization_config
 from run_seims import MainSEIMS
 
-from calibration.calibrate import Calibration, initialize_calibrations, calibration_objectives,evaluate_nowait_or_skip
+from calibration.calibrate import Calibration, initialize_calibrations, calibration_objectives,evaluate_nowait_or_skip,evaluate_blocking
 from calibration.calibrate import TimeseriesData, ObsSimData
 from calibration.userdef import write_param_values_to_mongodb, output_population_details
 
@@ -89,8 +89,15 @@ else:
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0.'],
     #                           ['RSR', -1., 2., '<2.'],
     #                           ['PBIAS', -1., 50., '<50.']])
-    multiobj.setdefault('Q_322', [['NSE1', 1., -100, '>0']])
-    multiobj.setdefault('Q_1171', [['NSE1', 1., -100, '>0']])
+    multiobj.setdefault('Q_322', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('Q_123', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('Q_141', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('Q_214', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('Q_255', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('Q_347', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('Q_457', [['NSE', 1., -100, '>0']])
+
 
 
 
@@ -140,7 +147,9 @@ toolbox.register('gene_values', initialize_calibrations)
 toolbox.register('individual', initIterateWithCfg, creator.Individual, toolbox.gene_values)
 toolbox.register('population', initRepeatWithCfg, list, toolbox.individual)
 # toolbox.register('evaluate', calibration_objectives)
-toolbox.register('evaluate', evaluate_nowait_or_skip)
+# toolbox.register('evaluate', evaluate_nowait_or_skip)
+toolbox.register('evaluate', evaluate_blocking,timeout_s=3600)
+
 
 # mate and mutate
 toolbox.register('mate', tools.cxSimulatedBinaryBounded)
@@ -182,6 +191,8 @@ def main(cfg):
     model_obj.UnsetMongoClient()
 
     # Initialize population
+    # print(f"cfg.opt is {cfg.opt}")
+    # print(f"npop is: {cfg.opt.npop}")
     param_values = cali_obj.initialize(cfg.opt.npop)
     pop = list()
     for i in range(cfg.opt.npop):
@@ -195,7 +206,7 @@ def main(cfg):
     param_values = numpy.array(param_values)
     # print(f"npop: {cfg.opt.npop}")
 
-    print(param_values)
+    # print(param_values)
     # Write calibrated values to MongoDB
     # TODO, extract this function, which is same with `Sensitivity::write_param_values_to_mongodb`.
     write_param_values_to_mongodb(cfg.model.db_name, cali_obj.ParamDefs, param_values)
@@ -230,7 +241,7 @@ def main(cfg):
             invalid_pops = list(map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
 
         scoop_log(f"过滤之前pops长度为:{len(invalid_pops)}")
-        scoop_log(f"过滤之前pops为:{invalid_pops}")
+        # scoop_log(f"过滤之前pops为:{invalid_pops}")
         # 关键：把 None（被跳过的个体）过滤掉
         invalid_pops = [ind for ind in invalid_pops if ind != -1]
 

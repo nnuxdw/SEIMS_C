@@ -33,6 +33,13 @@ from calibration.config import CaliConfig, get_optimization_config
 from calibration.sample_lhs import lhs
 import numpy
 from pathlib import Path
+import time, random
+
+# 会话ID，避免跨实例互相影响（强烈推荐）
+base_path = '/data/user/xiaodw/software/WISE/data/lock'
+# 不同的实例指定不同的id，避免锁文件相互影响
+RUN_ID = 'poyanglake_1_20250909'
+# RUN_ID =  time.strftime("%Y%m%d-%H%M%S")
 
 """ xiaodw add
 scoop有个重发机制导致bug，就是比如一代有40个参数组合，10个子进程并行跑，其中一个子进程A可能跑的很慢，
@@ -298,6 +305,64 @@ def evaluate_nowait_or_skip(cali_obj, ind):
         return calibration_objectives(cali_obj, ind)
     finally:
         release_lock(fd)
+
+
+
+def _lock_path_for(ind, cali_obj):
+    gen = getattr(ind, "gen", 0)
+    return Path(base_path + "/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
+
+def _done_path_for(ind, cali_obj):
+    gen = getattr(ind, "gen", 0)
+    return Path(base_path +"/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.done"
+
+def _mark_done(done_path):
+    done_path.parent.mkdir(parents=True, exist_ok=True)
+    open(done_path, "w").close()  # 空文件即表示 DONE
+
+def evaluate_blocking(cali_obj, ind, timeout_s=None):
+    lock_path = str(_lock_path_for(ind, cali_obj))
+    done_path = _done_path_for(ind, cali_obj)
+
+    owner = f"pid={os.getpid()}"
+    start = time.time()
+    while True:
+        # 1) 已完成？立刻返回，避免再尝试拿锁
+        if done_path.exists():
+            scoop_log(f"[DONE-HIT][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 已完成，直接返回")
+            return -1  # 也可换成 "__DONE__"
+
+        # 2) 尝试拿锁
+        fd = try_acquire_lock(lock_path)
+        if fd is not None:
+            try:
+                # 拿到锁后再检查一遍 DONE（极端竞态下，别人刚写好）
+                if done_path.exists():
+                    scoop_log(f"[DONE-INSIDE][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 已完成，释放锁并返回")
+                    return -1
+
+                scoop_log(f"[RUN][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 开始运行。")
+                res = calibration_objectives(cali_obj, ind)
+
+                # 3) 成功完成 → 写入 DONE 标记（在释放锁之前写，确保可见）
+                _mark_done(done_path)
+                return res
+            finally:
+                release_lock(fd)
+
+        # 4) 没拿到锁，看看是否完成或超时
+        if done_path.exists():
+            scoop_log(f"[DONE-WAIT][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 已完成(等待中发现)，返回")
+            return -1
+
+        elapsed = time.time() - start
+        if timeout_s is not None and elapsed > timeout_s:
+            scoop_log(f"[TIMEOUT][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 等待锁超时，返回 -1")
+            return -1
+
+        # 5) 短退避 + 进度日志
+        scoop_log(f"[WAIT][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 已等待 {elapsed:.1f}s，10s 后重试…")
+        time.sleep(10)
 
 def calibration_objectives(cali_obj, ind):
     """Evaluate the objectives of given individual.

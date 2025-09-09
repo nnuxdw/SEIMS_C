@@ -271,7 +271,7 @@ if __name__ == "__main__":
 
     seims_cfg = parse_ini_configuration()
     client = ConnectMongoDB(seims_cfg.hostname, seims_cfg.port)
-    db_name = '-90_124556_38_819347_longterm_model'
+    db_name = 'poyang_lake1_longterm_model'
     conn = client.get_conn()
     db_model_field = conn[db_name]
     spatial_gfs = GridFS(db_model_field, DBTableNames.gridfs_spatial)
@@ -288,8 +288,8 @@ if __name__ == "__main__":
             import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
     elif bug_type == 1:
         ##--------------------- 重新导入cellarea.csv，修复面积入库和读取错误的问题 -----------------------
-        cellarea_csv = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\workspace\csv\cellarea.csv'
-        modify_cellarea_csv = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\workspace\csv\cellarea_modify.csv'
+        cellarea_csv = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\csv\cellarea.csv'
+        modify_cellarea_csv = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\csv\cellarea_modify.csv'
         sum_cellarea_by_fid(cellarea_csv, modify_cellarea_csv)
         prefix = 0
         param_arrays = read_field_arrays_from_csv(modify_cellarea_csv)

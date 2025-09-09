@@ -12,6 +12,103 @@ import geopandas as gpd
 import os
 from pymongo import MongoClient
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from rasterio.enums import Resampling
+from pathlib import Path
+
+
+def build_stats(tif_path):
+    with rasterio.open(tif_path, 'r+') as ds:
+        band = ds.read(1, resampling=Resampling.nearest)
+        mask = band != ds.nodata if ds.nodata is not None else np.ones_like(band, dtype=bool)
+        stats = {
+            'min': float(band[mask].min()),
+            'max': float(band[mask].max()),
+            'mean': float(band[mask].mean()),
+            'std': float(band[mask].std())
+        }
+        ds.update_tags(1, STATISTICS_MINIMUM=str(stats['min']),
+                          STATISTICS_MAXIMUM=str(stats['max']),
+                          STATISTICS_MEAN=str(stats['mean']),
+                          STATISTICS_STDDEV=str(stats['std']))
+    print("成功构建统计信息")
+
+def gen_hand_tif_by_txt_fast(txt_path, input_tif_path, output_tif_path):
+    # 1) 读映射
+    keys = []
+    vals = []
+    with open(txt_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            k, v = line.split(',', 1)
+            keys.append(int(k))
+            vals.append(float(v))
+    keys = np.asarray(keys, dtype=np.int64)
+    vals = np.asarray(vals, dtype=np.float32)
+
+    max_id = int(keys.max()) if len(keys) else -1
+    lut = np.full(max_id + 1, np.nan, dtype=np.float32)
+    lut[keys] = vals
+
+    # 2) 读栅格
+    with rasterio.open(input_tif_path) as src:
+        arr = src.read(1)
+        profile = src.profile.copy()
+        nodata = src.nodata
+
+    # 2.1) nodata 掩膜（兼容 NaN）
+    if nodata is None:
+        is_nd = np.zeros_like(arr, dtype=bool)
+    elif isinstance(nodata, float) and np.isnan(nodata):
+        is_nd = np.isnan(arr)
+    else:
+        is_nd = (arr == nodata)
+
+    # 2.2) 如果 hand_id 是浮点，确保是“整数值的浮点”（如 3.0）
+    if np.issubdtype(arr.dtype, np.floating):
+        # 对非 nodata 像元检查是否为整数值
+        frac = np.modf(arr[~is_nd])[0]
+        if not np.all(np.isclose(frac, 0.0, atol=1e-6)):
+            # 出现了 3.7 这种非整数 hand_id —— 会映射不到
+            # 这里直接取整（更安全是报错让你检查数据源）
+            arr_rounded = np.rint(arr).astype(np.int64)
+        else:
+            arr_rounded = arr.astype(np.int64, copy=False)
+    else:
+        arr_rounded = arr.astype(np.int64, copy=False)
+
+    # 3) 查表映射
+    out = np.empty_like(arr, dtype=np.float32)
+    out[:] = np.nan
+
+    valid = (~is_nd) & (arr_rounded >= 0)
+    idx = arr_rounded[valid]
+
+    in_range = (idx <= max_id)
+    tmp = np.full(idx.shape, np.nan, dtype=np.float32)
+    tmp[in_range] = lut[idx[in_range]]
+    out[valid] = tmp
+
+    # 4) 处理输出 nodata / 写出
+    if nodata is None or (isinstance(nodata, float) and np.isnan(nodata)):
+        nodata_out = -9999.0
+        profile.update(nodata=nodata_out)
+    else:
+        nodata_out = float(nodata)
+
+    profile.update(dtype='float32', tiled=True, compress='DEFLATE', predictor=2, num_threads='all_cpus')
+
+    out[np.isnan(out)] = nodata_out
+    with rasterio.open(output_tif_path, 'w', **profile) as dst:
+        dst.write(out, 1)
+
+    try:
+        build_stats(output_tif_path)
+    except NameError:
+        pass
+    print(f"成功生成输出文件：{output_tif_path}")
 
 def gen_hand_tif_by_txt(txt_path, input_tif_path, output_tif_path):
     # 1. 读取 hand_id -> value 映射表
@@ -43,7 +140,7 @@ def gen_hand_tif_by_txt(txt_path, input_tif_path, output_tif_path):
     # 6. 写出输出 TIF 文件，保持元数据不变
     with rasterio.open(output_tif_path, 'w', **profile) as dst:
         dst.write(output_array, 1)
-
+    build_stats(output_tif_path)
     print(f"成功生成输出文件：{output_tif_path}")
 
 def get_files_by_prefix_suffix(directory, prefix='', suffix=''):
@@ -64,6 +161,10 @@ def get_files_by_prefix_suffix(directory, prefix='', suffix=''):
 def replace_txt_with_tif(path):
     base, ext = os.path.splitext(path)
     return base + '.tif'
+
+def replace_txt_with_shp(path):
+    base, ext = os.path.splitext(path)
+    return base + '.shp'
 
 def create_gif_by_tif(image_files, years, output_file, dem_path, colormap, nodata_value=None):
     from PIL import ImageDraw, ImageFont, ImageEnhance
@@ -597,14 +698,180 @@ def gen_chwtrdepth_timeseries_by_txt(txt_path, shp_path, output_dir,
         gdf_copy.to_file(output_path)
         print(f"✅ Saved: {output_path}")
 
+    """
+    根据 SNAC_TS_YYYY_MM_DD_hhmmss.txt 文件名和时间段，返回时间段内的文件路径列表
+
+    参数:
+        folder_path (str | Path): 存放文件的文件夹路径
+        start_time (datetime): 起始时间
+        end_time (datetime): 结束时间
+        pattern_prefix (str): 文件名前缀（默认 "SNAC_TS_"）
+        time_format (str): 时间格式（默认 "%Y_%m_%d_%H%M%S"）
+
+    返回:
+        list[Path]: 时间段内的文件路径列表（按时间升序）
+    """
+def filter_files_by_time(folder_path, start_time, end_time, pattern_prefix="SNAC_TS_", time_format="%Y_%m_%d_%H%M%S"):
+
+    folder_path = Path(folder_path)
+    matched_files = []
+
+    for file in folder_path.glob(f"{pattern_prefix}*.txt"):
+        try:
+            # 提取时间部分
+            datetime_str = file.stem.replace(pattern_prefix, "")
+            file_time = datetime.strptime(datetime_str, time_format)
+            # 时间过滤
+            if start_time <= file_time <= end_time:
+                matched_files.append((file_time, file))
+        except ValueError:
+            # 文件名不符合规则的跳过
+            continue
+
+    # 按时间排序后返回 Path 列表
+    matched_files.sort(key=lambda x: x[0])
+    return [f for _, f in matched_files]
+
+""" 把SEIMS输出每个HRU的TS txt文件, 赋值给shp对应的value属性，输出为新的shp（即每个时刻输出一个shp） """
+def write_value_to_hrushp(shp_path, txt_path, out_shp_path, id_field="FIELDID",
+                       value_field="value", fill_missing=None):
+    shp_path = Path(shp_path)
+    txt_path = Path(txt_path)
+    out_shp_path = Path(out_shp_path)
+    out_shp_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # 1) 读取 txt
+    df = pd.read_csv(
+        txt_path,
+        header=None,
+        names=[id_field, value_field],
+        sep=",",
+        engine="python",
+        skipinitialspace=True,
+    )
+
+    df[id_field] = df[id_field].astype(int)
+    df[value_field] = pd.to_numeric(df[value_field], errors="coerce")
+    df = df.drop_duplicates(subset=[id_field], keep="last")
+
+    # 2) 读取 shp
+    gdf = gpd.read_file(shp_path)
+
+    if id_field not in gdf.columns:
+        raise KeyError(f"在 {shp_path.name} 中未找到字段 `{id_field}`。现有字段：{list(gdf.columns)}")
+
+    # 3) 合并
+    gdf = gdf.merge(df, how="left", on=id_field)
+
+    if fill_missing is not None:
+        gdf[value_field] = gdf[value_field].fillna(fill_missing)
+
+    gdf[value_field] = gdf[value_field].astype("float32")
+
+    # 4) 输出到指定路径
+    gdf.to_file(out_shp_path, driver="ESRI Shapefile", encoding="utf-8")
+    print(f"✅ 已写出: {out_shp_path}")
+
+
+def filter_paths_by_time(path_list, start_time, end_time, pattern_prefix="", time_format="%Y_%m_%d_%H%M%S"):
+    """
+    根据 SNAC_TS_YYYY_MM_DD_hhmmss.txt 文件名和时间段，返回时间段内的文件路径列表
+
+    参数:
+        path_list (list[Path|str]): 文件路径列表
+        start_time (datetime): 起始时间
+        end_time (datetime): 结束时间
+        pattern_prefix (str): 文件名前缀（默认 "SNAC_TS_"）
+        time_format (str): 时间格式（默认 "%Y_%m_%d_%H%M%S"）
+
+    返回:
+        list[Path]: 时间段内的文件路径列表（按时间升序）
+    """
+    matched_files = []
+
+    for p in path_list:
+        file = Path(p)
+        try:
+            # 提取时间部分
+            datetime_str = file.stem.replace(pattern_prefix, "")
+            file_time = datetime.strptime(datetime_str, time_format)
+            # 时间过滤
+            if start_time <= file_time <= end_time:
+                matched_files.append((file_time, file))
+        except ValueError:
+            # 文件名不符合规则的跳过
+            continue
+
+    matched_files.sort(key=lambda x: x[0])
+    return [f for _, f in matched_files]
+
+
 if __name__ == '__main__':
-    directory = r'G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\11_159084_48_120933_longterm_model\OUTPUT0'
-    prefix = 'OL_Hand_WTRDEP_TS'
+    # missouri
+    # work_dir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347'
+    # longter_model_name = '-90_124556_38_819347_longterm_model'
+    # 鄱阳湖
+    work_dir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
+    longter_model_name = 'poyang_lake1_longterm_model'
+    longterm_model_dir = os.path.join(work_dir,longter_model_name)
+    directory = os.path.join(longterm_model_dir,'OUTPUT0')
+    # prefix = 'SNAC_TS'
+    # pattern_prefix = 'SNAC_TS_'
+    # prefix = 'SNME_TS'
+    # pattern_prefix = 'SNME_TS_'
+    # prefix = 'TMAX_TS'
+    # pattern_prefix = 'TMAX_TS_'
+    #('SNAC_TS', 'SNAC_TS_'),,('SNME_TS','SNME_TS_'),('TMAX_TS','TMAX_TS_')
+    # pairs = [('SNAC_TS', 'SNAC_TS_'),('SNME_TS', 'SNME_TS_')]
+    pairs = [('OL_Hand_WTRDEP_TS', 'OL_Hand_WTRDEP_TS_')]
     suffix = 'txt'
-    input_tif_path = r"G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\workspace\HRU_file\ALL_HRU_final.tif"
+
+    #########################  将HAND输出的结果生成为shp  ################################
+    shp_path = os.path.join(work_dir,r"workspace\HRU_file\HRU_mollwede.shp")
+    # start = datetime(2019, 3, 10, 0, 0, 0)
+    # end = datetime(2019, 3, 22, 0, 0, 0)
+    start = datetime(2010, 1, 1, 0, 0, 0)
+    end = datetime(2012, 1, 30, 0, 0, 0)
+    # 多线程容易报错
+    # files_in_range = []
+    # for prefix, pattern_prefix in pairs:
+    #     txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
+    #     files_in_range.extend(filter_paths_by_time(txt_paths, start, end, pattern_prefix))
+    # def run_gen_hand_shp(txt_path, shp_path):
+    #     output_tif_path = replace_txt_with_shp(txt_path)
+    #     write_value_to_hrushp(shp_path, txt_path, output_tif_path, id_field="FIELDID", value_field="value",
+    #                           fill_missing=None)
+    # max_workers = 2
+    # with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    #     futures = [
+    #         executor.submit(run_gen_hand_shp, txt_path, shp_path)
+    #         for txt_path in files_in_range
+    #     ]
+    #
+    #     # 可选：显示进度 & 捕捉错误
+    #     for future in as_completed(futures):
+    #         try:
+    #             future.result()
+    #         except Exception as e:
+    #             print(f"发生错误：{e}")
+    ### 单线程
+    # for prefix, pattern_prefix in pairs:
+    #     txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
+    #     files_in_range = filter_paths_by_time(txt_paths, start, end, pattern_prefix)
+    #     for txt_path in files_in_range:
+    #         output_tif_path = replace_txt_with_shp(txt_path)
+    #         write_value_to_hrushp(shp_path, txt_path, output_tif_path, id_field="FIELDID", value_field="value", fill_missing=None)
+
+    #########################  将HAND输出的结果生成为tif  ################################
+    work_dir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
+    longter_model_name = 'poyang_lake1_longterm_model'
+    # prefix = 'OL_Hand_WTRDEP_TS'
+    # prefix = 'SNAC_TS_'
+
+    input_tif_path = os.path.join(work_dir,'workspace\HRU_file\ALL_HRU_final.tif')
 
     # HAND水深 txt 转 tif
-    txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
+    # txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
     # for txt_path in txt_paths:
     #     output_tif_path = replace_txt_with_tif(txt_path)
     #     gen_hand_tif_by_txt(
@@ -612,22 +879,54 @@ if __name__ == '__main__':
     #         input_tif_path=input_tif_path,
     #         output_tif_path=output_tif_path
     #     )
+    # 多线程生成tif
+    # 设置最大线程数（建议不超过 CPU 核心数的 2~4 倍）
+    def run_gen_hand_tif(txt_path, input_tif_path):
+        output_tif_path = replace_txt_with_tif(txt_path)
+        # gen_hand_tif_by_txt(
+        #     txt_path=txt_path,
+        #     input_tif_path=input_tif_path,
+        #     output_tif_path=output_tif_path
+        # )
+        gen_hand_tif_by_txt_fast(
+            txt_path=txt_path,
+            input_tif_path=input_tif_path,
+            output_tif_path=output_tif_path
+                                 )
+    max_workers = 1
+    files_in_range = []
+    for prefix, pattern_prefix in pairs:
+        txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
+        files_in_range.extend(filter_paths_by_time(txt_paths, start, end, pattern_prefix))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                executor.submit(run_gen_hand_tif, txt_path, input_tif_path)
+                for txt_path in files_in_range
+            ]
+
+            # 可选：显示进度 & 捕捉错误
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"发生错误：{e}")
 
     # tif生成gif
-    tif_folder = r'G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\11_159084_48_120933_longterm_model\OUTPUT0'
-    output_file = r'G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\11_159084_48_120933_longterm_model\OUTPUT0\gif\OL_Hand_WTRDEP.gif'
-    output_file_base = r'G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\11_159084_48_120933_longterm_model\OUTPUT0\gif\OL_Hand_WTRDEP_'
+    OUTPUT_file = r'OUTPUT0-1'
+    tif_folder = os.path.join(longterm_model_dir,OUTPUT_file)
+    output_file = os.path.join(longterm_model_dir,f'{OUTPUT_file}\gif\OL_Hand_WTRDEP.gif')
+    output_file_base = os.path.join(longterm_model_dir,f'{OUTPUT_file}\gif\OL_Hand_WTRDEP_')
     # bakgrnd_tif = r'G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\workspace\spatial_raster\dem.tif'
-    bakgrnd_tif = r'G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\merit_dem\merit_bounding_dem.tif'
-    extent_shp = r'G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\workspace\spatial_shp\basin.shp'
-    river_shapefile = r'G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\workspace\spatial_shp\reach.shp'
+    bakgrnd_tif = os.path.join(work_dir,r'merit_dem\merit_bounding_dem.tif')
+    extent_shp = os.path.join(work_dir,r'workspace\spatial_shp\basin.shp')
+    river_shapefile = os.path.join(work_dir,r'workspace\spatial_shp\reach.shp')
 
-    chwtrdepth_file = r"G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\11_159084_48_120933_longterm_model\OUTPUT0\CHWTRDEPTH_TS.txt"
-    chwtrdepth_tif_folder = r"G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\11_159084_48_120933_longterm_model\OUTPUT0\CHWTRDEPTH"
+    chwtrdepth_file = os.path.join(longterm_model_dir,f'{OUTPUT_file}\CHWTRDEPTH_TS.txt')
+    chwtrdepth_tif_folder = os.path.join(longterm_model_dir,f'{OUTPUT_file}\CHWTRDEPTH')
 
     # gen_chwtrdepth_timeseries_by_txt(chwtrdepth_file, river_shapefile, chwtrdepth_tif_folder,
     #                                  mongo_uri="mongodb://localhost:27017",
-    #                                  db_name="11_159084_48_120933_longterm_model",
+    #                                  db_name=longter_model_name,
     #                                  collection_name="REACHES"
     #                                  )
 
@@ -656,7 +955,7 @@ if __name__ == '__main__':
         'Spectral',  # 彩虹顺序渐变，有时用于水文学图层
         'PuBuGn',  # 紫蓝绿渐变，柔和通透
     ]
-    river_shapefile_dir = r'G:\program\seims\SEIMS_HAND\data\11.159084_48.120933\11_159084_48_120933_longterm_model\OUTPUT0\CHWTRDEPTH'
+    river_shapefile_dir = os.path.join(longterm_model_dir,r'OUTPUT0\CHWTRDEPTH')
     create_gif_by_tif_with_shp_and_chwtrdepth(image_files, years, output_file, bakgrnd_tif,
                                'arcgis_elevation', -9999,shapefile_path=extent_shp,river_shapefile_dir=river_shapefile_dir)
 

@@ -113,7 +113,7 @@ def raster2shp(rasterfile, vectorshp, layername=None, fieldname=None,
             # for example, try GetRasterBand(10)
             print('Band ( %i ) not found, %s' % (band_num, e))
             sys.exit(1)
-        
+
         if mask == 'default':
             maskband = srcband.GetMaskBand()
         elif mask is None or mask.upper() == 'NONE':
@@ -219,9 +219,9 @@ def field_param_csv(csv_file,field_shp_file, raster_para_files, lakesubareaidTXT
     # landuse_lookup = ['landuse'] #众数
     # soil_typedata = ['SOILLAYERS', 'HYDRO_GROUP','SOIL_TEXTURE'] #众数
     # # 根据土壤层数不同，获取各层的土壤参数
-    # soil = ['SOL_AVPOR']       
+    # soil = ['SOL_AVPOR']
     # soil_paras = ['SOL_AWC_']
-    # for soil_para in soil_paras: 
+    # for soil_para in soil_paras:
     #     raster_para_file = raster_para_files + os.sep + soil_para + '*.tif'
     #     for raster_para_file in glob(raster_para_file):
     #         raster_para_name = os.path.basename(raster_para_file).split('.')[0]
@@ -485,7 +485,7 @@ def stream_link_csv(field_txt, csv_file):
     df = pd.DataFrame()
     field_id = list()
     stream_link = list()
-    
+
     for id in range(len(txt_data.loc[:,'FID'])):
         field_id.append(id)
         if txt_data.loc[id, 'downstreamFID'] < 0:
@@ -578,7 +578,7 @@ def flowout_index(field_shp_file,stream_file,field_raster_file,field_file,csv_fi
     length = list()
     for feat in lyr:
         id = feat.GetField('FIELDID')
-        geom = feat.GetGeometryRef() 
+        geom = feat.GetGeometryRef()
         ftdic[id] = [feat,id]
     ds2 = ogr_Open(stream_file)
     lyr2 = ds2.GetLayer(0)
@@ -586,7 +586,7 @@ def flowout_index(field_shp_file,stream_file,field_raster_file,field_file,csv_fi
     length = list()
     for feat in lyr2:
         id = feat.GetField('FIELDID')
-        geom = feat.GetGeometryRef() 
+        geom = feat.GetGeometryRef()
         ftdic2[id] = [feat,id]
     dataset = gdal.Open(field_raster_file)
     adfGeoTransform = dataset.GetGeoTransform()
@@ -604,12 +604,12 @@ def flowout_index(field_shp_file,stream_file,field_raster_file,field_file,csv_fi
             if(boundary == None):
                 poly1 = poly1.Union(poly1)
                 boundary = poly1.Intersection(poly2)
-            
+
             if(boundary == None):
                 length.append(poly1.Length() / 3)
-            elif(boundary.Length()>0): 
+            elif(boundary.Length()>0):
                 length.append(round(boundary.Length(),2))#公共边界长度
-            else: 
+            else:
                 length.append(adfGeoTransform[1]) #取分辨率
         else:
             #临近河流的计算河流的共边
@@ -630,7 +630,7 @@ def flowout_index(field_shp_file,stream_file,field_raster_file,field_file,csv_fi
     df.to_csv(csv_file2 ,index=0)
 
 def routing_layer( massif_downstream):
-    
+
     massif_num = len(massif_downstream)
     result = np.zeros(massif_num, dtype=np.int32)
     block = np.zeros(massif_num, dtype=np.int32)
@@ -643,9 +643,9 @@ def routing_layer( massif_downstream):
     for downstream_massif_id in massif_downstream:
         if downstream_massif_id > 0:
             upstream_num[downstream_massif_id] += 1
-    
+
     queue = []
-    # 寻找没有上游的地块：    
+    # 寻找没有上游的地块：
     for i in range(massif_num):
         if upstream_num[i] == 0:
             queue.append(i)
@@ -876,7 +876,7 @@ if __name__ == "__main__":
     # HRU_shp = field_file+ os.sep + 'HRU.shp'
     HRU_shp = field_file + os.sep + 'HRU.shp'
 
-    raster2shp(HRU_raster, HRU_shp, 'field', 'FIELDID')
+    # raster2shp(HRU_raster, HRU_shp, 'field', 'FIELDID')
     # Check_self_intersect(field_file,HRU_shp)
 
 
@@ -890,10 +890,10 @@ if __name__ == "__main__":
 
     # 统计各个流域地块中的数据
     # 计算时区分取众数和平均数的数据，
-    field_num = field_param_csv(csv_path, HRU_shp, raster_para_files, lakesubareaidTXT, soilgrids0idTXT)
+    # field_num = field_param_csv(csv_path, HRU_shp, raster_para_files, lakesubareaidTXT, soilgrids0idTXT)
     # print(field_num)
     print('cumpute soil & landuse data done!')
-    
+
     # subarea空间不连续，fieldnum更新
     with open(field_txt, 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -913,28 +913,41 @@ if __name__ == "__main__":
     # 计算地块中心
     field_center_file = csv_path + os.sep + 'fields_center.csv'
     field_center(HRU_shp,field_center_file)
-    
+
     field_center_file_84 = csv_path + os.sep + 'fields_center_wgs84.csv'
     field_center(HRU_shp, field_center_file_84)
 
     # fields_center.csv lonlat2xy :add by xjs
-    df = pd.read_csv(field_center_file)
+    df = pd.read_csv(field_center_file_84)
     num_columns = df.shape[1]
     # print(num_columns)
     row_index = 0  # 列
     lon_col_index = 0
     lat_col_index = 1
-
+    mollweide_wkt = """
+    PROJCS["World_Mollweide",
+        GEOGCS["GCS_WGS_1984",
+            DATUM["D_WGS_1984",
+                SPHEROID["WGS_1984",6378137,298.257223563]],
+            PRIMEM["Greenwich",0],
+            UNIT["Degree",0.017453292519943295]],
+        PROJECTION["Mollweide"],
+        PARAMETER["False_Easting",0],
+        PARAMETER["False_Northing",0],
+        PARAMETER["Central_Meridian",0],
+        UNIT["Meter",1]]
+    """
     wgs84 = osr.SpatialReference()
     wgs84.ImportFromEPSG(4326)  # 设置WGS 84坐标系
-    Pseudo_Mercator = osr.SpatialReference()
-    Pseudo_Mercator.ImportFromEPSG(3857)
-    transform = osr.CoordinateTransformation(wgs84, Pseudo_Mercator)
+    target_srs = osr.SpatialReference()
+    # Pseudo_Mercator.ImportFromEPSG(3857)
+    target_srs.ImportFromWkt(mollweide_wkt)
+    transform = osr.CoordinateTransformation(wgs84, target_srs)
 
     for row in range(num_columns):
         point = ogr.Geometry(ogr.wkbPoint)
-        # print(df.iloc[lat_col_index, row], df.iloc[lon_col_index, row])
-        point.AddPoint(df.iloc[lat_col_index, row], df.iloc[lon_col_index, row])
+        # print(df.iloc[lon_col_index, row],df.iloc[lat_col_index, row])
+        point.AddPoint(df.iloc[lon_col_index, row],df.iloc[lat_col_index, row])
         # point.AddPoint(df.iloc[lon_col_index, row],df.iloc[lat_col_index, row])
         point.Transform(transform)  # 转换为投影坐标
         projected_coord = (point.GetX(), point.GetY())
@@ -943,13 +956,17 @@ if __name__ == "__main__":
         df.iloc[1, row] = point.GetX()
 
     df.to_csv(field_center_file, index=False)
-    
+
 
     # 计算celllat
     celllat_csv = csv_path + os.sep + 'celllat.csv'
     # get_coord_field_point(subbadin_raster,field_center_file,celllat_csv)
     get_coord_field_point(field_center_file_84, field_center_file, celllat_csv)
     print('cumpute HRU center coor done!')
+
+    print("Bro, 如果你只是重新生成field_center和重新计算气象降雨站点权重，现在可以停止，否则60 秒后继续执行")
+    time.sleep(60)
+
 
     # 计算cellarea
     csv_file = csv_path + os.sep + 'cellarea.csv'
@@ -1124,8 +1141,8 @@ if __name__ == "__main__":
         ftdic['LAKE_ID'] = lake_id
         # print(ftdic)
 
-        GLOBathy_path = 'C:/WEB/GLOBathy.csv'
-        # GLOBathy_path = '/data/xujs/data/WEB/GLOBathy.csv'
+        # GLOBathy_path = 'C:/WEB/GLOBathy.csv'
+        GLOBathy_path = '/data/xujs/data/WEB/GLOBathy.csv'
         GLOBathy = pd.read_csv(GLOBathy_path)
 
         A_a = []
@@ -1167,9 +1184,9 @@ if __name__ == "__main__":
         # ftdic['GW_SPYLD'] = len(reach_id) * [0.04]
 
         from osgeo import ogr, osr, gdal
-        
-        reach_shp = "J:/WEB/HydroLAKES_polys_v10_shp/HydroLAKES_polys_v10.shp"
-        # reach_shp = "/data/xujs/data/HydroLakes/HydroLAKES_polys_v10.shp"
+
+        # reach_shp = "C:/WEB/HydroLAKES_polys_v10_shp/HydroLAKES_polys_v10.shp"
+        reach_shp = "/data/xujs/data/HydroLakes/HydroLAKES_polys_v10.shp"
         ds = ogr.Open(reach_shp, 0)
         layer = ds.GetLayer()
         feature = layer.GetNextFeature()
@@ -1243,7 +1260,7 @@ if __name__ == "__main__":
     end_time = time.time()
     range_time = end_time - start_time
     print("HRU compute run time:", range_time)
-    
+
 
 
 

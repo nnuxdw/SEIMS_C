@@ -447,12 +447,16 @@ class MainSEIMS(object):
         self.sim_vars, self.sim_value = read_simulation_from_txt_new(self.OutputDirectory,
                                                        self.obs_vars,
                                                        0,
-                                                       stime, etime) 
+                                                       stime, etime)
 
         if len(self.sim_vars) < 1:  # No match simulation results
             return False
+        # print(f"sim_vars: {self.sim_vars}/n")
+        # print(f"sim_value: {self.sim_value}/n")
+        # print(f"obs_vars: {self.obs_vars}/n")
+        # print(f"obs_value: {self.obs_value}/n")
         self.sim_obs_dict = match_simulation_observation(self.sim_vars, self.sim_value,
-                                                         self.obs_vars, self.obs_value)                                                     
+                                                         self.obs_vars, self.obs_value)
         return True
 
     def ExtractSimData(self, stime=None, etime=None):
@@ -659,6 +663,9 @@ class MainSEIMS(object):
             self.ResetOutputsPeriod(self.OutputIDs, self.out_stime, self.out_etime)
         try:
             self.runlogs = UtilClass.run_command(self.Command)
+            # xiaodw add, to avoid other thread use the same folder and delete it
+            if not os.path.exists(self.OutputDirectory):
+                os.makedirs(self.OutputDirectory)
             with open(self.OutputDirectory + os.sep + 'runlogs.txt', 'w', encoding='utf-8') as f:
                 f.write('\n'.join(self.runlogs))
             self.ParseTimespan(self.runlogs)

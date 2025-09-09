@@ -28,6 +28,7 @@ import matplotlib
 
 if os.name != 'nt':  # Force matplotlib to not use any Xwindows backend.
     matplotlib.use('Agg', warn=False)
+
 import matplotlib.pyplot as plt
 import numpy
 from typing import List

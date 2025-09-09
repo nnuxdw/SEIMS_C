@@ -22,22 +22,13 @@
    - DATETIME 采用 UTC 的“YYYY/M/D 0:00”形式（每天一行）
    - Type 默认写为 'P'（降水）。
 
-用法示例
---------
->>> from cma_rain_to_utc_csv import convert_cma_precip_to_utc_csv
->>> convert_cma_precip_to_utc_csv("input.xlsx", "rain_utc_daily.csv")
-
 依赖
 ----
-pandas>=1.4, python>=3.9（使用标准库 zoneinfo，无需 pytz）
+pandas>=1.0（兼容 Py3.6）
 """
-from __future__ import annotations
 import os
-import math
 import pandas as pd
 import numpy as np
-from zoneinfo import ZoneInfo
-from typing import Optional, Sequence, Union, Dict
 
 # ----------------------------- 用户可修改区 ----------------------------- #
 # 中文列名的默认映射（根据你的文件必要时调整）
@@ -48,7 +39,7 @@ DEFAULT_COLS = {
     "station": "区站号",
     "p_20_8": "20-8时降水量",
     "p_8_20": "8-20时降水量",
-    "qc_20_20": "20-20时降水量质量控制码",
+    # "qc_20_20": "20-20时降水量质量控制码",
     # 可选：如果你想在缺失 qc_20_20 时退回到分段质控
     "qc_20_8": "20-8时降水量质量控制码",
     "qc_8_20": "8-20时降水量质量控制码",
@@ -58,7 +49,7 @@ DEFAULT_COLS = {
 SPECIAL_CODES_EXACT = {32700, 32744, 32766, 999990, 999999}
 
 # ----------------------------- 工具函数 ----------------------------- #
-def _read_any(path: str) -> pd.DataFrame:
+def _read_any(path):
     """兼容读取 Excel/CSV。"""
     ext = os.path.splitext(path)[1].lower()
     if ext in [".xls", ".xlsx", ".xlsm"]:
@@ -73,30 +64,13 @@ def _read_any(path: str) -> pd.DataFrame:
         # 最后再不带 encoding 重试
         return pd.read_csv(path)
     else:
-        raise ValueError(f"不支持的文件类型：{ext}")
+        raise ValueError("不支持的文件类型：{}".format(ext))
 
-def _coerce_numeric(s: pd.Series) -> pd.Series:
+def _coerce_numeric(s):
     """将任意 Series 转为数值，无法解析的置 NaN。"""
     return pd.to_numeric(s, errors="coerce")
 
-def _is_code_like(v: float) -> bool:
-    """
-    判断是否为应置零的“编码/异常值”。
-    规则：NaN / 负数 / 精确特殊码 / [30000, ∞) 全部视为编码。
-    其中 30xxx/31xxx/32xxx 将被自然包含在 (>=30000) 里。
-    """
-    if pd.isna(v):
-        return True
-    iv = int(v)
-    if iv in SPECIAL_CODES_EXACT:
-        return True
-    if iv < 0:
-        return True
-    if iv >= 30000:
-        return True
-    return False
-
-def _clean_precip_series(raw: pd.Series) -> pd.Series:
+def _clean_precip_series(raw):
     """
     清洗降水序列：特殊编码和异常值置 0，随后 /10 转 mm。
     输入单位：0.1 mm；输出单位：mm。
@@ -109,111 +83,179 @@ def _clean_precip_series(raw: pd.Series) -> pd.Series:
     # 转为 mm
     return (x / 10.0).round(3)
 
-def _fmt_datetime_ymd_hm(dt: pd.Timestamp) -> str:
-    """生成形如 YYYY/M/D H:MM 的字符串（与示例截图一致）。"""
-    # 保证无前导零，小时这里固定为 0:00
-    return f"{dt.year}/{dt.month}/{dt.day} {dt.hour}:00"
+def _format_dt_str(dt):
+    """返回 YYYY/M/D 0:00（跨平台不依赖 %-m 等格式符）。"""
+    return "{}/{}/{} 0:00".format(dt.year, dt.month, dt.day)
 
-# ----------------------------- 主函数 ----------------------------- #
-def convert_cma_precip_to_utc_csv(
-    in_path: str,
-    out_csv: str,
-    *,
-    cols: Dict[str, str] = DEFAULT_COLS,
-    type_label: str = "P",
-    tz_local: str = "Asia/Shanghai",
-) -> pd.DataFrame:
-    """
-    读取 CMA 20-8/8-20 降水（北京时间），清洗编码，换算到 UTC，并导出日尺度 CSV。
-
-    参数
-    ----
-    in_path : 输入 Excel/CSV 路径
-    out_csv : 输出 CSV 路径（Figure2 风格）
-    cols    : 列名映射（如与你的文件不一致可传入修改）
-    type_label : 导出 Type 字段（默认 'P'）
-    tz_local   : 源数据时区，默认 'Asia/Shanghai'
-
-    返回
-    ----
-    返回导出的 DataFrame（便于在 notebook 里直接查看）。
-    """
-    df = _read_any(in_path)
-    # 必要列存在性检查
-    required = [cols["year"], cols["month"], cols["day"], cols["station"],
-                cols["p_20_8"], cols["p_8_20"]]
-    for c in required:
-        if c not in df.columns:
-            raise KeyError(f"输入缺少必要列：{c}（现有列：{list(df.columns)}）")
-
+# ----------------------------- 核心逻辑 ----------------------------- #
+def _to_daily_utc_dataframe(df, cols, type_label="P"):
     # 仅保留 20-20 质控为 0 的记录；若缺失该列，则退回到分段质控全为 0
     if cols.get("qc_20_20") in df.columns:
         df = df[df[cols["qc_20_20"]].fillna(1).astype(int) == 0].copy()
     else:
-        qc_ok = pd.Series(True, index=df.index)
-        for seg in ("qc_20_8", "qc_8_20"):
-            c = cols.get(seg)
-            if c and (c in df.columns):
-                qc_ok &= (df[c].fillna(1).astype(int) == 0)
-        df = df[qc_ok].copy()
+        # 分别检查两个时间段的质控
+        if "qc_20_8" in cols and cols["qc_20_8"] in df.columns:
+            qc20_8 = df[cols["qc_20_8"]].fillna(1).astype(int)
+            # 只保留 qc=0 的值，其他置 0
+            df.loc[qc20_8 != 0, cols["p_20_8"]] = 0.0
+
+        if "qc_8_20" in cols and cols["qc_8_20"] in df.columns:
+            qc8_20 = df[cols["qc_8_20"]].fillna(1).astype(int)
+            df.loc[qc8_20 != 0, cols["p_8_20"]] = 0.0
 
     # 清洗数值并转换单位（0.1 mm -> mm）
     p_20_8_mm = _clean_precip_series(df[cols["p_20_8"]])
     p_8_20_mm = _clean_precip_series(df[cols["p_8_20"]])
 
-    # 组装日期（本地时区用于理解，但我们只需要 UTC 日聚合）
+    # 位移（BJT 20-8 -> UTC 12-24）
+    p_20_8_mm_np = np.array(p_20_8_mm)
+    p_20_8_mm_new = np.roll(p_20_8_mm_np, -1)
+    p_20_8_mm_new[-1] = 0.0
+
+    # 组装日期（仅用于 UTC 日聚合）
     date_local = pd.to_datetime(
-        dict(year=_coerce_numeric(df[cols["year"]]).astype(int),
-             month=_coerce_numeric(df[cols["month"]]).astype(int),
-             day=_coerce_numeric(df[cols["day"]]).astype(int)),
+        dict(
+            year=_coerce_numeric(df[cols["year"]]).astype(int),
+            month=_coerce_numeric(df[cols["month"]]).astype(int),
+            day=_coerce_numeric(df[cols["day"]]).astype(int),
+        ),
         errors="coerce",
     )
     if date_local.isna().any():
         bad = df[date_local.isna()].index[:5].tolist()
-        raise ValueError(f"存在无法解析的日期，示例行索引：{bad}")
+        raise ValueError("存在无法解析的日期，示例行索引：{}".format(bad))
 
-    # 半日（UTC）记录：
-    # - 8-20(BJT) -> UTC 当天 00:00-12:00，归到当日 00:00
-    # - 20-8(BJT) -> UTC 当天 12:00-24:00，归到当日 12:00
-    # 这里我们先构造“UTC 日期”（不带时区的日期对象），然后再聚合为日尺度。
-    utc_half_1 = pd.DataFrame({
+    # 半日（UTC）映射
+    utc_0_12 = pd.DataFrame({
         "StationID": _coerce_numeric(df[cols["station"]]).astype(int),
-        "DATE_UTC": date_local.dt.date,         # UTC 当天
-        "HOUR_UTC": 0,                          # 00:00 桶（0-12）
-        "VALUE": p_8_20_mm                      # 0-12 累计（mm）
+        "DATE_UTC": date_local.dt.date,
+        "HOUR_UTC": 0,
+        "VALUE": p_8_20_mm,          # BJT 8-20
     })
-    utc_half_2 = pd.DataFrame({
+    utc_12_24 = pd.DataFrame({
         "StationID": _coerce_numeric(df[cols["station"]]).astype(int),
-        "DATE_UTC": date_local.dt.date,         # UTC 当天
-        "HOUR_UTC": 12,                         # 12:00 桶（12-24）
-        "VALUE": p_20_8_mm                      # 12-24 累计（mm）
+        "DATE_UTC": date_local.dt.date,
+        "HOUR_UTC": 12,
+        "VALUE": p_20_8_mm_new,      # BJT 20 - 次日 8
     })
-    half_df = pd.concat([utc_half_1, utc_half_2], ignore_index=True)
+    half_df = pd.concat([utc_0_12, utc_12_24], ignore_index=True)
+
+    # ---- 关键补丁 A：VALUE 置空为 0（覆盖 None / NaN / '' / 空白）----
+    half_df["VALUE"] = (
+        pd.to_numeric(
+            half_df["VALUE"]
+                .replace(r"^\s*$", np.nan, regex=True),  # '' 或全空白 -> NaN
+            errors="coerce"
+        )
+        .fillna(0.0)  # NaN/None -> 0
+    )
 
     # 日尺度聚合（UTC 当天总降水 = 两个半日之和）
-    daily = (half_df
-             .groupby(["StationID", "DATE_UTC"], as_index=False)["VALUE"]
-             .sum())
+    daily = half_df.groupby(["StationID", "DATE_UTC"], as_index=False)["VALUE"].sum()
 
-    # 生成 Figure2 风格列
-    # DATETIME 统一设为每天 0:00（UTC），字符串格式如 "2014/1/1 0:00"
-    dt_series = pd.to_datetime(daily["DATE_UTC"])  # 时间点为 UTC 日期 00:00
-    daily["DATETIME"] = dt_series.dt.strftime("%Y/%-m/%-d 0:00") if os.name != "nt"             else dt_series.apply(lambda x: f"{x.year}/{x.month}/{x.day} 0:00")
-    daily["Type"] = type_label
-    daily = daily[["StationID", "DATETIME", "Type", "VALUE"]].copy()
-    daily = daily.sort_values(["StationID", "DATETIME"]).reset_index(drop=True)
+    # === 关键：补全所有“站点 × 日期”的组合，缺的补 0 ===
+    # 全部站点
+    all_stations = np.sort(daily["StationID"].unique())
+    # 全部日期范围（以 half_df 的 DATE_UTC 为基准）
+    date_min = pd.to_datetime(half_df["DATE_UTC"]).min()
+    date_max = pd.to_datetime(half_df["DATE_UTC"]).max()
+    all_dates = pd.date_range(date_min, date_max, freq="D").date  # 纯日期
 
-    # 导出 CSV
-    daily.to_csv(out_csv, index=False, encoding="utf-8-sig")
-    return daily
+    # 设为 MultiIndex，reindex 到完整网格
+    daily = (daily
+             .set_index(["StationID", "DATE_UTC"])
+             .reindex(
+        pd.MultiIndex.from_product([all_stations, all_dates],
+                                   names=["StationID", "DATE_UTC"]),
+        fill_value=0.0
+    )
+             .reset_index()
+             )
 
-# 如果作为脚本直接运行，可在此放一个简单的 CLI（可选）
+    # 用真正 datetime 排序
+    daily["DATETIME"] = pd.to_datetime(daily["DATE_UTC"])
+    daily = daily.sort_values(["DATETIME", "StationID"]).reset_index(drop=True)
+
+    # 一次性格式化到你要的样式（例如 "YYYY-MM-DD HH:MM"；如果要固定 0:00，这样写最稳）
+    daily["DATETIME"] = daily["DATETIME"].dt.strftime("%Y-%m-%d") + " 0:00"
+
+    # 仅保留必要列
+    daily = daily[["StationID", "DATETIME", "VALUE"]].copy()
+
+    # 构造结果字典（每个 DATETIME 下：{station_id: value}），值里再保险补 0
+    result = {}
+    for dt, group in daily.groupby("DATETIME", sort=False):
+        vals = pd.to_numeric(group["VALUE"], errors="coerce").fillna(0.0)
+        result[dt] = dict(zip(group["StationID"], vals.astype(float)))
+
+    return result
+
+
+def convert_cma_precip_to_utc_per_station(in_path, out_file, cols=None, type_label="P", tz_local="Asia/Shanghai"):
+    """
+    与 convert_cma_precip_to_utc_csv 相同的清洗/换算规则，但按“站点”分别导出：
+    输出文件名：observed_<TYPE>_<StationID>.csv（例如 observed_P_322.csv）。
+    返回 {station_id: filepath, ...}
+    """
+    if cols is None:
+        cols = DEFAULT_COLS.copy()
+    df = _read_any(in_path)
+    # 必要列检查
+    required = [cols["year"], cols["month"], cols["day"], cols["station"],
+                cols["p_20_8"], cols["p_8_20"]]
+    for c in required:
+        if c not in df.columns:
+            raise KeyError("输入缺少必要列：{}（现有列：{}）".format(c, list(df.columns)))
+
+    daily = _to_daily_utc_dataframe(df, cols, type_label=type_label)
+
+    if not os.path.exists(os.path.dirname(out_file)):
+        os.makedirs(os.path.dirname(out_file))
+    # 获取所有唯一的stationid并按字母顺序排序，确保列顺序一致
+    all_station_ids = sorted(set(
+        station_id
+        for station_dict in daily.values()
+        for station_id in station_dict.keys()
+    ))
+
+    # 创建DataFrame
+    rows = []
+    for datetime, station_dict in daily.items():
+        row = {'DATETIME': datetime}
+        # 为每个stationid添加对应的值，如果没有值则为空
+        for station_id in all_station_ids:
+            row[station_id] = station_dict.get(station_id, '')
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+
+    # 确保列的顺序：DATETIME + 按字母排序的stationid
+    columns = ['DATETIME'] + all_station_ids
+    df = df[columns]
+
+    # 写入文件
+    with open(out_file, "w", encoding="utf-8", newline="") as f:
+        f.write("#UTCTIME\n")
+
+    df.to_csv(out_file, index=False, encoding="utf-8", mode="a")
+
+    return {type_label: out_file}
+
+
+# 把国家地球系统科学中心的国家气象站数据转为WISE需要的csv数据
 if __name__ == "__main__":
-    import argparse
-    ap = argparse.ArgumentParser(description="CMA 20-8/8-20 降水(北京时间) -> UTC 日尺度 CSV")
-    ap.add_argument("input", help="输入 Excel/CSV 文件路径")
-    ap.add_argument("output", help="输出 CSV 文件路径")
-    ap.add_argument("--type", default="P", help="输出 Type 字段（默认 P）")
-    args = ap.parse_args()
-    df_out = convert_cma_precip_to_utc_csv(args.input, args.output, type_label=args.type)
-    print(f"已导出 {len(df_out)} 行到: {args.output}")
+
+
+    # 如果你的表头和示例不完全一样，也可以传自定义映射：
+    custom_cols = {
+        "year": "年", "month": "月", "day": "日",
+        "station": "区站号",
+        "p_20_8": "20-8时降水量",
+        "p_8_20": "8-20时降水量",
+        # "qc_20_20": "20-20时降水量质量控制码",
+        "qc_20_8": "20-8时降水量质量控制码",
+        "qc_8_20": "8-20时降水量质量控制码",
+    }
+    china_prcp_csv = r'J:\G\data\鄱阳湖数据\鄱阳湖流域国家气象站气象观测数据集（2010-2019年）\2010-2019\降水.csv'
+    seims_prcp_dir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\data_prepare\climate\pcp_daily_NESSDC.csv'
+    convert_cma_precip_to_utc_per_station(china_prcp_csv, seims_prcp_dir, cols=custom_cols, type_label="P")

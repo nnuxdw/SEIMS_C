@@ -4,6 +4,7 @@ from datetime import datetime
 import sys
 import os
 import glob
+from pathlib import Path
 
 # --- 月份文本 -> 数字 ---
 def to_month(x):
@@ -120,17 +121,144 @@ def build_observed_q(input_dir, output_csv,
     big["DATETIME"] = fmt_dt(pd.to_datetime(big["DT"]), zero_pad=zero_pad)
     out = big[["StationID", "DATETIME", "Type", "VALUE"]]
 
-    out.to_csv(output_csv, index=False, encoding="utf-8-sig")
-    with open(output_csv, "r+", encoding="utf-8-sig") as f:
+    out.to_csv(output_csv, index=False, encoding="utf-8")
+    with open(output_csv, "r+", encoding="utf-8") as f:
         content = f.read()
         f.seek(0, 0)
         f.write("#UTCTIME\n" + content)
 
     print(f"\n[FINISH] 输出 {output_csv}，总行数={len(out)}")
 
+def split_excel_by_sheets(src_path: str, out_dir: str):
+    """
+    把单个 xlsx 的多个 sheet 拆成多个 xlsx
+    文件名 = <sheet名>年<站名>站逐日平均流量表.xlsx
+
+    参数：
+        src_path: 源文件路径
+        out_dir : 输出目录（会在其中创建站名子目录）
+    返回：
+        输出文件路径列表
+    """
+    src = Path(src_path)
+    station = src.stem.strip()
+    station_with_suffix = station if station.endswith("站") else f"{station}站"
+
+    # 在输出目录下创建以站名命名的子目录
+    station_dir = Path(out_dir) / station
+    station_dir.mkdir(parents=True, exist_ok=True)
+
+    xls = pd.ExcelFile(src, engine="openpyxl")
+    saved_files = []
+
+    for sheet in xls.sheet_names:
+        year = str(sheet).strip()
+        df = pd.read_excel(xls, sheet_name=sheet)
+
+        out_name = f"{year}年{station_with_suffix}逐日平均流量表.xlsx"
+        out_path = station_dir / out_name
+
+        with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name=sheet, index=False)
+
+        saved_files.append(str(out_path.resolve()))
+        print(f"已保存：{out_path}")
+
+    return saved_files
+
+
+# —— 批量版本（可选）——
+def batch_split_folder(folder: str, out_root):
+    """
+    扫描文件夹下的 .xlsx（跳过临时文件 ~$.xlsx），
+    每个文件按站名在指定目录下生成子文件夹并拆分。
+    """
+    folder_path = Path(folder)
+    out_root = Path(out_root) if out_root else (folder_path / "拆分结果")
+    out_root.mkdir(parents=True, exist_ok=True)
+
+    for file in folder_path.glob("*.xlsx"):
+        if file.name.startswith("~$"):
+            continue
+        split_excel_by_sheets(str(file), out_dir=out_root)
+
+
+def batch_merge_folder(stations_root: str, station_id_map, out_base: str):
+    """
+    遍历指定根目录下“以站点命名”的子文件夹，并为每个站点调用 build_observed_q。
+
+    参数
+    ----
+    stations_root : str
+        根目录路径。其下每个子文件夹名称即为站点名（用于在 station_id_map 中取 ID）。
+    station_id_map : dict[str, int]
+        {站点名: station_id} 的映射表。
+    out_base : str
+        输出 CSV 的基础目录；最终文件名为 observed_Q_{station_id}.csv。
+    """
+    stations_root = Path(stations_root)
+    out_base = Path(out_base)
+    out_base.mkdir(parents=True, exist_ok=True)
+
+    if not stations_root.exists():
+        raise FileNotFoundError(f"找不到目录：{stations_root}")
+
+    for item in stations_root.iterdir():
+        # 只处理“以站点命名的文件夹”
+        if not item.is_dir():
+            continue
+
+        station_name = item.name.strip()
+        if station_name not in station_id_map:
+            print(f"[跳过] 站点'{station_name}'未在 station_id_map 中配置。")
+            continue
+
+        station_id = station_id_map[station_name]
+        out_csv = out_base / f"observed_Q_{station_id}.csv"
+
+        try:
+            print(f"[处理] 站点: {station_name} (ID={station_id})")
+            build_observed_q(
+                input_dir=str(item),  # 该站点文件夹
+                output_csv=str(out_csv),  # 输出路径
+                station_id=station_id,
+                type_code="Q",  # 固定
+                sheet_name=0,  # 固定
+                zero_pad=True  # 固定
+            )
+            print(f"[完成] 输出: {out_csv}")
+        except Exception as e:
+            print(f"[错误] 站点 {station_name} (ID={station_id}) 处理失败：{e}")
+
 if __name__ == '__main__':
+    # step1：批量处理：针对本科生数字化的水文年鉴格式（多个sheet页，每个sheet为一年），分割为多个xlsx文件，每个为一年
+    input_benkesheng_dir = r"J:\G\data\鄱阳湖数据\流量\其它站点\原始数据"
+    split_dir = r'J:\G\data\鄱阳湖数据\流量\其它站点\拆分数据'
+
+    # split_excel_by_sheets(input_benkesheng,output_dir)  # 单个站点处理
+    # batch_split_folder(input_benkesheng_dir,split_dir)    # 多站点批量处理
+    # step2：批量处理：将分割好的流量文件，按照站点转为SEIMS Observe需要的文件
+    observe_dir = r'J:\G\data\鄱阳湖数据\流量\其它站点\站点合并数据'
+    station_id_map = {
+        "湖口": 1171,
+        "外洲": 322,
+        "万家埠": 225,
+        "李家渡": 457,
+        "梅港": 347,
+        "虎山": 214,
+        "渡峰坑": 123,
+        "虬津": 141,
+    }
+
+    batch_merge_folder(
+        stations_root=split_dir,  # 里面每个子文件夹是一个站名
+        station_id_map=station_id_map,
+        out_base=observe_dir  # 输出目录
+    )
+
+    # 针对百度云下载的水文年鉴格式
     input_dir = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\data_prepare\observed\2008-2020年湖口站逐日平均流量表"
-    out_csv   = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\data_prepare\observed\observed_Q.csv"
+    out_csv   = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\data_prepare\observed\observed_Q_1171.csv"
     build_observed_q(
         input_dir=input_dir,
         output_csv=out_csv,
