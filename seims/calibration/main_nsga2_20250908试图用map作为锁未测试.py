@@ -140,7 +140,17 @@ toolbox.register('gene_values', initialize_calibrations)
 toolbox.register('individual', initIterateWithCfg, creator.Individual, toolbox.gene_values)
 toolbox.register('population', initRepeatWithCfg, list, toolbox.individual)
 # toolbox.register('evaluate', calibration_objectives)
-toolbox.register('evaluate', evaluate_nowait_or_skip)
+# toolbox.register('evaluate', evaluate_nowait_or_skip)
+from multiprocessing import Manager
+import functools
+# 初始化共享字典和锁（进程间可见）
+manager = Manager()
+RUN_STATE = manager.dict()
+RUN_LOCK  = manager.RLock()
+toolbox.register(
+    "evaluate",
+    functools.partial(evaluate_nowait_or_skip, state=RUN_STATE, lock=RUN_LOCK)
+)
 
 # mate and mutate
 toolbox.register('mate', tools.cxSimulatedBinaryBounded)
@@ -230,7 +240,6 @@ def main(cfg):
             invalid_pops = list(map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
 
         scoop_log(f"过滤之前pops长度为:{len(invalid_pops)}")
-        scoop_log(f"过滤之前pops为:{invalid_pops}")
         # 关键：把 None（被跳过的个体）过滤掉
         invalid_pops = [ind for ind in invalid_pops if ind != -1]
 

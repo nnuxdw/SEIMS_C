@@ -39,39 +39,41 @@ scoop有个重发机制导致bug，就是比如一代有40个参数组合，10�
 主进程发现他很慢之后，就会重发一个子进程（B）跑一模一样的参数，然后A又跑完了，于是删除了A对应的率定文件夹 OUTPUT-A，
 之后B跑完了发现 OUTPUT-A文件夹不存在，就报错了。
 """
-if os.name == "nt":
-    import msvcrt
-    def try_acquire_lock(path: str):
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o644)
-        try:
-            # 非阻塞：Windows 只能用“试锁”语义模拟（会抛 OSError 时表示失败）
-            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
-            return fd
-        except OSError:
-            os.close(fd)
-            return None
-    def release_lock(fd: int):
-        try:
-            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
-        finally:
-            os.close(fd)
-else:
-    import fcntl
-    def try_acquire_lock(path: str):
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o644)
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)  # 非阻塞
-            return fd
-        except BlockingIOError:
-            os.close(fd)
-            return None
-    def release_lock(fd: int):
-        try:
-            fcntl.flock(fd, fcntl.LOCK_UN)
-        finally:
-            os.close(fd)
+# if os.name == "nt":
+#     import msvcrt
+#     def try_acquire_lock(path: str):
+#         Path(path).parent.mkdir(parents=True, exist_ok=True)
+#         fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o644)
+#         try:
+#             # 非阻塞：Windows 只能用“试锁”语义模拟（会抛 OSError 时表示失败）
+#             msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+#             return fd
+#         except OSError:
+#             os.close(fd)
+#             return None
+#     def release_lock(fd: int):
+#         try:
+#             msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+#         finally:
+#             os.close(fd)
+# else:
+#     import fcntl
+#     def try_acquire_lock(path: str):
+#         Path(path).parent.mkdir(parents=True, exist_ok=True)
+#         fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o644)
+#         try:
+#             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)  # 非阻塞
+#             return fd
+#         except BlockingIOError:
+#             os.close(fd)
+#             return None
+#     def release_lock(fd: int):
+#         try:
+#             fcntl.flock(fd, fcntl.LOCK_UN)
+#         finally:
+#             os.close(fd)
+
+
 
 class TimeseriesData(object):
     """Time series data, for observation and simulation data."""
@@ -276,28 +278,50 @@ def _filter_sim_by_obs(sim_obs_dict, invalid_values=(-9999.0,)):
         }
     return out
 
-def _lock_path_for(ind, cali_obj):
-    # 按你的任务唯一标识来建锁文件（建议用 gen+id）
-    gen = getattr(ind, "gen", 0)
-    return Path("/tmp/nsga2_locks") / f"gen{gen}_id{ind.id}.lock"
+# def _lock_path_for(ind, cali_obj):
+#     # 按你的任务唯一标识来建锁文件（建议用 gen+id）
+#     gen = getattr(ind, "gen", 0)
+#     return Path("/tmp/nsga2_locks") / f"gen{gen}_id{ind.id}.lock"
+#
+# def evaluate_nowait_or_skip(cali_obj, ind):
+#     """
+#     非阻塞加锁：
+#       - 成功：执行 calibration_objectives 并返回 ind
+#       - 失败：说明已有同 (gen,id) 在跑 → 直接返回 None（表示跳过，不纳入结果）
+#     """
+#     fd = try_acquire_lock(str(_lock_path_for(ind, cali_obj)))
+#     if fd is None:
+#         # 被别的 worker 占用，按你的要求：不执行、不回收，不纳入 invalid_pops
+#         # 可选打印一行便于观察：
+#         scoop_log(f"[SKIP] gen={getattr(ind,'gen',0)} id={ind.id} 已在运行，跳过本次。")
+#         return -1
+#     try:
+#         scoop_log(f"[RUN] gen={getattr(ind, 'gen', 0)} id={ind.id} 开始运行。")
+#         return calibration_objectives(cali_obj, ind)
+#     finally:
+#         release_lock(fd)
 
-def evaluate_nowait_or_skip(cali_obj, ind):
-    """
-    非阻塞加锁：
-      - 成功：执行 calibration_objectives 并返回 ind
-      - 失败：说明已有同 (gen,id) 在跑 → 直接返回 None（表示跳过，不纳入结果）
-    """
-    fd = try_acquire_lock(str(_lock_path_for(ind, cali_obj)))
-    if fd is None:
-        # 被别的 worker 占用，按你的要求：不执行、不回收，不纳入 invalid_pops
-        # 可选打印一行便于观察：
-        scoop_log(f"[SKIP] gen={getattr(ind,'gen',0)} id={ind.id} 已在运行，跳过本次。")
-        return -1
+def _lock_key(ind):
+    return f"g{getattr(ind,'gen',0)}:id{ind.id}"
+
+def evaluate_nowait_or_skip(cali_obj, ind, state, lock):
+    key = _lock_key(ind)
+
+    # 原子占位（同一把 key 只让一个进程成功）
+    with lock:
+        if state.get(key, 0) == 1:
+            scoop_log(f"[SKIP] gen={getattr(ind,'gen',0)} id={ind.id} 已在运行，跳过。")
+            return -1
+        state[key] = 1
+
     try:
-        scoop_log(f"[RUN] gen={getattr(ind, 'gen', 0)} id={ind.id} 开始运行。")
+        scoop_log(f"[RUN] gen={getattr(ind,'gen',0)} id={ind.id} 开始运行。")
         return calibration_objectives(cali_obj, ind)
     finally:
-        release_lock(fd)
+        # 释放占位
+        with lock:
+            scoop_log(f"[RELEASE] gen={getattr(ind, 'gen', 0)} id={ind.id} 释放。")
+            state.pop(key, None)
 
 def calibration_objectives(cali_obj, ind):
     """Evaluate the objectives of given individual.
