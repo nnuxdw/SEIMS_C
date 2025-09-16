@@ -823,6 +823,7 @@ if __name__ == '__main__':
     # pattern_prefix = 'TMAX_TS_'
     #('SNAC_TS', 'SNAC_TS_'),,('SNME_TS','SNME_TS_'),('TMAX_TS','TMAX_TS_')
     # pairs = [('SNAC_TS', 'SNAC_TS_'),('SNME_TS', 'SNME_TS_')]
+    # pairs = [('OL_Hand_WTRDEP_TS_AVG', 'OL_Hand_WTRDEP_TS_AVG_')]
     pairs = [('OL_Hand_WTRDEP_TS', 'OL_Hand_WTRDEP_TS_')]
     suffix = 'txt'
 
@@ -912,7 +913,7 @@ if __name__ == '__main__':
                     print(f"发生错误：{e}")
 
     # tif生成gif
-    OUTPUT_file = r'OUTPUT0-1'
+    OUTPUT_file = r'OUTPUT0'
     tif_folder = os.path.join(longterm_model_dir,OUTPUT_file)
     output_file = os.path.join(longterm_model_dir,f'{OUTPUT_file}\gif\OL_Hand_WTRDEP.gif')
     output_file_base = os.path.join(longterm_model_dir,f'{OUTPUT_file}\gif\OL_Hand_WTRDEP_')

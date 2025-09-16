@@ -34,18 +34,11 @@ from calibration.sample_lhs import lhs
 import numpy
 from pathlib import Path
 import time, random
-from datetime import datetime
 
 # 会话ID，避免跨实例互相影响（强烈推荐）
-# base_path = '/data/user/xiaodw/software/WISE/data/lock'
-base_path = 'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model'
-subbasin_flood_path = base_path + f'/inundation_cali/subbasin_flood'
-subbasin_ids=[1171,1176,1193,1194,1214]
-
+base_path = '/data/user/xiaodw/software/WISE/data/lock'
 # 不同的实例指定不同的id，避免锁文件相互影响
-RUN_ID = 'poyanglake_1_20250910'
-cali_inundation_extent = False
-cali_inundation_area = True
+RUN_ID = 'poyanglake_1_20250909'
 # RUN_ID =  time.strftime("%Y%m%d-%H%M%S")
 
 """ xiaodw add
@@ -313,51 +306,15 @@ def evaluate_nowait_or_skip(cali_obj, ind):
     finally:
         release_lock(fd)
 
-import numpy as np
-import rasterio
 
-def _read_binary_extent_tif(path, nodata=None, threshold=0.5):
-    """读取淹没范围栅格并转为二值（1=淹没，0=未淹没）。"""
-    with rasterio.open(path) as ds:
-        arr = ds.read(1)
-        ndv = ds.nodata if ds.nodata is not None else nodata
-    if ndv is not None:
-        arr = np.where(arr == ndv, np.nan, arr)
-    # 若原始是概率/水深，可用阈值二值化；若已是0/1，这一步等价透传
-    bin_arr = (arr >= threshold).astype(np.uint8)
-    bin_arr[np.isnan(arr)] = 255  # 用 255 做 mask，便于后面剔除
-    return bin_arr
-
-
-def _fi_bi_from_binary(sim_bin, obs_bin):
-    """给定同尺寸二值（0/1），计算 FI 与 BI。255 视为无效掩膜。"""
-    mask = (sim_bin != 255) & (obs_bin != 255)
-    s = sim_bin[mask].astype(np.uint8)
-    o = obs_bin[mask].astype(np.uint8)
-    tp = np.sum((s == 1) & (o == 1))
-    fp = np.sum((s == 1) & (o == 0))
-    fn = np.sum((s == 0) & (o == 1))
-    # Dice / F1
-    denom = (2*tp + fp + fn)
-    fi = (2*tp / denom) if denom > 0 else 0.0
-    # Bias = (TP+FP)/(TP+FN)；若观测全为0则回退为1（中性）
-    obs_area = tp + fn
-    sim_area = tp + fp
-    if obs_area == 0 and sim_area == 0:
-        bi = 1.0
-    elif obs_area == 0:
-        bi = np.inf
-    else:
-        bi = sim_area / obs_area
-    return fi, bi
 
 def _lock_path_for(ind, cali_obj):
     gen = getattr(ind, "gen", 0)
-    return Path(base_path + "/lock/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
+    return Path(base_path + "/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
 
 def _done_path_for(ind, cali_obj):
     gen = getattr(ind, "gen", 0)
-    return Path(base_path + "/lock/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.done"
+    return Path(base_path +"/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.done"
 
 def _mark_done(done_path):
     done_path.parent.mkdir(parents=True, exist_ok=True)
@@ -421,7 +378,7 @@ def calibration_objectives(cali_obj, ind):
 
     # Execute model
     model_obj.SetMongoClient()
-    # model_obj.run()
+    model_obj.run()
     time.sleep(0.1)  # Wait a moment in case of unpredictable file system error
 
     # read simulation data of the entire simulation period (include calibration and validation)
@@ -435,7 +392,7 @@ def calibration_objectives(cali_obj, ind):
         return ind
 
     # Calculate NSE, R2, RMSE, PBIAS, and RSR, etc. of calibration period
-    print(f"cali_stime: {cali_obj.cfg.cali_stime}/n, cali_etime: {cali_obj.cfg.cali_etime}/n")
+    # print(f"cali_stime: {cali_obj.cfg.cali_stime}/n, cali_etime: {cali_obj.cfg.cali_etime}/n")
     ind.cali.vars, ind.cali.data = model_obj.ExtractSimData(cali_obj.cfg.cali_stime,
                                                             cali_obj.cfg.cali_etime)
     # print(f"ind.cali.vars: {ind.cali.vars}/n, ind.cali.data: {ind.cali.data}/n")
@@ -473,60 +430,7 @@ def calibration_objectives(cali_obj, ind):
         print(f"vali: {vali_metrics}")
     # Get timespan
     ind.io_time, ind.comp_time, ind.simu_time, ind.runtime = model_obj.GetTimespan()
-    ##-----------------------xiaodw add, calibrate Fi,Bi for inundation extent-----------------------------
-    fi_list, bi_list = [], []
-    if cali_inundation_extent:
-        # cur = datetime.strptime(cali_obj.cfg.cali_stime, "%Y-%m-%d %H:%M:%S")
-        # end = datetime.strptime(cali_obj.cfg.cali_etime, "%Y-%m-%d %H:%M:%S")
-        cur = cali_obj.cfg.cali_stime
-        end = cali_obj.cfg.cali_etime
-        months = []
-        while cur <= end:
-            months.append((cur.year, cur.month))
-            # 跳到下一个月初
-            if cur.month == 12:
-                cur = cur.replace(year=cur.year + 1, month=1, day=1)
-            else:
-                cur = cur.replace(month=cur.month + 1, day=1)
 
-        for (yy, mm) in months:
-            obs_tif = os.path.join(cali_obj.cfg.flood_obs_dir, f"{yy}{mm:02d}.tif")
-            sim_tif = os.path.join(cali_obj.cfg.flood_sim_dir, f"run{ind.id}_{yy}{mm:02d}.tif")
-            if not (os.path.exists(obs_tif) and os.path.exists(sim_tif)):
-                continue  # 该月缺数据则跳过
-
-            obs_bin = _read_binary_extent_tif(obs_tif, nodata=0, threshold=0.5)
-            sim_bin = _read_binary_extent_tif(sim_tif, nodata=0, threshold=0.5)
-
-            # 尺寸/投影需一致；如不一致，请在导出时保证一致，或此处先重投影/重采样
-            if obs_bin.shape != sim_bin.shape:
-                # TODO: 统一投影与分辨率（建议在生成阶段统一）
-                print(f"[WARN] shape mismatch for {yy}-{mm}, skip")
-                continue
-
-            fi, bi = _fi_bi_from_binary(sim_bin, obs_bin)
-            fi_list.append(fi)
-            bi_list.append(bi)
-
-        # 汇总为月平均
-        if fi_list:
-            fi_mean = float(np.mean(fi_list))
-            # BI 偏差 |1-BI|，用于“越小越好”的目标
-            bi_dev_mean = float(np.mean([abs(1.0 - b) if np.isfinite(b) else 1.0 for b in bi_list]))
-
-            # 把新指标并入已有的校准期指标列表
-            names = list(getattr(ind.vali, "objnames", []))
-            vals = list(getattr(ind.vali, "objvalues", []))
-
-            names += ["FI", "BI_DEV"]  # FI 越大越好；BI_DEV = |1-BI| 越小越好
-            vals += [fi_mean, bi_dev_mean]
-
-            ind.vali.objnames = names
-            ind.vali.objvalues = vals
-
-            # 控制台打印
-            print(f"FI_mean={fi_mean:.4f}, BI_dev_mean={bi_dev_mean:.4f}")
-    ##-----------------------end calibrate Fi,Bi for inundation extent-----------------------------
     # delete model output directory for saving storage
     print(f"delete output directory: {ind.id}")
     model_obj.clean(calibration_id=ind.id)
