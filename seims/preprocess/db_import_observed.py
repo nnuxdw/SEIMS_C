@@ -54,8 +54,10 @@ class ImportObservedData(object):
         subbasin_raster = RasterUtilClass.read_raster(subbsn_file)
         localx = site_dict.get(StationFields.x)
         localy = site_dict.get(StationFields.y)
+        lat = site_dict.get(StationFields.lat)
+        lon = site_dict.get(StationFields.lon)
         site_type = site_dict.get(StationFields.outlet)
-        subbasin_id = subbasin_raster.get_value_by_xy(localx, localy)
+        subbasin_id = subbasin_raster.get_value_by_xy(lon,lat)
         if subbasin_id is None and site_type != 1:
             # the site is not inside the basin and not the outlet either.
             return False, None

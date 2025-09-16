@@ -6,7 +6,9 @@
 #include "output.h"
 #include "stats.h"
 #include "../utility.h"
-#include <algorithm>
+//#include <algorithm>
+
+#include "../lisflood.h"
 
 dg2new::DG2Solver::DG2Solver
 (
@@ -820,7 +822,8 @@ NUMERIC_TYPE dg2new::DG2Solver::update_Tstep(int i, int j, NUMERIC_TYPE dt)
         NUMERIC_TYPE dt_y = Solverptr->cfl*Parptr->dy /
             (FABS(V)+SQRT(Solverptr->g*Arrptr->H[j*Parptr->xsz+i]));
 
-        return std::min({dt, dt_x, dt_y});
+        //return std::min({dt, dt_x, dt_y});
+		return 1.0;
     }
 
     return dt;

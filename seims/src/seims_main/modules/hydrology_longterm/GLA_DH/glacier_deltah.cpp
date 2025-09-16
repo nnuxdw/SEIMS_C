@@ -422,7 +422,6 @@ int GLA_DH::Execute() {
 	}
 
 
-	//�Ǳ����������ӱ���������
 	Qall =  (Qave[0] * glacier_area1 + non_qsum) / glacier_area;
 	Q =  (Qave[0] * glacier_area1 + non_qsum)*0.001;
 
@@ -453,7 +452,7 @@ int GLA_DH::Execute() {
 		ascaled_sum[0] = ascaled_sum[0] + ascaled_sum[j];
 		vscaled_sum[0] = vscaled_sum[0] + vscaled_sum[j];
 	}
-	//�ϲ��������
+
 	for (int i = 0; i < n1; i++)
 	{
 		ascaled[0][i] = 0.f;

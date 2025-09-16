@@ -23,8 +23,8 @@ import copy
 from gridfs import GridFS
 from numpy import zeros as np_zeros
 
-from db_mongodb import MongoQuery
-from text import DBTableNames, RasterMetadata, FieldNames, \
+from preprocess.db_mongodb import MongoQuery
+from preprocess.text import DBTableNames, RasterMetadata, FieldNames, \
     DataType, StationFields, DataValueFields, SubbsnStatsName
 from utility import UTIL_ZERO
 
@@ -75,7 +75,7 @@ class ImportWeightData_field(object):
         for i in range(1, len(loc_list)):
             coef_list.append(0)
             dis = ImportWeightData_field.cal_dis(x, y, loc_list[i][0], loc_list[i][1])
-            # print(x, y, loc_list[i][0], loc_list[i][1], dis)
+            print(x, ",   ",y, ",   ", loc_list[i][0], ",   ", loc_list[i][1], ",   ", dis)
             if dis < dis_min:
                 i_min = i
                 dis_min = dis
@@ -319,10 +319,13 @@ class ImportWeightData_field(object):
         #     raise RuntimeError('%s is not existed in MongoDB!' % mask_name)
         # read WEIGHT_M file from mongodb
         weight_m_name = '%d_WEIGHT_M' % subbsn_id
+        weight_id_name = '%d_WEIGHT_ID_M' % subbsn_id# wanghaocheng
         mask = maindb[DBTableNames.gridfs_spatial].files.find({'filename': mask_name})[0]
         weight_m = maindb[DBTableNames.gridfs_spatial].files.find({'filename': weight_m_name})[0]
+        weight_m_id = maindb[DBTableNames.gridfs_spatial].files.find({'filename': weight_id_name})[0] # wanghaocheng
         num_cells = int(weight_m['metadata'][RasterMetadata.cellnum])
         num_sites = int(weight_m['metadata'][RasterMetadata.site_num])
+        temp_C = int(weight_m['metadata']['NUM_SITE_WEIGHT'])
         # read meteorology sites
         site_lists = maindb[DBTableNames.main_sitelist].find({FieldNames.subbasin_id: subbsn_id})
         site_list = next(site_lists)
@@ -354,19 +357,23 @@ class ImportWeightData_field(object):
             tmean_list.append(site[DataValueFields.value])
 
         weight_m_data = spatial_gfs.get(weight_m['_id'])
-        total_len = num_cells * num_sites
+        weight_m_id_data = spatial_gfs.get(weight_m_id['_id'])
+        total_len = num_cells * temp_C
         # print(total_len)
         fmt = '%df' % (total_len,)
         weight_m_data = unpack(fmt, weight_m_data.read())
-
+        weight_m_id_data = unpack(fmt, weight_m_id_data.read())
+        #wanghaocheng
         # calculate PHU0
         phu0_data = np_zeros(num_cells)
         # calculate TMEAN0
         tmean0_data = np_zeros(num_cells)
         for i in range(num_cells):
-            for j in range(num_sites):
-                phu0_data[i] += phu_list[j] * weight_m_data[i * num_sites + j]
-                tmean0_data[i] += tmean_list[j] * weight_m_data[i * num_sites + j]
+            for j in range(temp_C):
+                k = int(weight_m_id_data[i * temp_C + j])        #wanghaocheng
+                # print(k)
+                phu0_data[i] += phu_list[k] * weight_m_data[i * temp_C + j]        #wanghaocheng
+                tmean0_data[i] += tmean_list[k] * weight_m_data[i * temp_C + j]        #wanghaocheng
         # ysize = int(mask['metadata'][RasterMetadata.nrows])
         # xsize = int(mask['metadata'][RasterMetadata.ncols])
         # nodata_value = mask['metadata'][RasterMetadata.nodata]
@@ -468,16 +475,40 @@ class ImportWeightData_field(object):
 
         for type_i, type_name in enumerate(type_list):
             fname = '%d_WEIGHT_%s' % (subbsn_id, type_name)
+            # wanghaocheng
+            fname1 = '%d_WEIGHT_ID_%s' % (subbsn_id, type_name)
+            # wanghaocheng
             if spatial_gfs.exists(filename=fname):
                 x = spatial_gfs.get_version(filename=fname)
                 spatial_gfs.delete(x._id)
+            # wanghaocheng
+            if spatial_gfs.exists(filename=fname1):
+                x = spatial_gfs.get_version(filename=fname1)
+                spatial_gfs.delete(x._id)
+            # wanghaocheng
             site_list = site_lists[type_i]
             if site_list is not None:
                 site_list = site_list.split(',')
                 # print(site_list)
                 site_list = [int(item) for item in site_list]
                 metadic[RasterMetadata.site_num] = len(site_list)
-                # print(site_list)
+                #wang haocheng
+                # import argparse
+                # arg= argparse.ArgumentParser()
+                # arg.add_argument('-name', type=str, help='Name of demo watershed')
+                # arg.add_argument('-num_site_weight', type=int, help='Number of site weights')
+                # args = arg.parse_args()
+                temp_C = 3
+                # if args.num_site_weight is None:
+                #     temp_C = 1
+                # else:
+                #     temp_C = args.num_site_weight
+                if temp_C>len(site_list):
+                    metadic['NUM_SITE_WEIGHT'] = len(site_list)
+                else:
+                    metadic['NUM_SITE_WEIGHT'] = temp_C
+                #wang haocheng
+
                 q_dic = {StationFields.id: {'$in': site_list},
                          StationFields.type: type_list[type_i]}
                 cursor = hydro_clim_db[DBTableNames.sites].find(q_dic).sort(StationFields.id, 1)
@@ -499,23 +530,77 @@ class ImportWeightData_field(object):
                 # interpolate using the locations
                 myfile = spatial_gfs.new_file(filename=fname, metadata=metadic)
                 txtfile = '%s/weight_%d_%s_field.txt' % (geodata2dbdir, subbsn_id, type_list[type_i])
+                #wanghaocheng
+                myfile1 = spatial_gfs.new_file(filename=fname1, metadata=metadic)
+                txtfile1 = '%s/weight_id_%d_%s.txt' % (geodata2dbdir, subbsn_id, type_list[type_i])
+                f_test1=open(txtfile1, 'w', encoding='utf-8')
+                # wanghaocheng
                 with open(txtfile, 'w', encoding='utf-8') as f_test:
                     for key in range(num):
+                        #print(type_name,num)
                         # print(field_center_list[num])
                         # print(key)
                         x_coor, y_coor = field_center_list.loc[:,str(key)]
-                        line, near_index = ImportWeightData_field.thiessen(x_coor, y_coor,
-                                                                             loc_list)
+                        # wanghaocheng
+                        line, near_index, num1 = ImportWeightData_field.inverseDistanceWeighting(x_coor, y_coor,
+                                                                                            loc_list, temp_C)
                         myfile.write(line)
-                        fmt = '%df' % (len(loc_list))
+                        # fmt = '%df' % (len(loc_list))
+                        # f_test.write('%f %s\n' % (key, unpack(fmt, line).__str__()))
+                        # wanghaocheng
+                        myfile1.write(near_index)
+                        fmt = '%df' % (num1)
                         f_test.write('%f %s\n' % (key, unpack(fmt, line).__str__()))
+                        f_test1.write('%f %s\n' % (key, unpack(fmt, near_index).__str__()))
+                        # wanghaocheng
                 myfile.close()
+                # wanghaocheng
+                myfile1.close()
+                f_test1.close()
+                # wanghaocheng
 
+    @staticmethod
+    def inverseDistanceWeighting(x, y, loc_list,C=None):
+        """在Thiessen方法基础上改的，用于反距离计算权重"""
+        i_min = list()
+        coef_list = list()
+        if len(loc_list) <= 1 :
+            coef_list.append(1)
+            i_min.append(0)
+            fmt = '%df' % 1
+            fmt1 = '%df' % 1
+            return pack(fmt, *coef_list), pack(fmt1, *i_min),1
+        #使用气象站点的数量
+        if C is None or len(loc_list) <= C:
+            C = len(loc_list)
+        dis_min = ImportWeightData_field.cal_dis(x, y, loc_list[0][0], loc_list[0][1])
+        distance=list()
+        distance.append([0,dis_min])
+        for i in range(1, len(loc_list)):
+            dis = ImportWeightData_field.cal_dis(x, y, loc_list[i][0], loc_list[i][1])
+            distance.append([i, dis])
+        distance.sort(key=lambda x: x[1])#, reverse=True
+        first_C_items = distance[:C]
+
+        coef=list()
+        index = list()
+        for i in range(C):
+            first_C_items[i][1]=1 / first_C_items[i][1]
+        sum_weight = sum(sublist[1] for sublist in first_C_items)
+        for i in range(C):
+            first_C_items[i][1]= first_C_items[i][1]/sum_weight
+            coef.append( first_C_items[i][1])
+            index.append(first_C_items[i][0])
+        num=len(coef)
+        fmt = '%df' % (len(coef))
+        s = pack(fmt, *coef)
+        index1 = pack(fmt, *index)
+        return s, index1,num
 
     @staticmethod
     def workflow(cfg, field_center,db_name):
         """Workflow"""
-        from db_mongodb import ConnectMongoDB
+        from preprocess.db_mongodb import ConnectMongoDB
         client = ConnectMongoDB(cfg.hostname, cfg.port)
         conn = client.get_conn()
         db_model_field = conn[db_name]
@@ -523,6 +608,29 @@ class ImportWeightData_field(object):
         geodata2dbdir = cfg.dirs.geodata2db
         # field_center = r'G:\codes\SEIMS-master\data\youwuzhen\workspace\temp1\fields_center.csv'
         field_center_list = pd.read_csv(field_center)
+        #修改sitelist
+
+        site_lists = db_model_field[DBTableNames.main_sitelist].find({FieldNames.subbasin_id: 0})
+        site_list = next(site_lists)
+        clim_db_name = site_list[FieldNames.db]
+        # print(clim_db_name)
+        hydro_clim_db = conn[clim_db_name]
+        q_dic1 = {StationFields.type: 'M'}
+        cursor1 = hydro_clim_db[DBTableNames.sites].find(q_dic1).sort(StationFields.id, 1)
+        q_dic2 = {StationFields.type: 'P'}
+        cursor2 = hydro_clim_db[DBTableNames.sites].find(q_dic2).sort(StationFields.id, 1)
+        SITELISTM = []
+        SITELISTP = []
+        for site in cursor1:
+            SITELISTM.append(site[StationFields.id])
+        for site in cursor2:
+            SITELISTP.append(site[StationFields.id])
+        slist1 = [str(item) for item in SITELISTM]
+        site_list_str1 = ','.join(slist1)
+        slist2 = [str(item) for item in SITELISTP]
+        site_list_str2 = ','.join(slist2)
+        db_model_field[DBTableNames.main_sitelist].find_one_and_update({'SUBBASINID': 0},{'$set': {'SITELISTM': site_list_str1}})
+        db_model_field[DBTableNames.main_sitelist].find_one_and_update({'SUBBASINID': 0},{'$set': {'SITELISTP': site_list_str2}})
 
         ImportWeightData_field.climate_itp_weight_thiessen_field(conn, db_model_field, geodata2dbdir, field_center_list)
         ImportWeightData_field.generate_weight_dependent_parameters_field(conn, db_model_field, 0, field_center_list)
@@ -531,13 +639,17 @@ class ImportWeightData_field(object):
 
 def main():
     """TEST CODE"""
-    from config import parse_ini_configuration
-    from db_mongodb import ConnectMongoDB
+    from preprocess.config import parse_ini_configuration
+    from preprocess.db_mongodb import ConnectMongoDB
     seims_cfg = parse_ini_configuration()
     client = ConnectMongoDB(seims_cfg.hostname, seims_cfg.port)
     conn = client.get_conn()
 
-    ImportWeightData_field.workflow(seims_cfg, conn, 0)
+    # base_dir = r'/data/user/xiaodw/software/WISE/data/poyang_lake1'
+    base_dir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
+    csv_path = base_dir + os.sep + 'workspace/csv'
+    field_center_file = csv_path + os.sep + 'fields_center.csv'
+    ImportWeightData_field.workflow(seims_cfg, field_center_file, 'poyang_lake1_longterm_model')
 
     client.close()
 

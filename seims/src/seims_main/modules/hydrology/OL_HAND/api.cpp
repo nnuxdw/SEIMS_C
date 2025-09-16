@@ -26,6 +26,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	//mdi.AddParameter(Tag_CellWidth, UNIT_LEN_M, DESC_CellWidth, Source_ParameterDB, DT_Single);
 	mdi.AddParameter(VAR_AHRU, UNIT_AREA_M2, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
 	mdi.AddParameter(Tag_SubbasinId, UNIT_NON_DIM, Tag_SubbasinId, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_OUTLETID, UNIT_NON_DIM, DESC_OUTLETID, Source_ParameterDB, DT_Single);
 	mdi.AddParameter(VAR_SUBBSN, UNIT_NON_DIM, DESC_SUBBSN, Source_ParameterDB, DT_Raster1D);
 	mdi.AddInput(VAR_BKST, UNIT_VOL_M3, DESC_BKST, Source_Module,DT_Array1D);
 	mdi.AddInput(VAR_BKST_LAST_STEP, UNIT_VOL_M3, DESC_BKST_LAST_STEP, Source_Module, DT_Array1D);
@@ -33,15 +34,16 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddInput(VAR_CHST_LAST_STEP, UNIT_VOL_M3, DESC_CHST_LAST_STEP, Source_Module, DT_Array1D);
 	mdi.AddInput(VAR_CHWTRDEPTH, UNIT_LEN_M, DESC_CHWTDEPTH, Source_Module, DT_Array1D);
 	mdi.AddInput(VAR_CHWTRWIDTH, UNIT_LEN_M, DESC_CHWTWIDTH, Source_Module, DT_Array1D);
-
 	
-
 	
 	// add reach information
 	mdi.AddParameter(VAR_REACH_PARAM, UNIT_NON_DIM, DESC_REACH_PARAM, Source_ParameterDB, DT_Reach);
 
 
-	mdi.AddOutput(VAR_OL_HAND_WTRDEP, UNIT_DEPTH_MM, DESC_OLFLOW, DT_Raster1D);
+	mdi.AddOutput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, DT_Raster1D);
+	mdi.AddOutput(VAR_IS_HAND_FLOODED, UNIT_NON_DIM, DESC_IS_HAND_FLOODED, DT_Raster1D);
+	mdi.AddOutput(VAR_SUBBASIN_FLOODED_AREA, UNIT_AREA_M2, DESC_SUBBASIN_FLOODED_AREA, DT_Array1D);
+
 
     /// write out the XML file.
     res = mdi.GetXMLDocument();

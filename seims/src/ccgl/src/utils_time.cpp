@@ -67,6 +67,22 @@ bool ShouldOutputByInterval(const time_t start_time,
 			tm_now.tm_mon == expected.tm_mon &&
 			tm_now.tm_mday == expected.tm_mday);
 	}
+	else if (interval_unit == "YEAR") {
+		struct tm tm_start = *localtime(&start_time);
+		struct tm tm_now = *localtime(&current_time);
+
+		int dy = tm_now.tm_year - tm_start.tm_year;
+		if ((dy % intervals) != 0) return false;
+
+		// 目标年份 = 从 start 推进 (now-start) 年，月日沿用 start 的“目标月日”
+		struct tm expected = tm_start;
+		expected.tm_year += dy;
+		mktime(&expected); // 规范化（例如 2/29 遇到平年会滚动到 3/1）
+
+		return (tm_now.tm_year == expected.tm_year &&
+			tm_now.tm_mon == expected.tm_mon  &&
+			tm_now.tm_mday == expected.tm_mday);
+	}
 
 	return false;
 }

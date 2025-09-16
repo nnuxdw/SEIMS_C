@@ -1,0 +1,19 @@
+将两个py文件放入\SEIMS\seims\test中
+主要功能：所有率定参数集存放在率定文件夹下runtime.log中，根据欧几里得公式计算多个评价系数的加权值，从小到大排序获取前N组参数，画出不确定性区间。参考文献：
+Strohmenger, L., Fovet, O., Hrachowitz, M., Salmon-Monviola, J., Gascuel-Odoux, C., 2021. Is a simple model based on two mixing reservoirs able to reproduce the intra-annual dynamics of DOC and NO3 stream concentrations in an agricultural headwater catchment? Sci Total Environ 794, 148715. https://doi.org/10.1016/j.scitotenv.2021.148715
+
+#demo_calipostprocess.py：画率定变量的率定结果，如率定Q就只能画Q，可以有多个率定目标，直接读取率定得到的json文件，速度快，适合初步查看结果，可集成至WEB
+1.在代码line27，可调整NN，即需要前多少组参数集的结果，可以选取总率定次数的1%
+2.运行python demo_calipostprocess.py -name **即可
+3.可以得到：
+	result_NN.csv：前NN组参数集
+	VAR.csv：率定参数的模拟结果（率定N个参数就得到N个CSV）
+	VAR.png：出图，包含降水量、观测值、NN组参数模拟的中位数及10th和90th分位数。图上标有NSE\LogNSE\KGE\R2\PBIAS等常用评价系数
+
+
+#demo_rerun_postprocess.py：批量修改-重新运行模型并输出所有需要的变量，速度慢，适合批量输出需要的结果，不用集成至WEB；目前只支持单个子流域的输出，如果有多个子流域输出会报错
+1.在代码line27，调整NN；line28，需要输出的变量；line30修改数据库名字；
+2.运行python demo_rerun_postprocess.py -name **即可
+3.可以得到：
+	VAR.csv：率定参数的模拟结果（率定N个参数就得到N个CSV）
+	VAR.png：出图，包含NN组参数模拟的中位数及10th和90th分位数

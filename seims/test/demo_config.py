@@ -33,11 +33,13 @@ from postprocess.config import PostConfig
 from parameters_sensitivity.config import PSAConfig
 from calibration.config import CaliConfig
 
-DEMO_MODELS = {'youwuzhen': 'demo_youwuzhen30m_longterm_model',
-               'hlg_hband': 'hlg_hband_longterm_model',
-               'hulugou': 'hulugou_longterm_model',
-                'gongba': 'gongba_longterm_model',
-               'gongba_subbasin':'gongba_subbasin_longterm_model'
+DEMO_MODELS = {
+    'poyang_lake1':'poyang_lake1_longterm_model'
+   #  'youwuzhen': 'demo_youwuzhen30m_longterm_model',
+   # 'hlg_hband': 'hlg_hband_longterm_model',
+   # 'hulugou': 'hulugou_longterm_model',
+   #  'gongba': 'gongba_longterm_model',
+   # 'gongba_subbasin':'gongba_subbasin_longterm_model'
                }
 
 
@@ -68,8 +70,8 @@ class ModelPaths(object):
 
     def __init__(self, bpath, data_dir_name, model_dir_name):
         self.mpi_bin = None
-        self.bin_dir = bpath + os.path.sep + 'bin'
-        # self.bin_dir = bpath + os.path.sep + 'build\\seims\\bin\\seims_project\\Debug'
+        # self.bin_dir = bpath + os.path.sep + 'bin'
+        self.bin_dir = bpath + os.path.sep + 'build\\seims\\bin\\seims_project\\Release'
         self.prescript_dir = bpath + os.path.sep + 'seims' + os.path.sep + 'preprocess'
         self.base_dir = bpath + os.path.sep + 'data' + os.path.sep + data_dir_name
         self.cfg_dir = self.base_dir + os.path.sep + 'model_configs'
@@ -125,8 +127,8 @@ def write_runmodel_config_file(mpaths, org_file_name):
     with open(org_cfg_file, 'r', encoding='utf-8') as f:
         for line in f.readlines():
             cfg_items.append(line.strip())
-    cfg_items.append('MODEL_DIR = %s' % mpaths.model_dir)
-    cfg_items.append('BIN_DIR = %s' % mpaths.bin_dir)
+    # cfg_items.append('MODEL_DIR = %s' % mpaths.model_dir)
+    # cfg_items.append('BIN_DIR = %s' % mpaths.bin_dir)
 
     with open(runmodel_cfg_file, 'w', encoding='utf-8') as f:
         for item in cfg_items:

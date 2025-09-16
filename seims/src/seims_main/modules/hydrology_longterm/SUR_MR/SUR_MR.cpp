@@ -13,7 +13,9 @@ SUR_MR::SUR_MR() :
     //ljj++
     m_soilIceSto(nullptr),m_soilIceStoPrfl(nullptr),m_soilPor(nullptr),m_soilThk(nullptr),
     m_dem(nullptr),m_landUse(nullptr),m_soilAWC(nullptr),m_rchID(nullptr),m_pcp(nullptr),m_lakesto(nullptr),
-    m_pet(nullptr)
+    m_pet(nullptr),
+	//xdw++
+	m_soilFCDepth(nullptr), m_soilPorDepth(nullptr)
     {
 }
 
@@ -36,7 +38,7 @@ bool SUR_MR::CheckInputData() {
     CHECK_NODATA(MID_SUR_MR, m_soilFrozenWtrRatio);
     CHECK_POINTER(MID_SUR_MR, m_initSoilWtrStoRatio);
     CHECK_POINTER(MID_SUR_MR, m_potRfCoef);
-    //CHECK_POINTER(MID_SUR_MR, m_soilFC);
+    CHECK_POINTER(MID_SUR_MR, m_soilFC);
     CHECK_POINTER(MID_SUR_MR, m_meanTemp);
     //CHECK_POINTER(MID_SUR_MR, m_soilTemp);   // xiaodw comment, don't need soil temperature now
     CHECK_POINTER(MID_SUR_MR, m_netPcp);
@@ -54,6 +56,8 @@ void SUR_MR::InitialOutputs() {
         Initialize1DArray(m_nCells, m_soilIceStoPrfl, 0.f);//ljj++
         Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilWtrSto, NODATA_VALUE);
         Initialize1DArray(m_nCells, m_lakesto, 0.f);
+		Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilFCDepth, NODATA_VALUE);  //xdw++
+		Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilPorDepth, NODATA_VALUE);  //xdw++
 #pragma omp parallel for
         for (int i = 0; i < m_nCells; i++) {
             for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
@@ -61,9 +65,12 @@ void SUR_MR::InitialOutputs() {
                 //     m_soilWtrSto[i][j] = m_initSoilWtrStoRatio[i] * m_soilFC[i][j];
                 if (m_initSoilWtrStoRatio[i] >= 0.f && m_initSoilWtrStoRatio[i] <= 1.f && m_soilAWC[i][j] >= 0.f) {
                     m_soilWtrSto[i][j] = m_initSoilWtrStoRatio[i] * m_soilAWC[i][j];
+
                 } else {
                     m_soilWtrSto[i][j] = 0.f;
                 }
+				m_soilFCDepth[i][j] = m_soilFC[i][j] * m_soilThk[i][j];
+				m_soilPorDepth[i][j] = m_soilPor[i][j] * m_soilThk[i][j];
                 m_soilWtrStoPrfl[i] += m_soilWtrSto[i][j];
             }
         }
@@ -101,6 +108,9 @@ int SUR_MR::Execute() {
         }
         float hWater = 0.f;
         hWater = m_netPcp[i] + m_deprSto[i];
+		/// debug
+		float netPcp = m_netPcp[i];
+		float deprSto = m_deprSto[i];
         if (hWater > 0.f && m_landUse[i] !=18) {
             /// update total soil water content
             m_soilWtrStoPrfl[i] = 0.f;
@@ -173,6 +183,9 @@ int SUR_MR::Execute() {
 
 				//runoff percentage
 				float runoffPercentage;
+//#ifndef DEBUG_SUR_MR
+//				cout << i << ": " << m_potRfCoef[i] << endl;
+//#endif
 				if (m_potRfCoef[i] > 0.99f || (m_landUse[i] == LANDUSE_ID_GLC)) {
 					runoffPercentage = 1.f;
 				}
@@ -208,6 +221,7 @@ void SUR_MR::SetValue(const char* key, const float value) {
     else if (StringMatch(sk, VAR_K_RUN)) m_rfExp = value;
     else if (StringMatch(sk, VAR_P_MAX)) m_maxPcpRf = value;
     else if (StringMatch(sk, VAR_S_FROZEN)) m_soilFrozenWtrRatio = value;
+	else if (StringMatch(sk, VAR_SUBBSNID_NUM)) m_nSubbsns = CVT_INT(value);
     else {
         throw ModelException(MID_SUR_MR, "SetValue", "Parameter " + sk + " does not exist.");
     }
@@ -244,6 +258,8 @@ void SUR_MR::Set2DData(const char* key, const int nrows, const int ncols, float*
     else if (StringMatch(sk, VAR_SOLICE)) m_soilIceSto = data;
     else if (StringMatch(sk, VAR_POROST)) m_soilPor = data;
     else if (StringMatch(sk, VAR_SOILTHICK)) m_soilThk = data;
+	else if (StringMatch(sk, VAR_FIELDCAP)) m_soilFC = data;
+
     else {
         throw ModelException(MID_SUR_MR, "Set2DData", "Parameter " + sk + " does not exist.");
     }
@@ -270,8 +286,22 @@ void SUR_MR::Get2DData(const char* key, int* nRows, int* nCols, float*** data) {
     *nRows = m_nCells;
     *nCols = m_maxSoilLyrs;
     if (StringMatch(sk, VAR_SOL_ST)) {
+
         *data = m_soilWtrSto;
-    } else {
+	}
+	else if (StringMatch(sk, VAR_FIELDCAPDEP)) {
+		*data = m_soilFCDepth;
+	}
+	else if (StringMatch(sk, VAR_POROSTDEP)) {
+		*data = m_soilPorDepth;
+	}
+	else if (StringMatch(sk, VAR_SOL_UL)) {
+		*data = m_soilSat;
+	}
+	else if (StringMatch(sk, VAR_SOL_AWC)) {
+		*data = m_soilAWC;
+	}
+	else {
         throw ModelException(MID_SUR_MR, "Get2DData", "Output " + sk + " does not exist.");
     }
 }

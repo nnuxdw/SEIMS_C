@@ -136,6 +136,9 @@ int clsPI_MCS::Execute() {
             }
 
             m_canSto[i] += m_intcpLoss[i];
+//#ifndef DEBUG_PI_MCS
+//			cout << i << " m_pcp " << m_pcp[i] << " m_netPcp " << m_netPcp[i] << endl;
+//#endif
         } else {
             m_intcpLoss[i] = 0.f;
             m_netPcp[i] = 0.f;
