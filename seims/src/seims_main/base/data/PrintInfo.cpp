@@ -365,8 +365,36 @@ void PrintInfoItem::AggregateData2D(time_t time, int nRows, int nCols, float** d
     m_Counter++;
 }
 
+void PrintInfoItem::Aggregate1DArrayDataAvg(time_t time, int numrows, float* data) {
+	time_t startTime = getStartTime();
+
+	if (ShouldOutputByInterval(startTime, time, intervals, interval_Unit)) {
+		add1DTimeSeriesResult(time, m_nRows, m_1DData);
+		for (int i = 0; i < m_nRows; ++i)
+		{
+			m_1DData[i] = NODATA_VALUE;
+		}
+		m_Counter = 0;
+	}
+	else {
+		for (int rw = 0; rw < m_nRows; ++rw) {
+			if (!FloatEqual(data[rw], NODATA_VALUE)) {
+				if (FloatEqual(m_1DData[rw], NODATA_VALUE))
+				{
+					m_1DData[rw] = 0.f;
+				}
+				m_1DData[rw] = (m_1DData[rw] * m_Counter + data[rw]) / (m_Counter + 1.f);
+			}
+		}
+		++m_Counter;
+	}
+
+	
+}
+
 void PrintInfoItem::Aggregate1DArrayData(time_t time, int numrows, float* data) {
 	time_t startTime = getStartTime();
+
 	if (ShouldOutputByInterval(startTime, time, intervals, interval_Unit)) {
 		float* temp = new float[numrows];
 		for (int i = 0; i < numrows; i++) {
@@ -375,6 +403,7 @@ void PrintInfoItem::Aggregate1DArrayData(time_t time, int numrows, float* data) 
 		TimeSeriesDataForSubbasin[time] = temp;
 		TimeSeriesDataForSubbasinCount = numrows;
 	}
+	
 }
 
 void PrintInfoItem::AggregateData(time_t time, int numrows, float* data) {
@@ -458,6 +487,7 @@ void PrintInfoItem::AggregateData(time_t time, int numrows, float* data) {
                 default: break;
             }
         }
+		// xiaodw add, output one txt  per interval, eg, output a txt per month, so 2010.0101,2010.0201...will be output
 		if (m_AggregationType == AT_RasterTimeSeries)
 		{
 			time_t startTime = getStartTime();
@@ -465,6 +495,32 @@ void PrintInfoItem::AggregateData(time_t time, int numrows, float* data) {
 			{
 				add1DRasterTimeSeriesResult(time, m_nRows, data);
 			}			
+		}
+		// xiaodw add, output one avg txt  per interval, eg, output a txt per month, so 2010.0101~0131 avg,2010.0201~0228 avg...will be output
+		if (m_AggregationType == AT_RasterTimeSeriesAvg)
+		{
+			time_t startTime = getStartTime();
+			if (ShouldOutputByInterval(startTime, time, intervals, interval_Unit)) {
+				add1DRasterTimeSeriesResult(time, m_nRows, m_1DData);
+				for (int i = 0; i < m_nRows; ++i)
+				{
+					m_1DData[i] = NODATA_VALUE;
+				}
+				m_Counter = 0;
+			}
+			else {
+				for (int rw = 0; rw < m_nRows; ++rw) {
+					if (!FloatEqual(data[rw], NODATA_VALUE)) {
+						if (FloatEqual(m_1DData[rw], NODATA_VALUE))
+						{
+							m_1DData[rw] = 0.f;
+						}
+						m_1DData[rw] = (m_1DData[rw] * m_Counter + data[rw]) / (m_Counter + 1.f);
+					}
+				}
+				++m_Counter;
+			}
+
 		}
         m_Counter++;
     }
@@ -579,6 +635,9 @@ AggregationType PrintInfoItem::MatchAggregationType(string type) {
 	if (StringMatch(type, Tag_TimeSeries)) {
 		res = AT_RasterTimeSeries;
 	}
+	if (StringMatch(type, Tag_TimeSeriesAvg)) {
+		res = AT_RasterTimeSeriesAvg;
+	}
     return res;
 }
 
@@ -680,6 +739,36 @@ string PrintInfo::getOutputTimeSeriesHeader() {
 		headers.emplace_back("SoilPorDep4(mm)");
 		headers.emplace_back("SoilPorDep5(mm)");
 		headers.emplace_back("SoilPorDep6(mm)");
+	}
+	else if (StringMatch(m_OutputID, VAR_PERCO)) {
+		headers.emplace_back("Time");
+		headers.emplace_back("Perc0(mm)");
+		headers.emplace_back("Perc1(mm)");
+		headers.emplace_back("Perc2(mm)");
+		headers.emplace_back("Perc3(mm)");
+		headers.emplace_back("Perc4(mm)");
+		headers.emplace_back("Perc5(mm)");
+		headers.emplace_back("Perc6(mm)");
+	}
+	else if (StringMatch(m_OutputID, VAR_SOL_AWC)) {
+		headers.emplace_back("Time");
+		headers.emplace_back("SoilAWC0(mm)");
+		headers.emplace_back("SoilAWC1(mm)");
+		headers.emplace_back("SoilAWC2(mm)");
+		headers.emplace_back("SoilAWC3(mm)");
+		headers.emplace_back("SoilAWC4(mm)");
+		headers.emplace_back("SoilAWC5(mm)");
+		headers.emplace_back("SoilAWC6(mm)");
+	}
+	else if (StringMatch(m_OutputID, VAR_SOL_UL)) {
+		headers.emplace_back("Time");
+		headers.emplace_back("Sol_ul0(mm)");
+		headers.emplace_back("Sol_ul1(mm)");
+		headers.emplace_back("Sol_ul2(mm)");
+		headers.emplace_back("Sol_ul3(mm)");
+		headers.emplace_back("Sol_ul4(mm)");
+		headers.emplace_back("Sol_ul5(mm)");
+		headers.emplace_back("Sol_ul6(mm)");
 	}
 	else if (StringMatch(m_OutputID, "T_RECH")) {
         headers.emplace_back("Time");

@@ -1,4 +1,4 @@
-/*!
+ï»¿/*!
  * \brief A IO test demo of developing module for SEIMS.
  *
  * \author Dawei Xiao
@@ -13,7 +13,6 @@
 #include "lisflood.h"
 #include <unordered_set>
 #include <unordered_map>
- //#include "./lisflood2/DataTypes.h"
 
 using namespace bmps;
 using namespace std;
@@ -103,8 +102,8 @@ private:
 
 	//struct LISFLOODFPContext* LFPContextPtr;
 
-	unordered_set<int> lfpSetFirst;  // lfpÊ×¸ö×ÓÁ÷Óò
-	unordered_set<int> lfpSetOther;  // lfpÊ£Óà×ÓÁ÷Óò
+	unordered_set<int> lfpSetFirst;  // lfpé¦–ä¸ªå­æµåŸŸ
+	unordered_set<int> lfpSetOther;  // lfpå‰©ä½™å­æµåŸŸ
 	unordered_map<int, LfpCouplingInfo> coupling_map; // key is the first id of lfp's subbasin
 	unordered_map<int, LISFLOODFPPtrs> ptrs_map; // key is the first id of lfp's subbasin
 

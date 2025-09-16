@@ -1,4 +1,4 @@
-#include "LISFLOODFP_MUSK.h"
+ï»¿#include "LISFLOODFP_MUSK.h"
 #include "ChannelRoutingCommon.h"
 #include "utils_math.h"
 #include <numeric>  // std::accumulate
@@ -9,7 +9,7 @@
 #include <string>
 
 LISFLOODFP_MUSK::LISFLOODFP_MUSK() :
-	m_dt(-1),  m_subbsnID(nullptr), 
+	m_dt(-1), m_subbsnID(nullptr),
 	m_inputSubbsnID(-1), m_nreach(-1), m_outletID(-1),
 	m_Epch(NODATA_VALUE), m_Bnk0(NODATA_VALUE), m_Chs0_perc(NODATA_VALUE),
 	m_aBank(NODATA_VALUE), m_bBank(NODATA_VALUE),
@@ -52,7 +52,7 @@ LISFLOODFP_MUSK::~LISFLOODFP_MUSK() {
 		}
 	}
 
-	
+
 	/************************************MUSK_CH**********************************/
 	if (nullptr != m_ptSub) Release1DArray(m_ptSub);
 	if (nullptr != m_flowIn) Release1DArray(m_flowIn);
@@ -1075,8 +1075,8 @@ bool LISFLOODFP_MUSK::CheckInputData() {
 void LISFLOODFP_MUSK::InitialOutputs() {
 	//CHECK_POSITIVE(MID_LISFLOODFP_MUSK, m_nreach);
 	//CHECK_POSITIVE(MID_LISFLOODFP_MUSK, m_nCells);
-	
-	
+
+
 
 	/************************************MUSK_CH**********************************/
 	CHECK_POSITIVE(MID_LISFLOODFP_MUSK, m_nreach);
@@ -1166,8 +1166,8 @@ void LISFLOODFP_MUSK::InitialOutputs() {
 		m_rteWtrOut[i] = 0.f;
 		//ljj++
 		if (m_islake[i] == 1) {
-			m_lakedpini[i] = pow(m_lakevol[i] * 1.e-9f / (m_A_Va[i]), 1.0 / (m_A_Vb[i])); //³õÖµ¸ÄÁË
-			m_lakedp[i] = m_lakedpini[i]; //³õÖµ¸ÄÁË
+			m_lakedpini[i] = pow(m_lakevol[i] * 1.e-9f / (m_A_Va[i]), 1.0 / (m_A_Vb[i])); //åˆå€¼æ”¹äº†
+			m_lakedp[i] = m_lakedpini[i]; //åˆå€¼æ”¹äº†
 		}
 		curBasinArea[i] = 0.f;
 		curBasinDem[i] = 0.f;
@@ -1212,7 +1212,7 @@ void LISFLOODFP_MUSK::InitialOutputs() {
 					LisFloodFP_Initilize(LFPPtrs.argc, LFPPtrs.argv, &LFPPtrs.Arrptr, &LFPPtrs.FpsPtr, &LFPPtrs.Fnameptr, &LFPPtrs.Statesptr, &LFPPtrs.Parptr, &LFPPtrs.Solverptr, &LFPPtrs.Poisptr, &LFPPtrs.BCptr, &LFPPtrs.Stageptr,
 						&LFPPtrs.SGCptr, &LFPPtrs.Damptr, &LFPPtrs.ChannelSegmentsVecPtr, &LFPPtrs.LFPContextPtr, &(coupling_map[reachIndex]), &LFPPtrs.Super_linksptr, LFPPtrs.tmpFileNamePtr, LFPPtrs.tmpSysCmdPtr);
 
-					
+
 				}
 			}
 
@@ -1304,7 +1304,7 @@ int LISFLOODFP_MUSK::Execute() {
 						//else {
 						//	upstream.qIn = (qsUp + qiUp + qgUp)*50.0;
 						//}
-						
+
 					}
 					LISFLOODFPPtrs& LFPPtrs = ptrs_map[reachIndex];
 					LISFLOODFPContext* LFPContextPtr = &LFPPtrs.LFPContextPtr;
@@ -1316,9 +1316,12 @@ int LISFLOODFP_MUSK::Execute() {
 						updateCurrentTimestamp(&current_timestamp, LFPContextPtr);
 						// The simulation starts at the begin time of lisfloodfp, but it must end at the end of a SEIMS time step.
 						// This means lisfloodfp may run slightly longer than expected if its end time is not aligned with SEIMS.
-						while (current_timestamp >= seims_cur_step_start_timestamp && current_timestamp <= seims_cur_step_end_timestamp) {
-							Fast_RunStep(&LFPPtrs.Arrptr, &LFPPtrs.FpsPtr, &LFPPtrs.Fnameptr, &LFPPtrs.Statesptr, &LFPPtrs.Parptr, &LFPPtrs.Solverptr, &LFPPtrs.Poisptr, &LFPPtrs.SGCptr, &LFPPtrs.Damptr, &LFPPtrs.Locptr, LFPContextPtr, &LFPPtrs.Super_linksptr, &coupling_map[reachIndex]);
-							updateCurrentTimestamp(&current_timestamp, LFPContextPtr);
+#pragma omp parallel default(shared)
+						{
+							while (current_timestamp >= seims_cur_step_start_timestamp && current_timestamp <= seims_cur_step_end_timestamp) {
+								Fast_RunStep(&LFPPtrs.Arrptr, &LFPPtrs.FpsPtr, &LFPPtrs.Fnameptr, &LFPPtrs.Statesptr, &LFPPtrs.Parptr, &LFPPtrs.Solverptr, &LFPPtrs.Poisptr, &LFPPtrs.SGCptr, &LFPPtrs.Damptr, &LFPPtrs.Locptr, LFPContextPtr, &LFPPtrs.Super_linksptr, &coupling_map[reachIndex]);
+								updateCurrentTimestamp(&current_timestamp, LFPContextPtr);
+							}
 						}
 						// sum and average
 						NUMERIC_TYPE qOutOneSeimsStepSum = accumulate(coupling_map[reachIndex].qOutList.begin(), coupling_map[reachIndex].qOutList.end(), static_cast<NUMERIC_TYPE>(0));
@@ -1326,7 +1329,7 @@ int LISFLOODFP_MUSK::Execute() {
 						//NUMERIC_TYPE qOutOneSeimsStepSum = 864000.0;
 						int lfpSubbasinNum = coupling_map[reachIndex].lfp_ids.size();
 						// if config is  16:06601200,18:06602400-16,15,14,-13, means lfp's subbasin contains 16,15,14 series, then qout of 16 and 15 will be zero, qout of 16(most downstream in the three) will be recorded and set as input of 13   
-						for (int i = 0; i < lfpSubbasinNum-1; i++)
+						for (int i = 0; i < lfpSubbasinNum - 1; i++)
 						{
 							int subbasinId = coupling_map[reachIndex].lfp_ids[i];
 							m_qsRchOut[subbasinId] = 0.0;
@@ -1449,20 +1452,20 @@ void LISFLOODFP_MUSK::parseCouplingFile(
 ) {
 	ifstream infile(filepath);
 	if (!infile.is_open()) {
-		cerr << "ÎÞ·¨´ò¿ªÎÄ¼þ£º" << filepath << endl;
+		cerr << "æ— æ³•æ‰“å¼€æ–‡ä»¶ï¼š" << filepath << endl;
 		return;
 	}
 
 	string line;
 	while (getline(infile, line)) {
-		// È¥³ýÇ°ºó¿Õ°×
+		// åŽ»é™¤å‰åŽç©ºç™½
 		line.erase(0, line.find_first_not_of(" \t\r\n"));
 		line.erase(line.find_last_not_of(" \t\r\n") + 1);
 
-		// Ìø¹ý¿ÕÐÐºÍ×¢ÊÍ
+		// è·³è¿‡ç©ºè¡Œå’Œæ³¨é‡Š
 		if (line.empty() || line[0] == '#') continue;
 
-		// °´ '-' ·ÖÎª£ºÉÏÓÎinflows¡¢LFP×ÓÁ÷Óò×é¡¢ÏÂÓÎSEIMS
+		// æŒ‰ '-' åˆ†ä¸ºï¼šä¸Šæ¸¸inflowsã€LFPå­æµåŸŸç»„ã€ä¸‹æ¸¸SEIMS
 		vector<string> segments;
 		stringstream ss(line);
 		string segment;
@@ -1471,18 +1474,18 @@ void LISFLOODFP_MUSK::parseCouplingFile(
 		}
 
 		if (segments.size() != 3) {
-			cerr << "¸ñÊ½´íÎó£¨Ó¦Îª ÉÏÓÎ,ÉÏÓÎ - LFP×é - ÏÂÓÎ£©£º" << line << endl;
+			cerr << "æ ¼å¼é”™è¯¯ï¼ˆåº”ä¸º ä¸Šæ¸¸,ä¸Šæ¸¸ - LFPç»„ - ä¸‹æ¸¸ï¼‰ï¼š" << line << endl;
 			continue;
 		}
 
-		// 1. ÉÏÓÎ inflow ½âÎö£¨¶à¸ö inflow ÓÃ ',' ·Ö¸ô£©
+		// 1. ä¸Šæ¸¸ inflow è§£æžï¼ˆå¤šä¸ª inflow ç”¨ ',' åˆ†éš”ï¼‰
 		map<string, SeimsUpstream> seims_up_map;
 		stringstream upstream_ss(segments[0]);
 		string inflow_item;
 		while (getline(upstream_ss, inflow_item, ',')) {
 			auto colon_pos = inflow_item.find(':');
 			if (colon_pos == string::npos) {
-				cerr << "ÉÏÓÎ inflow È±ÉÙ ':' ·Ö¸ô·û: " << inflow_item << endl;
+				cerr << "ä¸Šæ¸¸ inflow ç¼ºå°‘ ':' åˆ†éš”ç¬¦: " << inflow_item << endl;
 				continue;
 			}
 
@@ -1504,7 +1507,7 @@ void LISFLOODFP_MUSK::parseCouplingFile(
 			seims_up_map[inflow_name_str] = upstream;
 		}
 
-		// 2. LFP ×ÓÁ÷Óò×é£¨ÓÃ ',' ·Ö¸ô£©
+		// 2. LFP å­æµåŸŸç»„ï¼ˆç”¨ ',' åˆ†éš”ï¼‰
 		vector<int> lfp_ids;
 		stringstream lfp_ss(segments[1]);
 		string id_token;
@@ -1513,12 +1516,12 @@ void LISFLOODFP_MUSK::parseCouplingFile(
 				lfp_ids.push_back(stoi(id_token));
 			}
 			catch (...) {
-				cerr << "×ÓÁ÷ÓòID½âÎöÊ§°Ü£º" << id_token << endl;
+				cerr << "å­æµåŸŸIDè§£æžå¤±è´¥ï¼š" << id_token << endl;
 			}
 		}
 
 		if (lfp_ids.empty()) {
-			cerr << "LFP×ÓÁ÷ÓòÁÐ±íÎª¿Õ£º" << line << endl;
+			cerr << "LFPå­æµåŸŸåˆ—è¡¨ä¸ºç©ºï¼š" << line << endl;
 			continue;
 		}
 
@@ -1529,17 +1532,17 @@ void LISFLOODFP_MUSK::parseCouplingFile(
 			lfpSetOther.insert(lfp_ids[i]);
 		}
 
-		// 3. ÏÂÓÎ SEIMS ×ÓÁ÷Óò ID
+		// 3. ä¸‹æ¸¸ SEIMS å­æµåŸŸ ID
 		int seims_down_id;
 		try {
 			seims_down_id = stoi(segments[2]);
 		}
 		catch (...) {
-			cerr << "ÏÂÓÎSEIMS ID½âÎöÊ§°Ü£º" << segments[2] << endl;
+			cerr << "ä¸‹æ¸¸SEIMS IDè§£æžå¤±è´¥ï¼š" << segments[2] << endl;
 			continue;
 		}
 
-		// 4. Ð´Èë coupling_map
+		// 4. å†™å…¥ coupling_map
 		LfpCouplingInfo info;
 		info.seims_up_map = seims_up_map;
 		info.seims_down_id = seims_down_id;
@@ -1552,7 +1555,7 @@ void LISFLOODFP_MUSK::parseCouplingFile(
 
 		LFPPtrs.argc = 2;
 		LFPPtrs.argv[0] = "-v";
-		LFPPtrs.argv[1] = "F:\\BasinFloodData\\BasinFloodData1729687482509\\prepdata\\Basin\\lisfloodfp\\test.par";
+		LFPPtrs.argv[1] = "F:\\BasinFloodData\\BasinFloodData1729687482509\\prepdata\\Basin\\lisfloodfp\\test-seims.par";
 		LFPPtrs.counter = 0;
 		//LFPPtrs.Arrptr = Arrays();
 		//LFPPtrs.FpsPtr = Files();

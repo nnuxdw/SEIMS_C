@@ -1958,11 +1958,11 @@ void LoadBCs_SEIMS(Fnames *Fnameptr, States *Statesptr, Pars *Parptr, BoundCs *B
 		BCptr->BC_Name[i * 80] = '\0';
 	}
 
-	if (strlen(Fnameptr->bcifilename) == 0)
-	{
-		if (verbose == ON) printf("No bcifile used\n");
-		return;
-	}
+	//if (strlen(Fnameptr->bcifilename) == 0)
+	//{
+	//	if (verbose == ON) printf("No bcifile used\n");
+	//	return;
+	//}
 	if (Statesptr->use_seims_bc == ON)
 	{
 		fp = fopen_or_die(Fnameptr->seims_bcifilename, "rb", "Loading boundary condition IDs\n", verbose);

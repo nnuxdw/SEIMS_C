@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 /*
 #####################################################################################
 LISFLOOD-FP flood inundation model
@@ -90,6 +90,7 @@ void RunTests();
 //#define NUMERIC_INT int
 #define NUMERIC_TYPE_NAME "double"
 #define NUM_FMT "lf"
+#define INT_FMT "d"
 #define FMAX fmax
 #define FMIN fmin
 #define POW pow
@@ -221,7 +222,7 @@ const NUMERIC_TYPE ZERO_LIMIT = 0.00001;
 
 /*! A approximation of Zero */
 #ifndef UTIL_ZERO
-#define UTIL_ZERO       1.0e-6f
+#define UTIL_ZERO 1.0e-6
 #endif /* UTIL_ZERO */
 /*
 *****************************************************************************
@@ -1284,6 +1285,7 @@ struct Solver {
 	char seims_begin_time[256];
 	char seims_end_time[256];
 	int rain_time_step;   // 降雨间隔时间 s
+	int OMP_NUM_THREADS;
 };
 
 

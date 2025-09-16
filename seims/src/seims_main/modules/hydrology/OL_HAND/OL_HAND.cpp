@@ -3,10 +3,12 @@
 #include <set> 
 #include "text.h"
 
+
 OL_HAND::OL_HAND() :
 	m_dt(-1), m_inputSubbsnID(-1), m_nCells(-1), m_nSubbsns(-1),
 	m_chWth(nullptr), m_chDepth(nullptr), m_chLen(nullptr), m_islake(nullptr), m_handWtrDep(nullptr), m_chBedMeanElev(nullptr), m_isres(nullptr),
-	curLev(0), levCounter(0){
+	curLev(0), levCounter(0), m_isHandFlooded(nullptr), m_subbasinInundationArea(nullptr), m_sumInundationArea(0),m_outletID(-1)
+  {
 }
 
 OL_HAND::~OL_HAND() {
@@ -22,6 +24,7 @@ void OL_HAND::SetValue(const char* key, const float value) {
 	//else if (StringMatch(sk, Tag_CellWidth)) m_CellWth = value;
 	else if (StringMatch(sk, VAR_SUBBSNID_NUM)) m_nSubbsns = CVT_INT(value);
 	else if (StringMatch(sk, Tag_SubbasinId)) m_inputSubbsnID = CVT_INT(value);
+	else if (StringMatch(sk, VAR_OUTLETID)) m_outletID = CVT_INT(value);
 	else {
 		throw ModelException(MID_IUH_OL, "SetValue", "Parameter " + sk + " does not exist.");
 	}
@@ -100,11 +103,16 @@ void OL_HAND::InitialOutputs() {
 	if (m_Hands.empty())
 	{
 		m_handWtrDep = new(nothrow) float[m_nCells];
+		m_isHandFlooded = new(nothrow) float[m_nCells];
+		m_subbasinInundationArea = new(nothrow) float[m_nreach + 1];
+
 		// load floodstep
-		string txt_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\11.159084_48.120933\\rundata\\FloodStep.txt";
+		string txt_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\poyang_lake1\\rundata\\FloodStep.txt";
+		//string txt_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/FloodStep.txt";
 		LoadHandIdsToChHandLevels(txt_filename, m_Hands);
 		// load 
-		string csv_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\11.159084_48.120933\\rundata\\InundationMap.csv";
+		string csv_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\poyang_lake1\\rundata\\InundationMap.csv";
+		//string csv_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/InundationMap.csv";
 		loadHandFromCSVIntoVector(csv_filename,m_Hands);
 		
 		// initialize water depth of each level
@@ -115,6 +123,7 @@ void OL_HAND::InitialOutputs() {
 
 			for (int i = 1; i <= m_Hands[sbid].n_levels; ++i) {
 				m_Hands[sbid].levels[i].m_levelWtrDep = 0.0;
+				//cout << "sbid: " << sbid << " level: " << i << endl;
 			}
 		}
 		for (int sbid = 1; sbid <= m_nreach; ++sbid) {
@@ -174,7 +183,7 @@ int OL_HAND::Execute() {
 				}
 				else {
 					//m_bankSto[reachIndex] = m_Hands[reachIndex].volToAdd;
-					HandInundation_BinarySearch(reachIndex, m_bankSto[reachIndex]);
+					HandInundation_BinarySearch(reachIndex, m_chSto[reachIndex]);
 				}
 				
 			}
@@ -189,7 +198,21 @@ void OL_HAND::Get1DData(const char* key, int* n, float** data) {
 	if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
 	*data = m_handWtrDep;
 	*n = m_nCells;
+	}else if (StringMatch(sk, VAR_IS_HAND_FLOODED)) {
+		*data = m_isHandFlooded;
+		*n = m_nCells;
+	}else if (StringMatch(sk, VAR_SUBBASIN_FLOODED_AREA)) {
+		m_subbasinInundationArea[0] = m_subbasinInundationArea[m_outletID];
+		*data = m_subbasinInundationArea;
 	}
+	//else if (StringMatch(sk, VAR_CHWTRDEPTH)) {
+	//	m_chWtrDepth[0] = m_chWtrDepth[m_outletID];
+	//	*data = m_chWtrDepth;
+
+	//}
+
+
+	
 }
 
 void OL_HAND::Get2DData(const char* key, int* n, int* col, float*** data) {
@@ -216,7 +239,7 @@ void OL_HAND::updateLowerHandsWtrDep(const int reachId) {
 }
 
 void OL_HAND::updateAllHandsWtrDep(const int reachId) {
-
+	float inundationArea = 0.0;
 	//m_Hands[reachId].levels[lev].m_levelWtrDep = 0.0;
 	for (int ll = 1; ll <= m_Hands[reachId].n_levels; ll++)
 	{
@@ -224,8 +247,18 @@ void OL_HAND::updateAllHandsWtrDep(const int reachId) {
 		{
 			int handId = m_Hands[reachId].levels[ll].handIds[idx];
 			m_handWtrDep[handId] = m_Hands[reachId].levels[ll].m_levelWtrDep;
+			if (m_handWtrDep[handId] > FLOOD_DEPTH_THRESH)
+			{
+				m_isHandFlooded[handId] = 1.0;
+				inundationArea += m_handArea[handId];
+			}
+			else {
+				m_isHandFlooded[handId] = 0.0;
+			}
 		}
 	}
+	m_subbasinInundationArea[reachId] = inundationArea * 0.000001;
+	//m_chWtrDepth[reachId] = m_Hands[reachId].levels[1].m_levelWtrDep;
 	return;
 }
 
@@ -556,6 +589,7 @@ void OL_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 	}
 
 	file.close();
+	cout << "Finished loading Inundation data from file: " << csvPath << endl;
 }
 
 

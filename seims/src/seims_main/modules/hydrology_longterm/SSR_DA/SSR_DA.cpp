@@ -100,15 +100,17 @@ bool SSR_DA::FlowInSoil(const int id) {
         m_soilWtrSto[id][j] += qUp; // mm
 
 #ifdef DEBUG_SSR_DA
-		if (CVT_INT(m_subbsnID[id]) == 173)
+		if (CVT_INT(m_subbsnID[id]) == 173 && id == 2562)
 		{
 			if (m_soilWtrSto[id][j] <= m_soilAWC[id][j]) {
 				std::cout << "----------- Subsurface Flow Debug Info -----------" << std::endl;
 				std::cout << "  HRU ID                : " << id << std::endl;
 				std::cout << "  Soil Layer            : " << j << " / " << m_nSoilLyrs[id] << std::endl;
 				std::cout << "  Soil Moisture (before): " << smOld << " mm" << std::endl;
-				std::cout << "  Field Capacity (AWC)  : " << m_soilAWC[id][j] << " mm" << std::endl;
 				std::cout << "  Soil Moisture (after) : " << m_soilWtrSto[id][j] << " mm" << std::endl;
+				std::cout << "  Field Capacity (AWC)  : " << m_soilAWC[id][j] << " mm" << std::endl;
+				std::cout << "  Soil Saturation    (UL)  : " << m_soilSat[id][j] << " mm" << std::endl;
+				//std::cout << "  Field Capacity (FC)   : " << m_soilFC[id][j] << " mm" << std::endl;
 				std::cout << "--------------------------------------------------" << std::endl;
 
 				std::cout << endl;
@@ -262,7 +264,7 @@ bool SSR_DA::FlowInSoil(const int id) {
         m_soilWtrStoPrfl[id] += m_soilWtrSto[id][j];
 
 #ifdef DEBUG_SSR_DA
-		if (CVT_INT(m_subbsnID[id]) == 173)
+		if (CVT_INT(m_subbsnID[id]) == 173 && id == 2562)
 		{
 			std::cout << "----------- Subsurface Flow Debug Info -----------" << std::endl;
 			std::cout << "  HRU ID                : " << id << std::endl;
@@ -275,12 +277,12 @@ bool SSR_DA::FlowInSoil(const int id) {
 			std::cout << "  Percolation           : " << m_soilPerco[id][j] << " mm" << std::endl;
 			std::cout << "  Soil MoistNex (before): " << soilWtrStoNexLyrOld << " mm" << std::endl;
 			std::cout << "  Soil MoistNex (after) : " << m_soilWtrSto[id][j + 1] << " mm" << std::endl;
-			std::cout << "  Percolation           : " << m_soilPerco[id][j] << " mm" << std::endl;
 			
 			std::cout << "  surFlow (before)      : " << surFlowOld << " mm" << std::endl;
 			std::cout << "  surFlow (after)       : " << m_surfRf[id] << " mm" << std::endl;
 			std::cout << "  Soil Saturation       : " << m_soilSat[id][j] << " mm" << std::endl;
 			std::cout << "  Field Capacity (AWC)  : " << m_soilAWC[id][j] << " mm" << std::endl;
+			//std::cout << "  Field Capacity (FC)   : " << m_soilFC[id][j] << " mm" << std::endl;
 			std::cout << "  Ks                    : " << m_ks[id][j] << " mm/h" << std::endl;
 			std::cout << "  TTlag                 : " << m_TTlag[id][j] << " [-]" << std::endl;
 			std::cout << "  flowWidth             : " << flowWidth << " m" << std::endl;
@@ -432,7 +434,11 @@ void SSR_DA::Set2DData(const char* key, const int nrows, const int ncols, float*
         CheckInputSize2D(MID_SSR_DA, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
         //m_soilFC = data;
         m_soilAWC = data;
-    } else if (StringMatch(sk, VAR_SOL_WPMM)) {
+    }else if (StringMatch(sk, VAR_FIELDCAP)) {
+		CheckInputSize2D(MID_SSR_DA, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
+		m_soilFC = data;
+	}
+	else if (StringMatch(sk, VAR_SOL_WPMM)) {
         CheckInputSize2D(MID_SSR_DA, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
         m_soilWP = data;
     } else if (StringMatch(sk, VAR_POREIDX)) {
@@ -493,7 +499,8 @@ void SSR_DA::Get2DData(const char* key, int* nrows, int* ncols, float*** data) {
         *data = m_subSurfRfVol;
     }else if (StringMatch(sk, VAR_SOL_ST)) {
 		*data = m_soilWtrSto;
-
+	}else if (StringMatch(sk, VAR_PERCO)) {
+		*data = m_soilPerco;
 	}
 	else {
         throw ModelException(MID_SSR_DA, "Get2DData", "Output " + sk + " does not exist.");

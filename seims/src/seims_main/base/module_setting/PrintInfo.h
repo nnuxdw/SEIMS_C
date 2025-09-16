@@ -30,6 +30,7 @@ enum AggregationType {
     AT_Maximum = 4,      ///< maximum
     AT_SpecificCells = 5, ///< specific cells
 	AT_RasterTimeSeries = 6,   /// raster time series
+	AT_RasterTimeSeriesAvg = 8,   /// raster time series, avg
 	AT_All = 7
 	
 };
@@ -147,6 +148,9 @@ public:
     static AggregationType MatchAggregationType(string type);
 
 	void Aggregate1DArrayData(time_t time, int numrows, float* data);
+
+	void Aggregate1DArrayDataAvg(time_t time, int numrows, float* data);
+	
 
 private:
     //! Scenario ID

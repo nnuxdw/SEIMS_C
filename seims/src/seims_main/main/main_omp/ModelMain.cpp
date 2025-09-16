@@ -257,7 +257,7 @@ void ModelMain::AppendOutputData(const time_t time) {
                     module->Get1DData(keyName, &n, &data);
 					
 					// xiaodw add, if AggType is TS, means you want to output all subbasin's or reach's data, else means you only output one specific subbasin's or reach's data
-					if (StringMatch(item->AggType ,"TS"))
+					if (StringMatch(item->AggType , Tag_TimeSeries))
 					{
 						item->Aggregate1DArrayData(time, n, data);
 						/*float* temp = new float[n];
@@ -268,6 +268,10 @@ void ModelMain::AppendOutputData(const time_t time) {
 						item->TimeSeriesDataForSubbasinCount = n;*/
 						//item->AggregateData(time, n, data);
 					}
+					// xiaodw, I aimed to let it support outputing monthly or yearly average value for each subbasin, but failed because it can't add a type 
+					//else if (StringMatch(item->AggType, Tag_TimeSeriesAvg)){
+					//	item->Aggregate1DArrayDataAvg(time, n, data);
+					//}
 					else {
 						item->TimeSeriesData[time] = data[index];
 					}
@@ -300,7 +304,10 @@ void ModelMain::AppendOutputData(const time_t time) {
 						//xdw++
 						StringMatch(param->BasicName, VAR_SOL_ST)  ||// soil water balance
 						StringMatch(param->BasicName, VAR_FIELDCAPDEP) ||
-						StringMatch(param->BasicName, VAR_POROSTDEP)
+						StringMatch(param->BasicName, VAR_POROSTDEP) ||
+						StringMatch(param->BasicName, VAR_PERCO) ||
+						StringMatch(param->BasicName, VAR_SOL_AWC) ||
+						StringMatch(param->BasicName, VAR_SOL_UL)
                     ) {
                         // TODO: more conditions will be added in the future.
                         //for modules in which only the results of output subbasins are calculated.

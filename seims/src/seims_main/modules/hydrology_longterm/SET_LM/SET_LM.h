@@ -62,5 +62,10 @@ private:
     float m_soilFrozenTemp; ///< Freezing temperature
 
     float* m_soilET; ///< Output, actual soil evaporation
+
+	//xdw++
+	/// number of routing layers
+	int m_nRteLyrs;
+	float **m_rteLyrs;
 };
 #endif /* SEIMS_MODULE_SET_LM_H */

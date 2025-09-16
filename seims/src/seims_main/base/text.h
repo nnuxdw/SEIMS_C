@@ -113,6 +113,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define Tag_Maximum                            "MAX"
 #define Tag_SpecificCells                      "SPECIFIC"
 #define Tag_TimeSeries							"TS"
+#define Tag_TimeSeriesAvg							"TS_AVG"
 
 #define TAG_OUT_QOUTLET                        "QOUTLET"
 #define TAG_OUT_QTOTAL                         "QTotal"
@@ -829,6 +830,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_QCH "QCH"
 #define VAR_OLFLOW "OL_Flow" /// m_surfRf, overland flow in each cell calculated during overland routing
 #define VAR_OL_HAND_WTRDEP "OL_Hand_WTRDEP" /// m_surfRf, overland flow in each cell calculated during overland routing
+#define VAR_IS_HAND_FLOODED "m_isHandFlooded" /// are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water 
+#define VAR_SUBBASIN_FLOODED_AREA "m_chInundationArea"  // sum of  flooded hand's area in  each subbasin
 #define VAR_QG "QG" /// m_qgRchOut, Groundwater discharge at each reach outlet and at each time step
 #define VAR_QI "QI" /// m_qiRchOut, Interflow at each reach outlet and at each time step
 #define VAR_QOVERLAND "QOverland"
@@ -1593,6 +1596,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_PUPDIS "Phosphorus uptake distribution parameter"
 #define DESC_QCH "Flux in the downslope boundary of cells"
 #define DESC_OLFLOW "overland flow in each cell calculated during overland routing"
+#define DESC_IS_HAND_FLOODED "are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water "
+#define DESC_SUBBASIN_FLOODED_AREA "sum of  flooded hand's area in  each subbasin"
 #define DESC_QG "Groundwater discharge at each reach outlet"
 #define DESC_QI "Interflow at each reach outlet"
 #define DESC_QOVERLAND "Water discharge in the downslope boundary of cells"
@@ -2124,6 +2129,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define REACH_BED_MIN_ELEV                       "Bed_Min_Elev"
 #define REACH_BED_START_ELEV                       "Bed_Start_Elev"
 #define REACH_BED_END_ELEV                       "Bed_End_Elev"
+// xiaodw add, this is not water level, it's HAND's level, eg. 1,2,3,4,5...
+#define REACH_LAKE_HAND_LEVEL_INI                      "Lake_Hand_Level_Ini" 
 
 #define DESC_GWH                             "groundwater height"
 #define DESC_GW_SH                           "shallow groundwater stroage"

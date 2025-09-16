@@ -293,8 +293,13 @@ void SUR_MR::Get2DData(const char* key, int* nRows, int* nCols, float*** data) {
 		*data = m_soilFCDepth;
 	}
 	else if (StringMatch(sk, VAR_POROSTDEP)) {
-
 		*data = m_soilPorDepth;
+	}
+	else if (StringMatch(sk, VAR_SOL_UL)) {
+		*data = m_soilSat;
+	}
+	else if (StringMatch(sk, VAR_SOL_AWC)) {
+		*data = m_soilAWC;
 	}
 	else {
         throw ModelException(MID_SUR_MR, "Get2DData", "Output " + sk + " does not exist.");

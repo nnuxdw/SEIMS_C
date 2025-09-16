@@ -97,3 +97,6 @@ node_modules
 # debug doxygen locally
 @CMAKE_CURRENT_BINARY_DIR@
 /.vs
+#
+##xiaodw add, ingore c++ code for pycharm
+#seims/src/*

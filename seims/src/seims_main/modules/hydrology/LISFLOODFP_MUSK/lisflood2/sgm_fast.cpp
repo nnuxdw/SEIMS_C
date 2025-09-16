@@ -3328,6 +3328,12 @@ inline void RouteSubSurface(const int row_start, int row_end,
 			fract_used = 0.0f;
 			water_out_road = 0.0;
 			int index = i + grid_row_index;
+			// xiaode, 当实际河道宽度大于栅格宽度时，multi_adjustPD等于0，此时不计算壤中流和渗漏，否则adjust作为分母更新土壤湿度，会引入bug
+			if (Parptr->multi_adjustPD[Parptr->multi_nRootLyrs][index] < 1e-6)
+			{
+				Parptr->satFlowPD[index] = 0.0;
+				continue;
+			}
 			int source_index_this = row * Parptr->xsz + i;
 			// 计算河床底部以上的侧面高程，如果BankHeight>土壤厚度说明/河床以上存在裸露岩石，反之说明河床高程之下是土壤
 			//BankHeight = (Network[y][x].BankHeight > SoilMap[y][x].Depth) ?  SoilMap[y][x].Depth : Network[y][x].BankHeight;
@@ -3510,7 +3516,12 @@ inline void DistributeSatflow(const int row_start, int row_end,
 		if (dem_row[i] != DEM_NO_DATA) {
 			int index = i + grid_row_index;
 			int source_index_this = row * Parptr->xsz + i;
-
+			// xiaode, 当实际河道宽度大于栅格宽度时，multi_adjustPD等于0，此时不计算壤中流和渗漏，否则adjust作为分母更新土壤湿度，会引入bug
+			if (Parptr->multi_adjustPD[Parptr->multi_nRootLyrs][index] < 1e-6)
+			{
+				Parptr->satFlowPD[index] = 0.0;
+				continue;
+			}
 			DeepPorosity = Parptr->multi_soilPorosityPD[NRootLayers][index];
 			DeepFCap = Parptr->multi_soilFcPD[NRootLayers][index];
 
@@ -3982,7 +3993,11 @@ float WaterTableDepth(Pars *Parptr, const Solver *Solverptr, Arrays * Arrptr, St
 
 	MoistureTransfer = 0.0;
 
-
+	// xiaode, 当实际河道宽度大于栅格宽度时，multi_adjustPD等于0，此时不计算壤中流和渗漏，否则adjust作为分母更新土壤湿度，会引入bug
+	if (Parptr->multi_adjustPD[Parptr->multi_nRootLyrs][index] < 1e-6)
+	{
+		return 0.0;
+	}
 	DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
 	DeepPorosity = Parptr->multi_soilPorosityPD[NRootLayers][index];  // RootLayers的最后一层不是DeepLayer
 	DeepFCap = Parptr->multi_soilFcPD[NRootLayers][index];
@@ -4163,6 +4178,11 @@ inline void UnsaturatedFlow(const int row_start, int row_end,
 	{
 		if (dem_row[i] != DEM_NO_DATA) {
 			int index = i + grid_row_index;
+			// xiaode, 当实际河道宽度大于栅格宽度时，multi_adjustPD等于0，此时不计算壤中流和渗漏，否则adjust作为分母更新土壤湿度，会引入bug
+			if (Parptr->multi_adjustPD[Parptr->multi_nRootLyrs][index] < 1e-6)
+			{
+				continue;
+			}
 			DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
 			for (int lyr = 0; lyr < NRootLayers; lyr++)
 				DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
@@ -4309,6 +4329,11 @@ inline void UnsaturatedFlowGwVersion(const int row_start, int row_end,
 	{
 		if (dem_row[i] != DEM_NO_DATA) {
 			int index = i + grid_row_index;
+			// xiaode, 当实际河道宽度大于栅格宽度时，multi_adjustPD等于0，此时不计算壤中流和渗漏，否则adjust作为分母更新土壤湿度，会引入bug
+			if (Parptr->multi_adjustPD[Parptr->multi_nRootLyrs][index] < 1e-6)
+			{
+				continue;
+			}
 			DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
 			for (int lyr = 0; lyr < NRootLayers; lyr++)
 				DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
@@ -4508,7 +4533,11 @@ inline void UnsaturatedFlowGwVersionV2(const int row_start, int row_end,
 			//DeepLayerDepth = Parptr->soilThicknessAllLyrsPD[index];
 			//for (int lyr = 0; lyr < NRootLayers; lyr++)
 			//	DeepLayerDepth -= Parptr->multi_soilThicknessPD[lyr][index];
-
+						// xiaode, 当实际河道宽度大于栅格宽度时，multi_adjustPD等于0，此时不计算壤中流和渗漏，否则adjust作为分母更新土壤湿度，会引入bug
+			if (Parptr->multi_adjustPD[Parptr->multi_nRootLyrs][index] < 1e-6)
+			{
+				continue;
+			}
 			DeepLayerDepth = Parptr->multi_soilThicknessPD[NRootLayers][index];
 			// 先计算最下层向地下水库渗漏
 			if (Parptr->GwStorageDepth < Parptr->GwStorageDepthMax)
@@ -5942,76 +5971,75 @@ void SGC2_PointSources_Vol_row(const int y, const int grid_cols,
 	const int row_cols_padded = ps_layout->row_cols_padded;
 	const int row_start = y * row_cols_padded;
 	WaterSource ps_info = ps_layout->ps_info;
-	
-		for (int i = 0; i < ps_count; i++)
-		{
-			int ws_index = row_start + i;
 
-			NUMERIC_TYPE h;
-			// Set initial dV and himp as zero
-			NUMERIC_TYPE dV = C(0.0);
-			int grid_index;
-			int ps_x = ps_info.ws_cell.sg_cell_x[ws_index];
-			int ps_y = ps_info.ws_cell.sg_cell_y[ws_index];
-			// location in vector
-			grid_index = ps_info.ws_cell.sg_cell_grid_index_lookup[ws_index];
+	for (int i = 0; i < ps_count; i++)
+	{
+		int ws_index = row_start + i;
 
-			if (Statesptr->use_seims_bc) {
-				char * bc_name = ps_info.Name[ws_index];
-				if (LfpCouplingInfoPtr->seims_up_map.count(bc_name)) {
-					dV = LfpCouplingInfoPtr->seims_up_map[bc_name].qIn * Q_multiplier * delta_time; // QFIX // Calculate change in volume
-					//cout << "ws_index: " << ws_index << "  grid_index: " << grid_index << "  dV: " << dV << endl;
-				}
+		NUMERIC_TYPE h;
+		// Set initial dV and himp as zero
+		NUMERIC_TYPE dV = C(0.0);
+		int grid_index;
+		int ps_x = ps_info.ws_cell.sg_cell_x[ws_index];
+		int ps_y = ps_info.ws_cell.sg_cell_y[ws_index];
+		// location in vector
+		grid_index = ps_info.ws_cell.sg_cell_grid_index_lookup[ws_index];
 
+		if (Statesptr->use_seims_bc) {
+			char * bc_name = ps_info.Name[ws_index];
+			if (LfpCouplingInfoPtr->seims_up_map.count(bc_name)) {
+				dV = LfpCouplingInfoPtr->seims_up_map[bc_name].qIn * Q_multiplier * delta_time; // QFIX // Calculate change in volume
+				//cout << "ws_index: " << ws_index << "  grid_index: " << grid_index << "  dV: " << dV << endl;
 			}
-			else {
+		}
+		else {
 
-				// different boundary conditions
-				switch (ps_info.Ident[ws_index])
-				{
-					//NOTE HVAR and HFIX applied after update H
-				case QVAR5: //QVAR ps.Val already set to the interpolated value
-				case QFIX4:
-					dV = ps_info.Val[ws_index] * Q_multiplier * delta_time; // QFIX // Calculate change in volume
-					break;
-				case FREE6:
-					h = h_grid[grid_index] + ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index];
-					if (h > depth_thresh)
-					{
-						NUMERIC_TYPE cell_width = getmin(dx_col[ps_y], dy_col[ps_y]);
-						NUMERIC_TYPE FP_g_friction_squared = ps_info.g_friction_squared_FP[ws_index];
-						NUMERIC_TYPE SGC_g_friction_squared = ps_info.g_friction_squared_SG[ws_index];
-
-						NUMERIC_TYPE q_free_FP_corrected = SGC2_CalcPointFREE(h_grid[grid_index], ps_info.ws_cell.sg_cell_SGC_width[ws_index], ps_info.Val[ws_index],
-							depth_thresh, delta_time, cell_width, g,
-							SGC_g_friction_squared, FP_g_friction_squared,
-							ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index], ps_info.ws_cell.sg_cell_SGC_group[ws_index],
-							-1, &ps_info.Q_FP_old[ws_index], &ps_info.Q_SG_old[ws_index], SGCptr, max_Froude);
-
-						NUMERIC_TYPE Qfree = q_free_FP_corrected + ps_info.Q_SG_old[ws_index];
-						dV = Qfree * delta_time;
-					}
-					break;
-				}
-
-			}
-			
-			if (dV != C(0.0))
+			// different boundary conditions
+			switch (ps_info.Ident[ws_index])
 			{
-				wet_dry_bounds->fp_vol[ps_y].start = min(wet_dry_bounds->fp_vol[ps_y].start, ps_x);
-				wet_dry_bounds->fp_vol[ps_y].end = max(wet_dry_bounds->fp_vol[ps_y].end, ps_x + 1);
-				// update the cell volume change and in point source Q
-				volume_row[ps_x] += dV; // Add volume to SGCdVol for use later by update H e.g wait for main update H before calculating H
-				// Update Qpoint
-				if (dV > 0)
-					Qpoint_timestep_pos += dV;
-				else
-					Qpoint_timestep_neg += dV;
+				//NOTE HVAR and HFIX applied after update H
+			case QVAR5: //QVAR ps.Val already set to the interpolated value
+			case QFIX4:
+				dV = ps_info.Val[ws_index] * Q_multiplier * delta_time; // QFIX // Calculate change in volume
+				break;
+			case FREE6:
+				h = h_grid[grid_index] + ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index];
+				if (h > depth_thresh)
+				{
+					NUMERIC_TYPE cell_width = getmin(dx_col[ps_y], dy_col[ps_y]);
+					NUMERIC_TYPE FP_g_friction_squared = ps_info.g_friction_squared_FP[ws_index];
+					NUMERIC_TYPE SGC_g_friction_squared = ps_info.g_friction_squared_SG[ws_index];
+
+					NUMERIC_TYPE q_free_FP_corrected = SGC2_CalcPointFREE(h_grid[grid_index], ps_info.ws_cell.sg_cell_SGC_width[ws_index], ps_info.Val[ws_index],
+						depth_thresh, delta_time, cell_width, g,
+						SGC_g_friction_squared, FP_g_friction_squared,
+						ps_info.ws_cell.sg_cell_SGC_BankFullHeight[ws_index], ps_info.ws_cell.sg_cell_SGC_group[ws_index],
+						-1, &ps_info.Q_FP_old[ws_index], &ps_info.Q_SG_old[ws_index], SGCptr, max_Froude);
+
+					NUMERIC_TYPE Qfree = q_free_FP_corrected + ps_info.Q_SG_old[ws_index];
+					dV = Qfree * delta_time;
+				}
+				break;
 			}
 
 		}
-	
-	
+
+		if (dV != C(0.0))
+		{
+			wet_dry_bounds->fp_vol[ps_y].start = min(wet_dry_bounds->fp_vol[ps_y].start, ps_x);
+			wet_dry_bounds->fp_vol[ps_y].end = max(wet_dry_bounds->fp_vol[ps_y].end, ps_x + 1);
+			// update the cell volume change and in point source Q
+			volume_row[ps_x] += dV; // Add volume to SGCdVol for use later by update H e.g wait for main update H before calculating H
+			// Update Qpoint
+			if (dV > 0)
+				Qpoint_timestep_pos += dV;
+			else
+				Qpoint_timestep_neg += dV;
+		}
+
+	}
+
+
 
 	(*out_Qpoint_timestep_pos) = Qpoint_timestep_pos;
 	(*out_Qpoint_timestep_neg) = Qpoint_timestep_neg;
@@ -6194,7 +6222,7 @@ inline void SGC2_UpdateVol_floodplain_row(const int j, const int grid_row_index,
 			{
 				dV += Parptr->delta_volumn_dhsvm_PD[index];
 			}
-			
+
 			dV += delta_volume_row[i]; // delta_volume_row是栅格单元上的降雨-蒸发-下渗量
 			if (dV != C(0.0))
 			{
@@ -6314,7 +6342,7 @@ inline void SGC2_UpdateVol_floodplain_by_Q(const int j, const int grid_row_index
 			}
 
 			// xiaodw，如果是河道像元则统计多少水来自于河道像元本身的产流，多少水来自于河道像元的直接侧向输出，多少水来自于上游单元的地表
-			if (Statesptr->use_dhsvm == ON){
+			if (Statesptr->use_dhsvm == ON) {
 				if (Arrptr->SGCwidth[source_index_this] > C(0.0) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0)) {
 					// 来自洪泛区地表的水
 					Parptr->surflow2ChPD[index] = dV;
@@ -7967,6 +7995,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	//}
 
 	int thread_n = omp_get_thread_num();
+	//printf("LISFLOOD-FP omp thread %d\n", omp_get_thread_num());
 	NUMERIC_TYPE * tmp_row = tmp_thread_data[omp_get_thread_num()];
 	//NUMERIC_TYPE * tmp_row_ch = tmp_thread_data_ch[omp_get_thread_num()];
 
@@ -8671,6 +8700,17 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 						for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
 						{
 							// cm
+							NUMERIC_TYPE soilMoisture = Parptr->multi_soilMoisturePD[lyr][index];
+							NUMERIC_TYPE soilThickness = Parptr->multi_soilThicknessPD[lyr][index];
+							if (soilMoisture < 0.0 || soilThickness < 0.0 ||
+								std::isnan(soilMoisture) || std::isnan(soilThickness) ||
+								std::isinf(soilMoisture) || std::isinf(soilThickness)) {
+								cout << "error: index=" << index
+									<< " lyr=" << lyr
+									<< " soilMoisture=" << soilMoisture
+									<< " soilThickness=" << soilThickness
+									<< endl;
+							}
 							Parptr->multi_soilWaterDepthOfLyr[lyr] += Parptr->multi_soilMoisturePD[lyr][index] * Parptr->multi_soilThicknessPD[lyr][index] * 100.0;
 							if (Parptr->multi_soilPercoPD[lyr][index] > 0.0)
 							{
@@ -8997,7 +9037,7 @@ void Fast_RunStep(Arrays *Arrptr, Files *Fptr, Fnames *Fnameptr, States *Statesp
 			for (int j = 0; j < LFPContext->grid_cols_padded * LFPContext->grid_rows; j++)
 				LFPContext->evap_grid->data[j] /= (86400. * 1000.);  // convert from mm/day to m/s
 		}
-		
+
 		// read dynamic rain grid and write to rain grid
 		if (Statesptr->rainfallmask)
 		{

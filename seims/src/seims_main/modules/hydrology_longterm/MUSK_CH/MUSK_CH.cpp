@@ -1,8 +1,11 @@
-
+﻿
 #include "MUSK_CH.h"
 #include "utils_math.h"
 #include "text.h"
 #include "ChannelRoutingCommon.h"
+#include <map>
+#include <set> 
+#include "text.h"
 
 using namespace utils_math;
 
@@ -35,7 +38,9 @@ MUSK_CH::MUSK_CH() :
 	m_dem(nullptr), curBasinDem(nullptr), m_charge(nullptr), m_qin(nullptr), m_recharge(nullptr),
 	m_potRfCoef(nullptr), m_slope(nullptr), flowoutlength(nullptr), m_T_LKWB(nullptr),
 	m_resminq(nullptr), m_resndq(nullptr), m_resnormq(nullptr), m_res_normMult(nullptr), m_rrtime(nullptr),
-	m_lakeperc(nullptr), m_lakepcp(nullptr), m_chBedMeanElev(nullptr), m_chBedStartElev(nullptr), m_chBedEndElev(nullptr)
+	m_lakeperc(nullptr), m_lakepcp(nullptr), m_chBedMeanElev(nullptr), m_chBedStartElev(nullptr), m_chBedEndElev(nullptr),
+	// xiaodw ++
+	m_lakeHandLevelini(nullptr)
 {
 }
 
@@ -86,6 +91,8 @@ MUSK_CH::~MUSK_CH() {
 	if (nullptr != m_chBedMeanElev) Release1DArray(m_chBedMeanElev);
 	if (nullptr != m_chBedStartElev) Release1DArray(m_chBedStartElev);
 	if (nullptr != m_chBedEndElev) Release1DArray(m_chBedEndElev);
+	if (nullptr != m_lakeHandLevelini) Release1DArray(m_lakeHandLevelini);
+	
 }
 
 bool MUSK_CH::CheckInputData() {
@@ -109,6 +116,175 @@ bool MUSK_CH::CheckInputData() {
 	CHECK_POINTER(MID_MUSK_CH, m_ifluQ2Rch);
 	CHECK_POINTER(MID_MUSK_CH, m_gndQ2Rch);
 	return true;
+}
+
+void MUSK_CH::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_Hands) {
+	ifstream file(csvPath);
+	if (!file.is_open()) {
+		cerr << "Failed to open file: " << csvPath << endl;
+		return;
+	}
+
+	string line;
+	getline(file, line);  // 跳过表头
+
+	while (getline(file, line)) {
+		stringstream ss(line);
+		string token;
+		vector<string> tokens;
+
+		// 取前7个字段
+		for (int i = 0; i < 7 && getline(ss, token, ','); ++i) {
+			tokens.push_back(token);
+		}
+
+		// 第8列：AccDepth，会包含整个 "[0.0, ..., ...]" 的字符串
+		string accDepthStr;
+		getline(ss, accDepthStr, '"');  // 先跳过前引号
+		getline(ss, accDepthStr, '"');  // 获取中间数组字符串
+
+
+		// 解析基本字段
+		int subbasin = stoi(tokens[0]);
+		int lev = stoi(tokens[1]);
+
+		// 你的 vector 和结构校验逻辑
+		Hand& hand = m_Hands[subbasin];
+		if (lev >= hand.levels.size()) {
+			hand.levels.resize(lev + 1);
+		}
+
+		Level& level = hand.levels[lev];
+		level.m_levelDepth = stof(tokens[2]);
+		level.m_levelSumArea = stof(tokens[3]);
+		level.m_levelSumVol = stod(tokens[4]);
+		level.m_levelAvgDepth = stof(tokens[5]);
+		level.m_levelAccVol = stod(tokens[6]);
+
+		// 解析 AccDepth 数组
+		vector<float> accDepthVec = parseAccDepthArray(accDepthStr);
+		level.m_levelLowerAccDepth = new float[accDepthVec.size()];
+		for (size_t i = 0; i < accDepthVec.size(); ++i) {
+			level.m_levelLowerAccDepth[i] = accDepthVec[i];
+		}
+
+		hand.n_levels = max(hand.n_levels, lev);
+	}
+
+	file.close();
+	cout << "Finished loading Inundation data from file: " << csvPath << endl;
+}
+
+
+void MUSK_CH::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_Hands) {
+	ifstream infile(filename);
+	if (!infile.is_open()) {
+		cerr << "Failed to open file: " << filename << endl;
+		return;
+	}
+
+	int max_sbid = 0, max_level = 0;
+	string line;
+	getline(infile, line); // Skip header
+
+	map<pair<int, int>, int> handCounts;
+	map<int, set<int> > subbasinLevels; // <sbid, set of levels>
+
+	// 第一次遍历：统计 hand 数和 level 数
+	while (getline(infile, line)) {
+		istringstream iss(line);
+		string hru_id_str, subbasin_str, level_str, interval_str, depth_str;
+
+		if (!(iss >> hru_id_str >> subbasin_str >> level_str >> interval_str >> depth_str)) continue;
+
+		int sbid = (int)(stof(subbasin_str));
+		int level = (int)(stof(level_str));
+
+		if (sbid > max_sbid) max_sbid = sbid;
+		if (level > max_level) max_level = level;
+
+		handCounts[make_pair(sbid, level)]++;
+		subbasinLevels[sbid].insert(level); // 统计 level 数
+	}
+
+	if ((int)m_Hands.size() <= max_sbid) {
+		m_Hands.resize(max_sbid + 1);
+	}
+
+	for (int sbid = 0; sbid <= max_sbid; ++sbid) {
+		if (subbasinLevels.count(sbid)) {
+			m_Hands[sbid].n_levels = (int)subbasinLevels[sbid].size();
+		}
+	}
+
+	for (const auto& entry : handCounts) {
+		int sbid = entry.first.first;
+		int level = entry.first.second;
+		int count = entry.second;
+
+		if ((int)m_Hands[sbid].levels.size() <= level) {
+			m_Hands[sbid].levels.resize(level + 1);
+		}
+
+		m_Hands[sbid].levels[level].m_levelHandNum = count;
+		m_Hands[sbid].levels[level].handIds = new(nothrow) int[count];
+		//m_Hands[sbid].levels[level].m_chOverHeadVol = 0.0f;
+		m_Hands[sbid].levels[level].m_levelAvgDepth = 0.0f;
+	}
+
+	infile.clear();
+	infile.seekg(0, ios::beg);
+	getline(infile, line); // Skip header again
+
+	map<pair<int, int>, int> handIndex;
+
+	while (getline(infile, line)) {
+		istringstream iss(line);
+		string hru_id_str, subbasin_str, level_str, interval_str, depth_str;
+
+		if (!(iss >> hru_id_str >> subbasin_str >> level_str >> interval_str >> depth_str)) continue;
+
+		float hru_id_f = stof(hru_id_str);
+		float subbasin_f = stof(subbasin_str);
+		float level_f = stof(level_str);
+		float depth_f = stof(depth_str);
+
+		int sbid = (int)(subbasin_f);
+		int level = (int)(level_f);
+		int idx = handIndex[make_pair(sbid, level)]++;
+
+		m_Hands[sbid].levels[level].handIds[idx] = hru_id_f;
+
+		//if (idx == 0) {
+		//	m_Hands[sbid].levels[level].m_levelAvgDepth = depth_f;
+		//}
+
+	}
+
+	cout << "Finished loading HAND data from file: " << filename << endl;
+}
+
+vector<float> MUSK_CH::parseAccDepthArray(const std::string& str) {
+	std::vector<float> values;
+	std::string s = str;
+
+	// 去掉前后中括号
+	if (!s.empty() && s.front() == '[') s.erase(0, 1);              // 删除第一个字符
+	if (!s.empty() && s.back() == ']') s.erase(s.size() - 1);       // 删除最后一个字符
+
+
+	std::stringstream ss(s);
+	std::string token;
+
+	while (getline(ss, token, ',')) {
+		try {
+			values.push_back(std::stof(token));
+		}
+		catch (...) {
+			values.push_back(0.0f); // 防御错误
+		}
+	}
+	return values;
 }
 
 void MUSK_CH::InitialOutputs() {
@@ -166,6 +342,15 @@ void MUSK_CH::InitialOutputs() {
 	m_temp1 = new(nothrow) float[m_nreach + 1];
 	m_temp2 = new(nothrow) float[m_nreach + 1];
 	m_qin = new(nothrow) float[m_nreach + 1];
+
+	// load floodstep
+	string txt_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\poyang_lake1\\rundata\\FloodStep.txt";
+	//string txt_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/FloodStep.txt";
+	LoadHandIdsToChHandLevels(txt_filename, m_Hands);
+	// load 
+	string csv_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\poyang_lake1\\rundata\\InundationMap.csv";
+	//string csv_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/InundationMap.csv";
+	loadHandFromCSVIntoVector(csv_filename, m_Hands);
 	for (int i = 1; i <= m_nreach; i++) {
 		m_qRchOut[i] = m_olQ2Rch[i];
 		m_qsRchOut[i] = m_olQ2Rch[i];
@@ -197,11 +382,45 @@ void MUSK_CH::InitialOutputs() {
 		m_flowOut[i] = m_chSto[i];
 		m_rteWtrIn[i] = 0.f;
 		m_rteWtrOut[i] = 0.f;
+		//xiaodw modify for adapting HAND, remove ljj's initialize method
 		//ljj++
-		if (m_islake[i] == 1) {
-			m_lakedpini[i] = pow(m_lakevol[i] * 1.e-9f / (m_A_Va[i]), 1.0 / (m_A_Vb[i])); //初值改了
-			m_lakedp[i] = m_lakedpini[i]; //初值改了
+		//if (m_islake[i] == 1) {
+		//	m_lakedpini[i] = pow(m_lakevol[i] * 1.e-9f / (m_A_Va[i]), 1.0 / (m_A_Vb[i])); //初值改了
+		//	m_lakedp[i] = m_lakedpini[i]; //初值改了
+		//}
+		//if (m_islake[i] == 1) m_chSto[i] = m_lakevol[i];
+		//if (m_isres[i] == 1) m_chSto[i] = m_lakevol[i];
+
+		// and calculate initial storage  for lake , resovior and river, each has an initial depth and water volume, read  "m_lakeHandLevelini" from PARAMETERS table
+		
+		int lev = static_cast<int>(m_lakeHandLevelini[i]);
+		//cout << "lev " << lev << " i " << i << " m_lakeHandLevelini  " << m_lakeHandLevelini[i];
+		//if (lev < 1)
+		//{
+		//	throw ModelException(MID_MUSK_CH, "InitialOutputs", string("Lake ") + std::to_string(i) + " lev " + std::to_string(lev) + " illegal.");
+		//}
+		if (m_islake[i] == 1 || m_isres[i] == 1) {
+
+			m_lakedpini[i] = lev > 0 ? lev < m_Hands[i].n_levels ?  m_Hands[i].levels[1].m_levelLowerAccDepth[lev+1] : m_Hands[i].levels[1].m_levelLowerAccDepth[lev] : 0.0;
+			m_lakedp[i] = m_lakedpini[i];
+			m_chSto[i] = lev > 0 ? m_Hands[i].levels[lev].m_levelAccVol : 0.0;
+			//m_chSto[i] = lev > 0 ? m_Hands[i].levels[lev].m_levelAccVol : 0.0;
 		}
+		else {
+			//float channel_vol = m_chLen[i] * m_chDepth[i] * (m_chBtmWth[i] + m_chSideSlope[i] * m_chDepth[i]);
+			//m_chWtrDepth[i] = lev > 0 ? lev < m_Hands[i].n_levels ? (m_Hands[i].levels[1].m_levelLowerAccDepth[lev + 1] + m_chDepth[i]) : (m_Hands[i].levels[1].m_levelLowerAccDepth[lev] + m_chDepth[i]) : 0.0;
+			m_chWtrDepth[i] = lev > 0 ? lev < m_Hands[i].n_levels ? (m_Hands[i].levels[1].m_levelLowerAccDepth[lev + 1]) : (m_Hands[i].levels[1].m_levelLowerAccDepth[lev]) : 0.0;
+
+			m_chWtrWth[i] = m_chBtmWth[i] + 2.f * m_chSideSlope[i] * m_chWtrDepth[i];
+			// m_chSto is channel's volume plus bank's volume
+			//m_chSto[i] = lev > 0 ? (m_Hands[i].levels[lev].m_levelAccVol + channel_vol) : 0.0;
+			m_chSto[i] = lev > 0 ? (m_Hands[i].levels[lev].m_levelAccVol) : 0.0;
+			//m_bankSto[i] = lev > 0 ? m_Hands[i].levels[lev].m_levelAccVol : 0.0;
+		}
+		
+		m_flowIn[i] = m_chSto[i];
+		m_flowOut[i] = m_chSto[i];
+
 		curBasinArea[i] = 0.f;
 		curBasinDem[i] = 0.f;
 		m_prec[i] = 0.f;
@@ -214,8 +433,7 @@ void MUSK_CH::InitialOutputs() {
 		m_Ch2GW[i] = 0.f;
 		m_aquifer[i] = 0.f;
 		m_qin[i] = 0.f;
-		if (m_islake[i] == 1) m_chSto[i] = m_lakevol[i];
-		if (m_isres[i] == 1) m_chSto[i] = m_lakevol[i];
+
 	}
 	/// initialize point source loadings
 	if (nullptr == m_ptSub) {
@@ -615,7 +833,11 @@ void MUSK_CH::SetReaches(clsReaches* reaches) {
 	if (nullptr == m_chBedMeanElev) reaches->GetReachesSingleProperty(REACH_BED_MEAN_ELEV, &m_chBedMeanElev);
 	if (nullptr == m_chBedStartElev) reaches->GetReachesSingleProperty(REACH_BED_START_ELEV, &m_chBedStartElev);
 	if (nullptr == m_chBedEndElev) reaches->GetReachesSingleProperty(REACH_BED_END_ELEV, &m_chBedEndElev);
-
+	// xiaodw ++
+	if (nullptr == m_lakeHandLevelini)
+	{
+		reaches->GetReachesSingleProperty(REACH_LAKE_HAND_LEVEL_INI, &m_lakeHandLevelini);
+	}
 	m_reachUpStream = reaches->GetUpStreamIDs();
 	m_rteLyrs = reaches->GetReachLayers();
 }

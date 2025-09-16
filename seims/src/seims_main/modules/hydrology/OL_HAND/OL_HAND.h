@@ -11,6 +11,7 @@
 #include "SimulationModule.h"
 #include "Scenario.h"
 //#include "clsReach.h"
+#define FLOOD_DEPTH_THRESH 0.01
 
 using namespace bmps;
 using namespace std;
@@ -27,11 +28,11 @@ struct Level {
 	double m_levelSumArea;   /// area of each hand level, contains all levels' area lower than this level
 	float m_levelAvgDepth; /// average depth of each layer's all hands, equals (channel's overhead area + lower level's sum area * this level's depth + SUM(this level's hand's area * dem's avg depth in hand))
 	double m_levelSumVol;    /// area of each hand level, cooresponding to m_levelSumArea
-	double m_levelAccVol;              /// contains a level's vol and all lower level's vol
-	float* m_levelLowerAccDepth;
+	double m_levelAccVol;              /// contains a level's vol and all lower level's vol, m3
+	float* m_levelLowerAccDepth;   // m
 
 	int m_levelHandNum;          /// n layers of hand for each level
-	float m_levelWtrDep;              /// water depth of each level,mm. contains all water above  the level
+	float m_levelWtrDep;              /// water depth of each level,m. contains all water above  the level
 
 };
 
@@ -98,6 +99,7 @@ private:
 		
 	float* m_subbsnID;       /// subbasin grid (subbasins ID)
 	int m_nreach;                ///< reach number (= subbasin number)
+	int m_outletID;    ///< outlet ID, also can be derived by m_reachLayers.rbegin()->second[0];
 	float* m_chWth;           ///< channel top width (m)
 	float* m_chDepth;        ///< channel depth (m)
 	float* m_chLen;            ///< channel length (m)
@@ -120,6 +122,13 @@ private:
 	float* m_chBedMeanElev;   /// channel bed elevation (m)
 	//float* m_chOverHeadWth;    ///< channel top width
 	map<int, vector<int> > m_reachLayers;   	/// channels
+
+	// for CH4 module
+	float* m_isHandFlooded;
+
+	// for inundation area calibration
+	float* m_subbasinInundationArea;
+	float m_sumInundationArea;
 
 
 	// test

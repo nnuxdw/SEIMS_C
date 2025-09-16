@@ -1159,6 +1159,12 @@ void CheckParam(char* param_name, char* param_value_ptr, int line_number, Fnames
 		printf("rain_time_step changed to %" NUM_FMT" s \n", Solverptr->rain_time_step);
 		return;
 	}
+	// set OMP_NUM_THREADS in par file
+	if (read_integer_param(param_name, line_number, param_value_ptr, "OMP_NUM_THREADS", &Solverptr->OMP_NUM_THREADS, verbose, mode))
+	{
+		printf("OMP_NUM_THREADS changed to %" INT_FMT" \n", Solverptr->OMP_NUM_THREADS);
+		return;
+	}
 	//if (read_string_param(param_name, line_number, param_value_ptr, "use_distributed_rain", Fnameptr->distributeRainFile, verbose, mode))
 	//{
 	//	Statesptr->use_distributed_rain = ON;

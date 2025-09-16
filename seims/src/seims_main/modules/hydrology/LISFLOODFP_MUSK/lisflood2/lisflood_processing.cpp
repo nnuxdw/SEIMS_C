@@ -988,23 +988,7 @@ void InitSubGridStructureByRows(SubGridState * sub_grid_state, SubGridRowList * 
 
 		}
 	}
-	//#ifdef _DEBUG
-	//	for (int j = 0; j < grid_rows; j++) {
-	//		const int source_row_index = j * Parptr->xsz;
-	//		for (int i = 0; i < Parptr->xsz; i++) {
-	//			int source_index_this = source_row_index + i;
-	//			int grid_index = j * grid_cols_padded + i;
-	//			if ((Arrptr->SGCwidth[source_index_this] > C(0.0)) && (Arrptr->DEM[source_index_this] != DEM_NO_DATA || Arrptr->ChanMask[source_index_this] > 0)) {
-	//				if (Fp_xwidth[grid_index] <= 0) {
-	//					cout << "Fp_xwidth[" << grid_index << "]: " << Fp_xwidth[grid_index] << endl;
-	//				}
-	//				if (Fp_ywidth[grid_index] <= 0) {
-	//					cout << "Fp_ywidth[" << grid_index << "]: " << Fp_ywidth[grid_index] << endl;
-	//				}
-	//			}
-	//		}
-	//	}
-	//#endif
+
 
 	if (verbose == ON)	printf("sub grid flows: %d sub grid cells:%d\n", flow_count, cell_count);
 
@@ -2253,12 +2237,18 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 	// omp_get_num_threads() - current number of threads can't be used outside of pragma omp
 	// omp_get_max_threads() - is not consistent across implementations
 	// most reliable way is to just count them
-	int thread_count = 0;
-#pragma omp parallel reduction (+:thread_count)
-	{
-		thread_count++;
-	}
-	if (LFPContextPtr->verbose == ON) printf("OMP thread count: %d\n", thread_count);
+
+	// xiaodw comment the source method
+//	int thread_count = 0;
+//#pragma omp parallel reduction (+:thread_count)
+//	{
+//		thread_count++;
+//	}
+	// xiaodw add new method here, to make lisfloodfp invoked by seims
+	omp_set_num_threads(Solverptr->OMP_NUM_THREADS);
+	int thread_count = omp_get_max_threads();
+	printf("OMP thread count: %d\n", thread_count);
+	//if (LFPContextPtr->verbose == ON) printf("OMP thread count: %d\n", thread_count);
 
 #ifdef __unix__
 	int* numa_nodes = (int*)memory_allocate(sizeof(int)*thread_count);
@@ -2922,7 +2912,7 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 
 				for (int i = row_start; i < row_end; i++)
 				{
-					int remove = 0.0;
+					NUMERIC_TYPE remove = 0.0;
 					int index = i + grid_row_index;
 					if (dem_row[i] != DEM_NO_DATA) {
 
