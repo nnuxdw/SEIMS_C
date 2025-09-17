@@ -40,8 +40,8 @@ import time
 from typing import Optional, Union, Dict, List, AnyStr
 from subprocess import CalledProcessError
 
-if os.path.abspath(os.path.join(sys.path[0], '..')) not in sys.path:
-    sys.path.insert(0, os.path.abspath(os.path.join(sys.path[0], '..')))
+if os.path.abspath(os.path.join(sys.path[0], '../../tools')) not in sys.path:
+    sys.path.insert(0, os.path.abspath(os.path.join(sys.path[0], '../../tools')))
 
 import global_mongoclient as MongoDBObj
 
@@ -662,6 +662,7 @@ class MainSEIMS(object):
         if self.out_stime and self.out_etime:
             self.ResetOutputsPeriod(self.OutputIDs, self.out_stime, self.out_etime)
         try:
+            print(self.Command, flush=True)
             self.runlogs = UtilClass.run_command(self.Command)
             # xiaodw add, to avoid other thread use the same folder and delete it
             if not os.path.exists(self.OutputDirectory):

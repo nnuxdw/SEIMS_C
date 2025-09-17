@@ -15,8 +15,8 @@ import sys
 from datetime import datetime
 from collections import OrderedDict
 
-if os.path.abspath(os.path.join(sys.path[0], '../../../tools')) not in sys.path:
-    sys.path.insert(0, os.path.abspath(os.path.join(sys.path[0], '../../../tools')))
+if os.path.abspath(os.path.join(sys.path[0], '..')) not in sys.path:
+    sys.path.insert(0, os.path.abspath(os.path.join(sys.path[0], '..')))
 
 from gridfs import GridFS
 from pygeoc.utils import StringClass, is_string
@@ -158,7 +158,7 @@ class ReadModelData(object):
             for item in cursor:
                 self._output_ids.append(item[ModelCfgFields.output_id])
                 name = item[ModelCfgFields.filename]
-                corename = StringClass.split_string(name, '../../../tools/逐站点分区率定')[0]
+                corename = StringClass.split_string(name, '.')[0]
                 types = item[ModelCfgFields.type]
                 if StringClass.string_match(types, 'NONE'):
                     self._output_items.setdefault(corename, None)
@@ -331,12 +331,13 @@ class ReadModelData(object):
         siteTbl = self.climatedb[DBTableNames.sites]
         obsTbl = self.climatedb[DBTableNames.observes]
         # print(f"vars: {vars}, vars_existed: {vars_existed}")
+
         for i, param_name in enumerate(vars):
             site_items = siteTbl.find_one({StationFields.type: get_observed_name_new(param_name),
                                            StationFields.outlet: is_outlets(param_name,isoutlet),
                                            StationFields.subbsn: float(get_subbasinid(param_name))})
             if site_items is None:
-                # print(f"None:site_items {site_items} is None, id: {StationFields.id}, param_name:{param_name},is_outlets:{is_outlets(param_name,isoutlet)},subbsn:{get_subbasinid(param_name)}")
+                print(f"None:site_items {site_items} is None, id: {StationFields.id}, param_name:{param_name},is_outlets:{is_outlets(param_name,isoutlet)},subbsn:{get_subbasinid(param_name)}")
                 continue
             site_id = site_items.get(StationFields.id)
             site_elve = site_items.get(StationFields.elev)

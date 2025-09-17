@@ -11,13 +11,10 @@
 from __future__ import absolute_import, unicode_literals
 
 import time
-import bisect
-from pygeoc.utils import UtilClass, FileClass, StringClass
 from collections import OrderedDict
 import os
 import sys
 from copy import deepcopy
-from utility.scoop_func import scoop_log
 
 if os.path.abspath(os.path.join(sys.path[0], '..')) not in sys.path:
     sys.path.insert(0, os.path.abspath(os.path.join(sys.path[0], '..')))
@@ -31,61 +28,7 @@ from preprocess.text import DBTableNames
 from run_seims import MainSEIMS
 from calibration.config import CaliConfig, get_optimization_config
 from calibration.sample_lhs import lhs
-import numpy
-from pathlib import Path
-import time, random
-from datetime import datetime
 
-# 会话ID，避免跨实例互相影响（强烈推荐）
-# base_path = '/data/user/xiaodw/software/WISE/data/lock'
-base_path = 'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model'
-subbasin_flood_path = base_path + f'/inundation_cali/subbasin_flood'
-subbasin_ids=[1171,1176,1193,1194,1214]
-
-# 不同的实例指定不同的id，避免锁文件相互影响
-RUN_ID = 'poyanglake_1_20250910'
-cali_inundation_extent = False
-cali_inundation_area = True
-# RUN_ID =  time.strftime("%Y%m%d-%H%M%S")
-
-""" xiaodw add
-scoop有个重发机制导致bug，就是比如一代有40个参数组合，10个子进程并行跑，其中一个子进程A可能跑的很慢，
-主进程发现他很慢之后，就会重发一个子进程（B）跑一模一样的参数，然后A又跑完了，于是删除了A对应的率定文件夹 OUTPUT-A，
-之后B跑完了发现 OUTPUT-A文件夹不存在，就报错了。
-"""
-if os.name == "nt":
-    import msvcrt
-    def try_acquire_lock(path: str):
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o644)
-        try:
-            # 非阻塞：Windows 只能用“试锁”语义模拟（会抛 OSError 时表示失败）
-            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
-            return fd
-        except OSError:
-            os.close(fd)
-            return None
-    def release_lock(fd: int):
-        try:
-            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
-        finally:
-            os.close(fd)
-else:
-    import fcntl
-    def try_acquire_lock(path: str):
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o644)
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)  # 非阻塞
-            return fd
-        except BlockingIOError:
-            os.close(fd)
-            return None
-    def release_lock(fd: int):
-        try:
-            fcntl.flock(fd, fcntl.LOCK_UN)
-        finally:
-            os.close(fd)
 
 class TimeseriesData(object):
     """Time series data, for observation and simulation data."""
@@ -112,14 +55,13 @@ class ObsSimData(object):
         for name in effnames:
             tmpvar = '%s-%s' % (varname, name)
             if tmpvar not in self.objnames:
-                #values.append(-9999.)
-                tmpvars.append(tmpvar)
+                values.append(-9999.)
             else:
                 if name.upper() == 'PBIAS':
                     tmpvars.append('%s-abs(PBIAS)' % varname)
                 else:
                     tmpvars.append(tmpvar)
-                values.append(self.objvalues[self.objnames.index(tmpvar)]) #evaluate index, i.e., NSE
+                values.append(self.objvalues[self.objnames.index(tmpvar)])
         return values, tmpvars
 
     def output_header(self, varname, effnames, prefix=''):
@@ -249,163 +191,6 @@ def initialize_calibrations(cf):
     cali = Calibration(cf)
     return cali.initialize()
 
-"""
-    xiaodw add
-    按观测值有效性过滤：只保留 Obs 是有限数(且不等于无效填充值)的时刻，
-    同步过滤 Sim 和 UTCDATETIME。
-"""
-def _filter_sim_by_obs(sim_obs_dict, invalid_values=(-9999.0,)):
-    """
-    按观测值有效性过滤：只保留 Obs 是有限数(且不等于无效填充值)的时刻，
-    同步过滤 Sim 和 UTCDATETIME，并打印被过滤掉的时间。
-    """
-    out = {}
-    for param, d in sim_obs_dict.items():
-        t = d.get('UTCDATETIME', [])
-        obs = d.get('Obs', [])
-        sim = d.get('Sim', [])
-
-        obs_arr = numpy.array(obs, dtype=float)
-        sim_arr = numpy.array(sim, dtype=float)
-
-        # 掩膜：有限数 且 不等于无效值
-        mask = numpy.isfinite(obs_arr)
-        for v in (invalid_values or ()):
-            mask &= (obs_arr != v)
-
-        # 找到被过滤掉的时间
-        dropped_times = [t[i] for i in range(len(t)) if i < len(mask) and not mask[i]]
-        if dropped_times:
-            print(f"[{param}] 被过滤掉的时间点: {dropped_times}")
-
-        # 应用掩膜
-        t_f   = [t[i] for i in range(len(t)) if i < len(mask) and mask[i]]
-        obs_f = obs_arr[mask].tolist()
-        sim_f = sim_arr[mask].tolist()
-
-        out[param] = {
-            'UTCDATETIME': t_f,
-            'Obs': obs_f,
-            'Sim': sim_f,
-        }
-    return out
-
-def _lock_path_for(ind, cali_obj):
-    # 按你的任务唯一标识来建锁文件（建议用 gen+id）
-    gen = getattr(ind, "gen", 0)
-    return Path("/tmp/nsga2_locks") / f"gen{gen}_id{ind.id}.lock"
-
-def evaluate_nowait_or_skip(cali_obj, ind):
-    """
-    非阻塞加锁：
-      - 成功：执行 calibration_objectives 并返回 ind
-      - 失败：说明已有同 (gen,id) 在跑 → 直接返回 None（表示跳过，不纳入结果）
-    """
-    fd = try_acquire_lock(str(_lock_path_for(ind, cali_obj)))
-    if fd is None:
-        # 被别的 worker 占用，按你的要求：不执行、不回收，不纳入 invalid_pops
-        # 可选打印一行便于观察：
-        scoop_log(f"[SKIP] gen={getattr(ind,'gen',0)} id={ind.id} 已在运行，跳过本次。")
-        return -1
-    try:
-        scoop_log(f"[RUN] gen={getattr(ind, 'gen', 0)} id={ind.id} 开始运行。")
-        return calibration_objectives(cali_obj, ind)
-    finally:
-        release_lock(fd)
-
-import numpy as np
-import rasterio
-
-def _read_binary_extent_tif(path, nodata=None, threshold=0.5):
-    """读取淹没范围栅格并转为二值（1=淹没，0=未淹没）。"""
-    with rasterio.open(path) as ds:
-        arr = ds.read(1)
-        ndv = ds.nodata if ds.nodata is not None else nodata
-    if ndv is not None:
-        arr = np.where(arr == ndv, np.nan, arr)
-    # 若原始是概率/水深，可用阈值二值化；若已是0/1，这一步等价透传
-    bin_arr = (arr >= threshold).astype(np.uint8)
-    bin_arr[np.isnan(arr)] = 255  # 用 255 做 mask，便于后面剔除
-    return bin_arr
-
-
-def _fi_bi_from_binary(sim_bin, obs_bin):
-    """给定同尺寸二值（0/1），计算 FI 与 BI。255 视为无效掩膜。"""
-    mask = (sim_bin != 255) & (obs_bin != 255)
-    s = sim_bin[mask].astype(np.uint8)
-    o = obs_bin[mask].astype(np.uint8)
-    tp = np.sum((s == 1) & (o == 1))
-    fp = np.sum((s == 1) & (o == 0))
-    fn = np.sum((s == 0) & (o == 1))
-    # Dice / F1
-    denom = (2*tp + fp + fn)
-    fi = (2*tp / denom) if denom > 0 else 0.0
-    # Bias = (TP+FP)/(TP+FN)；若观测全为0则回退为1（中性）
-    obs_area = tp + fn
-    sim_area = tp + fp
-    if obs_area == 0 and sim_area == 0:
-        bi = 1.0
-    elif obs_area == 0:
-        bi = np.inf
-    else:
-        bi = sim_area / obs_area
-    return fi, bi
-
-def _lock_path_for(ind, cali_obj):
-    gen = getattr(ind, "gen", 0)
-    return Path(base_path + "/lock/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
-
-def _done_path_for(ind, cali_obj):
-    gen = getattr(ind, "gen", 0)
-    return Path(base_path + "/lock/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.done"
-
-def _mark_done(done_path):
-    done_path.parent.mkdir(parents=True, exist_ok=True)
-    open(done_path, "w").close()  # 空文件即表示 DONE
-
-def evaluate_blocking(cali_obj, ind, timeout_s=None):
-    lock_path = str(_lock_path_for(ind, cali_obj))
-    done_path = _done_path_for(ind, cali_obj)
-
-    owner = f"pid={os.getpid()}"
-    start = time.time()
-    while True:
-        # 1) 已完成？立刻返回，避免再尝试拿锁
-        if done_path.exists():
-            scoop_log(f"[DONE-HIT][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 已完成，直接返回")
-            return -1  # 也可换成 "__DONE__"
-
-        # 2) 尝试拿锁
-        fd = try_acquire_lock(lock_path)
-        if fd is not None:
-            try:
-                # 拿到锁后再检查一遍 DONE（极端竞态下，别人刚写好）
-                if done_path.exists():
-                    scoop_log(f"[DONE-INSIDE][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 已完成，释放锁并返回")
-                    return -1
-
-                scoop_log(f"[RUN][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 开始运行。")
-                res = calibration_objectives(cali_obj, ind)
-
-                # 3) 成功完成 → 写入 DONE 标记（在释放锁之前写，确保可见）
-                _mark_done(done_path)
-                return res
-            finally:
-                release_lock(fd)
-
-        # 4) 没拿到锁，看看是否完成或超时
-        if done_path.exists():
-            scoop_log(f"[DONE-WAIT][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 已完成(等待中发现)，返回")
-            return -1
-
-        elapsed = time.time() - start
-        if timeout_s is not None and elapsed > timeout_s:
-            scoop_log(f"[TIMEOUT][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 等待锁超时，返回 -1")
-            return -1
-
-        # 5) 短退避 + 进度日志
-        scoop_log(f"[WAIT][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 已等待 {elapsed:.1f}s，10s 后重试…")
-        time.sleep(10)
 
 def calibration_objectives(cali_obj, ind):
     """Evaluate the objectives of given individual.
@@ -421,39 +206,30 @@ def calibration_objectives(cali_obj, ind):
 
     # Execute model
     model_obj.SetMongoClient()
-    # model_obj.run()
+    model_obj.run()
     time.sleep(0.1)  # Wait a moment in case of unpredictable file system error
 
     # read simulation data of the entire simulation period (include calibration and validation)
-    #if model_obj.ReadTimeseriesSimulations():
-    if model_obj.ReadTimeseriesSimulations_new():   #ljj++
+    if model_obj.ReadTimeseriesSimulations():
         ind.sim.vars = model_obj.sim_vars[:]
         ind.sim.data = deepcopy(model_obj.sim_value)
     else:
         model_obj.clean(calibration_id=ind.id)
         model_obj.UnsetMongoClient()
         return ind
-
     # Calculate NSE, R2, RMSE, PBIAS, and RSR, etc. of calibration period
-    print(f"cali_stime: {cali_obj.cfg.cali_stime}/n, cali_etime: {cali_obj.cfg.cali_etime}/n")
     ind.cali.vars, ind.cali.data = model_obj.ExtractSimData(cali_obj.cfg.cali_stime,
                                                             cali_obj.cfg.cali_etime)
-    # print(f"ind.cali.vars: {ind.cali.vars}/n, ind.cali.data: {ind.cali.data}/n")
     ind.cali.sim_obs_data = model_obj.ExtractSimObsData(cali_obj.cfg.cali_stime,
                                                         cali_obj.cfg.cali_etime)
-    # xiaodw add, to remove simdata(for some time step)  which doesn't have obs data(no need to do this, which is done in timeseries_data.py: if sim_date not in obs_dict)
-    # print(ind.cali.sim_obs_data)
-    # ind.cali.sim_obs_data = _filter_sim_by_obs(ind.cali.sim_obs_data)
 
     ind.cali.objnames, \
     ind.cali.objvalues = model_obj.CalcTimeseriesStatistics(ind.cali.sim_obs_data,
                                                             cali_obj.cfg.cali_stime,
                                                             cali_obj.cfg.cali_etime)
-    # 输出校准期指标
-    cali_metrics = ", ".join(f"{name}:{value:.4f}" for name, value in zip(ind.cali.objnames, ind.cali.objvalues))
-    print(f"cali: {cali_metrics}")
     if ind.cali.objnames and ind.cali.objvalues:
         ind.cali.valid = True
+
     # Calculate NSE, R2, RMSE, PBIAS, and RSR, etc. of validation period
     if cali_obj.cfg.calc_validation:
         ind.vali.vars, ind.vali.data = model_obj.ExtractSimData(cali_obj.cfg.vali_stime,
@@ -468,70 +244,12 @@ def calibration_objectives(cali_obj, ind):
         if ind.vali.objnames and ind.vali.objvalues:
             ind.vali.valid = True
 
-        # 输出验证期指标
-        vali_metrics = ", ".join(f"{name}:{value:.4f}" for name, value in zip(ind.vali.objnames, ind.vali.objvalues))
-        print(f"vali: {vali_metrics}")
     # Get timespan
     ind.io_time, ind.comp_time, ind.simu_time, ind.runtime = model_obj.GetTimespan()
-    ##-----------------------xiaodw add, calibrate Fi,Bi for inundation extent-----------------------------
-    fi_list, bi_list = [], []
-    if cali_inundation_extent:
-        # cur = datetime.strptime(cali_obj.cfg.cali_stime, "%Y-%m-%d %H:%M:%S")
-        # end = datetime.strptime(cali_obj.cfg.cali_etime, "%Y-%m-%d %H:%M:%S")
-        cur = cali_obj.cfg.cali_stime
-        end = cali_obj.cfg.cali_etime
-        months = []
-        while cur <= end:
-            months.append((cur.year, cur.month))
-            # 跳到下一个月初
-            if cur.month == 12:
-                cur = cur.replace(year=cur.year + 1, month=1, day=1)
-            else:
-                cur = cur.replace(month=cur.month + 1, day=1)
 
-        for (yy, mm) in months:
-            obs_tif = os.path.join(cali_obj.cfg.flood_obs_dir, f"{yy}{mm:02d}.tif")
-            sim_tif = os.path.join(cali_obj.cfg.flood_sim_dir, f"run{ind.id}_{yy}{mm:02d}.tif")
-            if not (os.path.exists(obs_tif) and os.path.exists(sim_tif)):
-                continue  # 该月缺数据则跳过
-
-            obs_bin = _read_binary_extent_tif(obs_tif, nodata=0, threshold=0.5)
-            sim_bin = _read_binary_extent_tif(sim_tif, nodata=0, threshold=0.5)
-
-            # 尺寸/投影需一致；如不一致，请在导出时保证一致，或此处先重投影/重采样
-            if obs_bin.shape != sim_bin.shape:
-                # TODO: 统一投影与分辨率（建议在生成阶段统一）
-                print(f"[WARN] shape mismatch for {yy}-{mm}, skip")
-                continue
-
-            fi, bi = _fi_bi_from_binary(sim_bin, obs_bin)
-            fi_list.append(fi)
-            bi_list.append(bi)
-
-        # 汇总为月平均
-        if fi_list:
-            fi_mean = float(np.mean(fi_list))
-            # BI 偏差 |1-BI|，用于“越小越好”的目标
-            bi_dev_mean = float(np.mean([abs(1.0 - b) if np.isfinite(b) else 1.0 for b in bi_list]))
-
-            # 把新指标并入已有的校准期指标列表
-            names = list(getattr(ind.vali, "objnames", []))
-            vals = list(getattr(ind.vali, "objvalues", []))
-
-            names += ["FI", "BI_DEV"]  # FI 越大越好；BI_DEV = |1-BI| 越小越好
-            vals += [fi_mean, bi_dev_mean]
-
-            ind.vali.objnames = names
-            ind.vali.objvalues = vals
-
-            # 控制台打印
-            print(f"FI_mean={fi_mean:.4f}, BI_dev_mean={bi_dev_mean:.4f}")
-    ##-----------------------end calibrate Fi,Bi for inundation extent-----------------------------
     # delete model output directory for saving storage
-    print(f"delete output directory: {ind.id}")
     model_obj.clean(calibration_id=ind.id)
     model_obj.UnsetMongoClient()
-
     return ind
 
 
