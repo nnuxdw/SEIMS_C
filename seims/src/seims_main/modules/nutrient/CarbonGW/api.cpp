@@ -29,6 +29,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddParameter(VAR_AHRU, UNIT_AREA_M2, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
 	mdi.AddParameter(VAR_DF_COEF, UNIT_NON_DIM, DESC_DF_COEF, Source_ParameterDB, DT_Single);
 	mdi.AddParameter("gw_delay", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Single);
+	//mdi.AddParameter("gw_delay_1d", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Raster1D);
+	//mdi.AddParameter("hlife_docgw_1d", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Raster1D);
 	
 	// from other module
 	mdi.AddInput(VAR_PERC_LOWEST_DOC, UNIT_CONT_KGHA, DESC_PERC_LOWEST_DOC, Source_Module, DT_Array1D);

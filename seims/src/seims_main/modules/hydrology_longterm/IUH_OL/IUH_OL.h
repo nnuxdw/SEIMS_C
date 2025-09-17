@@ -107,6 +107,7 @@ private:
     float* m_area;
     
     float m_surlag;
+    float* m_surlag_1d;
     float* m_chLen;
     float* m_chMan;
     float* m_chSlope;

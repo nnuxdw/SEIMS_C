@@ -61,9 +61,10 @@ NutrCH_QUAL2E::NutrCH_QUAL2E() :
     m_qsRchOut(nullptr), m_qiRchOut(nullptr), m_qgRchOut(nullptr),m_ch_Temp(nullptr),m_chAirTemp_pre(nullptr),
     m_olQ2Rch(nullptr), m_ifluQ2Rch(nullptr), m_gndQ2Rch(nullptr),m_snowMelt(nullptr),
     m_subsnow(nullptr),m_airtemp(nullptr),m_chAirTemp(nullptr),m_chRH(nullptr),m_chWS(nullptr),
-    m_rhd(nullptr),m_ws(nullptr),m_rrtime(nullptr),m_GlacierMelt(nullptr),m_subglacier(nullptr),
+    m_rhd(nullptr),m_ws(nullptr),m_rrtime(nullptr),m_GlacierMelt(nullptr),m_subglacier(nullptr),m_lakearea(nullptr),
     m_chTemp_pre(nullptr),m_chSto_pre(nullptr),m_chSlope(nullptr),m_chArea(nullptr),m_intercpt(-1.f),
-    m_A_b(nullptr),m_A_a(nullptr),m_A_Vb(nullptr),m_A_Va(nullptr),m_T_LKWB(nullptr)
+    m_A_b(nullptr),m_A_a(nullptr),m_A_Vb(nullptr),m_A_Va(nullptr),m_T_LKWB(nullptr),
+    m_krp_1d(nullptr),m_kd_rp_1d(nullptr),m_sv_rp_1d(nullptr),m_krd_1d(nullptr)
 {
 }
 
@@ -179,7 +180,8 @@ void NutrCH_QUAL2E::ParametersSubbasinForChannel() {
         Initialize1DArray(m_nReaches + 1, m_chRH, 0.f);
         Initialize1DArray(m_nReaches + 1, m_chWS, 0.f);
     }
-#pragma omp parallel
+//#pragma omp parallel
+//not allow
     {
         // float* tmp_chDaylen = new(nothrow) float[m_nReaches + 1];
         // float* tmp_chSr = new(nothrow) float[m_nReaches + 1];
@@ -190,6 +192,7 @@ void NutrCH_QUAL2E::ParametersSubbasinForChannel() {
         // float* tmp_chrhd = new(nothrow) float[m_nReaches + 1];
         // float* tmp_chws = new(nothrow) float[m_nReaches + 1];
         // float* tmp_chCellCount = new(nothrow) float[m_nReaches + 1];
+//#pragma omp parallel for
         for (int irch = 0; irch <= m_nReaches; irch++) {
             // tmp_chDaylen[irch] = 0.f;
             // tmp_chSr[irch] = 0.f;
@@ -212,12 +215,15 @@ void NutrCH_QUAL2E::ParametersSubbasinForChannel() {
             m_chCellCount[irch] = 0.f;
             
         }
-#pragma omp parallel for
+//#pragma omp parallel for
         for (int i = 0; i < m_nCells; i++) {
+            int irch = CVT_INT(m_rchID[i]);
+            m_subsnow[irch] += m_snowMelt[i]*0.001*m_area[i];  //mm to m3
+            m_subglacier[irch] += m_GlacierMelt[i]*0.001*m_area[i];  //mm to m3
             if (m_rchID[i] <= 0.f) {
                 continue;
             }
-            int irch = CVT_INT(m_rchID[i]);
+            
             //if (m_nReaches == 1) {  // deprecated code, left for remaind. lj
             //    subi = 1;
             //} else
@@ -228,8 +234,6 @@ void NutrCH_QUAL2E::ParametersSubbasinForChannel() {
             m_chDaylen[irch] += m_dayLen[i]*m_area[i];
             m_chSr[irch] += m_sr[i]*m_area[i];
             m_chTemp[irch] += m_airtemp[i]*m_area[i];
-            m_subsnow[irch] += m_snowMelt[i]*0.001*m_area[i];  //mm to m3
-            m_subglacier[irch] += m_GlacierMelt[i]*0.001*m_area[i];  //mm to m3
             m_chAirTemp[irch] += m_airtemp[i]*m_area[i];
             m_chRH[irch] += m_rhd[i]*m_area[i];
             m_chWS[irch] += m_ws[i]*m_area[i];
@@ -259,7 +263,7 @@ void NutrCH_QUAL2E::ParametersSubbasinForChannel() {
         // delete[] tmp_chws;
         // delete[] tmp_chCellCount;
     }
-
+//#pragma omp parallel for
     for (int irch = 1; irch <= m_nReaches; irch++) {
         if(m_chCellCount[irch] >0.f){
             m_chDaylen[irch] /= m_chCellCount[irch];
@@ -513,6 +517,26 @@ void NutrCH_QUAL2E::Set1DData(const char* key, const int n, float* data) {
         m_GlacierMelt = data;
         return;
 	}
+    if (StringMatch(sk, "krp_1d")) {
+        CheckInputCellSize(key, n);
+        m_krp_1d = data;
+        return;
+    }
+    if (StringMatch(sk, "kd_rp_1d")) {
+        CheckInputCellSize(key, n);
+        m_kd_rp_1d = data;
+        return;
+    }
+    if (StringMatch(sk, "sv_rp_1d")) {
+        CheckInputCellSize(key, n);
+        m_sv_rp_1d = data;
+        return;
+    }
+    if (StringMatch(sk, "krd_1d")) {
+        CheckInputCellSize(key, n);
+        m_krd_1d = data;
+        return;
+    }
     CheckInputSize(MID_NUTRCH_QUAL2E, key, n - 1, m_nReaches);
     if (StringMatch(sk, VAR_QRECH)) m_qRchOut = data;
     else if (StringMatch(sk, VAR_CHST)) {
@@ -645,6 +669,7 @@ void NutrCH_QUAL2E::SetReaches(clsReaches* reaches) {
     if (nullptr == m_islake) reaches->GetReachesSingleProperty(REACH_ISLAKE, &m_islake);
     if (nullptr == m_isres) reaches->GetReachesSingleProperty(REACH_ISRES, &m_isres);
     if (nullptr == m_lakevol) reaches->GetReachesSingleProperty(REACH_LAKEVOL, &m_lakevol);
+    if (nullptr == m_lakearea) reaches->GetReachesSingleProperty(REACH_LAKEAREA, &m_lakearea);
     if (nullptr == m_A_Va) reaches->GetReachesSingleProperty("A_Va", &m_A_Va);
     if (nullptr == m_A_Vb) reaches->GetReachesSingleProperty("A_Vb", &m_A_Vb);
     if (nullptr == m_A_a) reaches->GetReachesSingleProperty("A_a", &m_A_a);
@@ -843,7 +868,7 @@ int NutrCH_QUAL2E::Execute() {
         // So parallelization can be done here.
         int reachNum = CVT_INT(it->second.size());
         // the size of m_reachLayers (map) is equal to the maximum stream order
-#pragma omp parallel for
+//#pragma omp parallel for
         for (int i = 0; i < reachNum; i++) {
             int reachIndex = it->second[i];
             if (m_inputSubbsnID == 0 || m_inputSubbsnID == reachIndex) {
@@ -882,7 +907,7 @@ void NutrCH_QUAL2E::AddInputNutrient(const int i) {
         m_chlatRDOC[i] += m_chOutlatRDOC[upReachId];        //kg
         m_chgwRDOC[i] += m_chOutgwRDOC[upReachId];        //kg
         m_T_LKWB[i][0] += m_chOutRDOC[upReachId] + m_chOutLDOC[upReachId];
-        if(m_islake[upReachId]==1){
+        if(m_islake[upReachId]==1|| m_isres[upReachId]==1){
             m_chRDOC[i] +=  m_gwRDOCToCH[upReachId];
         }
     }
@@ -894,8 +919,8 @@ void NutrCH_QUAL2E::AddInputNutrient(const int i) {
 	// m_chLDOC[i] += m_LDOCToCH[i];
 	// m_chLPOC[i] += m_LPOCToCH[i];
 	m_chRPOC[i] += m_RPOCToCH[i];
-	if(m_islake[i]!=1) m_chRDOC[i] += m_surfRDOCToCH[i] + m_latRDOCToCH[i] + m_gwRDOCToCH[i];
-    if(m_islake[i]==1) {
+	if(m_islake[i]!=1 && m_isres[i]!=1) m_chRDOC[i] += m_surfRDOCToCH[i] + m_latRDOCToCH[i] + m_gwRDOCToCH[i];
+    if(m_islake[i]==1 || m_isres[i]==1) {
         m_chRDOC[i] += m_surfRDOCToCH[i] + m_latRDOCToCH[i];
         m_chRDOC[i] += m_lakepcp[i] * 1.2f * 0.001f;
     }
@@ -980,8 +1005,8 @@ void NutrCH_QUAL2E::RouteOut(const int i) {
     
     //get out flow water fraction
     float wtrTotal = m_chStorage[i] + m_rteWtrOut[i]; // m^3
-    if(m_islake[i] == 1) wtrTotal += m_lakeperc[i];
-    if (wtrTotal <= UTIL_ZERO || m_rteWtrOut[i] <= UTIL_ZERO || m_chWtrDepth[i] <= UTIL_ZERO || m_qRchOut[i]<= UTIL_ZERO) {
+    if(m_islake[i] == 1|| m_isres[i]==1) wtrTotal += m_lakeperc[i];
+    if (wtrTotal <= UTIL_ZERO || m_rteWtrOut[i] <= UTIL_ZERO) {
         // return with initialized values directly
         return;
     }
@@ -1037,12 +1062,12 @@ void NutrCH_QUAL2E::RouteOut(const int i) {
 	m_chOutLPOCConc[i] = m_chOutLPOC[i] * cvt;
 	m_chOutRPOCConc[i] = m_chOutRPOC[i] * cvt;
 	m_chOutRDOCConc[i] = m_chOutRDOC[i] * cvt;
+
 //if (i == 10 )cout << "m_chOutGwDOCConc: " << m_chOutGwDOCConc[i] << ", m_chOutGwOrgC: " << m_chOutGwOrgC[i] << ", cvt: " << cvt << endl;
 	m_chOutTotDOCConc[i] = m_chOutLDOCConc[i] + m_chOutRDOCConc[i];
 	m_chOutTotDOCConc[i] = Max(m_chOutTotDOCConc[i],0.f);
     m_chOutTotPOCConc[i] = m_chOutRPOCConc[i] + m_chOutRPOCConc[i];
 	m_chOutTotPOCConc[i] = Max(m_chOutTotPOCConc[i],0.f);
-
     m_chNO3[i] -= m_chOutNO3[i];
     m_chNO2[i] -= m_chOutNO2[i];
     m_chNH4[i] -= m_chOutNH4[i];
@@ -1061,10 +1086,11 @@ void NutrCH_QUAL2E::RouteOut(const int i) {
 	m_chLDOC[i] -= m_chOutLDOC[i];
 	m_chLPOC[i] -= m_chOutLPOC[i];
 	m_chRPOC[i] -= m_chOutRPOC[i];
-    if(m_islake[i]==1) {
+    if(m_islake[i]==1||m_isres[i]==1) {
         m_chRDOC[i] -= (m_chRDOC[i] * m_lakeperc[i] / wtrTotal);
-        m_gwdoc_sto[i] +=(m_chRDOC[i] * m_lakeperc[i] / wtrTotal);
+        m_gwdoc_sto[i] +=(m_chRDOC[i] * m_lakeperc[i] / wtrTotal)/ (m_lakearea[i]* 1.e-4f );  //kh/ha
     }
+    //if(i==442) cout<<m_chOutTotDOCConc[i]<<"    "<<m_gwdoc_sto[i]<<"    "<<(m_chRDOC[i] * m_lakeperc[i] / wtrTotal)<<"   "<<m_chOutTotDOCConc[i]*(m_lakeperc[i])*0.001<<endl;
 	m_chRDOC[i] -= m_chOutRDOC[i];
     m_chsurfRDOC[i] -= m_chOutsurfRDOC[i];
     m_chlatRDOC[i] -= m_chOutlatRDOC[i];
@@ -1120,9 +1146,9 @@ void NutrCH_QUAL2E::NutrientTransform(const int i) {
     //     from stream to groundwater through seepage and bank storage)
 
     float wtrTotal = m_rteWtrOut[i] + m_chStorage[i]; /// m3
-    if(m_islake[i] == 1) wtrTotal += m_lakeperc[i];
+    if(m_islake[i] == 1 || m_isres[i]==1) wtrTotal += m_lakeperc[i];
     if (m_chWtrDepth[i] <= 0.01f) {
-        m_chWtrDepth[i] = 0.01f;
+        return;
     }
     if (wtrTotal <= 0.f) {
         /// which means no flow out of current channel    || wtrOut <= 0.f
@@ -1148,9 +1174,6 @@ void NutrCH_QUAL2E::NutrientTransform(const int i) {
         return; // return and route out with 0.f
     }
     if (wtrTotal <= 1.e-6f) {
-        return;
-    }
-    if (m_chWtrDepth[i] <= 0.1f) {
         return;
     }
     // initial algal biomass concentration in reach (algcon mg/L, i.e. g/m3)   kg ==> mg/L
@@ -1657,14 +1680,17 @@ void NutrCH_QUAL2E::NutrientTransform(const int i) {
     Ab_RP = f_rpb * Ab_cbn;
     float RP_LD = 0.f;
     RP_LD = corTempc(m_krp, 1.047f, wtmp) * rpoccon;
+    //RP_LD = corTempc(m_krp_1d[i], 1.047f, wtmp) * rpoccon;
     RP_LD = Min(RP_LD,rpoccon);
     RP_LD = Max(RP_LD,0.f);
     float RP_DIC = 0.f;
     RP_DIC = corTempc(m_kd_rp, 1.047f, wtmp) * rpoccon;
+    //RP_DIC = corTempc(m_kd_rp_1d[i], 1.047f, wtmp) * rpoccon;
     RP_DIC = Min(RP_DIC,rpoccon);
     RP_DIC = Max(RP_DIC,0.f);
     float RP_set = 0.f;
     RP_set = m_sv_rp / m_chWtrDepth[i] * rpoccon;
+    //RP_set = m_sv_rp_1d[i] / m_chWtrDepth[i] * rpoccon;
     RP_set = Min(RP_set,rpoccon*0.5f);
     // //ljj modified
     // float blcrpoc =  m_npoc;  //!!todo 用户自定义的平衡浓度
@@ -1719,6 +1745,7 @@ void NutrCH_QUAL2E::NutrientTransform(const int i) {
     float Foxc = 0.f;
     Foxc = o2con / (o2con + ksdocf);
     RD_DIC = Foxc * corTempc(m_krd, 1.047, wtmp)*rdoccon;
+    //RD_DIC = Foxc * corTempc(m_krd_1d[i], 1.047, wtmp)*rdoccon;
     RD_DIC = Min(RD_DIC,rdoccon);
     RD_DIC = Max(RD_DIC,0.f);
     float Fxodn = 0.f;
@@ -1814,12 +1841,19 @@ void NutrCH_QUAL2E::swat_rtmp(const int i){
         int upReachId = *upRchID;
         q_up_all += m_qsRchOut[*upRchID] + m_qiRchOut[*upRchID] + m_qgRchOut[*upRchID];
         tmp_up_all += (m_qsRchOut[*upRchID] + m_qiRchOut[*upRchID] + m_qgRchOut[*upRchID]) * m_ch_Temp[*upRchID];
+        if(m_islake[*upRchID]==1|| m_isres[*upRchID]==1){
+            q_up_all += m_gndQ2Rch[*upRchID];
+            tmp_up_all += (m_gndQ2Rch[*upRchID]) * m_ch_Temp[*upRchID];
+        }
     }
     // the initial stream temperature
     float sub_surq = m_olQ2Rch[i];
     float sub_gw = 0.f; /// groundwater flow
     if (nullptr != m_gndQ2Rch && m_gndQ2Rch[i] >= 0.f) {
         sub_gw = m_gndQ2Rch[i];
+    }
+    if(m_islake[i]==1|| m_isres[i]==1){
+        sub_gw = 0.f;
     }
 	float sub_latq = 0.f;
     if (nullptr != m_ifluQ2Rch && m_ifluQ2Rch[i] >= 0.f) {
@@ -1842,11 +1876,11 @@ void NutrCH_QUAL2E::swat_rtmp(const int i){
     float m_lag = 0.7f;//cali 0~1
 
     float tw_initail = 0.f;
+    m_chTemp_pre[i] = m_ch_Temp[i]*m_chSto_pre[i];
     m_chAirTemp_pre[i] = m_chAirTemp_pre[i] * (1 - m_lag) + m_chAirTemp[i] * m_lag;
 	if(sub_snow + sub_gw + sub_surq + sub_latq + q_up_all > 1.e-6) {
         tw_initail = ((sub_snow+sub_glacier) * tmp_snow + sub_gw * tmp_gw + (sub_surq + sub_latq) * coefficient_tmp * m_chAirTemp_pre[i] + tmp_up_all + m_chTemp_pre[i]) / (sub_snow+sub_glacier + sub_gw + sub_surq + sub_latq + q_up_all + m_chSto_pre[i]);
     }
-    m_chTemp_pre[i] = m_ch_Temp[i]*m_chStorage[i]/86400;
     m_chSto_pre[i] = m_chStorage[i]/86400;
     
 	if (tw_initail <= -1.0)

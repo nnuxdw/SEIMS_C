@@ -384,6 +384,9 @@ bool DataCenterMongoDB::ReadParametersInDB() {
         if (bson_iter_init_find(&iter, info, PARAM_FLD_IMPACT)) {
             GetNumericFromBsonIterator(&iter, p->Impact);
         }
+        if (bson_iter_init_find(&iter, info, "IMPACT1")) {
+            GetNumericFromBsonIterator(&iter, p->Impact1);
+        }
         if (bson_iter_init_find(&iter, info, PARAM_FLD_MAX)) {
             GetNumericFromBsonIterator(&iter, p->Maximum);
         }

@@ -12,7 +12,7 @@ PETPenmanMonteith::PETPenmanMonteith() :
     m_alb(nullptr), m_nCells(-1), m_cellLat(nullptr), m_co2Conc(NODATA_VALUE),
     m_vpd2(nullptr), m_gsi(nullptr), m_vpdfr(nullptr), m_frgmax(nullptr),
     m_snowTemp(-1),
-    m_petFactor(1.f),
+    m_petFactor(1.f),m_petFactor_1d(nullptr),
     m_pet(nullptr), m_maxPltET(nullptr), m_vpd(nullptr), m_dayLen(nullptr),
     m_phuBase(nullptr) {
 }
@@ -76,6 +76,7 @@ void PETPenmanMonteith::Set1DData(const char* key, const int n, float* value) {
     else if (StringMatch(sk, VAR_GSI)) m_gsi = value;
     else if (StringMatch(sk, VAR_VPDFR)) m_vpdfr = value;
     else if (StringMatch(sk, VAR_FRGMAX)) m_frgmax = value;
+    else if (StringMatch(sk, "K_pet_1d")) m_petFactor_1d = value;
     else {
         throw ModelException(MID_PET_PM, "Set1DData", "Parameter " + sk + " does not exist.");
     }
@@ -169,7 +170,8 @@ int PETPenmanMonteith::Execute() {
         float rc = 49.f / (1.4f - 0.4f * m_co2Conc * 0.0030303030303030303f); //P128 2:2.2.22
         float petValue = (dlt * raNet + gma * rho * m_vpd[j] / rv) /
                 (latentHeat * (dlt + gma * (1.f + rc / rv))); //P122 2:2.2.2
-        petValue = m_petFactor * Max(0.f, petValue);
+        //petValue = m_petFactor * Max(0.f, petValue);
+        petValue = m_petFactor_1d[j] * Max(0.f, petValue);
         m_pet[j] = petValue;
         //*********************************************************
         //The albedo would be obtained from plant growth module. But now it is assumed to be a constant.

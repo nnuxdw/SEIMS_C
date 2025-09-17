@@ -50,13 +50,12 @@ public:
 
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
 
-	void GetValue(const char* key, float* value)  OVERRIDE;
-
 private:
     //! Valid cells number
     int m_nCells;
     //! Mean air temperature at which snow melt will occur, sub_smtmp
     float m_t0;
+    float* m_t0_1d;
     //! fraction coefficient of precipitation as snow
     float m_kblow;
     //! Snowfall temperature, i.e., precipitation as snow
@@ -75,6 +74,9 @@ private:
     float m_csnow6;
     //! Minimum melt rate for snow during year, sub_smfmn
     float m_csnow12;
+    float* m_lagSnow_1d;
+    float* m_csnow6_1d;
+    float* m_csnow12_1d;
     //! Minimum snow water content that corresponds to 100% snow cover, mm H2O, SNOCOVMX
     float m_snowCoverMax;
     //! Fraction of SNOCOVMX that corresponds to 50% snow cover, SNO50COV

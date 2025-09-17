@@ -9,7 +9,8 @@ IUH_OL::IUH_OL() :
     m_cellFlow(nullptr), m_cellFlowCols(-1), m_Q_SBOF(nullptr), m_OL_Flow(nullptr),
     //ljj
 	m_nreach(-1),m_area(nullptr),m_brt(nullptr),m_chLen(nullptr),m_chMan(nullptr),m_chSlope(nullptr),
-    m_slope(nullptr),m_ManningN(nullptr),m_surlag(NODATA_VALUE),m_dis2Stream(nullptr),tconc(nullptr) {
+    m_slope(nullptr),m_ManningN(nullptr),m_surlag(NODATA_VALUE),m_dis2Stream(nullptr),tconc(nullptr),
+    m_surlag_1d(nullptr) {
 }
 
 IUH_OL::~IUH_OL() {
@@ -89,7 +90,6 @@ void IUH_OL::InitialOutputs() {
         for (int i = 0; i < m_nCells; i++) {
             float t_ch = 0;
             float hru_dafr = m_area[i]*1.e-6f/da_km;
-
             float sub_fr = tmp_Sub_area[CVT_INT(m_subbsnID[i])] / da_km;
             float slsubbsn = 30.f;
             if(tmp_Sub_slp[CVT_INT(m_subbsnID[i])]/tmp_Sub_area[CVT_INT(m_subbsnID[i])]< 0.01f) slsubbsn=120;
@@ -107,13 +107,9 @@ void IUH_OL::InitialOutputs() {
             float ch_l1 = m_chLen[CVT_INT(m_subbsnID[i])] *0.001f *hru_dafr / sub_fr;
             t_ch = 0.62 * ch_l1 * pow(m_chMan[CVT_INT(m_subbsnID[i])], 0.75f )/ (pow(da_km*hru_dafr,0.125f)* pow(m_chSlope[CVT_INT(m_subbsnID[i])],0.375f));
             tconc[i] = t_ov +  t_ch;
-            m_brt[i] = 1. - exp(-1* m_surlag / tconc[i]);
+            //m_brt[i] = 1. - exp(-1* m_surlag / tconc[i]);
+            m_brt[i] = 1. - exp(-1* m_surlag_1d[i] / tconc[i]);
             m_brt[i] = Min(m_brt[i],1.f);
-
-#ifdef DEBUG_IUH_OL
-			cout << i << " m_area " << m_area[i] << " da_km  " << da_km << " m_slope " << m_slope[i] << " slsubbsn " << slsubbsn << " m_ManningN " << m_ManningN[i] << " hru_dafr " << hru_dafr
-				<< " sub_fr " << sub_fr << " ch_l1 " << ch_l1 << " m_chMan " << m_chMan[CVT_INT(m_subbsnID[i])] << " t_ch " << t_ch << " tconc " << tconc[i] << " m_surlag " << m_surlag << " m_brt " << m_brt[i] << endl;
-#endif // DEBUG_IUH_OL
         }
         delete[] tmp_Sub_area;
         delete[] tmp_Sub_slp;
@@ -211,6 +207,7 @@ void IUH_OL::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(sk, VAR_SLOPE)) m_slope = data;
     else if (StringMatch(sk, VAR_MANNING)) m_ManningN = data; 
     else if (StringMatch(sk, VAR_DISTSTREAM)) m_dis2Stream = data; 
+    else if (StringMatch(sk, "SURLAG_1d")) m_surlag_1d = data; 
     else {
         throw ModelException(MID_IUH_OL, "Set1DData", "Parameter " + sk + " does not exist.");
     }

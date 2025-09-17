@@ -12,7 +12,8 @@ SNO_SP::SNO_SP() :
     m_snowCoverCoef1(NODATA_VALUE), m_snowCoverCoef2(NODATA_VALUE),
     m_meanTemp(nullptr), m_maxTemp(nullptr), m_netPcp(nullptr),
     m_snowAccum(nullptr), m_SE(nullptr), m_packT(nullptr), m_snowMelt(nullptr), m_SA(nullptr),
-    m_landUse(nullptr),Qfg(NULL),m_snoarea(nullptr),m_area(nullptr),m_snacarea(nullptr),m_snoday(nullptr) {
+    m_landUse(nullptr),Qfg(NULL),m_snoarea(nullptr),m_area(nullptr),m_snacarea(nullptr),m_snoday(nullptr),
+    m_t0_1d(nullptr),m_lagSnow_1d(nullptr),m_csnow6_1d(nullptr), m_csnow12_1d(nullptr) {
 }
 
 SNO_SP::~SNO_SP() {
@@ -69,20 +70,21 @@ int SNO_SP::Execute() {
     /// adjust melt factor for time of year, i.e., smfac in snom.f
     // which only need to computed once.
     float sinv = CVT_FLT(sin(2.f * PI / 365.f * (m_dayOfYear - 81.f)));
-    float cmelt = (m_csnow6 + m_csnow12) * 0.5f + (m_csnow6 - m_csnow12) * 0.5f * sinv;
+    //float cmelt = (m_csnow6 + m_csnow12) * 0.5f + (m_csnow6 - m_csnow12) * 0.5f * sinv;
 #pragma omp parallel for
     for (int rw = 0; rw < m_nCells; rw++) {
-		// xiaodw comment, don't need glacier now
-        //if(m_landUse[rw]==LANDUSE_ID_GLC){
-        //    m_netPcp[rw] = Qfg[rw];
-        //    continue;
-        //}
+        float cmelt = (m_csnow6_1d[rw] + m_csnow12_1d[rw]) * 0.5f + (m_csnow6_1d[rw] - m_csnow12_1d[rw]) * 0.5f * sinv;
+        if(m_landUse[rw]==LANDUSE_ID_GLC){
+            m_netPcp[rw] = Qfg[rw];
+            continue;
+        }
         if(m_landUse[rw]==LANDUSE_ID_WATR){
             m_netPcp[rw] = 0.f;
             continue;
         }
         /// estimate snow pack temperature
-        m_packT[rw] = m_packT[rw] * (1 - m_lagSnow) + m_meanTemp[rw] * m_lagSnow;
+        //m_packT[rw] = m_packT[rw] * (1 - m_lagSnow) + m_meanTemp[rw] * m_lagSnow;
+        m_packT[rw] = m_packT[rw] * (1 - m_lagSnow_1d[rw]) + m_meanTemp[rw] * m_lagSnow_1d[rw];
         /// calculate snow fall
         //m_SA[rw] += m_snowAccum[rw] - m_SE[rw];
         m_SA[rw] = m_SA[rw] - m_SE[rw];  //ljj
@@ -95,17 +97,20 @@ int SNO_SP::Execute() {
         if (m_SA[rw] < 0.01) {
             m_snowMelt[rw] = 0.f;
         } else {
-            float dt = m_maxTemp[rw] - m_t0;
+            //float dt = m_maxTemp[rw] - m_t0;
+            float dt = m_maxTemp[rw] - m_t0_1d[rw];
             if (dt < 0) {
                 m_snowMelt[rw] = 0.f; //if temperature is lower than t0, the snowmelt is 0.
             } else {
                 //calculate using eq. 1:2.5.2 SWAT p58
-                m_snowMelt[rw] = cmelt * ((m_packT[rw] + m_maxTemp[rw]) * 0.5f - m_t0);
+                //m_snowMelt[rw] = cmelt * ((m_packT[rw] + m_maxTemp[rw]) * 0.5f - m_t0);
+                m_snowMelt[rw] = cmelt * ((m_packT[rw] + m_maxTemp[rw]) * 0.5f - m_t0_1d[rw]);
+                
                 // adjust for areal extent of snow cover
                 float snowCoverFrac = 0.f; //fraction of HRU area covered with snow
                 if (m_SA[rw] < m_snowCoverMax) {
                     float xx = m_SA[rw] / m_snowCoverMax;
-                    snowCoverFrac = xx / (xx + exp(m_snowCoverCoef1 - m_snowCoverCoef2 * xx));
+                    snowCoverFrac = xx / (xx + exp(m_snowCoverCoef1 = m_snowCoverCoef2 * xx));
                 } else {
                     snowCoverFrac = 1.f;
                 }
@@ -154,8 +159,12 @@ void SNO_SP::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(s, VAR_TMAX)) m_maxTemp = data;
     else if (StringMatch(s, VAR_NEPR)) m_netPcp = data;
     else if (StringMatch(s, VAR_LANDUSE)) m_landUse = data;
-    else if (StringMatch(s, "Qfg")) Qfg = data;   
+    else if (StringMatch(s, "Qfg")) Qfg = data;
     else if (StringMatch(s, VAR_AHRU)) m_area = data;
+    else if (StringMatch(s, "T0_1d")) m_t0_1d = data;
+    else if (StringMatch(s, "lag_snow_1d")) m_lagSnow_1d = data;
+    else if (StringMatch(s, "c_snow6_1d")) m_csnow6_1d = data;
+    else if (StringMatch(s, "c_snow12_1d")) m_csnow12_1d = data;
     else {
         throw ModelException(MID_SNO_SP, "Set1DData", "Parameter " + s + " does not exist.");
     }
@@ -170,19 +179,8 @@ void SNO_SP::Get1DData(const char* key, int* n, float** data) {
     else if (StringMatch(s, "SNO_AREA")) *data = m_snoarea;  //ljj
     else if (StringMatch(s, "SNAC_AREA")) *data = m_snacarea;  //ljj
     else if (StringMatch(s, "SNO_DAY")) *data = m_snoday;  //ljj
-	else if (StringMatch(s, VAR_TMEAN)) *data = m_meanTemp;  //xiaodw, for calibrate snow melt
-	else if (StringMatch(s, VAR_TMAX)) *data = m_maxTemp;  //xiaodw, for calibrate snow melt
     else {
         throw ModelException(MID_SNO_SP, "Get1DData", "Result " + s + " does not exist.");
     }
     *n = m_nCells;
-}
-
-void SNO_SP::GetValue(const char* key, float* value) {
-	string s(key);
-	if (StringMatch(s, VAR_T0)) *value = m_t0;  //xiaodw, for calibrate snow melt
-	else if (StringMatch(s, VAR_T_SNOW)) *value = m_snowTemp;    //xiaodw, for calibrate snow melt
-	else {
-		throw ModelException(MID_SNO_SP, "GetValue", "Result " + s + " does not exist.");
-	}
 }

@@ -29,7 +29,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_SOILTHICK, UNIT_DEPTH_MM, DESC_SOILTHICK, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_SUBBASIN_PARAM, UNIT_NON_DIM, DESC_SUBBASIN_PARAM, Source_ParameterDB, DT_Subbasin);
     mdi.AddParameter(Tag_FLOWIN_INDEX_D8, UNIT_NON_DIM, DESC_FLOWIN_INDEX_D8, Source_ParameterDB, DT_Array2D);
-    mdi.AddParameter(VAR_LANDCOVER, UNIT_NON_DIM, DESC_LANDUSE, Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter(VAR_LANDUSE, UNIT_NON_DIM, DESC_LANDUSE, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(Tag_FLOWOUT_INDEX_D8, UNIT_NON_DIM, DESC_FLOWOUT_INDEX_D8, Source_ParameterDB, DT_Array1D);
 	mdi.AddParameter("CELLAREA", UNIT_AREA_M2, "area", Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_STREAM_LINK, UNIT_NON_DIM, DESC_STREAM_LINK, Source_ParameterDB, DT_Raster1D);
@@ -73,14 +73,16 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_SSRUVOL, UNIT_VOL_M3, DESC_SSRUVOL, Source_Module_Optional, DT_Raster2D);   //m_sol_laterq
     mdi.AddInput(VAR_SOTE, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_SBIF, UNIT_FLOW_CMS, DESC_SBIF, Source_Module, DT_Array1D);
-
-    //output
-    mdi.AddOutput(VAR_PERC_LOWEST_DOC, UNIT_CONT_KGHA, "TODO", DT_Array1D);
-    mdi.AddOutput("wetdoccon", UNIT_DEPTH_MM, "todo", DT_Raster1D);
-    mdi.AddOutput("wet_vol", UNIT_DEPTH_MM, "todo", DT_Raster1D);
-    mdi.AddOutput("wetland_oc", UNIT_DEPTH_MM, "todo", DT_Array2D);
-    mdi.AddOutput("wetland_wt", UNIT_DEPTH_MM, "todo", DT_Array2D);
-    mdi.AddOutput("surf_wetdoc", UNIT_DEPTH_MM, "todo", DT_Array1D);
+    mdi.AddInput(VAR_PERC_LOWEST_DOC, UNIT_KG, DESC_PERC_LOWEST_DOC, Source_Module, DT_Array1D);
+    mdi.AddParameter("hs_lakedepth", UNIT_LEN_M, "TODO", "TODO", DT_Raster1D);
+    mdi.AddParameter("res_time", UNIT_LEN_M, "TODO", "TODO", DT_Raster1D);
+    // //output
+    // mdi.AddOutput(VAR_PERC_LOWEST_DOC, UNIT_CONT_KGHA, "TODO", DT_Array1D);
+    // mdi.AddOutput("wetdoccon", UNIT_DEPTH_MM, "todo", DT_Raster1D);
+    // mdi.AddOutput("wet_vol", UNIT_DEPTH_MM, "todo", DT_Raster1D);
+    // mdi.AddOutput("wetland_oc", UNIT_DEPTH_MM, "todo", DT_Array2D);
+    // mdi.AddOutput("wetland_wt", UNIT_DEPTH_MM, "todo", DT_Array2D);
+    // mdi.AddOutput("surf_wetdoc", UNIT_DEPTH_MM, "todo", DT_Array1D);
 
     /// write out the XML file.
     res = mdi.GetXMLDocument();

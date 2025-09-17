@@ -17,7 +17,8 @@ ReservoirMethod::ReservoirMethod() :
     /// outputs
     m_T_QG(nullptr), m_T_Revap(nullptr), m_T_GWWB(nullptr),
     m_nSubbsns(-1), m_inputSubbsnID(-1), m_subbasinsInfo(nullptr),
-    m_area(nullptr),curBasinArea(nullptr),m_rchrg(nullptr),gw_delay(NODATA_VALUE) {
+    m_area(nullptr),curBasinArea(nullptr),m_rchrg(nullptr),gw_delay(NODATA_VALUE),
+    m_Base_ex_1d(nullptr),m_Kg_1d(nullptr),gw_delay_1d(nullptr) {
 }
 
 ReservoirMethod::~ReservoirMethod() {
@@ -85,17 +86,17 @@ int ReservoirMethod::Execute() {
                 //fPET += m_pet[index];
                 fPET += m_pet[index] * (m_area[index] / curBasinArea[subID]);
             }
-			//m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_actPltET[index];  // xiaodw comment, don't need m_actPltET now
-            m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index];
+            m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_actPltET[index];
             m_revap[index] = Max(m_revap[index], 0.f);
             m_revap[index] = m_revap[index] * Min(1.0,m_gwSto[subID] / m_GWMAX);
             //revap += m_revap[index];
-            //m_revap[index] = 0.f;
+            m_revap[index] = 0.f;
             revap += m_revap[index] * (m_area[index] / curBasinArea[subID]);
         }
         rchrg1 = m_rchrg[subID];
         m_rchrg[subID] = 0.f;
-        float gw_delaye = exp(-1./(gw_delay));
+        //float gw_delaye = exp(-1./(gw_delay));
+        float gw_delaye = exp(-1./(gw_delay_1d[subID]));
         m_rchrg[subID] = (1.- gw_delaye) * perco + gw_delaye * rchrg1;
         perco = m_rchrg[subID];
         // perco /= curCellsNum; // mean mm
@@ -116,11 +117,12 @@ int ReservoirMethod::Execute() {
             }
             revap = m_gwSto[subID];
         }
-
         // groundwater runoff (mm)
         float slopeCoef = curSub->GetSlopeCoef();
-        float kg = m_Kg * slopeCoef;
-        float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex); // mm
+        //float kg = m_Kg * slopeCoef;
+        float kg = m_Kg_1d[subID] * slopeCoef;
+        //float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex); // mm
+        float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex_1d[subID]); // mm
         groundRunoff = Min(groundRunoff,m_gwSto[subID]);
         //float groundQ = groundRunoff * curCellsNum * QGConvert;     // groundwater discharge (m3/s)
         float groundQ = groundRunoff * curBasinArea[subID] * QGConvert; 
@@ -134,12 +136,12 @@ int ReservoirMethod::Execute() {
         }
         groundStorage += gwBank / curBasinArea[subID] * 1000.f;
         groundStorage = Max(groundStorage, 0.f);
-         if (groundStorage > m_GWMAX) {
-             groundRunoff += groundStorage - m_GWMAX;
-             //groundQ = groundRunoff * curCellsNum * QGConvert; // groundwater discharge (m3/s)
-             groundQ = groundRunoff * curBasinArea[subID] * QGConvert; 
-             groundStorage = m_GWMAX;
-         }
+        // if (groundStorage > m_GWMAX) {
+        //     groundRunoff += groundStorage - m_GWMAX;
+        //     //groundQ = groundRunoff * curCellsNum * QGConvert; // groundwater discharge (m3/s)
+        //     groundQ = groundRunoff * curBasinArea[subID] * QGConvert; 
+        //     groundStorage = m_GWMAX;
+        // }
 
         /**** Set values for current subbasin ****/
         curSub->SetPet(fPET);
@@ -226,7 +228,7 @@ bool ReservoirMethod::CheckInputData() {
     CHECK_POINTER(MID_GWA_RE, m_IntcpET);
     CHECK_POINTER(MID_GWA_RE, m_deprStoET);
     CHECK_POINTER(MID_GWA_RE, m_soilET);
-    //CHECK_POINTER(MID_GWA_RE, m_actPltET);
+    CHECK_POINTER(MID_GWA_RE, m_actPltET);
     CHECK_POINTER(MID_GWA_RE, m_pet);
     CHECK_POINTER(MID_GWA_RE, m_slope);
     CHECK_POINTER(MID_GWA_RE, m_soilWtrSto);
@@ -281,7 +283,13 @@ void ReservoirMethod::Set1DData(const char* key, const int n, float* data) {
     } //ljj++
     else if (StringMatch(sk, VAR_AHRU)) {
 		m_area = data;
-	}else {
+	}else if (StringMatch(sk, "Base_ex_1d")) {
+        m_Base_ex_1d = data;
+    }else if (StringMatch(sk, "Kg_1d")) {
+        m_Kg_1d = data;
+    }else if (StringMatch(sk, "gw_delay_1d")) {
+        gw_delay_1d = data;
+    }else {
         throw ModelException(MID_GWA_RE, "Set1DData", "Parameter " + sk + " does not exist in current module.");
     }
 }

@@ -998,7 +998,7 @@ int Biomass_EPIC::Execute() {
     InitialOutputs();
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
-        if(m_landuse[i]==LANDUSE_ID_WATR && m_landuse[i]==LANDUSE_ID_GLC) continue;
+        if(m_landuse[i]==LANDUSE_ID_WATR || m_landuse[i]==LANDUSE_ID_GLC) continue;
         if(0<m_dormFlag[i] && m_dormFlag[i]<1) m_dormFlag[i] = 1;  //ljj for averged parameter in HRU
         /// calculate albedo in current day, albedo.f of SWAT
         float cej = -5.e-5f;

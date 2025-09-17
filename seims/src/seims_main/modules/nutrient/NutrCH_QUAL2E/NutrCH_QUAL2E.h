@@ -350,6 +350,11 @@ private:
     float m_npoc;
     float m_FRAC;
     float m_intercpt;
+    float* m_krp_1d;
+    float* m_kd_rp_1d;
+    float* m_sv_rp_1d;
+    float* m_krd_1d;
+
     
     float* m_chDOCcon;
     float* m_sedst;
@@ -410,6 +415,7 @@ private:
     float* m_A_a;
     float* m_A_Vb;
     float* m_A_Va;
+    float* m_lakearea;
 
     float* m_airtemp;
     float* m_rrtime;

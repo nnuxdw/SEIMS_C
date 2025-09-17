@@ -76,6 +76,8 @@ private:
     float m_ki;
     /// soil freezing temperature threshold, deg C
     float m_soilFrozenTemp;
+    float* m_ki_1d;
+    float* m_soilFrozenTemp_1d;
     /// slope (tan)
     float *m_slope;
     /// conductivity

@@ -130,6 +130,8 @@ private:
     float* m_cellfr;
     float** m_flowInIdxD8;
     float* m_flowOutIdxD8;
+    float* mean_lakedepth;
+    float* res_time;
 
     float** m_wetland_wt;
     float** m_wetland_oc;

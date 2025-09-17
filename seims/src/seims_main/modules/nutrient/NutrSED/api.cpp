@@ -93,6 +93,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_ENRPOC, UNIT_NON_DIM, DESC_ENRPOC, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_KDOC, UNIT_NON_DIM, DESC_KDOC, Source_ParameterDB, DT_Single);
 	mdi.AddParameter(VAR_PERCO_DOC, UNIT_NON_DIM, DESC_PERCO_DOC, Source_ParameterDB, DT_Single);
+    //mdi.AddParameter("kd_oc_1d", UNIT_NON_DIM, DESC_KDOC, Source_ParameterDB, DT_Raster1D);
+    //mdi.AddParameter("perco_doc_1d", UNIT_NON_DIM, DESC_PERCO_DOC, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_AHRU, UNIT_AREA_M2, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_STREAM_LINK, UNIT_NON_DIM, DESC_STREAM_LINK, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_SOL_WPMM, UNIT_DEPTH_MM, DESC_SOL_WPMM, Source_ParameterDB, DT_Raster2D);
@@ -117,7 +119,12 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Raster2D);
     mdi.AddInput("BRT", "none", "fraction of surface runoff that takes one day or less to reach the subbasin", Source_Module, DT_Array1D);
     mdi.AddInput(VAR_SURU, UNIT_DEPTH_MM, DESC_SURU, Source_Module, DT_Raster1D);
-
+    
+    mdi.AddOutput(VAR_ENR_RPOC, UNIT_CONT_KGHA, "todo", DT_Raster1D);
+	mdi.AddOutput(VAR_ENR_LPOC, UNIT_CONT_KGHA, "todo", DT_Raster1D);
+	mdi.AddOutput(VAR_SURF_DIC, UNIT_CONT_KGHA, "todo", DT_Raster1D);
+	mdi.AddOutput(VAR_SURF_DOC, UNIT_CONT_KGHA, "todo", DT_Raster1D);
+	
     // mdi.AddInput("SURFDOC", UNIT_KG, DESC_SEDYLD, Source_Module, DT_Raster1D);
     // mdi.AddInput("SURFPOC", UNIT_KG, DESC_SEDYLD, Source_Module, DT_Raster1D);
     // mdi.AddInput("SUBSURFDOC", UNIT_KG, DESC_SEDYLD, Source_Module, DT_Raster2D);

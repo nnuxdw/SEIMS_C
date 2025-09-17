@@ -144,10 +144,10 @@ void SERO_MUSLE::InitialOutputs() {
         m_usleC = new(nothrow) float[m_nCells];
 #pragma omp parallel for
         for (int i = 0; i < m_nCells; i++) {
-            if (m_rchID[i] > 0) {
-                m_usleC[i] = 0.f;
-                continue;
-            }
+            // if (m_rchID[i] > 0) {
+            //     m_usleC[i] = 0.f;
+            //     continue;
+            // }
             m_usleC[i] = m_aveAnnUsleC[i]; // By default, the m_usleC equals to the annual USLE_C value.
 
             if (m_aveAnnUsleC[i] < 1.e-4f || FloatEqual(m_aveAnnUsleC[i], NODATA_VALUE)) {

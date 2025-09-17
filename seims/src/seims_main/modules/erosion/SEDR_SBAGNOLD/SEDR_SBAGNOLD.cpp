@@ -201,20 +201,33 @@ int SEDR_SBAGNOLD::Execute() {
         for (int i = 0; i < nReaches; i++) {
             int reachIndex = it->second[i]; // index in the array, which is equal to reach ID
             if (m_inputSubbsnID == 0 || m_inputSubbsnID == reachIndex) {
-                // for OpenMP version, all reaches will be executed,
-                // for MPI version, only the current reach will be executed.
-                SedChannelRouting(reachIndex);
-                // compute changes in channel dimensions caused by downcutting and widening
-                ChannelDowncuttingWidening(reachIndex);
-                // if(m_islake[reachIndex] == 0 && m_isres[reachIndex] == 0 ){ 
-                //     //ChannelFlow(reachIndex);
-                //     SedChannelRouting(reachIndex);
-                //     // compute changes in channel dimensions caused by downcutting and widening
-                //     ChannelDowncuttingWidening(reachIndex);
-                // }
-                // else{
-                //     SedResRouting(reachIndex);
-                // }
+                // // for OpenMP version, all reaches will be executed,
+                // // for MPI version, only the current reach will be executed.
+                // SedChannelRouting(reachIndex);
+                // // compute changes in channel dimensions caused by downcutting and widening
+                // ChannelDowncuttingWidening(reachIndex);
+                if(m_islake[reachIndex] == 0 && m_isres[reachIndex] == 0 ){ 
+                    //ChannelFlow(reachIndex);
+                    SedChannelRouting(reachIndex);
+                    // compute changes in channel dimensions caused by downcutting and widening
+                    ChannelDowncuttingWidening(reachIndex);
+                }
+                else{
+                    if (m_isres[reachIndex] == 1){
+                        if(m_year<=2008){
+                            //ChannelFlow(reachIndex);
+                            SedChannelRouting(reachIndex);
+                            // compute changes in channel dimensions caused by downcutting and widening
+                            ChannelDowncuttingWidening(reachIndex);
+                        }
+                        else{
+                            SedResRouting(reachIndex);
+                        }
+                    }
+                    else if (m_islake[reachIndex] == 1){
+                        SedResRouting(reachIndex);
+                    }
+                }
             }
         }
     }
@@ -413,7 +426,7 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
     m_gravelRchOut[i] = 0.f;
 
     // initialize water in reach during time step
-    float qdin = m_chSto[i] + m_rteWtrOut[i]; ///< water in reach during time step, m^3
+    float qdin = m_chSto[i] + m_rteWtrOut[i] + UTIL_ZERO; ///< water in reach during time step, m^3
 
     // calculate shape parameters for surface area equation
     float depth =  pow(m_chSto[i]*1.e-9f/ m_A_Va[i],1.0/m_A_Vb[i]) ;
@@ -504,12 +517,17 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
     //assume 12mg/l as equilibrium concentration in the pond, Huber et al. 2006
     float res_nsed = m_resnsed[i]; 
     float sed_stlr = exp(-.184 * m_res_d50[i]);
-
+    //ljj++
+    float tao = (m_chSto[i]+m_rteWtrOut[i])/m_rteWtrOut[i];
+    float TE = (1.f - 0.05f/sqrt(tao))*0.01;
     float remsetsed = 0.;
-    if (res_sed > res_nsed) {
+    //if (res_sed > res_nsed) {
+    if (res_sed > 0.f) {
         float inised = res_sed;
-        res_sed = (res_sed - res_nsed) *sed_stlr + res_nsed;
+        //res_sed = (res_sed - res_nsed) *sed_stlr + res_nsed;
         float finsed = res_sed;
+        finsed = inised*(1-TE);
+        res_sed = finsed;
         float setsed = inised - finsed;
         
         if (res_gra >= setsed) {
@@ -580,7 +598,6 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
     m_gravelRchOut[i] = gravelin * outfract;              // rch_gra in SWAT
 
     m_sedRchOut[i] = Min(m_sedRchOut[i],sedin + m_sedSto[i]);  
-    
     if (m_sedRchOut[i] < UTIL_ZERO) {
         m_sedRchOut[i] = 0.f;
         m_sedConcRchOut[i] = 0.f;

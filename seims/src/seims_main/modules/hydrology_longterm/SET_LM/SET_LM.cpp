@@ -8,7 +8,7 @@ SET_LM::SET_LM() :
     m_pet(nullptr), m_IntcpET(nullptr),
     m_deprStoET(nullptr), m_maxPltET(nullptr), m_soilTemp(nullptr),
     m_soilFrozenTemp(NODATA_VALUE),
-    m_soilET(nullptr),m_soilAWC(nullptr), m_nRteLyrs(-1) {
+    m_soilET(nullptr),m_soilAWC(nullptr) {
 }
 
 SET_LM::~SET_LM() {
@@ -22,15 +22,13 @@ int SET_LM::Execute() {
 #pragma omp parallel for reduction(+: errCount)
     for (int i = 0; i < m_nCells; i++) {
         m_soilET[i] = 0.0f;
-        //if (m_soilTemp[i] <= m_soilFrozenTemp) { continue; }     // xiaodw comment, don't need soil temperature now
-		//float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_maxPltET[i];   // xiaodw comment, don't need plant et now, remove it 
-		
-        float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i];
+        if (m_soilTemp[i] <= m_soilFrozenTemp) { continue; }
+
+        float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_maxPltET[i];
         for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
             if (etDeficiency <= 0.f) break;
             float et2d = 0.f;
             //if (m_soilWtrSto[i][j] >= m_soilFC[i][j]) {
-			float smBefore = m_soilWtrSto[i][j];
             if (m_soilWtrSto[i][j] >= m_soilAWC[i][j]) {
                 et2d = etDeficiency;
             } else if (m_soilWtrSto[i][j] >= 0.f) {
@@ -51,23 +49,6 @@ int SET_LM::Execute() {
             }
             etDeficiency -= et2d;
             m_soilET[i] += et2d;
-#ifdef DEBUG_SET_LM
-			if (i == 2562)
-			{
-				std::cout << "------------------ ET Debug Info ------------------" << std::endl;
-				std::cout << "  HRU ID                : " << i << std::endl;
-				std::cout << "  Soil Layer             : " << j << " / " << m_nSoilLyrs[i] << std::endl;
-				std::cout << "  Soil Moisture (before) : " << smBefore << " mm" << std::endl;
-				std::cout << "  Soil Moisture (after)  : " << m_soilWtrSto[i][j] << " mm" << std::endl;
-				std::cout << "  AWC (Field Capacity)   : " << m_soilAWC[i][j] << " mm" << std::endl;
-				std::cout << "  ET Demand (deficiency) : " << etDeficiency << " mm" << std::endl;
-				std::cout << "  ET Extracted (et2d)    : " << et2d << " mm" << std::endl;
-				std::cout << "---------------------------------------------------" << std::endl << std::endl;
-			}
-
-#endif // DEBUG_SET_LM
-
-			
         }
     }
     if (errCount > 0) {
@@ -110,23 +91,10 @@ void SET_LM::Set1DData(const char* key, const int nrows, float* data) {
 
 void SET_LM::Set2DData(const char* key, const int nrows, const int ncols, float** data) {
     string sk(key);
-    
-	if (StringMatch(sk, VAR_SOL_AWC)) {
-		CheckInputSize2D(MID_SET_LM, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
-		m_soilAWC = data;
-	} //m_soilFC = data;
-	else if (StringMatch(sk, VAR_SOL_ST)) {
-		CheckInputSize2D(MID_SET_LM, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
-		m_soilWtrSto = data;
-	}
-	else if (StringMatch(sk, VAR_SOILTHICK)) {
-		CheckInputSize2D(MID_SET_LM, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
-		m_soilThk = data;
-	}
-	//else if (StringMatch(sk, Tag_ROUTING_LAYERS)) {
-	//	CheckInputSize(MID_SSR_DA, key, nrows, m_nRteLyrs);
-	//	m_rteLyrs = data;
-	//}
+    CheckInputSize2D(MID_SET_LM, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
+    if (StringMatch(sk, VAR_SOL_AWC)) m_soilAWC = data; //m_soilFC = data;
+    else if (StringMatch(sk, VAR_SOL_ST)) m_soilWtrSto = data;
+    else if (StringMatch(sk, VAR_SOILTHICK)) m_soilThk = data;
     else {
         throw ModelException(MID_SET_LM, "Set2DData", "Parameter " + sk + " does not exist.");
     }
@@ -138,9 +106,9 @@ bool SET_LM::CheckInputData() {
     CHECK_POINTER(MID_SET_LM, m_IntcpET);
     CHECK_POINTER(MID_SET_LM, m_pet);
     CHECK_POINTER(MID_SET_LM, m_deprStoET);
-    //CHECK_POINTER(MID_SET_LM, m_maxPltET);    // xiaodw comment, don't need plant et now, remove it 
+    CHECK_POINTER(MID_SET_LM, m_maxPltET);
     CHECK_POINTER(MID_SET_LM, m_soilWtrSto);
-    //CHECK_POINTER(MID_SET_LM, m_soilTemp);     // xiaodw comment, don't need soil temperature now, remove it 
+    CHECK_POINTER(MID_SET_LM, m_soilTemp);
     CHECK_NODATA(MID_SET_LM, m_soilFrozenTemp);
     return true;
 }

@@ -35,6 +35,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_DF_COEF, UNIT_NON_DIM, DESC_DF_COEF, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_KG, UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_Base_ex, UNIT_NON_DIM, DESC_BASE_EX, Source_ParameterDB, DT_Single);
+    mdi.AddParameter("Kg_1d", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("Base_ex_1d", UNIT_NON_DIM, DESC_BASE_EX, Source_ParameterDB, DT_Raster1D);
 
     mdi.AddParameter(VAR_SOILDEPTH, UNIT_DEPTH_MM, DESC_SOILDEPTH, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_SOILLAYERS, UNIT_NON_DIM, DESC_SOILLAYERS, Source_ParameterDB, DT_Raster1D);
@@ -44,13 +46,13 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_INET, UNIT_DEPTH_MM, DESC_INET, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_DEET, UNIT_DEPTH_MM, DESC_DEET, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_SOET, UNIT_DEPTH_MM, DESC_SOET, Source_Module, DT_Raster1D);
-    //mdi.AddInput(VAR_AET_PLT, UNIT_DEPTH_MM, DESC_AET_PLT, Source_Module, DT_Raster1D);    // xiaodw comment, don't need m_actPltET now
+    mdi.AddInput(VAR_AET_PLT, UNIT_DEPTH_MM, DESC_AET_PLT, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_PET, UNIT_DEPTH_MM, DESC_PET, Source_Module, DT_Raster1D);
     // VAR_GWNEW is OPTIONALLY from IUH_CH or other channel routing module
     mdi.AddInput(VAR_GWNEW, UNIT_DEPTH_MM, DESC_GWNEW, Source_Module_Optional, DT_Array1D);
     // VAR_PERCO is from percolation modules
-    mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Array2D);
-    mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);
+    mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Raster2D);
+    mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Raster2D);
 
     mdi.AddOutput(VAR_GWWB, UNIT_NON_DIM, DESC_NONE, DT_Array2D);
     mdi.AddOutput(VAR_REVAP, UNIT_DEPTH_MM, DESC_REVAP, DT_Raster1D);              //used by soil water balance module
@@ -61,6 +63,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 
     mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter("gw_delay", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Single);
+    mdi.AddParameter("gw_delay_1d", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Raster1D);
 
     res = mdi.GetXMLDocument();
 

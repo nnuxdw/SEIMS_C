@@ -66,6 +66,8 @@ private:
 	float m_kdoc;
 	float m_dp_co;
 	float gw_delay;
+	float* m_hlife_docgw_1d;
+	float* gw_delay_1d;
 
 	//input
 	float* m_soilPerco;

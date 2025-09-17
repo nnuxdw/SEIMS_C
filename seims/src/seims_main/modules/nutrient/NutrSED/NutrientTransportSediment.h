@@ -250,6 +250,8 @@ private:
     float m_perco_doc;
     float m_R10;
     float m_Q10;
+    float* m_kd_oc_1d;
+    float* m_perco_doc_1d;
 
     float* m_brt;
     float* m_surfrunoff;

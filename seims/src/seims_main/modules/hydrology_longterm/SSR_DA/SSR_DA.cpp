@@ -18,7 +18,8 @@ SSR_DA::SSR_DA() :
     m_area(nullptr),m_flowout_length(nullptr),m_soilTempprofile(nullptr),
     m_soilIceSto(nullptr),m_clay(nullptr),m_soilPor(nullptr),m_slplen(nullptr),m_TTlag(nullptr),
     m_cellFlow(nullptr),m_surfRf(nullptr),m_potVol(nullptr),m_infil(nullptr),m_impoundTrig(nullptr),
-    m_soilPerco(nullptr),m_landUse(nullptr),m_soilAWC(nullptr),m_dis2Stream(nullptr)
+    m_soilPerco(nullptr),m_landUse(nullptr),m_soilAWC(nullptr),m_dis2Stream(nullptr),
+    m_ki_1d(nullptr),m_soilFrozenTemp_1d(nullptr)
      {
 }
 
@@ -32,9 +33,6 @@ SSR_DA::~SSR_DA() {
 }
 
 bool SSR_DA::FlowInSoil(const int id) {
-	// xdw++
-	float surFlowOld = m_surfRf[id];
-	int subbasinId = CVT_INT(m_subbsnID[id]);
     int frez =0;
     float s0 = Max(m_slope[id], 0.01f);
     // float flowWidth = m_CellWth;
@@ -63,7 +61,6 @@ bool SSR_DA::FlowInSoil(const int id) {
     int nUpstream = CVT_INT(m_flowInIdxD8[id][0]);
     m_soilWtrStoPrfl[id] = 0.f; // update soil storage on profile
     for (int j = 0; j < CVT_INT(m_nSoilLyrs[id]); j++) {
-
         float smOld = m_soilWtrSto[id][j];
         //sum the upstream subsurface flow
         float qUp = 0.f;    // mm
@@ -83,6 +80,7 @@ bool SSR_DA::FlowInSoil(const int id) {
             qUp = 0.f;
             qUpVol = 0.f;
         }
+        if(id<5 && j==0) cout<<m_soilAWC[id][j]<<endl;
         // if the flowWidth is less than 0, the subsurface flow from the upstream cells
         // should be added to stream cell directly, which will be summarized
         // for channel flow routing. By lj, 2018-4-12
@@ -98,26 +96,6 @@ bool SSR_DA::FlowInSoil(const int id) {
             return false;
         }
         m_soilWtrSto[id][j] += qUp; // mm
-
-#ifdef DEBUG_SSR_DA
-		if (CVT_INT(m_subbsnID[id]) == 173 && id == 2562)
-		{
-			if (m_soilWtrSto[id][j] <= m_soilAWC[id][j]) {
-				std::cout << "----------- Subsurface Flow Debug Info -----------" << std::endl;
-				std::cout << "  HRU ID                : " << id << std::endl;
-				std::cout << "  Soil Layer            : " << j << " / " << m_nSoilLyrs[id] << std::endl;
-				std::cout << "  Soil Moisture (before): " << smOld << " mm" << std::endl;
-				std::cout << "  Soil Moisture (after) : " << m_soilWtrSto[id][j] << " mm" << std::endl;
-				std::cout << "  Field Capacity (AWC)  : " << m_soilAWC[id][j] << " mm" << std::endl;
-				std::cout << "  Soil Saturation    (UL)  : " << m_soilSat[id][j] << " mm" << std::endl;
-				//std::cout << "  Field Capacity (FC)   : " << m_soilFC[id][j] << " mm" << std::endl;
-				std::cout << "--------------------------------------------------" << std::endl;
-
-				std::cout << endl;
-
-			}
-		}
-#endif
         // if soil moisture is below the field capacity, no interflow will be generated
         //if (m_soilWtrSto[id][j] <= m_soilFC[id][j]) continue;
         if (m_soilWtrSto[id][j] <= m_soilAWC[id][j]) continue;
@@ -127,10 +105,10 @@ bool SSR_DA::FlowInSoil(const int id) {
         // if (j == 0 && m_soilTemp[id] <= m_soilFrozenTemp && qUp <= 0.f) {
         //     continue;
         // }
-		 // xiaodw comment, don't need soil temperature now
-        //if (frez = 0 && m_soilTempprofile[id][j] <= m_soilFrozenTemp) {
-        //    continue;
-        //}
+        //if (frez == 0 && m_soilTempprofile[id][j] <= m_soilFrozenTemp) {
+        if (frez == 0 && m_soilTempprofile[id][j] <= m_soilFrozenTemp_1d[id]) {
+            continue;
+        }
 
         float k = 0.f, maxSoilWater = 0.f, soilWater = 0.f, fcSoilWater = 0.f;
         soilWater = m_soilWtrSto[id][j];
@@ -172,7 +150,8 @@ bool SSR_DA::FlowInSoil(const int id) {
         }
         // 1. / 3600. = 0.0002777777777777778
         flowWidth = sqrt(m_area[id]);  // subarea is not ajcent to the stream
-        m_subSurfRf[id][j] =m_ki * s0 * k * m_dt * 0.0002777777777777778f * m_soilThk[id][j] * 0.001f / flowWidth;
+        //m_subSurfRf[id][j] =m_ki * s0 * k * m_dt * 0.0002777777777777778f * m_soilThk[id][j] * 0.001f / flowWidth;
+        m_subSurfRf[id][j] =m_ki_1d[id] * s0 * k * m_dt * 0.0002777777777777778f * m_soilThk[id][j] * 0.001f / flowWidth;
         // the unit is mm
 
         // if (soilWater - m_subSurfRf[id][j] > maxSoilWater) {
@@ -214,8 +193,6 @@ bool SSR_DA::FlowInSoil(const int id) {
 
         m_soilWtrSto[id][j] -= m_soilPerco[id][j];
         m_soilWtrSto[id][j] -= m_subSurfRf[id][j];
-		float soilWtrStoNexLyrOld = 0.0f;
-		if (j < CVT_INT(m_nSoilLyrs[id]) - 1) soilWtrStoNexLyrOld = m_soilWtrSto[id][j + 1];
         if (j < CVT_INT(m_nSoilLyrs[id]) - 1) m_soilWtrSto[id][j + 1] += m_soilPerco[id][j];
         m_soilWtrSto[id][j] = Max(UTIL_ZERO, m_soilWtrSto[id][j]);
         m_cellFlow[id][j] += m_subSurfRf[id][j];
@@ -262,39 +239,6 @@ bool SSR_DA::FlowInSoil(const int id) {
             }
         }
         m_soilWtrStoPrfl[id] += m_soilWtrSto[id][j];
-
-#ifdef DEBUG_SSR_DA
-		if (CVT_INT(m_subbsnID[id]) == 173 && id == 2562)
-		{
-			std::cout << "----------- Subsurface Flow Debug Info -----------" << std::endl;
-			std::cout << "  HRU ID                : " << id << std::endl;
-			std::cout << "  Soil Layer            : " << j << " / " << m_nSoilLyrs[id] << std::endl;
-			std::cout << "  Soil Moisture (before): " << smOld << " mm" << std::endl;
-			std::cout << "  Soil Moisture (after) : " << m_soilWtrSto[id][j] << " mm" << std::endl;
-			std::cout << "  Upstream qUp          : " << qUp << " mm" << std::endl;
-			std::cout << "  SubSurfRf             : " << m_subSurfRf[id][j] << " mm" << std::endl;
-			std::cout << "  SubSurfRfVol          : " << m_subSurfRfVol[id][j] << " m3" << std::endl;
-			std::cout << "  Percolation           : " << m_soilPerco[id][j] << " mm" << std::endl;
-			std::cout << "  Soil MoistNex (before): " << soilWtrStoNexLyrOld << " mm" << std::endl;
-			std::cout << "  Soil MoistNex (after) : " << m_soilWtrSto[id][j + 1] << " mm" << std::endl;
-			
-			std::cout << "  surFlow (before)      : " << surFlowOld << " mm" << std::endl;
-			std::cout << "  surFlow (after)       : " << m_surfRf[id] << " mm" << std::endl;
-			std::cout << "  Soil Saturation       : " << m_soilSat[id][j] << " mm" << std::endl;
-			std::cout << "  Field Capacity (AWC)  : " << m_soilAWC[id][j] << " mm" << std::endl;
-			//std::cout << "  Field Capacity (FC)   : " << m_soilFC[id][j] << " mm" << std::endl;
-			std::cout << "  Ks                    : " << m_ks[id][j] << " mm/h" << std::endl;
-			std::cout << "  TTlag                 : " << m_TTlag[id][j] << " [-]" << std::endl;
-			std::cout << "  flowWidth             : " << flowWidth << " m" << std::endl;
-			std::cout << "  slope (s0)            : " << s0 << " [-]" << std::endl;
-			std::cout << "--------------------------------------------------" << std::endl;
-
-			std::cout << endl;
-		}
-
-#endif // DEBUG_SSR_DA
-
-
         if (m_soilWtrSto[id][j] != m_soilWtrSto[id][j] || m_soilWtrSto[id][j] < 0.f) {
             cout << "cell id: " << id << ", layer: " << j << ", moisture is less than zero: "
                     << m_soilWtrSto[id][j] << ", subsurface runoff: " << m_subSurfRf[id][j] << ", depth:"
@@ -413,6 +357,8 @@ void SSR_DA::Set1DData(const char* key, const int nrows, float* data) {
     else if (StringMatch(s, VAR_INFIL)) m_infil = data;
     else if (StringMatch(s, VAR_LANDUSE)) m_landUse = data;
     else if (StringMatch(s, VAR_DISTSTREAM)) m_dis2Stream = data; 
+    else if (StringMatch(s, "Ki_1d")) m_ki_1d = data; 
+    else if (StringMatch(s, "t_soil_1d")) m_soilFrozenTemp_1d = data; 
     
     else {
         throw ModelException(MID_SSR_DA, "Set1DData", "Parameter " + s + " does not exist.");
@@ -434,11 +380,7 @@ void SSR_DA::Set2DData(const char* key, const int nrows, const int ncols, float*
         CheckInputSize2D(MID_SSR_DA, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
         //m_soilFC = data;
         m_soilAWC = data;
-    }else if (StringMatch(sk, VAR_FIELDCAP)) {
-		CheckInputSize2D(MID_SSR_DA, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
-		m_soilFC = data;
-	}
-	else if (StringMatch(sk, VAR_SOL_WPMM)) {
+    } else if (StringMatch(sk, VAR_SOL_WPMM)) {
         CheckInputSize2D(MID_SSR_DA, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
         m_soilWP = data;
     } else if (StringMatch(sk, VAR_POREIDX)) {
@@ -497,12 +439,7 @@ void SSR_DA::Get2DData(const char* key, int* nrows, int* ncols, float*** data) {
         *data = m_subSurfRf;
     } else if (StringMatch(sk, VAR_SSRUVOL)) {
         *data = m_subSurfRfVol;
-    }else if (StringMatch(sk, VAR_SOL_ST)) {
-		*data = m_soilWtrSto;
-	}else if (StringMatch(sk, VAR_PERCO)) {
-		*data = m_soilPerco;
-	}
-	else {
+    } else {
         throw ModelException(MID_SSR_DA, "Get2DData", "Output " + sk + " does not exist.");
     }
 }
@@ -525,9 +462,9 @@ bool SSR_DA::CheckInputData() {
     CHECK_POINTER(MID_SSR_DA, m_soilSat);
     //CHECK_POINTER(MID_SSR_DA, m_soilFC);
     CHECK_POINTER(MID_SSR_DA, m_soilWP);
-    //CHECK_POINTER(MID_SSR_DA, m_soilWtrSto);
+    CHECK_POINTER(MID_SSR_DA, m_soilWtrSto);
     CHECK_POINTER(MID_SSR_DA, m_soilWtrStoPrfl);
-    //CHECK_POINTER(MID_SSR_DA, m_soilTemp);     //  xiaodw comment, don't need soil temperature now
+    CHECK_POINTER(MID_SSR_DA, m_soilTemp);
     CHECK_POINTER(MID_SSR_DA, m_chWidth);
     CHECK_POINTER(MID_SSR_DA, m_rchID);
     CHECK_POINTER(MID_SSR_DA, m_flowInIdxD8);

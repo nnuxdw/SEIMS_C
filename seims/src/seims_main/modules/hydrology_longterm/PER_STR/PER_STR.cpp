@@ -170,10 +170,7 @@ void PER_STR::Set2DData(const char* key, const int nrows, const int ncols, float
     else if (StringMatch(sk, VAR_SOILTHICK)) m_soilThk = data;
     else if (StringMatch(sk, VAR_SOL_UL)) m_soilSat = data;
     else if (StringMatch(sk, VAR_SOL_AWC)) m_soilAWC = data; //m_soilFC = data;
-	else if (StringMatch(sk, VAR_SOL_ST)) {
-		CheckInputSize2D(MID_SSR_DA, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
-		m_soilWtrSto = data;
-	}
+    else if (StringMatch(sk, VAR_SOL_ST)) m_soilWtrSto = data;
     //ljj++
     else if (StringMatch(sk, VAR_SOL_WPMM)) m_soilWP = data;
     else if (StringMatch(sk, VAR_SOILT)) m_soilTempprofile = data;
@@ -198,7 +195,6 @@ void PER_STR::SetValue(const char* key, const float value) {
     string s(key);
     if (StringMatch(s, Tag_TimeStep)) m_dt = CVT_INT(value);
     else if (StringMatch(s, VAR_T_SOIL)) m_soilFrozenTemp = value;
-	else if (StringMatch(s, VAR_SUBBSNID_NUM)) m_nSubbsns = CVT_INT(value);
     else {
         throw ModelException(MID_PER_STR, "SetValue",
                              "Parameter " + s + " does not exist in current module.");
@@ -216,7 +212,7 @@ bool PER_STR::CheckInputData() {
     CHECK_POINTER(MID_PER_STR, m_soilWtrSto);
     CHECK_POINTER(MID_PER_STR, m_soilWtrStoPrfl);
     CHECK_POINTER(MID_PER_STR, m_soilThk);
-    //CHECK_POINTER(MID_PER_STR, m_soilTemp);   // xiaodw comment, don't need soil temperature now
+    CHECK_POINTER(MID_PER_STR, m_soilTemp);
     CHECK_POINTER(MID_PER_STR, m_infil);
     return true;
 }

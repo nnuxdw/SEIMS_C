@@ -23,6 +23,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.SetHelpfile("");
 
     mdi.AddParameter(VAR_T0, UNIT_TEMP_DEG, DESC_T0, Source_ParameterDB, DT_Single);
+    mdi.AddParameter("T0_1d", UNIT_TEMP_DEG, DESC_T0, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_K_BLOW, UNIT_NON_DIM, DESC_K_BLOW, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_T_SNOW, UNIT_TEMP_DEG, DESC_T_SNOW, Source_ParameterDB, DT_Single);
     // I don't think VAR_SWE0 is useful. By LJ
@@ -30,6 +31,9 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_LAG_SNOW, UNIT_NON_DIM, DESC_LAG_SNOW, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_C_SNOW6, UNIT_MELT_FACTOR, DESC_C_SNOW6, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_C_SNOW12, UNIT_MELT_FACTOR, DESC_C_SNOW12, Source_ParameterDB, DT_Single);
+    mdi.AddParameter("lag_snow_1d", UNIT_NON_DIM, DESC_LAG_SNOW, Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("c_snow6_1d", UNIT_MELT_FACTOR, DESC_C_SNOW6, Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("c_snow12_1d", UNIT_MELT_FACTOR, DESC_C_SNOW12, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_SNOCOVMX, UNIT_DEPTH_MM, DESC_SNOCOVMX, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_SNO50COV, UNIT_NON_DIM, DESC_SNO50COV, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
@@ -52,14 +56,9 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput("SNO_AREA", UNIT_DEPTH_MM, DESC_SNME, DT_Array1D);
     mdi.AddOutput("SNAC_AREA", UNIT_DEPTH_MM, DESC_SNME, DT_Array1D);
     mdi.AddOutput("SNO_DAY", UNIT_DEPTH_MM, DESC_SNME, DT_Raster1D);
-	// xiaodw, for calibtrate snow melt
-	mdi.AddOutput(VAR_TMAX, UNIT_TEMP_DEG, DESC_TMAX, DT_Raster1D);
-	mdi.AddOutput(VAR_TMEAN, UNIT_TEMP_DEG, DESC_TMEAN, DT_Raster1D);
-	mdi.AddOutput(VAR_T0, UNIT_TEMP_DEG, DESC_T0, DT_Single);
-	mdi.AddOutput(VAR_T_SNOW, UNIT_TEMP_DEG, DESC_T_SNOW, DT_Single);
 
     mdi.AddParameter(VAR_LANDUSE, UNIT_NON_DIM, DESC_LANDUSE, Source_ParameterDB, DT_Raster1D);
-    //mdi.AddInput("Qfg", UNIT_TEMP_DEG, DESC_TMAX, Source_Module, DT_Array1D);    // xiaodw comment, don't need glacier now
+    mdi.AddInput("Qfg", UNIT_TEMP_DEG, DESC_TMAX, Source_Module, DT_Array1D);
     // write out the XML file.
     string res = mdi.GetXMLDocument();
     char* tmp = new char[res.size() + 1];

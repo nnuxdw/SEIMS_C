@@ -20,9 +20,7 @@ PETHargreaves::~PETHargreaves() {
 
 void PETHargreaves::SetValue(const char* key, const float value) {
     string sk(key);
-	if (StringMatch(sk, VAR_K_PET)) {
-		m_petFactor = value;
-	}
+    if (StringMatch(sk, VAR_K_PET)) m_petFactor = value;
     else if (StringMatch(sk, VAR_PET_HCOEF)) m_HCoef_pet = value;
     else {
         throw ModelException(MID_PET_H, "SetValue", "Parameter " + sk +
@@ -83,9 +81,7 @@ int PETHargreaves::Execute() {
         }
         /// calculate the max solar radiation
         float srMax; /// maximum solar radiation of current day
-
         MaxSolarRadiation(m_dayOfYear, m_cellLat[i], m_dayLen[i], srMax);
-		
         ///calculate latent heat of vaporization(from swat)
         float latentHeat = 2.501f - 0.002361f * m_meanTemp[i];
         /// extraterrestrial radiation
@@ -106,12 +102,6 @@ int PETHargreaves::Execute() {
             actualVaporPressure = m_rhd[i] * satVaporPressure;
         }
         m_vpd[i] = satVaporPressure - actualVaporPressure;
-
-#ifdef DEBUG_PET_H
-		cout << "PET_H: " <<  i << " m_cellLat " << m_cellLat[i] << " m_meanTemp " << m_meanTemp[i] << " m_maxTemp " << m_maxTemp[i] << " m_minTemp " << m_minTemp[i] << " m_phuAnn " << m_phuAnn[i] << "  m_phuBase " << m_phuBase[i]
-			<< " m_dayLen " << m_dayLen[i] << " srMax " << srMax << " latentHeat " << latentHeat << " m_HCoef_pet " << m_HCoef_pet << " petValue " << petValue << " m_pet " << m_pet[i] << " m_petFactor " << m_petFactor << " satVaporPressure " << satVaporPressure
-			<< " m_rhd " << m_rhd [i]  << " actualVaporPressure " << actualVaporPressure << " m_vpd " << m_vpd[i] << endl;
-#endif
     }
     return 0;
 }

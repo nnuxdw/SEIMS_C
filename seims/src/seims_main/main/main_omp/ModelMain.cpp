@@ -233,7 +233,7 @@ void ModelMain::AppendOutputData(const time_t time) {
             throw ModelException("ModelMain", "Output",
                                  "Output id " + (*it)->getOutputID() + " does not have corresponding module.");
         }
-		
+
         //process every output file
         for (auto itemIt = (*it)->m_PrintItems.begin(); itemIt < (*it)->m_PrintItems.end(); ++itemIt) {
             PrintInfoItem* item = *itemIt;
@@ -255,26 +255,7 @@ void ModelMain::AppendOutputData(const time_t time) {
                     int n;
                     float* data;
                     module->Get1DData(keyName, &n, &data);
-					
-					// xiaodw add, if AggType is TS, means you want to output all subbasin's or reach's data, else means you only output one specific subbasin's or reach's data
-					if (StringMatch(item->AggType , Tag_TimeSeries))
-					{
-						item->Aggregate1DArrayData(time, n, data);
-						/*float* temp = new float[n];
-						for (int i = 0; i < n; i++) {
-							temp[i] = data[i];
-						}
-						item->TimeSeriesDataForSubbasin[time] = temp;
-						item->TimeSeriesDataForSubbasinCount = n;*/
-						//item->AggregateData(time, n, data);
-					}
-					// xiaodw, I aimed to let it support outputing monthly or yearly average value for each subbasin, but failed because it can't add a type 
-					//else if (StringMatch(item->AggType, Tag_TimeSeriesAvg)){
-					//	item->Aggregate1DArrayDataAvg(time, n, data);
-					//}
-					else {
-						item->TimeSeriesData[time] = data[index];
-					}
+                    item->TimeSeriesData[time] = data[index];
                 } else if (param->Dimension == DT_Array2D) {
                     //time series data for subbasins
                     //some modules will calculate result for all subbasins or all reaches,
@@ -300,14 +281,7 @@ void ModelMain::AppendOutputData(const time_t time) {
                         StringMatch(param->BasicName, VAR_SOILT) || 
                         StringMatch(param->BasicName, VAR_SOLICE) || 
                         StringMatch(param->BasicName, VAR_SOLWC) || 
-                        StringMatch(param->BasicName, VAR_SOWB)   || // soil water balance
-						//xdw++
-						StringMatch(param->BasicName, VAR_SOL_ST)  ||// soil water balance
-						StringMatch(param->BasicName, VAR_FIELDCAPDEP) ||
-						StringMatch(param->BasicName, VAR_POROSTDEP) ||
-						StringMatch(param->BasicName, VAR_PERCO) ||
-						StringMatch(param->BasicName, VAR_SOL_AWC) ||
-						StringMatch(param->BasicName, VAR_SOL_UL)
+                        StringMatch(param->BasicName, VAR_SOWB)    // soil water balance
                     ) {
                         // TODO: more conditions will be added in the future.
                         //for modules in which only the results of output subbasins are calculated.

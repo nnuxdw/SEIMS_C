@@ -99,6 +99,7 @@ private:
 
     /// threshold soil freezing temperature (deg C)
     float m_soilFrozenTemp;
+    float* m_soilFrozenTemp_1d;
     /// frozen soil moisture relative to saturation above which no infiltration occur
     /// (m3/m3 or mm H2O/ mm Soil)
     float m_soilFrozenWtrRatio;
@@ -130,13 +131,5 @@ private:
     float* m_pcp;
     float* m_lakesto;
     float* m_pet;
-
-	//xdw++
-	/// m_soilPor * m_soilThk
-	float** m_soilPorDepth;
-	/// m_soilFC * m_soilThk
-	float** m_soilFCDepth;
-
-	int m_nSubbsns;
 };
 #endif /* SEIMS_MODULE_SUR_MR_H */
