@@ -147,37 +147,59 @@ int SUR_MR::Execute() {
                 m_exsPcp[i] = surfq;
 
             }else{
-                //for frozen soil, no infiltration will occur
-                //if (m_soilTemp[i] <= m_soilFrozenTemp && smFraction >= m_soilFrozenWtrRatio) {
-                if (m_soilTemp[i] <= m_soilFrozenTemp_1d[i] && smFraction >= m_soilFrozenWtrRatio) {
-                    m_exsPcp[i] = m_netPcp[i];
-                    m_infil[i] = 0.f;
-                } else {
-                    alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
-                    if (hWater >= m_maxPcpRf) {
-                        alpha = 1.f;
-                    }
+//                //for frozen soil, no infiltration will occur
+//                //if (m_soilTemp[i] <= m_soilFrozenTemp && smFraction >= m_soilFrozenWtrRatio) {
+//                if (m_soilTemp[i] <= m_soilFrozenTemp_1d[i] && smFraction >= m_soilFrozenWtrRatio) {
+//                    m_exsPcp[i] = m_netPcp[i];
+//                    m_infil[i] = 0.f;
+//                } else {
+//                    alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
+//                    if (hWater >= m_maxPcpRf) {
+//                        alpha = 1.f;
+//                    }
+//
+//                    //runoff percentage
+//                    float runoffPercentage;
+////#ifndef DEBUG_SUR_MR
+////				cout << i << ": " << m_potRfCoef[i] << endl;
+////#endif
+//                    if (m_potRfCoef[i] > 0.99f ||  (m_landUse[i] == LANDUSE_ID_GLC)) {
+//                        runoffPercentage = 1.f;
+//                    } else {
+//                        runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+//                    }
+//                    runoffPercentage = Min(runoffPercentage,1.f);
+//                    float surfq = hWater * runoffPercentage;
+//                    if (surfq > hWater) surfq = hWater;
+//                    m_infil[i] = hWater - surfq;
+//                    m_exsPcp[i] = surfq;
+//
+//                    /// TODO: Why calculate surfq first, rather than infiltration first?
+//                    ///       I think we should calculate infiltration first, until saturation,
+//                    ///       then surface runoff should be calculated. By LJ.
+//                }
 
-                    //runoff percentage
-                    float runoffPercentage;
-//#ifndef DEBUG_SUR_MR
-//				cout << i << ": " << m_potRfCoef[i] << endl;
-//#endif
-                    if (m_potRfCoef[i] > 0.99f ||  (m_landUse[i] == LANDUSE_ID_GLC)) {
-                        runoffPercentage = 1.f;
-                    } else {
-                        runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
-                    }
-                    runoffPercentage = Min(runoffPercentage,1.f);
-                    float surfq = hWater * runoffPercentage;
-                    if (surfq > hWater) surfq = hWater;
-                    m_infil[i] = hWater - surfq;
-                    m_exsPcp[i] = surfq;
+				alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
+				if (hWater >= m_maxPcpRf) {
+					alpha = 1.f;
+				}
 
-                    /// TODO: Why calculate surfq first, rather than infiltration first?
-                    ///       I think we should calculate infiltration first, until saturation,
-                    ///       then surface runoff should be calculated. By LJ.
-                }
+				//runoff percentage
+				float runoffPercentage;
+				//#ifndef DEBUG_SUR_MR
+				//				cout << i << ": " << m_potRfCoef[i] << endl;
+				//#endif
+				if (m_potRfCoef[i] > 0.99f || (m_landUse[i] == LANDUSE_ID_GLC)) {
+					runoffPercentage = 1.f;
+				}
+				else {
+					runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+				}
+				runoffPercentage = Min(runoffPercentage, 1.f);
+				float surfq = hWater * runoffPercentage;
+				if (surfq > hWater) surfq = hWater;
+				m_infil[i] = hWater - surfq;
+				m_exsPcp[i] = surfq;
             }
         } else {
             m_exsPcp[i] = 0.f;
