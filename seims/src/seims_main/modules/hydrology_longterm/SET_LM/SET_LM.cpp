@@ -25,7 +25,7 @@ int SET_LM::Execute() {
 		//if (m_soilTemp[i] <= m_soilFrozenTemp) { continue; }     // xiaodw comment, don't need soil temperature now
 	   //float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_maxPltET[i];   // xiaodw comment, don't need plant et now, remove it 
 
-        float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_maxPltET[i];
+		float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i];
         for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
             if (etDeficiency <= 0.f) break;
             float et2d = 0.f;
