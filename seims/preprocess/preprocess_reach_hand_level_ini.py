@@ -129,7 +129,7 @@ if __name__ == '__main__':
         coll_name=collection,
         subbasin_field=subbasin_field,
         target_field=target_field,
-        default_value = -9998,
+        default_value = -9999,
         create_index = True,
         dry_run=False)
 

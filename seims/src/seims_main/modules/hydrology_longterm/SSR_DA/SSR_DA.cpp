@@ -83,7 +83,7 @@ bool SSR_DA::FlowInSoil(const int id) {
             qUp = 0.f;
             qUpVol = 0.f;
         }
-        if(id<5 && j==0) cout<<m_soilAWC[id][j]<<endl;
+        //if(id<5 && j==0) cout<<m_soilAWC[id][j]<<endl;
         // if the flowWidth is less than 0, the subsurface flow from the upstream cells
         // should be added to stream cell directly, which will be summarized
         // for channel flow routing. By lj, 2018-4-12
