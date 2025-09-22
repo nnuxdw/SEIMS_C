@@ -102,6 +102,12 @@ int PETHargreaves::Execute() {
             actualVaporPressure = m_rhd[i] * satVaporPressure;
         }
         m_vpd[i] = satVaporPressure - actualVaporPressure;
+
+#ifdef DEBUG_PET_H
+		cout << "PET_H: " << i << " m_cellLat " << m_cellLat[i] << " m_meanTemp " << m_meanTemp[i] << " m_maxTemp " << m_maxTemp[i] << " m_minTemp " << m_minTemp[i] << " m_phuAnn " << m_phuAnn[i] << "  m_phuBase " << m_phuBase[i]
+			<< " m_dayLen " << m_dayLen[i] << " srMax " << srMax << " latentHeat " << latentHeat << " m_HCoef_pet " << m_HCoef_pet << " petValue " << petValue << " m_pet " << m_pet[i] << " m_petFactor " << m_petFactor << " satVaporPressure " << satVaporPressure
+			<< " m_rhd " << m_rhd[i] << " actualVaporPressure " << actualVaporPressure << " m_vpd " << m_vpd[i] << endl;
+#endif
     }
     return 0;
 }

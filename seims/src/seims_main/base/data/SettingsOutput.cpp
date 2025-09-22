@@ -29,8 +29,11 @@ SettingsOutput::SettingsOutput(const int subbasinNum, const int outletID, const 
             // } else {
             //     isRaster = true;
             // }
-            (*iter).outFileName = coreFileName + "." + TextExtension;
-            suffix = TextExtension;
+			// xiaodw, support tif file
+			(*iter).outFileName = coreFileName + "." + GTiffExtension;
+			suffix = GTiffExtension;
+			//(*iter).outFileName = coreFileName + "." + TextExtension;
+			//suffix = TextExtension;
         }
         /// Check Tag_OutputSubbsn first
         if (StringMatch((*iter).subBsn, Tag_Outlet)) {
@@ -68,7 +71,13 @@ SettingsOutput::SettingsOutput(const int subbasinNum, const int outletID, const 
                     newCoreFileName += "_" + ValueToString(m_subbasinID);
                 }
                 if (m_subbasinID == 0 || StringMatch(*it, ValueToString(m_subbasinID))) {
-                    pi->AddPrintItem((*iter).sTimeStr, (*iter).eTimeStr, newCoreFileName, *it, suffix, (*iter).intervalUnit, (*iter).interval, true);
+					// xiaodw modify, aggresive type also need to be specified when subbasin ids are provided. By this way, subbasin data  time interval average data can be output 
+					pi->AddPrintItem((*iter).sTimeStr, (*iter).eTimeStr, newCoreFileName, *it, suffix, (*iter).intervalUnit, (*iter).interval, true);
+					//vector<string> aggTypes = SplitString((*iter).aggType, '-');
+					///// Output of all subbasins of DT_Raster1D and DT_Raster2D or DT_Array1D and DT_Array2D (field-version)
+					//for (auto it_type = aggTypes.begin(); it_type != aggTypes.end(); ++it_type) {
+					//	pi->AddPrintItem(*it_type, (*iter).sTimeStr, (*iter).eTimeStr, coreFileName, suffix, (*iter).intervalUnit, (*iter).interval, std::stoi(*it));
+					//}
                 }
             }
         }

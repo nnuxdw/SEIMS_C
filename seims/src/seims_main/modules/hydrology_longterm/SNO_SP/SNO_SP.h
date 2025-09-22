@@ -50,6 +50,8 @@ public:
 
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
 
+	void GetValue(const char* key, float* value)  OVERRIDE;
+
 private:
     //! Valid cells number
     int m_nCells;

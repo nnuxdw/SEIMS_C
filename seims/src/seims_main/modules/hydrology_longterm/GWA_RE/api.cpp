@@ -46,13 +46,13 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_INET, UNIT_DEPTH_MM, DESC_INET, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_DEET, UNIT_DEPTH_MM, DESC_DEET, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_SOET, UNIT_DEPTH_MM, DESC_SOET, Source_Module, DT_Raster1D);
-    mdi.AddInput(VAR_AET_PLT, UNIT_DEPTH_MM, DESC_AET_PLT, Source_Module, DT_Raster1D);
-    mdi.AddInput(VAR_PET, UNIT_DEPTH_MM, DESC_PET, Source_Module, DT_Raster1D);
+	//mdi.AddInput(VAR_AET_PLT, UNIT_DEPTH_MM, DESC_AET_PLT, Source_Module, DT_Raster1D);    // xiaodw comment, don't need m_actPltET now
+	mdi.AddInput(VAR_PET, UNIT_DEPTH_MM, DESC_PET, Source_Module, DT_Raster1D);
     // VAR_GWNEW is OPTIONALLY from IUH_CH or other channel routing module
     mdi.AddInput(VAR_GWNEW, UNIT_DEPTH_MM, DESC_GWNEW, Source_Module_Optional, DT_Array1D);
     // VAR_PERCO is from percolation modules
-    mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Raster2D);
-    mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Raster2D);
+    mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Array2D);
+    mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);
 
     mdi.AddOutput(VAR_GWWB, UNIT_NON_DIM, DESC_NONE, DT_Array2D);
     mdi.AddOutput(VAR_REVAP, UNIT_DEPTH_MM, DESC_REVAP, DT_Raster1D);              //used by soil water balance module

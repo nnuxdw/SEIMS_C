@@ -74,10 +74,11 @@ int SNO_SP::Execute() {
 #pragma omp parallel for
     for (int rw = 0; rw < m_nCells; rw++) {
         float cmelt = (m_csnow6_1d[rw] + m_csnow12_1d[rw]) * 0.5f + (m_csnow6_1d[rw] - m_csnow12_1d[rw]) * 0.5f * sinv;
-        if(m_landUse[rw]==LANDUSE_ID_GLC){
-            m_netPcp[rw] = Qfg[rw];
-            continue;
-        }
+		// xiaodw comment, don't need glacier now
+		//if(m_landUse[rw]==LANDUSE_ID_GLC){
+		//    m_netPcp[rw] = Qfg[rw];
+		//    continue;
+		//}
         if(m_landUse[rw]==LANDUSE_ID_WATR){
             m_netPcp[rw] = 0.f;
             continue;
@@ -179,8 +180,19 @@ void SNO_SP::Get1DData(const char* key, int* n, float** data) {
     else if (StringMatch(s, "SNO_AREA")) *data = m_snoarea;  //ljj
     else if (StringMatch(s, "SNAC_AREA")) *data = m_snacarea;  //ljj
     else if (StringMatch(s, "SNO_DAY")) *data = m_snoday;  //ljj
+	else if (StringMatch(s, VAR_TMEAN)) *data = m_meanTemp;  //xiaodw, for calibrate snow melt
+	else if (StringMatch(s, VAR_TMAX)) *data = m_maxTemp;  //xiaodw, for calibrate snow melt
     else {
         throw ModelException(MID_SNO_SP, "Get1DData", "Result " + s + " does not exist.");
     }
     *n = m_nCells;
+}
+
+void SNO_SP::GetValue(const char* key, float* value) {
+	string s(key);
+	if (StringMatch(s, VAR_T0)) *value = m_t0;  //xiaodw, for calibrate snow melt
+	else if (StringMatch(s, VAR_T_SNOW)) *value = m_snowTemp;    //xiaodw, for calibrate snow melt
+	else {
+		throw ModelException(MID_SNO_SP, "GetValue", "Result " + s + " does not exist.");
+	}
 }

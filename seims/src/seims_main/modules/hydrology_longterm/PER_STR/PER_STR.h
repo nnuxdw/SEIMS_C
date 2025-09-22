@@ -89,5 +89,7 @@ private:
     float** m_soilIceSto;
     float** m_clay;
     float** m_soilPor;
+	int m_nSubbsns;
+
 };
 #endif /* SEIMS_MODULE_PER_STR_H */

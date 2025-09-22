@@ -84,6 +84,15 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     // mdi.AddOutput("wetland_wt", UNIT_DEPTH_MM, "todo", DT_Array2D);
     // mdi.AddOutput("surf_wetdoc", UNIT_DEPTH_MM, "todo", DT_Array1D);
 
+	//output
+	mdi.AddOutput(VAR_PERC_LOWEST_DOC, UNIT_CONT_KGHA, "TODO", DT_Array1D);
+	mdi.AddOutput("wetdoccon", UNIT_DEPTH_MM, "todo", DT_Raster1D);
+	mdi.AddOutput("wet_vol", UNIT_DEPTH_MM, "todo", DT_Raster1D);
+	mdi.AddOutput("wetland_oc", UNIT_DEPTH_MM, "todo", DT_Array2D);
+	mdi.AddOutput("wetland_wt", UNIT_DEPTH_MM, "todo", DT_Array2D);
+	mdi.AddOutput("surf_wetdoc", UNIT_DEPTH_MM, "todo", DT_Array1D);
+
+
     /// write out the XML file.
     res = mdi.GetXMLDocument();
     char* tmp = new char[res.size() + 1];
