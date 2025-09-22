@@ -2193,6 +2193,12 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_KDRP                            "RPOC decay rate to DIC (/day) RPOC->DIC"
 #define DESC_NPOC                            "equilibrium concentration for POC"
 
+/// Methane module variables
+#define VAR_CH4_PRODUCTION                   "CH4_PRODUCTION"
+#define VAR_CH4_TOTAL                        "CH4_TOTAL"
+#define DESC_CH4_PRODUCTION                  "Methane production rate in each cell"
+#define DESC_CH4_TOTAL                       "Total methane production in the watershed"
+
 //////////////////////////////////////////////////////////////////////////
 /// Define Raster/ related constant strings used in SEIMS and preprocess//
 /// By LiangJun Zhu, May. 5, 2016  ///////////////////////////////////////
