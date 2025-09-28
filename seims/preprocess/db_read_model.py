@@ -25,6 +25,9 @@ from preprocess.db_mongodb import MongoClient, MongoQuery
 from preprocess.text import DBTableNames, ModelCfgFields, FieldNames, SubbsnStatsName, \
     DataValueFields, DataType, StationFields
 from datetime import timezone
+from typing import List
+from collections import defaultdict
+
 
 class ReadModelData(object):
     def __init__(self, conn, dbname):
@@ -328,37 +331,75 @@ class ReadModelData(object):
                 name = name.split('_')[0]
             return name
 
+
         siteTbl = self.climatedb[DBTableNames.sites]
         obsTbl = self.climatedb[DBTableNames.observes]
         # print(f"vars: {vars}, vars_existed: {vars_existed}")
         for i, param_name in enumerate(vars):
-            site_items = siteTbl.find_one({StationFields.type: get_observed_name_new(param_name),
-                                           StationFields.outlet: is_outlets(param_name,isoutlet),
-                                           StationFields.subbsn: float(get_subbasinid(param_name))})
-            if site_items is None:
-                # print(f"None:site_items {site_items} is None, id: {StationFields.id}, param_name:{param_name},is_outlets:{is_outlets(param_name,isoutlet)},subbsn:{get_subbasinid(param_name)}")
-                continue
-            site_id = site_items.get(StationFields.id)
-            site_elve = site_items.get(StationFields.elev)
-            # print(f"site_id: {site_id}")
-            for obs in obsTbl.find({DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
-                                    #DataValueFields.type: get_observed_name(param_name),
-                                    DataValueFields.type: get_observed_name_new(param_name),
-                                    DataValueFields.id: site_id}).sort([(DataValueFields.utc, 1)]):
-                # print(f"for:site_items {site_items} is None, id: {StationFields.id}, param_name:{param_name},is_outlets:{is_outlets(param_name,isoutlet)},subbsn:{get_subbasinid(param_name)}")
-
+            site_items = None
+            subbasin_id = int(get_subbasinid(param_name))
+            type = get_observed_name_new(param_name)
+            if type == 'F':
+                sites = siteTbl.find({StationFields.type: get_observed_name_new(param_name),
+                                           StationFields.outlet: float(is_outlets(param_name,isoutlet)),
+                                           StationFields.base_subbasin: subbasin_id
+                                       }).sort([(StationFields.id, 1)]) # 根据其所属下游subabsinid查
+                site_ids = []
+                for site in sites:
+                    site_ids.append(site[StationFields.id])
+                obs_list = obsTbl.find({DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
+                                        # DataValueFields.type: get_observed_name(param_name),
+                                        DataValueFields.type: get_observed_name_new(param_name),
+                                        DataValueFields.id:  {"$in": site_ids}}).sort([(DataValueFields.utc, 1)])
                 if param_name not in vars_existed:
                     vars_existed.append(param_name)
-                curt = obs[DataValueFields.utc]
-                curv = obs[DataValueFields.value]
-                # print("DEBUG curt=", curt, "tzinfo=", getattr(curt, "tzinfo", None))
-                # if(get_observed_name_new(param_name) == "LWL"):
-                #     curv = curv-site_elve
-                #     print(curv)
-                if curt not in data_dict:
-                    # print(f"param_name: {param_name},  curt: {curt}")
-                    data_dict[curt] = [None] * len(vars)
-                data_dict[curt][i] = curv
+                obs_details = []
+                # 按时间求和：{UTCDATETIME: sum_value}
+                sum_by_time = {}
+                for obs in obs_list:
+                    utc = obs[DataValueFields.utc]
+                    val = obs[DataValueFields.value]
+                    sid = obs[DataValueFields.id]
+                    obs_details.append({
+                        DataValueFields.id: sid,
+                        DataValueFields.value: val,
+                        DataValueFields.utc: utc,
+                    })
+                    if val is not None:
+                        sum_by_time[utc] = sum_by_time.get(utc, 0.0) + float(val)
+                for curt, total in sorted(sum_by_time.items()):
+                    data_dict[curt][i] = total
+
+            else:
+                site_items = siteTbl.find_one({StationFields.type: get_observed_name_new(param_name),
+                                               StationFields.outlet: is_outlets(param_name,isoutlet),
+                                               StationFields.subbsn: float(get_subbasinid(param_name))})
+
+                if site_items is None:
+                    # print(f"None:site_items {site_items} is None, id: {StationFields.id}, param_name:{param_name},is_outlets:{is_outlets(param_name,isoutlet)},subbsn:{get_subbasinid(param_name)}")
+                    continue
+                site_id = site_items.get(StationFields.id)
+                site_elve = site_items.get(StationFields.elev)
+                # print(f"site_id: {site_id}")
+
+                for obs in obsTbl.find({DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
+                                        #DataValueFields.type: get_observed_name(param_name),
+                                        DataValueFields.type: get_observed_name_new(param_name),
+                                        DataValueFields.id: site_id}).sort([(DataValueFields.utc, 1)]):
+                    # print(f"for:site_items {site_items} is None, id: {StationFields.id}, param_name:{param_name},is_outlets:{is_outlets(param_name,isoutlet)},subbsn:{get_subbasinid(param_name)}")
+
+                    if param_name not in vars_existed:
+                        vars_existed.append(param_name)
+                    curt = obs[DataValueFields.utc]
+                    curv = obs[DataValueFields.value]
+                    # print("DEBUG curt=", curt, "tzinfo=", getattr(curt, "tzinfo", None))
+                    # if(get_observed_name_new(param_name) == "LWL"):
+                    #     curv = curv-site_elve
+                    #     print(curv)
+                    if curt not in data_dict:
+                        # print(f"param_name: {param_name},  curt: {curt}")
+                        data_dict[curt] = [None] * len(vars)
+                    data_dict[curt][i] = curv
         if not vars_existed:
             return None, None
 

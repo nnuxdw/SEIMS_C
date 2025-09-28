@@ -317,7 +317,7 @@ def calculate_95ppu(sim_obs_data, sim_data, outdir, gen_num,
 
 
 if __name__ == '__main__':
-    wp = r'C:\z_data\ChangTing\seims_models_phd\youwuzhen10m_longterm_model\Cali_NSGAII_Gen_3_Pop_4'
+    wp = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\CALI_NSGA2_Gen_80_Pop_12'
     simdir = wp + os.path.sep + 'simulated_data'
     all_cali_obs_data = list()
     all_cali_data = list()

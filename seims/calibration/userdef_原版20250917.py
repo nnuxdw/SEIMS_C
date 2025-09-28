@@ -320,19 +320,19 @@ def calculate_95ppu(sim_obs_data, sim_data, outdir, gen_num,
 
 
 if __name__ == '__main__':
-    wp = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\-90_124556_38_819347_longterm_model\CALI_NSGA2_Gen_40_Pop_20'
+    wp = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\CALI_NSGA2_Gen_80_Pop_12'
     simdir = wp + os.path.sep + 'simulated_data'
     all_cali_obs_data = list()
     all_cali_data = list()
     gen_cali_id = list()
-    with open(simdir + os.path.sep + 'gen0_caliObsData.json', 'r', encoding='utf-8') as f:
+    with open(simdir + os.path.sep + 'gen54_caliObsData.json', 'r', encoding='utf-8') as f:
         cali_obs_data = json.load(f)
-    with open(simdir + os.path.sep + 'gen0_caliSimData.pickle', 'rb') as f:
+    with open(simdir + os.path.sep + 'gen54_caliSimData.pickle', 'rb') as f:
         cali_data = pickle.load(f)
     # validation data
-    with open(simdir + os.path.sep + 'gen0_valiObsData.json', 'r', encoding='utf-8') as f:
+    with open(simdir + os.path.sep + 'gen54_valiObsData.json', 'r', encoding='utf-8') as f:
         vali_obs_data = json.load(f)
-    with open(simdir + os.path.sep + 'gen0_valiSimData.pickle', 'r', encoding='utf-8') as f:
+    with open(simdir + os.path.sep + 'gen54_valiSimData.pickle', 'rb') as f:
         vali_data = pickle.load(f)
 
     for a, b in zip(cali_obs_data, cali_data):
@@ -340,5 +340,5 @@ if __name__ == '__main__':
             gen_cali_id.append([a['Gen'], a['ID']])
             all_cali_obs_data.append(a)
             all_cali_data.append(b)
-    calculate_95ppu(cali_obs_data, cali_data, simdir, 0, vali_obs_data, vali_data)
+    calculate_95ppu(cali_obs_data, cali_data, simdir, 54, vali_obs_data, vali_data)
     print('Total simulations %d' % len(all_cali_obs_data))

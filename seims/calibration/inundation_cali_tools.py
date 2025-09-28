@@ -697,7 +697,7 @@ def load_flood_csv_to_mongo(
     mongo_uri: str,
     db_name: str,
     collection_name: str = "MEASUREMENT",
-    type_code: str = "Q",
+    type_code: str = "F",
     batch_size: int = 1000,
     create_unique_index: bool = True,
 ):
@@ -911,7 +911,7 @@ def calculate_hand_flood_status(
 
             # 如果淹没区域的像元数占比大于给定比例阈值，则淹没状态为1，否则为0
             if flood_ratio > threshold:
-                flood_status_list.append(1)
+                flood_status_list.append(flood_ratio)
             else:
                 flood_status_list.append(0)
 
@@ -977,12 +977,12 @@ def calculate_flood_levels(input_txt: str, flood_status_csv: str, output_csv: st
             hand_flood_status = flood_status_map.get(hand_id, 0)  # 默认未淹没（0）
 
             # 只有当前层级和所有下级都已经淹没，当前层级才算淹没
-            if is_previous_level_flooded and hand_flood_status == 1:
+            if is_previous_level_flooded and hand_flood_status >= 0.5:
                 final_flood_level = flood_level_range  # 记录最终的Flood_Level，而不是hand_id
                 final_hand_id = hand_id  # 记录最终淹没层级对应的hand_id
 
             # 如果当前hand没有淹没，后面的hand也不算淹没
-            if hand_flood_status == 0:
+            if hand_flood_status < 0.5:
                 is_previous_level_flooded = False  # 如果下级没有淹没，则上级也不算淹没
 
         # 如果没有任何层级淹没，将最终淹没层级和hand_id设为-9999
@@ -1102,18 +1102,18 @@ if __name__ == '__main__':
     #     proj_path = os.path.join(subbasin_flood_map_mollweide_path, str(sbid))
     #     batch_reproject_tif(clp_path, proj_path, mollweide_ref_path)
     # 6.2 计算每个subbasin每个月的淹没面积，并写入MEASUREMENT表
-    csv_path = os.path.join(inundation_cali_path, 'subbasin_area.csv')
+    csv_path = os.path.join(inundation_cali_path, 'subbasin_flood_area.csv')
     # df = calculate_inundation_area(subbasin_flood_map_mollweide_path,None, csv_path)
     mongo_uri = "mongodb://localhost:27017"
     db_name = "poyang_lake1_HydroClimate"
     collection_name = "MEASUREMENT"
-    load_flood_csv_to_mongo(
-        csv_path=csv_path,
-        mongo_uri=mongo_uri,
-        db_name=db_name,
-        collection_name=collection_name,
-        type_code="F",      # 你想写入的TYPE
-    )
+    # load_flood_csv_to_mongo(
+    #     csv_path=csv_path,
+    #     mongo_uri=mongo_uri,
+    #     db_name=db_name,
+    #     collection_name=collection_name,
+    #     type_code="F",      # 你想写入的TYPE
+    # )
 
     # 6 如果用每个子流域逐月的淹没范围率定，用该方法
     # 6.1 加载每个子流域逐月淹没的tif,时间为闭区间
@@ -1135,11 +1135,11 @@ if __name__ == '__main__':
     hand_initial_flood_csv = os.path.join(inundation_cali_path, 'hand_initial_flood.csv')
     threshold = 0.5
     hand_subbasinid_map = read_subbasin_mapping(FloodStep_dir)
-    # flood_status = calculate_hand_flood_status(hand_shp_path, flood_tif_dir, hand_subbasinid_map, hand_initial_flood_csv, threshold)
+    flood_status = calculate_hand_flood_status(hand_shp_path, flood_tif_dir, hand_subbasinid_map, hand_initial_flood_csv, threshold)
 
 
     # 计算最终的淹没层级并保存结果
-    subbasin_initial_flood = os.path.join(inundation_cali_path, 'subbasin_initial_flood1.csv')
+    subbasin_initial_flood = os.path.join(inundation_cali_path, 'subbasin_initial_flood.csv')
     calculate_flood_levels(FloodStep_dir, hand_initial_flood_csv, subbasin_initial_flood)
 
     # 更新REACHES表的Lake_Hand_Level_Ini字段

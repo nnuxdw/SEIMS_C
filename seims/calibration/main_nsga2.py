@@ -19,8 +19,8 @@ import time
 import sys
 from io import open
 
-if os.path.abspath(os.path.join(sys.path[0], '../../../tools')) not in sys.path:
-    sys.path.insert(0, os.path.abspath(os.path.join(sys.path[0], '../../../tools')))
+if os.path.abspath(os.path.join(sys.path[0], '..')) not in sys.path:
+    sys.path.insert(0, os.path.abspath(os.path.join(sys.path[0], '..')))
 
 from typing import Dict
 import numpy
@@ -37,27 +37,29 @@ from scenario_analysis.visualization import plot_pareto_front_single, plot_hyper
 from calibration.config import CaliConfig, get_optimization_config
 from run_seims import MainSEIMS
 
-from calibration.calibrate import Calibration, initialize_calibrations, calibration_objectives,evaluate_nowait_or_skip
+from calibration.calibrate import Calibration, initialize_calibrations, calibration_objectives,evaluate_nowait_or_skip,evaluate_blocking
 from calibration.calibrate import TimeseriesData, ObsSimData
 from calibration.userdef import write_param_values_to_mongodb, output_population_details
+from calibration.calibrate import cali_inundation_extent,cali_inundation_area, base_path,subbasin_flood_path,subbasin_ids
+import inundation_cali_tools as ic_tool
 
 
-print("begin")
 # Definitions, assignments, operations, etc. that will be executed by each worker
 #    when paralleled by SCOOP.
 # Thus, DEAP related operations (initialize, register, etc.) are better defined here.
 
 # All accepted objective function names from `postprocess::utility::calculate_statistics`
-accepted_objnames = ['NSE', 'RSR', 'PBIAS', 'R-square', 'RMSE', 'lnNSE', 'NSE1', 'NSE3']
+# accepted_objnames = ['NSE', 'RSR', 'PBIAS', 'R-square', 'RMSE', 'lnNSE', 'NSE1', 'NSE3']
+accepted_objnames = ['NSE', 'RSR', 'PBIAS', 'R-square', 'RMSE', 'lnNSE', 'NSE1', 'NSE3','FI','BI']
 
 # step can be one of 'Q', 'SED', 'QSED', 'NUTRIENT', or 'CUSTOMIZE'.
-step = 'Q'
+step = 'CUSTOMIZE'
 filter_ind = False  # Filter for valid population for the next generation
 # Definitions of Multiobjectives:
 multiobj = dict()
 if step == 'Q':
     # Step 1: Calibrate streamflow, max. NSE, min. RSR, and min. |PBIAS| (percent)
-    multiobj.setdefault('Q', [['NSE', 1., -100, '>0'], ['RSR', -1., 100], ['PBIAS', -1., 500.]])
+    multiobj.setdefault('Q_1', [['NSE', 1., -100, '>0'], ['RSR', -1., 100], ['PBIAS', -1., 500.]])
 elif step == 'SED':
     # Step 2: Calibration sediment, max. NSE-SED, min. RSR-SED, min., and |PBIAS|-SED
     multiobj.setdefault('SED', [['NSE', 1., -100, '>0'], ['RSR', -1., 100], ['PBIAS', -1., 500.]])
@@ -90,8 +92,17 @@ else:
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0.'],
     #                           ['RSR', -1., 2., '<2.'],
     #                           ['PBIAS', -1., 50., '<50.']])
-    multiobj.setdefault('Q_322', [['NSE1', 1., -100, '>0']])
-    multiobj.setdefault('Q_1171', [['NSE1', 1., -100, '>0']])
+    multiobj.setdefault('Q_141', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_123', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_141', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_214', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_255', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_347', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_457', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('F_322', [['FI', 1., -1.], ['BI', -1., 2.]])
+    multiobj.setdefault('F_141', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('F_1171', [['FI', 1., -1.], ['BI', -1., 2.]])
 
 
 
@@ -141,7 +152,9 @@ toolbox.register('gene_values', initialize_calibrations)
 toolbox.register('individual', initIterateWithCfg, creator.Individual, toolbox.gene_values)
 toolbox.register('population', initRepeatWithCfg, list, toolbox.individual)
 # toolbox.register('evaluate', calibration_objectives)
-toolbox.register('evaluate', evaluate_nowait_or_skip)
+# toolbox.register('evaluate', evaluate_nowait_or_skip)
+toolbox.register('evaluate', evaluate_blocking,timeout_s=3600)
+
 
 # mate and mutate
 toolbox.register('mate', tools.cxSimulatedBinaryBounded)
@@ -149,8 +162,8 @@ toolbox.register('mutate', tools.mutPolynomialBounded)
 toolbox.register('select', tools.selNSGA2)
 
 
+
 def main(cfg):
-    print("run main")
     """Main workflow of NSGA-II based Scenario analysis."""
     random.seed()
     scoop_log('Population: %d, Generation: %d' % (cfg.opt.npop, cfg.opt.ngens))
@@ -181,10 +194,27 @@ def main(cfg):
     model_obj.SetMongoClient()
     #obs_vars, obs_data_dict = model_obj.ReadOutletObservations(object_vars)  #读取每个变量的观测值
     obs_vars, obs_data_dict = model_obj.ReadOutletObservations_new(object_vars)  #ljj++
+    #-------------------------xiaodw, if calibrate inundation extent --------------------
+    if cali_inundation_extent:
+        obs_inun_data_dict = ic_tool.load_monthly_tifs(
+            root_dir=subbasin_flood_path,
+            subbasin_ids=subbasin_ids,
+            start="2010-01",
+            end="2010-02",
+            band=1,
+            on_missing="warn",
+            readonly=True
+        )
+        some_month = list(obs_inun_data_dict.keys())[0]
+        arr_1171 = obs_inun_data_dict[some_month]["1171"]
+        print(some_month, arr_1171.shape, arr_1171.dtype)
+    #-------------------------xiaodw, if calibrate inundation area --------------------
+
     model_obj.UnsetMongoClient()
 
-    print("Initialize population")
     # Initialize population
+    # print(f"cfg.opt is {cfg.opt}")
+    # print(f"npop is: {cfg.opt.npop}")
     param_values = cali_obj.initialize(cfg.opt.npop)
     pop = list()
     for i in range(cfg.opt.npop):
@@ -193,12 +223,14 @@ def main(cfg):
         ind.id = i
         ind.obs.vars = obs_vars[:]
         ind.obs.data = deepcopy(obs_data_dict)
+        if cali_inundation_extent:
+            ind.obs.inun_data = deepcopy(obs_inun_data_dict)
         pop.append(ind)
         # print(f"ind: {ind} ")
     param_values = numpy.array(param_values)
     # print(f"npop: {cfg.opt.npop}")
 
-
+    # print(param_values)
     # Write calibrated values to MongoDB
     # TODO, extract this function, which is same with `Sensitivity::write_param_values_to_mongodb`.
     write_param_values_to_mongodb(cfg.model.db_name, cali_obj.ParamDefs, param_values)
@@ -226,6 +258,10 @@ def main(cfg):
          according to calibration step."""
         popnum = len(invalid_pops)
         labels = list()
+        # ---------------------test for no scoop----------------------
+        # invalid_pops = [toolbox.evaluate(cali_obj, ind) for ind in invalid_pops]
+        # ---------------------end for no scoop----------------------
+
         try:  # parallel on multi-processors or clusters using SCOOP
             from scoop import futures
             invalid_pops = list(futures.map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
@@ -234,7 +270,7 @@ def main(cfg):
 
         scoop_log(f"过滤之前pops长度为:{len(invalid_pops)}")
         # 关键：把 None（被跳过的个体）过滤掉
-        invalid_pops = [ind for ind in invalid_pops if ind is not -1]
+        invalid_pops = [ind for ind in invalid_pops if ind != -1]
 
         scoop_log(f"过滤之后pops长度为:{len(invalid_pops)}")
 
@@ -254,7 +290,7 @@ def main(cfg):
                     raise ValueError("模型返回指标维度不一致！")
 
             except Exception as e:
-                print(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, tmpfitnessv={tmpfitnessv}, multi_weight={multi_weight}, 原因: {e}")
+                # print(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, tmpfitnessv={tmpfitnessv}, multi_weight={multi_weight}, 原因: {e}")
                 scoop_log(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, tmpfitnessv={tmpfitnessv}, multi_weight={multi_weight}, 原因: {e}")
                 tmpind.fitness.values = tuple([9999.0] * len(multi_weight))  # 用极差值惩罚模型失败者
 
@@ -289,20 +325,19 @@ def main(cfg):
 
     record = stats.compile(pop)
     logbook.record(gen=0, evals=len(pop), **record)
-    scoop_log(logbook.stream)
+    # scoop_log(logbook.stream)
 
     # Begin the generational process
     output_str = '### Generation number: %d, Population size: %d ###\n' % (cfg.opt.ngens,
                                                                            cfg.opt.npop)
-    scoop_log(output_str)
+    # scoop_log(output_str)
     UtilClass.writelog(cfg.opt.logfile, output_str, mode='replace')
 
     modelsel_count = {0: len(pop)}  # type: Dict[int, int] # newly added Pareto fronts
 
     for gen in range(1, cfg.opt.ngens + 1):
-        print("gen:",gen)
         output_str = '###### Generation: %d ######\n' % gen
-        scoop_log(output_str)
+        # scoop_log(output_str)
 
         offspring = [toolbox.clone(ind) for ind in pop]
         # method1: use crowding distance (normalized as 0~1) as eta
@@ -371,12 +406,12 @@ def main(cfg):
                     'Hypervolume: %.4f\n' % (gen, invalid_ind_size,
                                              curtimespan, modelruns_time_sum[gen],
                                              hypervolume(pop, ref_pt))
-        scoop_log(hyper_str)
+        # scoop_log(hyper_str)
         UtilClass.writelog(cfg.opt.hypervlog, hyper_str, mode='append')
 
         record = stats.compile(pop)
         logbook.record(gen=gen, evals=len(invalid_inds), **record)
-        scoop_log(logbook.stream)
+        # scoop_log(logbook.stream)
 
         # Count the newly generated near Pareto fronts
         new_count = 0
@@ -471,7 +506,7 @@ if __name__ == "__main__":
     fpop, fstats = main(cali_cfg)
 
     fpop.sort(key=lambda x: x.fitness.values)
-    scoop_log(fstats)
+    # scoop_log(fstats)
     with open(cali_cfg.opt.logbookfile, 'w', encoding='utf-8') as f:
         # In case of 'TypeError: write() argument 1 must be unicode, not str' in Python2.7
         #   when using unicode_literals, please use '%s' to concatenate string!

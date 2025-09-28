@@ -165,7 +165,7 @@ toolbox.register('select', tools.selNSGA2)
 def main(cfg):
     """Main workflow of NSGA-II based Scenario analysis."""
     random.seed()
-    # scoop_log('Population: %d, Generation: %d' % (cfg.opt.npop, cfg.opt.ngens))
+    scoop_log('Population: %d, Generation: %d' % (cfg.opt.npop, cfg.opt.ngens))
 
     # Initial timespan variables
     stime = time.time()
@@ -267,11 +267,11 @@ def main(cfg):
         # except ImportError or ImportWarning:  # Python build-in map (serial)
         #     invalid_pops = list(map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
 
-        # scoop_log(f"过滤之前pops长度为:{len(invalid_pops)}")
+        scoop_log(f"过滤之前pops长度为:{len(invalid_pops)}")
         # 关键：把 None（被跳过的个体）过滤掉
         invalid_pops = [ind for ind in invalid_pops if ind != -1]
 
-        # scoop_log(f"过滤之后pops长度为:{len(invalid_pops)}")
+        scoop_log(f"过滤之后pops长度为:{len(invalid_pops)}")
 
         for tmpind in invalid_pops:
             labels = list()
@@ -290,7 +290,7 @@ def main(cfg):
 
             except Exception as e:
                 print(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, tmpfitnessv={tmpfitnessv}, multi_weight={multi_weight}, 原因: {e}")
-                # scoop_log(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, tmpfitnessv={tmpfitnessv}, multi_weight={multi_weight}, 原因: {e}")
+                scoop_log(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, tmpfitnessv={tmpfitnessv}, multi_weight={multi_weight}, 原因: {e}")
                 tmpind.fitness.values = tuple([9999.0] * len(multi_weight))  # 用极差值惩罚模型失败者
 
         # Filter for a valid solution

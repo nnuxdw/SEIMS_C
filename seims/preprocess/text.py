@@ -225,6 +225,7 @@ class StationFields(object):
     type = 'TYPE'
     outlet = 'ISOUTLET'
     unit = 'UNIT'
+    base_subbasin = "BASE_SUBBASINID"
 
 
 class FieldNames(object):
