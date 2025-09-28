@@ -13,7 +13,7 @@ SNO_SP::SNO_SP() :
     m_meanTemp(nullptr), m_maxTemp(nullptr), m_netPcp(nullptr),
     m_snowAccum(nullptr), m_SE(nullptr), m_packT(nullptr), m_snowMelt(nullptr), m_SA(nullptr),
     m_landUse(nullptr),Qfg(NULL),m_snoarea(nullptr),m_area(nullptr),m_snacarea(nullptr),m_snoday(nullptr),
-    m_t0_1d(nullptr),m_lagSnow_1d(nullptr),m_csnow6_1d(nullptr), m_csnow12_1d(nullptr) {
+    m_t0_1d(nullptr),m_lagSnow_1d(nullptr),m_csnow6_1d(nullptr), m_csnow12_1d(nullptr), m_t_snow_1d(nullptr){
 }
 
 SNO_SP::~SNO_SP() {
@@ -73,6 +73,7 @@ int SNO_SP::Execute() {
     //float cmelt = (m_csnow6 + m_csnow12) * 0.5f + (m_csnow6 - m_csnow12) * 0.5f * sinv;
 #pragma omp parallel for
     for (int rw = 0; rw < m_nCells; rw++) {
+		float snowCoverFrac = 0.f; //fraction of HRU area covered with snow
         float cmelt = (m_csnow6_1d[rw] + m_csnow12_1d[rw]) * 0.5f + (m_csnow6_1d[rw] - m_csnow12_1d[rw]) * 0.5f * sinv;
 		// xiaodw comment, don't need glacier now
 		//if(m_landUse[rw]==LANDUSE_ID_GLC){
@@ -88,8 +89,9 @@ int SNO_SP::Execute() {
         m_packT[rw] = m_packT[rw] * (1 - m_lagSnow_1d[rw]) + m_meanTemp[rw] * m_lagSnow_1d[rw];
         /// calculate snow fall
         //m_SA[rw] += m_snowAccum[rw] - m_SE[rw];
-        m_SA[rw] = m_SA[rw] - m_SE[rw];  //ljj
-        if (m_meanTemp[rw] < m_snowTemp) {
+        m_SA[rw] = m_SA[rw] - m_SE[rw];  //ljj  m_t_snow_1d
+        //if (m_meanTemp[rw] < m_snowTemp) {  
+		if (m_meanTemp[rw] < m_t_snow_1d[rw]) {   // xiaodw, for regional cali
             /// precipitation will be snow
             m_SA[rw] += m_kblow * m_netPcp[rw];
             m_netPcp[rw] *= (1.f - m_kblow);
@@ -108,10 +110,10 @@ int SNO_SP::Execute() {
                 m_snowMelt[rw] = cmelt * ((m_packT[rw] + m_maxTemp[rw]) * 0.5f - m_t0_1d[rw]);
                 
                 // adjust for areal extent of snow cover
-                float snowCoverFrac = 0.f; //fraction of HRU area covered with snow
+                //float snowCoverFrac = 0.f; //fraction of HRU area covered with snow
                 if (m_SA[rw] < m_snowCoverMax) {
                     float xx = m_SA[rw] / m_snowCoverMax;
-                    snowCoverFrac = xx / (xx + exp(m_snowCoverCoef1 = m_snowCoverCoef2 * xx));
+                    snowCoverFrac = xx / (xx + exp(m_snowCoverCoef1 - m_snowCoverCoef2 * xx));
                 } else {
                     snowCoverFrac = 1.f;
                 }
@@ -123,6 +125,27 @@ int SNO_SP::Execute() {
                 if (m_netPcp[rw] < 0.f) m_netPcp[rw] = 0.f;
             }
         }
+
+#ifdef DEBUG_SNO_SP
+
+		// 打印一行：带 label，便于 grep / 比较
+		std::cout
+			<< "rw=" << rw
+			<< " landUse=" << m_landUse[rw]
+			<< " cmelt=" << ((m_csnow6_1d[rw] + m_csnow12_1d[rw]) * 0.5f + (m_csnow6_1d[rw] - m_csnow12_1d[rw]) * 0.5f * sinv)
+			<< " meanT=" << m_meanTemp[rw]
+			<< " maxT=" << m_maxTemp[rw]
+			<< " t0=" << m_t0_1d[rw]
+			<< " lagSnow=" << m_lagSnow_1d[rw]
+			<< " packT=" << m_packT[rw]
+			<< " kblow=" << m_kblow
+			<< " t_snow=" << m_t_snow_1d[rw]
+			<< " SA=" << m_SA[rw]
+			<< " snowMelt=" << m_snowMelt[rw]
+			<< " snowCoverFrac=" << snowCoverFrac
+			<< " netPcp=" << m_netPcp[rw]
+			<< std::endl;
+#endif
     }
     m_snoarea[1] = 0.f;
     m_snacarea[1] = 0.f;
@@ -166,6 +189,8 @@ void SNO_SP::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(s, "lag_snow_1d")) m_lagSnow_1d = data;
     else if (StringMatch(s, "c_snow6_1d")) m_csnow6_1d = data;
     else if (StringMatch(s, "c_snow12_1d")) m_csnow12_1d = data;
+	else if (StringMatch(s, VAR_T_SNOW_1D)) m_t_snow_1d = data;
+	
     else {
         throw ModelException(MID_SNO_SP, "Set1DData", "Parameter " + s + " does not exist.");
     }
@@ -182,6 +207,7 @@ void SNO_SP::Get1DData(const char* key, int* n, float** data) {
     else if (StringMatch(s, "SNO_DAY")) *data = m_snoday;  //ljj
 	else if (StringMatch(s, VAR_TMEAN)) *data = m_meanTemp;  //xiaodw, for calibrate snow melt
 	else if (StringMatch(s, VAR_TMAX)) *data = m_maxTemp;  //xiaodw, for calibrate snow melt
+	else if (StringMatch(s, VAR_T_SNOW_1D)) *data = m_t_snow_1d; // xiaodw, for regional cali
     else {
         throw ModelException(MID_SNO_SP, "Get1DData", "Result " + s + " does not exist.");
     }

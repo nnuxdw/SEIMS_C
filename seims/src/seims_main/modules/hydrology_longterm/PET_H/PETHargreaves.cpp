@@ -8,7 +8,7 @@ PETHargreaves::PETHargreaves() :
     m_nCells(-1), m_HCoef_pet(0.0023f), m_petFactor(1.f),
     m_cellLat(nullptr), m_phuAnn(nullptr),
     m_meanTemp(nullptr), m_maxTemp(nullptr), m_minTemp(nullptr), m_rhd(nullptr),
-    m_dayLen(nullptr), m_phuBase(nullptr), m_pet(nullptr), m_vpd(nullptr) {
+    m_dayLen(nullptr), m_phuBase(nullptr), m_pet(nullptr), m_vpd(nullptr), m_petFactor_1d(nullptr){
 }
 
 PETHargreaves::~PETHargreaves() {
@@ -37,6 +37,7 @@ void PETHargreaves::Set1DData(const char* key, const int n, float* value) {
     else if (StringMatch(sk, DataType_RelativeAirMoisture)) m_rhd = value;
     else if (StringMatch(sk, VAR_CELL_LAT)) m_cellLat = value;
     else if (StringMatch(sk, VAR_PHUTOT)) m_phuAnn = value;
+	else if (StringMatch(sk, VAR_K_PET_1D)) m_petFactor_1d = value;
     else {
         throw ModelException(MID_PET_H, "Set1DData", "Parameter " + sk +
                              " does not exist in current module.");
@@ -91,7 +92,9 @@ int PETHargreaves::Execute() {
         /// Hargreaves et al., 1985. In SWAT Code, 0.0023 is replaced by harg_petco, which range from 0.0019 to 0.0032. by LJ
         float petValue = m_HCoef_pet * h0 * pow(Abs(m_maxTemp[i] - m_minTemp[i]), 0.5f)
                 * (m_meanTemp[i] + 17.8f) / latentHeat;
-        m_pet[i] = m_petFactor * Max(0.0f, petValue);
+        //m_pet[i] = m_petFactor * Max(0.0f, petValue);
+		m_pet[i] = m_petFactor_1d[i] * Max(0.0f, petValue);
+		
         /// calculate m_vpd
         float satVaporPressure = SaturationVaporPressure(m_meanTemp[i]);
         float actualVaporPressure = 0.f;
@@ -105,7 +108,7 @@ int PETHargreaves::Execute() {
 
 #ifdef DEBUG_PET_H
 		cout << "PET_H: " << i << " m_cellLat " << m_cellLat[i] << " m_meanTemp " << m_meanTemp[i] << " m_maxTemp " << m_maxTemp[i] << " m_minTemp " << m_minTemp[i] << " m_phuAnn " << m_phuAnn[i] << "  m_phuBase " << m_phuBase[i]
-			<< " m_dayLen " << m_dayLen[i] << " srMax " << srMax << " latentHeat " << latentHeat << " m_HCoef_pet " << m_HCoef_pet << " petValue " << petValue << " m_pet " << m_pet[i] << " m_petFactor " << m_petFactor << " satVaporPressure " << satVaporPressure
+			<< " m_dayLen " << m_dayLen[i] << " srMax " << srMax << " latentHeat " << latentHeat << " m_HCoef_pet " << m_HCoef_pet << " petValue " << petValue << " m_pet " << m_pet[i] << " m_petFactor_1d " << m_petFactor_1d[i] << " satVaporPressure " << satVaporPressure
 			<< " m_rhd " << m_rhd[i] << " actualVaporPressure " << actualVaporPressure << " m_vpd " << m_vpd[i] << endl;
 #endif
     }

@@ -76,7 +76,7 @@ void PETPenmanMonteith::Set1DData(const char* key, const int n, float* value) {
     else if (StringMatch(sk, VAR_GSI)) m_gsi = value;
     else if (StringMatch(sk, VAR_VPDFR)) m_vpdfr = value;
     else if (StringMatch(sk, VAR_FRGMAX)) m_frgmax = value;
-    else if (StringMatch(sk, "K_pet_1d")) m_petFactor_1d = value;
+    else if (StringMatch(sk, VAR_K_PET_1D)) m_petFactor_1d = value;
     else {
         throw ModelException(MID_PET_PM, "Set1DData", "Parameter " + sk + " does not exist.");
     }

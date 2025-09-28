@@ -266,6 +266,82 @@ def sum_cellarea_by_fid(input_csv: str, output_csv: str):
     summed_df.to_csv(output_csv, index=False)
     print(f"结果已保存到 {output_csv}")
 
+
+def gen_param_group_csv(conn, db_name: str, collection: str,
+                         mapper: dict, csv_in: str, csv_in_col : str,csv_out: str):
+    """
+    根据 mapper 映射，从 MongoDB PARAMETERS 表读取参数 VALUE，
+    如果 VALUE == -9999，则取默认值 1.0。
+    然后结合 cali_param.csv 的 FID 列，生成新的 csv。
+
+    :param conn: MongoDB connection (MongoClient 或者 Database 对象)
+    :param db_name: 数据库名
+    :param collection: 集合名 (表名)
+    :param mapper: dict，键=NAME(数据库字段)，值=输出csv列名
+    :param csv_in: 输入CSV文件路径 (包含FID列)
+    :param csv_out: 输出CSV文件路径
+    """
+    col = conn[db_name][collection]
+
+    # 获取参数值
+    values = {}
+    for name, out_col in mapper.items():
+        doc = col.find_one({"NAME": name}, {"VALUE": 1})
+        if doc and "VALUE" in doc:
+            val = doc["VALUE"]
+            if val == -9999:
+                val = 1.0
+        else:
+            val = 1.0
+        values[out_col] = val
+
+    # 读取 cali_param.csv 或 cali_param_sub.csv  的 FID
+    df = pd.read_csv(csv_in, usecols=[csv_in_col])
+
+    # 每列赋值
+    for out_col, val in values.items():
+        df[out_col] = val
+
+    # 保存新 CSV
+    df.to_csv(csv_out, index=False)
+    print(f"新CSV已生成: {csv_out}")
+
+
+def update_reaches_from_csv(conn, db_name: str, collection: str, csv_file: str):
+    """
+    从 CSV 更新 MongoDB REACHES 集合
+    :param conn: MongoDB connection
+    :param db_name: 数据库名
+    :param collection: 集合名，例如 "REACHES"
+    :param csv_file: 输入的 CSV 文件路径
+    """
+    col = conn[db_name][collection]
+
+    # 读取 CSV
+    df = pd.read_csv(csv_file)
+
+    # 遍历行，更新 MongoDB
+    for _, row in df.iterrows():
+        subbasin_id = int(row["subbasin"])
+        update_fields = {}
+
+        # 只更新 CSV 里存在的字段
+        for colname in df.columns:
+            if colname != "subbasin":
+                val = row[colname]
+                # 处理 NaN
+                if pd.notna(val):
+                    update_fields[colname] = float(val) if isinstance(val, (int, float)) else val
+
+        if update_fields:
+            result = col.update_one(
+                {"SUBBASINID": subbasin_id},
+                {"$set": update_fields}
+            )
+            print(f"SUBBASINID={subbasin_id} 更新 {update_fields}，匹配 {result.matched_count} 条，修改 {result.modified_count} 条")
+
+    print("全部更新完成！")
+
 if __name__ == "__main__":
     from config import parse_ini_configuration
 
@@ -276,7 +352,93 @@ if __name__ == "__main__":
     db_model_field = conn[db_name]
     spatial_gfs = GridFS(db_model_field, DBTableNames.gridfs_spatial)
 
-    bug_type = 1
+    caliparam_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\caliparam.csv"
+    param_group1_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\param_group1.csv"
+    prefix = 0
+    ############# 根据PARAMETER表中的VALUE生成param_group1.csv,并导入spatial.file ############
+    mapper1 = {
+        "K_pet": "K_pet_1d",
+        "Runoff_co": "Runoff_co",
+        "c_snow12": "c_snow12_1d",
+        "c_snow6": "c_snow6_1d",
+        "lag_snow": "lag_snow_1d",
+        "T0_1d": "T0_1d",
+        "T_snow": "T_snow_1d",
+        "Ki": "Ki_1d",
+        "SURLAG": "SURLAG_1D"
+    }
+
+    # gen_param_group_csv(
+    #     conn=conn,
+    #     db_name=db_name,
+    #     collection="PARAMETERS",
+    #     mapper=mapper1,
+    #     csv_in=caliparam_csv_file,
+    #     csv_in_col='FID',
+    #     csv_out=param_group1_csv_file
+    # )
+
+
+    # param_arrays = read_field_arrays_from_csv(param_group1_csv_file)
+    # for key, value in list(param_arrays.items()):
+    #     pondVal = value
+    #     import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
+
+    ############# 根据PARAMETER表中的VALUE生成param_group2.csv,并导入spatial.file ############
+    caliparam_sub_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\caliparam_sub.csv"
+    param_group2_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\param_group2.csv"
+
+    mapper2 = {
+        "Base_ex": "BASE_EX_1D",
+        "Kg": "KG_1D",
+        "gw_delay": "GW_DELAY_1D",
+        "ep_ch":"EP_CH_1D"
+    }
+
+
+    # gen_param_group_csv(
+    #     conn=conn,
+    #     db_name=db_name,
+    #     collection="PARAMETERS",
+    #     mapper=mapper2,
+    #     csv_in=caliparam_sub_csv_file,
+    #     csv_in_col='subbasin',
+    #     csv_out=param_group2_csv_file
+    # )
+    # param_arrays = read_field_arrays_from_csv(param_group2_csv_file)
+    # prefix = 0
+    # for key, value in list(param_arrays.items()):
+    #     pondVal = value
+    #     import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
+
+    ############# 根据PARAMETER表中的VALUE生成param_group2_ch.csv,并导入REACHES ############
+    caliparam_sub_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\caliparam_sub.csv"
+    param_group2_ch_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\param_group2_ch.csv"
+    mapper3 = {
+        "LAKEB": "LAKEB_1D",
+        "LAKE_ALPHA": "LAKE_ALPHA",
+        "CH_N": "CH_N"
+    }
+    # gen_param_group_csv(
+    #     conn=conn,
+    #     db_name=db_name,
+    #     collection="PARAMETERS",
+    #     mapper=mapper3,
+    #     csv_in=caliparam_sub_csv_file,
+    #     csv_in_col='subbasin',
+    #     csv_out=param_group2_ch_csv_file
+    # )
+
+    update_reaches_from_csv(
+        conn=conn,
+        db_name='poyang_lake1_longterm_model',
+        collection='REACHES',
+        csv_file=param_group2_ch_csv_file
+    )
+
+
+    bug_type = 2
+
     if bug_type == 0:
         ##--------------------- 重新导入celllat.csv，修复经纬度和投影坐标互换的问题 -----------------------
 

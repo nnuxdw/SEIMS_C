@@ -100,25 +100,6 @@ bool SSR_DA::FlowInSoil(const int id) {
         }
         m_soilWtrSto[id][j] += qUp; // mm
 
-#ifdef DEBUG_SSR_DA
-		if (CVT_INT(m_subbsnID[id]) == 173 && id == 2562)
-		{
-			if (m_soilWtrSto[id][j] <= m_soilAWC[id][j]) {
-				std::cout << "----------- Subsurface Flow Debug Info -----------" << std::endl;
-				std::cout << "  HRU ID                : " << id << std::endl;
-				std::cout << "  Soil Layer            : " << j << " / " << m_nSoilLyrs[id] << std::endl;
-				std::cout << "  Soil Moisture (before): " << smOld << " mm" << std::endl;
-				std::cout << "  Soil Moisture (after) : " << m_soilWtrSto[id][j] << " mm" << std::endl;
-				std::cout << "  Field Capacity (AWC)  : " << m_soilAWC[id][j] << " mm" << std::endl;
-				std::cout << "  Soil Saturation    (UL)  : " << m_soilSat[id][j] << " mm" << std::endl;
-				//std::cout << "  Field Capacity (FC)   : " << m_soilFC[id][j] << " mm" << std::endl;
-				std::cout << "--------------------------------------------------" << std::endl;
-
-				std::cout << endl;
-
-			}
-		}
-#endif
         // if soil moisture is below the field capacity, no interflow will be generated
         //if (m_soilWtrSto[id][j] <= m_soilFC[id][j]) continue;
         if (m_soilWtrSto[id][j] <= m_soilAWC[id][j]) continue;
@@ -267,35 +248,85 @@ bool SSR_DA::FlowInSoil(const int id) {
         m_soilWtrStoPrfl[id] += m_soilWtrSto[id][j];
 
 #ifdef DEBUG_SSR_DA
-		if (CVT_INT(m_subbsnID[id]) == 173 && id == 2562)
 		{
-			std::cout << "----------- Subsurface Flow Debug Info -----------" << std::endl;
-			std::cout << "  HRU ID                : " << id << std::endl;
-			std::cout << "  Soil Layer            : " << j << " / " << m_nSoilLyrs[id] << std::endl;
-			std::cout << "  Soil Moisture (before): " << smOld << " mm" << std::endl;
-			std::cout << "  Soil Moisture (after) : " << m_soilWtrSto[id][j] << " mm" << std::endl;
-			std::cout << "  Upstream qUp          : " << qUp << " mm" << std::endl;
-			std::cout << "  SubSurfRf             : " << m_subSurfRf[id][j] << " mm" << std::endl;
-			std::cout << "  SubSurfRfVol          : " << m_subSurfRfVol[id][j] << " m3" << std::endl;
-			std::cout << "  Percolation           : " << m_soilPerco[id][j] << " mm" << std::endl;
-			std::cout << "  Soil MoistNex (before): " << soilWtrStoNexLyrOld << " mm" << std::endl;
-			std::cout << "  Soil MoistNex (after) : " << m_soilWtrSto[id][j + 1] << " mm" << std::endl;
+			// 这里用你前面已经算过的变量：smOld, qUp, qUpVol, s0, flowWidth, k 等
+			// 若担心某些变量没定义，你也可以在上面就近给默认值。
 
-			std::cout << "  surFlow (before)      : " << surFlowOld << " mm" << std::endl;
-			std::cout << "  surFlow (after)       : " << m_surfRf[id] << " mm" << std::endl;
-			std::cout << "  Soil Saturation       : " << m_soilSat[id][j] << " mm" << std::endl;
-			std::cout << "  Field Capacity (AWC)  : " << m_soilAWC[id][j] << " mm" << std::endl;
-			//std::cout << "  Field Capacity (FC)   : " << m_soilFC[id][j] << " mm" << std::endl;
-			std::cout << "  Ks                    : " << m_ks[id][j] << " mm/h" << std::endl;
-			std::cout << "  TTlag                 : " << m_TTlag[id][j] << " [-]" << std::endl;
-			std::cout << "  flowWidth             : " << flowWidth << " m" << std::endl;
-			std::cout << "  slope (s0)            : " << s0 << " [-]" << std::endl;
-			std::cout << "--------------------------------------------------" << std::endl;
+			// 下一层土壤水(更新前)你已保存为 soilWtrStoNexLyrOld
+			float next_sm_new = (j < CVT_INT(m_nSoilLyrs[id]) - 1) ? m_soilWtrSto[id][j + 1] : -1.f;
+			// 冻土修正导水率（仅 frez==1 时有效），打印也给出来
+			float WCND_used = (frez == 1) ? WCND : -1.f;
+			std::cout << std::fixed << std::setprecision(6);
+			// ---- 基本标识 ----
+			std::cout << "[SSR_DA] "
+				<< "id=" << id
+				<< " sb=" << subbasinId
+				<< " lyr=" << j << "/" << (int)m_nSoilLyrs[id]
+				<< " landUse=" << m_landUse[id]
+				<< " rchID=" << m_rchID[id]
+				<< "\n";
 
-			std::cout << endl;
+			// ---- 几何参数 ----
+			std::cout << "  geom: "
+				<< "slope=" << s0
+				<< " area=" << m_area[id]
+				<< " slplen=" << m_slplen[id]
+				<< "\n";
+
+			// ---- 土壤结构参数 ----
+			std::cout << "  soil_struct: "
+				<< "thk=" << m_soilThk[id][j]
+				<< " por=" << m_soilPor[id][j]
+				<< " poreIdx=" << m_poreIdx[id][j]
+				<< " clay=" << m_clay[id][j]
+				<< " SatCap=" << m_soilSat[id][j]
+				<< " AWC=" << m_soilAWC[id][j]
+				<< "\n";
+
+			// ---- 水量状态（本层/下一层/上游）----
+			std::cout << "  water_state: "
+				<< "sm_old=" << smOld
+				<< " sm_new=" << m_soilWtrSto[id][j]
+				<< " next_sm_old=" << soilWtrStoNexLyrOld
+				<< " next_sm_new=" << next_sm_new
+				<< " qUp=" << qUp << "mm"
+				<< " qUpVol=" << qUpVol << "m3"
+				<< "\n";
+
+			// ---- 导水与时间尺度 ----
+			// k 是本步用于计算的实际导水率（含非饱和/冻土修正逻辑）；ks 为饱和导水率
+			std::cout << "  conductance: "
+				<< "ks=" << m_ks[id][j]
+				<< " k_used=" << k
+				<< " WCND=" << WCND_used
+				<< " ki=" << m_ki_1d[id]
+				<< " dt=" << m_dt
+				<< "\n";
+
+			// ---- 超量/渗漏时间尺度 ----
+			std::cout << "  excess_perc: "
+				<< "sw_excess=" << (m_soilWtrSto[id][j] + m_soilPerco[id][j] + m_subSurfRf[id][j] - m_soilAWC[id][j])
+				<< " maxPerc=" << (m_soilSat[id][j] - m_soilAWC[id][j])
+				<< " tt=" << ((m_ks[id][j] > 0.f) ? (3600.f * (m_soilSat[id][j] - m_soilAWC[id][j]) / m_ks[id][j]) : -1.f)
+				<< " TTlag=" << m_TTlag[id][j]
+				<< "\n";
+
+			// ---- 通量（本步生成）----
+			std::cout << "  fluxes: "
+				<< "subRf=" << m_subSurfRf[id][j] << "mm"
+				<< " perco=" << m_soilPerco[id][j] << "mm"
+				<< " subRfVol=" << m_subSurfRfVol[id][j] << "m3"
+				<< "\n";
+
+			// ---- 蓄积与地表径流前后 ----
+			std::cout << "  storage_flow: "
+				<< " cellFlow_aft=" << m_cellFlow[id][j]
+				<< " surf_bef=" << surFlowOld
+				<< " surf_aft=" << m_surfRf[id]
+				<< "\n\n";
 		}
+#endif
 
-#endif // DEBUG_SSR_DA
 
         if (m_soilWtrSto[id][j] != m_soilWtrSto[id][j] || m_soilWtrSto[id][j] < 0.f) {
             cout << "cell id: " << id << ", layer: " << j << ", moisture is less than zero: "

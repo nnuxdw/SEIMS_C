@@ -172,8 +172,25 @@ int IUH_OL::Execute() {
         {
             for (int i = 1; i <= m_nSubbsns; i++) {
                 m_Q_SBOF[i] += tmp_qsSub[i];
+
             }
         }
+		
+#ifdef DEBUG_IUH_OL
+		for (int i = 0; i < m_nCells; i++) {
+			int sbid = CVT_INT(m_subbsnID[i]);
+			cout << "[Cell " << i
+				<< "] Sub=" << sbid
+				<< ", surfRf=" << m_surfRf[i]
+				<< ", brt=" << m_brt[i]
+				<< ", m_surlag_1d=" << m_surlag_1d[i]
+				<< ", flow_now=" << m_cellFlow[i][0]
+				<< ", flow_sto=" << m_cellFlow[i][1]
+				<< ", area=" << m_area[i]
+				<< ", Q_SBOF[" << sbid << "]=" << m_Q_SBOF[sbid]
+				<< endl;
+		}
+#endif
         delete[] tmp_qsSub;
         tmp_qsSub = nullptr;
     } /* END of #pragma omp parallel */
@@ -182,6 +199,7 @@ int IUH_OL::Execute() {
         //get overland flow routing for entire watershed.
         m_Q_SBOF[0] += m_Q_SBOF[n];
     }
+
     return 0;
 }
 

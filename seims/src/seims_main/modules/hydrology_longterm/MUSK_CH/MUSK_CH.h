@@ -227,6 +227,7 @@ private:
     float m_petFactor;
     float m_minvol;
     float m_lakeb;
+	float *m_lakeb_1d;
 
     float* m_ispermafrost;
     float* m_islake;
@@ -253,6 +254,7 @@ private:
     float* m_PET;
     float* m_prec;
     float* m_pet;
+
     float* m_lakepcp;
     float* m_lakeperc;
 
@@ -292,6 +294,8 @@ private:
 
 	// xiaodw add
 	vector<Hand> m_Hands;  ///  subbasin (or reach)-- layers -- hands,  index represents subbasin id for dim 1, index represents layer for dim 2
+
+	float* m_petFactor_1d;
 };
 
 #endif /* SEIMS_MODULE_MUSK_CH_H */

@@ -26,6 +26,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter("T0_1d", UNIT_TEMP_DEG, DESC_T0, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_K_BLOW, UNIT_NON_DIM, DESC_K_BLOW, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_T_SNOW, UNIT_TEMP_DEG, DESC_T_SNOW, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_T_SNOW_1D, UNIT_TEMP_DEG, DESC_T_SNOW, Source_ParameterDB, DT_Raster1D);
     // I don't think VAR_SWE0 is useful. By LJ
     // mdi.AddParameter(VAR_SWE0, UNIT_DEPTH_MM, DESC_SWE0, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_LAG_SNOW, UNIT_NON_DIM, DESC_LAG_SNOW, Source_ParameterDB, DT_Single);

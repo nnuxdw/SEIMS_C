@@ -79,6 +79,7 @@ private:
     float* m_lagSnow_1d;
     float* m_csnow6_1d;
     float* m_csnow12_1d;
+	float* m_t_snow_1d;
     //! Minimum snow water content that corresponds to 100% snow cover, mm H2O, SNOCOVMX
     float m_snowCoverMax;
     //! Fraction of SNOCOVMX that corresponds to 50% snow cover, SNO50COV

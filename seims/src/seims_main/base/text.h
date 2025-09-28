@@ -714,6 +714,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_K_N "k_n"
 #define VAR_K_P "k_p"
 #define VAR_K_PET "K_pet" /// m_petFactor, Correction factor for PET
+#define VAR_K_PET_1D "K_pet_1d"
 #define VAR_K_RUN "K_run" /// m_rfExp, runoff exponent
 #define VAR_K_SOIL10 "k_soil10"
 #define VAR_K_SUBLI "K_subli"
@@ -1145,6 +1146,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_T_OPT "T_OPT" /// m_pgOptTemp, optional temperature for plant growth
 #define VAR_T_RG "T_RG"   /// groundwater runoff
 #define VAR_T_SNOW "T_snow" /// m_snowTemp, Snowfall temperature
+#define VAR_T_SNOW_1D "T_snow_1d" /// m_snowTemp, Snowfall temperature
 #define VAR_T_SOIL "t_soil" /// m_soilFrozenTemp, threshold soil freezing temperature
 #define VAR_T0 "T0"
 #define VAR_TFACT "tfact"
@@ -2109,6 +2111,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define REACH_LAKEVOL                       "Lake_Vol" 
 #define REACH_LAKEDPINI                     "Lake_Depini"
 #define REACH_LAKEALPHA                     "LAKE_ALPHA"
+#define REACH_LAKEB_1D                    "LAKEB_1D"
 #define REACH_ISRES                         "Is_Res"
 #define REACH_NATURAL_FLOW                  "Nature_Flow"
 #define REACH_RES_LC                        "RES_LC"

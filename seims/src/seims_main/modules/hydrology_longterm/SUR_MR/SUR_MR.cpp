@@ -3,7 +3,7 @@
 #include "text.h"
 
 SUR_MR::SUR_MR() :
-    m_dt(-1), m_nCells(-1), m_netPcp(nullptr), m_potRfCoef(nullptr),
+    m_dt(-1), m_nCells(-1), m_netPcp(nullptr), m_potRfCoef(nullptr), 
     m_maxSoilLyrs(-1), m_nSoilLyrs(nullptr),
     m_soilFC(nullptr), m_soilSat(nullptr), m_soilSumSat(nullptr), m_initSoilWtrStoRatio(nullptr),
     m_rfExp(NODATA_VALUE), m_maxPcpRf(NODATA_VALUE), m_deprSto(nullptr), m_meanTemp(nullptr),
@@ -110,6 +110,9 @@ int SUR_MR::Execute() {
 		float netPcp = m_netPcp[i];
 		float deprSto = m_deprSto[i];
         hWater = m_netPcp[i] + m_deprSto[i];
+		//runoff percentage
+		float runoffPercentage;
+		float surfq;
         if (hWater > 0.f && m_landUse[i] !=18) {
             /// update total soil water content
             m_soilWtrStoPrfl[i] = 0.f;
@@ -134,14 +137,13 @@ int SUR_MR::Execute() {
                     alpha = 1.f;
                 }
                 //runoff percentage
-                float runoffPercentage;
                 if (m_potRfCoef[i] > 0.99f ||  (m_landUse[i] == LANDUSE_ID_GLC)) {
                     runoffPercentage = 1.f;
                 } else {
                     runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
                 }
                 runoffPercentage = Min(runoffPercentage,1.f);
-                float surfq = hWater *runoffPercentage;
+                surfq = hWater *runoffPercentage;
                 if (surfq > hWater) surfq = hWater;
                 m_infil[i] = hWater - surfq;
                 m_exsPcp[i] = surfq;
@@ -184,8 +186,7 @@ int SUR_MR::Execute() {
 					alpha = 1.f;
 				}
 
-				//runoff percentage
-				float runoffPercentage;
+
 				//#ifndef DEBUG_SUR_MR
 				//				cout << i << ": " << m_potRfCoef[i] << endl;
 				//#endif
@@ -196,11 +197,41 @@ int SUR_MR::Execute() {
 					runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
 				}
 				runoffPercentage = Min(runoffPercentage, 1.f);
-				float surfq = hWater * runoffPercentage;
+				surfq = hWater * runoffPercentage;
 				if (surfq > hWater) surfq = hWater;
 				m_infil[i] = hWater - surfq;
 				m_exsPcp[i] = surfq;
             }
+
+#ifdef DEBUG_SUR_MR
+			{
+				// 第一次进来时创建文件并写表头；之后只追加数据
+
+				float firstLayerWtrSto = (m_nSoilLyrs[i] > 0 ? m_soilWtrSto[i][0] : NAN);
+				std::cout << "i=" << i
+					<< " landUse=" << m_landUse[i]
+					<< " rchID=" << m_rchID[i]
+					<< " pcp=" << m_pcp[i]
+					<< " pet=" << m_pet[i]
+					<< " netPcp=" << m_netPcp[i]
+					<< " deprSto=" << m_deprSto[i]
+					<< " hWater=" << hWater
+					<< " smFraction=" << smFraction
+					<< " alpha=" << alpha
+					<< " runoffPct=" << runoffPercentage
+					<< " surfq=" << surfq
+					<< " infil=" << m_infil[i]
+					<< " exsPcp=" << m_exsPcp[i]
+					<< " soilWtrStoPrfl=" << m_soilWtrStoPrfl[i]
+					<< " soilSatPrfl=" << soilSatPrfl
+					<< " nSoilLyrs=" << (int)m_nSoilLyrs[i]
+					<< " firstLayerWtrSto=" << firstLayerWtrSto
+					<< " m_potRfCoef=" << m_potRfCoef[i]
+					<< std::endl;
+				// 单线程可以不每次 flush；如果想实时看，可以打开下面这一行
+				// dbg.flush();
+			}
+#endif
         } else {
             m_exsPcp[i] = 0.f;
             m_infil[i] = 0.f;
@@ -208,6 +239,9 @@ int SUR_MR::Execute() {
         if (m_infil[i] > 0.f) {
             m_soilWtrSto[i][0] += m_infil[i];
         }
+
+
+
     }
     return 0;
 }

@@ -38,6 +38,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_REACH_PARAM, UNIT_NON_DIM, DESC_REACH_PARAM, Source_ParameterDB, DT_Reach);
     // add BMPs management operations, such as point source discharge
     mdi.AddParameter(VAR_SCENARIO, UNIT_NON_DIM, DESC_SCENARIO, Source_ParameterDB, DT_Scenario);
+	mdi.AddParameter(VAR_K_PET_1D, UNIT_NON_DIM, DESC_PET_K, Source_ParameterDB, DT_Raster1D);
 
     // Inputs from other modules
     mdi.AddInput(VAR_SBPET, UNIT_DEPTH_MM, DESC_SBPET, Source_Module, DT_Array1D);
@@ -75,6 +76,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_LAKE_SEEP, UNIT_NON_DIM, DESC_LAKE_SEEP, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_LAKE_MNVOL, UNIT_NON_DIM, DESC_LAKE_MNVOL, Source_ParameterDB, DT_Single);
 	mdi.AddParameter("LAKEB", UNIT_NON_DIM, DESC_LAKE_MNVOL, Source_ParameterDB, DT_Single);
+	//mdi.AddParameter(REACH_LAKEB_1D, UNIT_NON_DIM, DESC_LAKE_MNVOL, Source_ParameterDB, DT_Array1D);
 	mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_DEM, UNIT_LEN_M, DESC_DEM, Source_ParameterDB_Optional, DT_Raster1D);
     mdi.AddParameter(VAR_RUNOFF_CO, UNIT_NON_DIM, DESC_RUNOFF_CO, Source_ParameterDB, DT_Raster1D);

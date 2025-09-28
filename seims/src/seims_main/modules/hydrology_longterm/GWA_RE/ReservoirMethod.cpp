@@ -159,15 +159,18 @@ int ReservoirMethod::Execute() {
                     << "\t" << m_Kg << "\t" << m_Base_ex << "\t" << slopeCoef << endl;
             throw ModelException("Subbasin", "setInputs", oss.str());
         }
-#ifdef PRINT_DEBUG
-        cout << "ID: " << subID <<
-                ", pet: " << std::fixed << setprecision(6) << fPET <<
-                ", perco: " << std::fixed << setprecision(6) << perco <<
-                ", percoDeep: " << std::fixed << setprecision(6) << percoDeep <<
-                ", revap: " << std::fixed << setprecision(6) << revap <<
-                ", groundRunoff: " << std::fixed << setprecision(6) << groundRunoff <<
-                ", groundQ: " << std::fixed << setprecision(6) << groundQ <<
-                ", gwStore: " << std::fixed << setprecision(6) << groundStorage << endl;
+#ifdef DEBUG_RESERVOIR
+		std::cout << std::fixed << std::setprecision(6)
+			<< "[RES] subID=" << subID
+			<< " PET=" << fPET          // 子流域蒸散发
+			<< " Perco=" << perco       // 下渗到含水层
+			<< " PercoDeep=" << percoDeep // 深层渗漏
+			<< " Revap=" << revap       // 地下水回蒸
+			<< " Rg=" << groundRunoff   // 地下水径流 (mm)
+			<< " Qg=" << groundQ        // 地下水出流 (m3/s)
+			<< " Gw=" << groundStorage  // 含水层库容 (mm)
+			<< "m_Base_ex_1d=" << m_Base_ex_1d[subID]
+			<< std::endl;
 #endif
         m_petSubbsn[subID] = curSub->GetPet();
         m_T_Perco[subID] = curSub->GetPerco();

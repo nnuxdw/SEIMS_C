@@ -1,6 +1,6 @@
-# ALL INITIAL MODEL PARAMETERS.,,,,,,,,,
-# Table title (columns are split by COMMA and each element should not contain COMMA!),,,,,,,,,
-# Last updated: 2018-8-21,,,,,,,,,
+# ALL INITIAL MODEL PARAMETERS.
+# Table title (columns are split by COMMA and each element should not contain COMMA!)
+# Last updated: 2018-8-21
 TYPE,NAME,DESCRIPTION,UNIT,MODULE,VALUE,IMPACT,CHANGE,MAX,MIN
 Bacteria,bact_swf,fraction of manure containing active colony forming units (cfu),None,MGT_SWAT,0.15,1,RC,1,0
 Climate,CO2,CO2 Concentration,ppmv,ALL,330,1,AC,800,0
@@ -14,7 +14,7 @@ Climate,Weight_PET,Weight Coefficient of Potential Evapotranspiration,none,ALL,-
 Climate,Weight_T,Weight Coefficient of Temperature,none,ALL,-9999,0,NC,-9999,-9999
 Discharge,a_bnk,bank flow recession constant,none,ALL,0.2,0,AC,1,0
 Discharge,b_bnk,bank storage loss coefficient,none,ALL,0.05,0,AC,0.2,0.02
-Discharge,Base_ex,Baseflow exponent,none,GW_RSVR,1,0,AC,4,0.2
+Discharge,Base_ex,Baseflow exponent,none,GW_RSVR,1,0,AC,4,1
 Discharge,bnk0,Initial bank storage,m3/m,ALL,0,0,AC,1,0
 Discharge,chs0,initial channel storage,m3/m,All,0,0,AC,100,0
 Discharge,chs0_perc,initial percentage of channel depth,none,ALL,0.05,0,AC,1,0
@@ -22,7 +22,7 @@ Discharge,df_coef,Deep percolation coefficient,mm,GW_RSVR,0,0,AC,1,0
 Discharge,ep_ch,reach evaporation adjustment factor,none,ALL,1,0,AC,1,0
 Discharge,gw0,Initial groundwater storage,mm,GW_RSVR,100,0,AC,50000,1
 Discharge,gwmax,Maximum groundwater storage,mm,GW_RSVR,300,0,AC,50000,1
-Discharge,Kg,Baseflow recession coefficient,none,GW_RSVR,0.005,0,AC,1,0.001
+Discharge,Kg,Baseflow recession coefficient,none,GW_RSVR,0.005,0,AC,0.1,0.001
 Discharge,Ki,Interflow scaling factor,none,SSR_DA,3,0,AC,10,0
 Discharge,MANNING,Manning's n,none,ALL,-9999,0,AC,10,0.001
 Discharge,MSK_co1,Calibration coefficient used to control impact of the storage time constant for normal flow,none,ChannelRouting,0.75,0,AC,1,0
@@ -148,8 +148,8 @@ Crop,vpdfr,Vapor pressure deficit corresponding to the fraction maximum stomatal
 Crop,frgmax,Fraction of maximum stomatla conductance that is achievable at a high vapor pressure deficit,none,PET,-9999,1,RC,1,0
 Snow,c_rain,Rainfall impact factor,mm/mm/deg C/delta_t,SNO_DD,0.04,0,AC,1,0
 Snow,c_snow,temperature impact factor,mm/deg C/delta_t,SNO_DD,3,0,AC,6,0
-Snow,c_snow12,Melt factor on December 21,mm/deg C/day,SNO_SP,6.5,0,AC,8,1
-Snow,c_snow6,Melt factor on June 21,mm/deg C/day,SNO_SP,2.5,0,AC,8,1
+Snow,c_snow12,Melt factor on December 21,mm/deg C/day,SNO_SP,6.5,0,AC,9,6
+Snow,c_snow6,Melt factor on June 21,mm/deg C/day,SNO_SP,2.5,0,AC,4,1
 Snow,curva_wind,Curvature along wind direction,%,SRD_MB,-9999,0,NC,-9999,-9999
 Snow,D_snow,Snow redistribution coefficient,none,SNO_DD,-9999,1,RC,1.5,0.5
 Snow,k_blow,fraction of precipitation as snow,None,SNO_SP,1,1,RC,1,0
@@ -171,7 +171,7 @@ Snow,T_wind,temperature at which wind transport of snow is most favorable,deg C,
 Snow,T0,Snowmelt temperature,deg C,ALL,1,0,AC,3,-1
 Snow,U0,Wind speed over Ut at which WWi=1,m/s,SRD_MB,10,0,AC,1,0.2
 Snow,Ut0,Threshold wind speed at -27 degree,m/s,SRD_MB,6.98,0,AC,10,4
-WaterBalance,Clay,Clay proportion,%,ALL,-9999,1,RC,1,0
+WaterBalance,Clay,Clay proportion,%,ALL,-9999,1,RC,1.0,0
 WaterBalance,CN2,Curve number in condition II,none,ALL,-9999,1,RC,1.3,0.7
 WaterBalance,Conductivity,Saturated hydraulic conductivity,mm/hr,ALL,-9999,1,RC,2000,0
 WaterBalance,Density,Soil bulk density,mg/cm3,ALL,-9999,1,RC,1.2,0.8
@@ -184,10 +184,10 @@ WaterBalance,Poreindex,Pore size distribution index,none,ALL,-9999,1,RC,1.2,0.8
 WaterBalance,Porosity,Soil porosity,m3/m3,ALL,-9999,1,RC,0.8,0.2
 WaterBalance,pot_k,hydraulic conductivity of soil surface of pothole,mm/hr,IMP_SWAT,0.1,0,AC,100,0.01
 WaterBalance,Rootdepth,Root depth,m,ALL,-9999,1,RC,1.5,0.2
-WaterBalance,Runoff_co,Potential runoff coefficient,none,SUR_MR,-9999,1,RC,10,0.2
+WaterBalance,Runoff_co,Potential runoff coefficient,none,SUR_MR,-9999,1,RC,1,0.5
 WaterBalance,rv_co,Groundwater revap coefficient,none,GW_RSVR,0,0,AC,0.2,0
 WaterBalance,s_frozen,Frozen moisture relative to porosity with no infiltration,none,ALL,0.5,0,AC,1,0.1
-WaterBalance,Sand,Sand proportion,%,ALL,-9999,1,RC,1,0
+WaterBalance,Sand,Sand proportion,%,ALL,-9999,1,RC,1.0,0.0
 WaterBalance,Slope,Slope,%,ALL,-9999,1,RC,-9999,0
 WaterBalance,soil_t10,soil temperature relative to short grass cover,deg C,STP_FP,-9999,1,RC,2,0
 WaterBalance,soil_ta0,Empirical coefficient for estimating soil temperature,deg C,STP_FP,4.768,0,AC,10,0
@@ -221,29 +221,25 @@ Routing,ch_bnk_erod,Channel bank erodibility factor,none,ChannelRouting,-9999,1,
 Routing,ch_bed_erod,Channel bank erodibility factor,none,ChannelRouting,-9999,1,RC,3.75,0.001
 Routing,ch_bnk_d50,D50(median) particle size diameter of channel bank sediment,micrometer,ChannelRouting,-9999,1,RC,20,0.001
 Routing,ch_bed_d50,D50(median) particle size diameter of channel bed sediment,micrometer,ChannelRouting,-9999,1,RC,20,0.001
-# ljj++,,,,,,,,,
-groundwater,gw_delay,Baseflow recession coefficient,none,GW_RE,31,0,AC,1000,1
-galcier,GL_SNDD,Snow Degree Factor,mmdeg C-1d-1,DEGREEDAY,2.8,0,AC,10,1
-galcier,Cg,The correction coefficient of ice melt at the same temperature is higher than that of snow melt,mmdeg C-1d-1,DEGREEDAY,1,0,AC,3,0
-galcier,Kfg,Recession coefficient of glacier streamflow,mmdeg C-1d-1,DEGREEDAY,3.7,0,AC,15,1
-galcier,Ca,Factor for the influence of aspect on melt,mmdeg C-1d-1,DEGREEDAY,1,0,AC,3,0
-SoilTemperature,DDEPTH1,base dampling depth,mm,STP_FP,2000,0,AC,100000,10
-SoilTemperature,tsoil1,Effective air-to-ground conductance ratio,mm,STP_FP,8,0,AC,50,0
-SoilTemperature,tsoil2,Thermal conductivity of top soil,none,STP_FP,1,0,AC,50,0
-SoilTemperature,tsoil3,Thermal conductivity of subsurfacer soil,none,STP_FP,1,0,AC,50,0
-SoilTemperature,tsoil4,snow heat conductivity,none,STP_FP,1,0,AC,2,0
-SoilTemperature,tsoil5,dsoil heat capacity,mm,STP_FP,1,0,AC,2,0
-surface runoff,SURLAG,Surface runoff lag time,DAYS,IUH_OL,1,0,AC,12,1
-LAKE,LAKE_EVP,lake evaporation coefficient,%,ChannelRouting,0.8,0,AC,2,0
-LAKE,LAKE_SEEP,shydraulic conductivity of the lake bottom,%,ChannelRouting,0.1,0,AC,1,0
-LAKE,LAKE_ALPHA,lake outflow param, ,ChannelRouting,-9999,1,RC,5000,0.00001
-LAKE,LAKE_MNLWL,lake Minimum flowout water level param, ,ChannelRouting,0.7,0,AC,1,0.01
-LAKE,LAKEB,lake outflow exponent index, ,ChannelRouting,1,0,AC,4,0
-Reservior,RES_normMult,calibration parameter used to modulate Qnorm, ,ChannelRouting,-9999,1,RC,10,0
+# ljj++
+Groundwater,gwmin,Minimum groundwater storage,mm,GW_MOD,300,0,AC,50000,1
+Groundwater,alphabf,alpha factor for groundwater recession curve,1/days,GW_MOD,0.48,0,AC,1,0
+Groundwater,delay,time required for water leaving the bottom of the root zone to reach the shallow aquifer,days,GW_MOD,31,0,AC,300,1
+Groundwater,gw_spyld,specific yield for shallow aquifer,days,GW_MOD,-9999,1,RC,100,0
+SoilTemperature,DDEPTH1,dampling depth in the non-permafrost,mm,STP_FP,3000,0,AC,100000,10
+SoilTemperature,DDEPTH2,dampling depth in the permafrost,mm,STP_FP,1800,0,AC,5000,10
+SoilTemperature,tsoil1,Effective air-to-ground conductance ratio, ,STP_FP,8,0,AC,100,1
+SoilTemperature,tsoil2,Thermal conductivity of soil, ,STP_FP,1,0,AC,20,0
+SoilTemperature,tsoil3,Thermal conductivity of soil, ,STP_FP,1,0,AC,20,0
+SoilTemperature,tsoil4,snow heat conduc, ,STP_FP,1,0,AC,10,0
+SoilTemperature,tsoil5,dsoil heat capacity, ,STP_FP,1,0,AC,10,0
+LAKE,LAKE_EVP,lake evaporation coefficient,%,ChannelRouting,0.6,0,AC,1,0
+LAKE,LAKE_SEEP,shydraulic conductivity of the lake bottom,%,ChannelRouting,0.005,0,AC,1,0
+LAKE,LAKE_MNVOL,min volume of water to flow out for a lake,%,ChannelRouting,0.7,0,AC,1,0
 Carbon,enr_poc,POC enrichment ratio , ,CarbonProcess,1.5,0,AC,5,0
-Carbon,kd_oc,organic carbon partition coefficient, ,CarbonProcess,1000,0,AC,10000,0
+Carbon,kd_oc,organic carbon partition coefficient, ,CarbonProcess,1000,0,AC,5000,0
 Carbon,perco_doc,DOC percolation coefficient,%,CarbonProcess,0.7,0,AC,1,0
-Carbon,hlife_docgw,DOC half life (days) in groudwater, ,CarbonProcess,50,0,AC,1000,0
+Carbon,hlife_docgw,DOC half life (days) in groudwater, ,CarbonProcess,50,0,AC,500,0
 Carbon,klrd,decay rate of LDOC to RDOC (/day) LDOC->RDOC, ,CarbonProcess,0.02,0,AC,0.03,0.004
 Carbon,kld,LDOC mineralization rate (/day)  LDOC->DIC, ,CarbonProcess,0.25,0,AC,0.3,0.05
 Carbon,krd,RDOC mineralization rate (/day)  RDOC->DIC, ,CarbonProcess,0.006,0,AC,0.01,0.001
@@ -255,29 +251,3 @@ Carbon,klrp,decay rate of LPOC to RPOC (/day) LPOC->RPOC, ,CarbonProcess,0.01,0,
 Carbon,krp,RPOC dissolution rate (/day) RPOC->LDOC, ,CarbonProcess,0.0025,0,AC,0.0075,0.0025
 Carbon,kd_rp,RPOC decay rate to DIC (/day) RPOC->DIC, ,CarbonProcess,0.001,0,AC,0.1,0.001
 Carbon,npoc,equilibrium concentration for POC,mg/L,CarbonProcess,20,0,AC,100,0.001
-lake,Wetmxvol,max water level for hillslope lake,m,wetland,5,0,AC,1,100
-lake,Wetnvol,min water level for hillslope lake,m,wetland,1,0,AC,0.01,80
-lake,evwet,evporation factor for hillslope lake,none,wetland,1,0,AC,0.01,1.5
-lake,wetk,percolation of hillslope lake,mm,wetland,1,0,AC,0,20
-lake,wetlag,lag for lake outflow,days,wetland,300,0,AC,1000,10
-lake,ksr0,todo,none,wetland,1,0,AC,10000000,0.00001
-lake,ksr1,todo,none,wetland,0.1,0,AC,1,-1
-lake,ksr2,todo,none,wetland,2,0,AC,20,-20
-lake,krem0,todo,none,wetland,1,0,AC,10000000,0.00001
-lake,krem1,todo,none,wetland,0.1,0,AC,1,-1
-lake,krem2,todo,none,wetland,2,0,AC,20,-20
-lake,Cdoc,todo,none,wetland,1,0,AC,50,0
-Snow,c_snow12_1d,Melt factor on December 21,mm/deg C/day,SNO_SP,-9999,0.00001,AC,8,1
-Snow,c_snow6_1d,Melt factor on June 21,mm/deg C/day,SNO_SP,-9999,0.00001,AC,8,1
-Snow,lag_snow_1d,Snow temperature lag factor,none,SNO_SP,-9999,0.00001,AC,1,0
-Snow,T0_1d,Snowmelt temperature,deg C,ALL,-9999,0.00001,AC,3,-1
-Discharge,Base_ex_1d,Baseflow exponent,none,GW_RSVR,-9999,0.00001,AC,4,0.2
-Discharge,Kg_1d,Baseflow recession coefficient,none,GW_RSVR,-9999,0.00001,AC,1,0.001
-groundwater,gw_delay_1d,Baseflow recession coefficient,none,GW_RE,-9999,0.00001,AC,1000,1
-Discharge,Ki_1d,Interflow scaling factor,none,SSR_DA,-9999,0.00001,AC,10,0
-WaterBalance,t_soil_1d,Soil freezing temperature,deg C,ALL,-9999,0.00001,AC,0,-15
-surface runoff,SURLAG_1d,Surface runoff lag time,DAYS,IUH_OL,-9999,0.00001,AC,12,1
-Discharge,ep_ch_1d,reach evaporation adjustment factor,none,ALL,-9999,0.00001,AC,1,0
-Climate,K_pet_1d,Correction factor for PET,none,ALL,-9999,0.00001,AC,1.3,0.7
-lake,res_time,todo,none,wetland,-9999,1.00001,RC,50000,0.11
-LAKE,LAKEB_1D,lake outflow exponent index, ,ChannelRouting,-9999,0.00001,AC,4,0

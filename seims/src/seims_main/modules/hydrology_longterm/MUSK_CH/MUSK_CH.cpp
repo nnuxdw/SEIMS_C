@@ -37,7 +37,7 @@ MUSK_CH::MUSK_CH() :
     m_dem(nullptr),curBasinDem(nullptr),m_charge(nullptr),m_qin(nullptr),m_recharge(nullptr),
     m_potRfCoef(nullptr),m_slope(nullptr),flowoutlength(nullptr),m_T_LKWB(nullptr),
     m_resminq(nullptr),m_resndq(nullptr),m_resnormq(nullptr),m_res_normMult(nullptr),m_rrtime(nullptr),
-    m_lakeperc(nullptr),m_lakepcp(nullptr),m_Epch_1d(nullptr),
+    m_lakeperc(nullptr),m_lakepcp(nullptr),m_Epch_1d(nullptr),m_lakeb_1d(nullptr),
 	//m_chBedMeanElev(nullptr), m_chBedStartElev(nullptr), m_chBedEndElev(nullptr),
 	// xiaodw ++
 	m_lakeHandLevelini(nullptr)
@@ -430,8 +430,8 @@ void MUSK_CH::InitialOutputs() {
         m_Ch2GW[i] = 0.f;
         m_aquifer[i] = 0.f;
         m_qin[i]=0.f;
-        if(m_islake[i]==1) m_chSto[i] = m_lakevol[i];
-        if(m_isres[i]==1) m_chSto[i] = m_lakevol[i];
+        //if(m_islake[i]==1) m_chSto[i] = m_lakevol[i];
+        //if(m_isres[i]==1) m_chSto[i] = m_lakevol[i];
     }
     /// initialize point source loadings
     if (nullptr == m_ptSub) {
@@ -657,6 +657,10 @@ void MUSK_CH::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(sk, "ep_ch_1d")) {
         m_Epch_1d = data;
     }
+	else if (StringMatch(sk, VAR_K_PET_1D)) {
+		m_petFactor_1d = data;
+	}
+
     else {
         throw ModelException(MID_MUSK_CH, "Set1DData", "Parameter " + sk + " does not exist.");
     }
@@ -805,6 +809,11 @@ void MUSK_CH::SetReaches(clsReaches* reaches) {
     if (nullptr == m_lakevol) reaches->GetReachesSingleProperty(REACH_LAKEVOL, &m_lakevol);
     if (nullptr == m_lakedpini) reaches->GetReachesSingleProperty(REACH_LAKEDPINI, &m_lakedpini);
     if (nullptr == m_lakealpha) reaches->GetReachesSingleProperty(REACH_LAKEALPHA, &m_lakealpha);
+	// xiaodw
+	if (nullptr == m_lakeb_1d) {
+		reaches->GetReachesSingleProperty(REACH_LAKEB_1D, &m_lakeb_1d);
+	}
+	
     if (nullptr == m_A_Va) reaches->GetReachesSingleProperty("A_Va", &m_A_Va);
     if (nullptr == m_A_Vb) reaches->GetReachesSingleProperty("A_Vb", &m_A_Vb);
     if (nullptr == m_A_a) reaches->GetReachesSingleProperty("A_a", &m_A_a);
@@ -837,6 +846,7 @@ bool MUSK_CH::ChannelFlow(const int i) {
     float qIn = 0.f; /// Water entering reach on current day from both current subbasin and upstreams
     // 1.1. water from this subbasin
     qIn += m_olQ2Rch[i]; /// surface flow
+	
     float qiSub = 0.f;   /// interflow flow
     if (nullptr != m_ifluQ2Rch && m_ifluQ2Rch[i] >= 0.f) {
         qiSub = m_ifluQ2Rch[i];
@@ -882,11 +892,7 @@ bool MUSK_CH::ChannelFlow(const int i) {
         //cout<<i<<"   "<<*upRchID<<"   "<< m_Ch2GW[*upRchID]<<endl;
     }
     qIn += qsUp + qiUp + qgUp;
-#ifdef PRINT_DEBUG
-    cout << "ID: " << i << ", surfaceQ: " << m_qsSub[i] << ", subsurfaceQ: " << qiSub <<
-        ", groundQ: " << qgSub << ", pointQ: " << ptSub <<
-        ", UPsurfaceQ: " << qsUp << ", UPsubsurface: " << qiUp << ", UPground: " << qgUp << endl;
-#endif
+
     // 1.3. water from bank storage
 	// xiaodw add, for calculating hand water lavel, with no effect on other modules
 	m_bankStoLastStep[i] = m_bankSto[i];
@@ -1153,10 +1159,51 @@ bool MUSK_CH::ChannelFlow(const int i) {
 
     // todo, compute revap from bank storage. In SWAT, revap coefficient is equal to gw_revap.
 
-#ifdef PRINT_DEBUG
-    cout << " chStorage after routing " << m_chStorage[i] << endl;
-    cout << " surfq: " << m_qsCh[i] << ", ifluq: " << m_qiCh[i] << ", groudq: " << m_qgCh[i] << endl;
+#ifdef DEBUG_MUSK_CH
+	cout << "===== ChannelFlow Debug: Reach " << i << " Day " << m_dayOfYear << " =====" << endl;
+
+	// 输入部分
+	cout << "[Inputs] "
+		<< "olQ2Rch=" << m_olQ2Rch[i]
+		<< ", qiSub=" << qiSub
+		<< ", qgSub=" << qgSub
+		<< ", ptSub=" << ptSub
+		<< ", qsUp=" << qsUp
+		<< ", qiUp=" << qiUp
+		<< ", qgUp=" << qgUp
+		<< ", bankOut=" << bankOut / m_dt
+		<< ", qIn=" << qIn
+		<< endl;
+
+	// Muskingum 参数
+	cout << "[Muskingum] "
+		<< "k_bankfull=" << k_bankfull
+		<< ", k_bankfull2=" << k_bankfull2
+		<< ", detmax=" << detmax
+		<< ", detmin=" << detmin
+		<< ", det=" << det
+		<< ", nn=" << nn
+		<< ", c1=" << c1 << ", c2=" << c2 << ", c3=" << c3
+		<< ",ch_n=" << m_chMan[i]
+		<< endl;
+
+	// 迭代结束后的结果
+	cout << "[Results] "
+		<< "qRchOut=" << m_qRchOut[i]
+		<< ", qsRchOut=" << m_qsRchOut[i]
+		<< ", qiRchOut=" << m_qiRchOut[i]
+		<< ", qgRchOut=" << m_qgRchOut[i]
+		<< ", chSto=" << m_chSto[i]
+		<< ", chWtrDepth=" << m_chWtrDepth[i]
+		<< ", chWtrWth=" << m_chWtrWth[i]
+		<< ", CrossArea=" << m_chCrossArea[i]
+		<< ", rteWtrOut=" << m_rteWtrOut[i]
+		<< ", rrtime=" << m_rrtime[i]
+		<< endl;
+
+	cout << "=============================================" << endl;
 #endif
+
     return true;
 }
 //ljj++
@@ -1222,11 +1269,11 @@ bool MUSK_CH::LakeBudget(const int i) {
     aa = Max(1.f, A1*1.e6f);
     
     //! 2. minus all the outflow water
-    float h0 = 0.f;
-    h0 = m_minvol;
-    float thwl = m_lakedpini[i] * h0; 
-    float max_outflow = Max(0.f, (m_lakedp[i] - thwl) * aa);
-    max_outflow = Max(0.f, pow((m_lakedp[i] - thwl), m_A_Vb[i])*m_A_Va[i]*1.e9f);
+    //float h0 = 0.f;
+    //h0 = m_minvol;
+    //float thwl = m_lakedpini[i] * h0; 
+    //float max_outflow = Max(0.f, (m_lakedp[i] - thwl) * aa);
+    //max_outflow = Max(0.f, pow((m_lakedp[i] - thwl), m_A_Vb[i])*m_A_Va[i]*1.e9f);
 
     // lake evaporation
     float rtevp = 0.f; 
@@ -1253,22 +1300,23 @@ bool MUSK_CH::LakeBudget(const int i) {
     // Lake parameter A (suggested  value equal to outflow width in [m])
     // float lakefactor = m_lakearea[i] / m_dt / sqrt(alpha[i]);
     float lakefactor = aa / m_dt / sqrt(m_chWth[i]*m_lakealpha[i]);
-   if (m_chSto[i]>0.f){
-        rtwtr = pow(sqrt((lakefactor*lakefactor) + 2*SI)-lakefactor,2);
-        rtwtr = Min(rtwtr, max_outflow/m_dt);
-  }
+  // if (m_chSto[i]>0.f){
+  //      rtwtr = pow(sqrt((lakefactor*lakefactor) + 2*SI)-lakefactor,2);
+  //      rtwtr = Min(rtwtr, max_outflow/m_dt);
+  //}
     // else{
     //     rtwtr = 0.f;
     // }
-    // float thwl = m_lakedpini[i] * m_minvol; 
-    // float runoff = 0.f;
-    // float max_outflow = Max(0.f, pow((m_lakedp[i] - thwl), m_A_Vb[i])*m_A_Va[i]*1.e9f);
-    // if(m_lakedp[i] > thwl){
-    //     runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb);
-    //     runoff = Max(runoff,0.f);
-    // }
-    // if(runoff*m_dt>max_outflow) runoff = max_outflow/ m_dt;
-    // rtwtr = runoff;
+     float thwl = m_lakedpini[i] * m_minvol; 
+     float runoff = 0.f;
+     float max_outflow = Max(0.f, pow((m_lakedp[i] - thwl), m_A_Vb[i])*m_A_Va[i]*1.e9f);
+     if(m_lakedp[i] > thwl){
+         //runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb);
+		 runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb_1d[i]);
+         runoff = Max(runoff,0.f);
+     }
+     if(runoff*m_dt>max_outflow) runoff = max_outflow/ m_dt;
+     rtwtr = runoff;
     m_chSto[i] =  (SI - rtwtr)*m_dt;
     m_chSto[i] =  Max(m_chSto[i], 0.f);
     // update lake water level
@@ -1305,6 +1353,68 @@ bool MUSK_CH::LakeBudget(const int i) {
     m_T_LKWB[i][4] = LakeOutGw;
     m_T_LKWB[i][5] = m_qRchOut[i] * m_dt;
     m_T_LKWB[i][6] = m_chSto[i];
+
+#ifdef DEBUG_MUSK_CH
+	cout << "===== LakeBudget Debug: rchID=" << i << " Day=" << m_dayOfYear << " =====\n";
+
+	// 1) 输入项
+	cout << "[Inputs] "
+		<< "olQ2Rch=" << m_olQ2Rch[i]
+		<< ", qiSub=" << qiSub
+		<< ", qgSub(ignored)=" << qgSub
+		<< ", qsUp=" << qsUp
+		<< ", qiUp=" << qiUp
+		<< ", qgUp=" << qgUp
+		<< ", precip=" << m_prec[i]
+		<< ", qIn(total)=" << qIn
+		<< "\n";
+
+	// 2) 蒸发/渗漏/面积等湖泊参数
+	cout << "[LakeParams] "
+		<< "A_a=" << m_A_a[i]
+		<< ", A_b=" << m_A_b[i]
+		<< ", lakealpha=" << m_lakealpha[i]
+		<< ", lakeb_1d=" << m_lakeb_1d[i]
+		<< ", chWth=" << m_chWth[i]
+		<< ", lakedp=" << m_lakedp[i]
+		<< ", lakedpini=" << m_lakedpini[i]
+		<< ", minvol(h0)=" << m_minvol
+		<< ", area(aa)=" << aa
+		<< "\n";
+
+	// 3) 过程量
+	cout << "[Process] "
+		<< "pre_Sto=" << pre_Sto
+		<< ", lake_evap=" << rtevp
+		<< ", lake_gw=" << LakeOutGw
+		<< ", SI=" << SI
+		<< ", thwl=" << (m_lakedpini[i] * m_minvol)
+		<< ", runoff=" << runoff
+		<< ", max_outflow=" << max_outflow
+		<< "\n";
+
+	// 4) 结果项
+	cout << "[Results] "
+		<< "qRchOut=" << m_qRchOut[i]
+		<< ", rteWtrOut(day_m3)=" << m_rteWtrOut[i]
+		<< ", chSto(after)=" << m_chSto[i]
+		<< ", lakedp(after)=" << m_lakedp[i]
+		<< ", lakepcp(day_m3)=" << m_lakepcp[i]
+		<< "\n";
+
+	// 5) 质量平衡（方便你核对）
+	double inflow_m3 = (m_olQ2Rch[i] + qiSub /*+ qgSub*/ + qsUp + qiUp + qgUp + m_prec[i]) * m_dt;
+	double outflow_m3 = m_rteWtrOut[i] + rtevp + LakeOutGw;
+	cout << "[WB] "
+		<< "IN(m3)=" << inflow_m3
+		<< ", OUT(m3)=" << outflow_m3
+		<< ", dS(m3)=" << (m_chSto[i] - pre_Sto)
+		<< ", IN-OUT-dS=" << (inflow_m3 - outflow_m3 - (m_chSto[i] - pre_Sto))
+		<< "\n";
+
+	cout << "=============================================\n";
+#endif
+
     return true;
 }
 bool MUSK_CH::ResBudget(const int i) {
@@ -1362,6 +1472,8 @@ bool MUSK_CH::ResBudget(const int i) {
 	// evaporation
 	float rtevp = 0.f; 
 	rtevp = m_evlake * m_petSubbsn[i]/m_petFactor * 0.001f * m_lakearea[i]; //m3
+	//rtevp = m_evlake * m_petSubbsn[i] / m_petFactor_1d[i] * 0.001f * m_lakearea[i]; //m3
+	
 	rtevp = Min(rtevp, m_chSto[i]);
     //  groundwater
 	float ResOutGw = m_chSto[i] * m_lakeseep *0.01f;  //ljj++todo add new param resseep
@@ -1465,6 +1577,79 @@ bool MUSK_CH::ResBudget(const int i) {
         m_qiRchOut[i] = 0.f;
         m_qgRchOut[i] = 0.f;
     }
+
+#ifdef DEBUG_MUSK_CH
+	cout << "===== ResBudget Debug: rchID=" << i << " Day=" << m_dayOfYear << " =====\n";
+
+	// 1) 输入项
+	cout << "[Inputs] "
+		<< "olQ2Rch=" << m_olQ2Rch[i]
+		<< ", qiSub=" << qiSub
+		<< ", qgSub=" << qgSub
+		<< ", qsUp=" << qsUp
+		<< ", qiUp=" << qiUp
+		<< ", qgUp=" << qgUp
+		<< ", precip=" << m_prec[i]
+		<< ", qIn(total)=" << qIn
+		<< "\n";
+
+	// 2) 水库容量与规则参数
+	cout << "[Policy] "
+		<< "TotVol=" << m_lakevol[i]
+		<< ", Lc=" << m_ResLc[i]
+		<< ", Ln=" << m_ResLn[i]
+		<< ", Lf=" << m_ResLf[i]
+		<< ", Adjust=" << m_ResAdjust[i]
+		<< ", LNF=" << (m_ResLn[i] + m_ResAdjust[i] * (m_ResLf[i] - m_ResLn[i]))
+		<< "\n";
+
+	cout << "[OutflowRules] "
+		<< "qmin=" << m_resminq[i]
+		<< ", qnorm=" << m_resnormq[i]
+		<< ", qnd=" << m_resndq[i]
+		<< ", normMult=" << m_res_normMult[i]
+		<< "\n";
+
+	// 3) 过程量
+	cout << "[Process] "
+		<< "pre_Sto=" << pre_Sto
+		<< ", add_wtrin(m3)=" << (qIn * m_dt)
+		<< ", evap=" << rtevp
+		<< ", gw=" << ResOutGw
+		<< "\n";
+
+	// 4) 规则分段的计算结果（便于判断处于哪个区间）
+	cout << "[StageOutflow(m3/s)] "
+		<< "F=" << (m_chSto[i] / m_lakevol[i])
+		<< ", O1=" << ReservoirOutflow1
+		<< ", O2=" << ReservoirOutflow2
+		<< ", O3a=" << ReservoirOutflow3a
+		<< ", O3b=" << ReservoirOutflow3b
+		<< ", O4=" << ReservoirOutflow4
+		<< "\n";
+
+	// 5) 结果项
+	cout << "[Results] "
+		<< "qRchOut=" << m_qRchOut[i]
+		<< ", rteWtrOut(day_m3)=" << m_rteWtrOut[i]
+		<< ", chSto(after)=" << m_chSto[i]
+		<< ", depth(after)=" << m_chWtrDepth[i]
+		<< ", Fill=" << (m_chSto[i] / m_lakevol[i])
+		<< "\n";
+
+	// 6) 质量平衡
+	double inflow_m3 = (m_olQ2Rch[i] + qiSub + qgSub + qsUp + qiUp + qgUp + m_prec[i]) * m_dt;
+	double outflow_m3 = m_rteWtrOut[i] + rtevp + ResOutGw;
+	cout << "[WB] "
+		<< "IN(m3)=" << inflow_m3
+		<< ", OUT(m3)=" << outflow_m3
+		<< ", dS(m3)=" << (m_chSto[i] - pre_Sto)
+		<< ", IN-OUT-dS=" << (inflow_m3 - outflow_m3 - (m_chSto[i] - pre_Sto))
+		<< "\n";
+
+	cout << "=============================================\n";
+#endif
+
 
     return true;
 }
