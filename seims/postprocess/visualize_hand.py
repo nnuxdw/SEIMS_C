@@ -814,7 +814,7 @@ if __name__ == '__main__':
     work_dir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
     longter_model_name = 'poyang_lake1_longterm_model'
     longterm_model_dir = os.path.join(work_dir,longter_model_name)
-    directory = os.path.join(longterm_model_dir,'OUTPUT0-1')
+    directory = os.path.join(longterm_model_dir,'gen_62_cali_5')
     # prefix = 'SNAC_TS'
     # pattern_prefix = 'SNAC_TS_'
     # prefix = 'SNME_TS'
@@ -913,7 +913,7 @@ if __name__ == '__main__':
                     print(f"发生错误：{e}")
 
     # tif生成gif
-    OUTPUT_file = r'OUTPUT0-1'
+    OUTPUT_file = r'gen_62_cali_5'
     tif_folder = os.path.join(longterm_model_dir,OUTPUT_file)
     output_file = os.path.join(longterm_model_dir,f'{OUTPUT_file}\gif\OL_Hand_WTRDEP.gif')
     output_file_base = os.path.join(longterm_model_dir,f'{OUTPUT_file}\gif\OL_Hand_WTRDEP_')

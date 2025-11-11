@@ -92,16 +92,18 @@ else:
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0.'],
     #                           ['RSR', -1., 2., '<2.'],
     #                           ['PBIAS', -1., 50., '<50.']])
-    multiobj.setdefault('Q_141', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_322', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_123', [['NSE', 1., -100, '>0']])
-    # multiobj.setdefault('Q_141', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('Q_141', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_214', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_255', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_347', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_457', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('F_322', [['FI', 1., -1.], ['BI', -1., 2.]])
-    multiobj.setdefault('F_141', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('F_322', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('F_123', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('F_214', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('F_1171', [['FI', 1., -1.], ['BI', -1., 2.]])
 
 
@@ -259,14 +261,14 @@ def main(cfg):
         popnum = len(invalid_pops)
         labels = list()
         # ---------------------test for no scoop----------------------
-        # invalid_pops = [toolbox.evaluate(cali_obj, ind) for ind in invalid_pops]
+        invalid_pops = [toolbox.evaluate(cali_obj, ind) for ind in invalid_pops]
         # ---------------------end for no scoop----------------------
 
-        try:  # parallel on multi-processors or clusters using SCOOP
-            from scoop import futures
-            invalid_pops = list(futures.map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
-        except ImportError or ImportWarning:  # Python build-in map (serial)
-            invalid_pops = list(map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
+        # try:  # parallel on multi-processors or clusters using SCOOP
+        #     from scoop import futures
+        #     invalid_pops = list(futures.map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
+        # except ImportError or ImportWarning:  # Python build-in map (serial)
+        #     invalid_pops = list(map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
 
         scoop_log(f"过滤之前pops长度为:{len(invalid_pops)}")
         # 关键：把 None（被跳过的个体）过滤掉

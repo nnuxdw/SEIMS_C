@@ -31,6 +31,8 @@ from pygeoc.utils import StringClass, is_string
 from utility import save_png_eps, PlotConfig
 import global_mongoclient as MongoDBObj
 from parameters_sensitivity.sensitivity import SpecialJsonEncoder
+import numpy as np
+from math import isnan
 
 
 def write_param_values_to_mongodb(spatial_db, param_defs, param_values):
@@ -105,6 +107,38 @@ def output_population_details(pops, outdir, gen_num,
     except Exception:
         pass
 
+def dict_to_daily_month_matrix(ind):
+    """
+    ind: OrderedDict[datetime -> list]
+      - 每日行: [daily_sum]  或 [daily_sum, monthly_avg]
+      - 每月代表行(每月1号00:00:00): [monthly_avg]
+    返回:
+      keys_sorted: list[datetime]
+      arr: np.ndarray, shape=(N, 2), 列0=daily_sum, 列1=monthly_avg（缺失用 NaN）
+    """
+    items = sorted(ind.items(), key=lambda kv: kv[0])
+    keys_sorted = [k for k, _ in items]
+
+    daily = []
+    monthly = []
+
+    for k, v in items:
+        d = np.nan
+        m = np.nan
+        if len(v) == 2:
+            d, m = float(v[0]), float(v[1])
+        elif len(v) == 1:
+            # 每月代表行：每月第一天的 00:00:00
+            if hasattr(k, "year") and k.day == 1 and k.hour == 0 and k.minute == 0 and k.second == 0:
+                m = float(v[0])      # 月均值
+            else:
+                d = float(v[0])      # 日总和
+        # 其它情况保持 NaN
+        daily.append(d)
+        monthly.append(m)
+
+    arr = np.column_stack([daily, monthly])
+    return keys_sorted, arr
 
 def calculate_95ppu(sim_obs_data, sim_data, outdir, gen_num,
                     vali_sim_obs_data=None, vali_sim_data=None,
@@ -174,24 +208,33 @@ def calculate_95ppu(sim_obs_data, sim_data, outdir, gen_num,
         caliBestIdx = -1
         caliBestNSE = -9999.
         for idx2, ind in enumerate(sim_data):
-            tmp = numpy.array(list(ind.values()))
-            tmp = tmp[:, idx]
+            # tmp = numpy.array(list(ind.values()))
+            # tmp = tmp[:, idx]
+            _, tmp_mat = dict_to_daily_month_matrix(ind)  # shape=(N, 2)
+            tmp = tmp_mat[:, idx]
             if sim_obs_data[idx2][var]['NSE'] > caliBestNSE:
                 caliBestNSE = sim_obs_data[idx2][var]['NSE']
                 caliBestIdx = idx2
             tmpsim = tmp.tolist()
             if plot_validation:
-                tmp_data = numpy.array(list(vali_sim_data[idx2].values()))[:, idx].tolist()
+                # tmp_data = numpy.array(list(vali_sim_data[idx2].values()))[:, idx].tolist()
+                _, val_mat = dict_to_daily_month_matrix(vali_sim_data[idx2])
+                tmp_data = val_mat[:, idx].tolist()
                 if order:
                     tmpsim += tmp_data
                 else:
                     tmpsim = tmp_data + tmpsim
             sim_data_list.append(tmpsim)
 
-        sim_best = numpy.array(list(sim_data[caliBestIdx].values()))[:, idx]
+        # sim_best = numpy.array(list(sim_data[caliBestIdx].values()))[:, idx]
+        _, mat = dict_to_daily_month_matrix(sim_data[caliBestIdx])
+        # 取逐日或逐月列
+        sim_best = mat[:, idx]  # idx=0 → 日数据，idx=1 → 月均值
         sim_best = sim_best.tolist()
         if plot_validation:
-            tmp_data = numpy.array(list(vali_sim_data[caliBestIdx].values()))[:, idx].tolist()
+            # tmp_data = numpy.array(list(vali_sim_data[caliBestIdx].values()))[:, idx].tolist()
+            _, val_mat = dict_to_daily_month_matrix(vali_sim_data[caliBestIdx])
+            tmp_data = val_mat[:, idx].tolist()
             if order:
                 sim_best += tmp_data
             else:
@@ -247,6 +290,22 @@ def calculate_95ppu(sim_obs_data, sim_data, outdir, gen_num,
                                                       vali_sim_obs_data[caliBestIdx][var]['RSR'],
                                                       vali_sim_obs_data[caliBestIdx][var]['PBIAS'],
                                                       vali_sim_obs_data[caliBestIdx][var]['R-square'])
+        sim_dates = np.asarray(sim_dates)
+        sim_best = np.asarray(sim_best, dtype=float)
+        obs_dates = np.asarray(obs_dates)
+        ylows = np.asarray(ylows)
+        yups = np.asarray(yups)
+        vali_sim_dates = np.asarray(vali_sim_dates)
+        cali_sim_dates = np.asarray(cali_sim_dates)
+
+        # 找到 sim_dates 中与 obs_dates 匹配的位置
+        mask = np.isin(sim_dates, obs_dates)
+
+        # 筛选后的模拟结果和日期
+        sim_dates = sim_dates[mask]
+        sim_best = sim_best[mask]
+        ylows = ylows[mask]
+        yups = yups[mask]
         # plot
         fig, ax = plt.subplots(figsize=(12, 4))
         ax.fill_between(sim_dates, ylows.tolist(), yups.tolist(),

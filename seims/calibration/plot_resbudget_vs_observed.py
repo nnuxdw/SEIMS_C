@@ -1,49 +1,68 @@
-
 """
-plot_resbudget_vs_observed.py
-
-功能：
-1) 解析你调试日志中的 [ResBudget] 输出行，提取时间、Qout（m3/s）、Level。
-2) 连接 MongoDB，从 poyang_lake1_HydroClimate 数据库的 MEASUREMENT 表读取 STATIONID=141、TYPE="Q" 的实测流量时间序列。
-3) 将模拟与实测绘制在一张图上；模拟曲线按 Level 着色。
+在同一图上显示：
+- 实测 Qobs（黑色折线，必画）
+- 模拟 Qout（按 Level 着色的散点，必画）
+- 可选：qin、ol、gw、upS、upI、upG（均来自 [ResBudget] 行末尾的 "parts:" 片段）
 
 依赖：pandas, matplotlib, pymongo
-安装：pip install pandas matplotlib pymongo
 """
-
 import re
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 import pandas as pd
 from pymongo import MongoClient
 import matplotlib.pyplot as plt
 
 
+# ===== 你要显示哪些可选项（True/False） =====
+SHOW = {
+    "ol":  True,
+    "gw":  True,
+    "upS": True,
+    "upI": True,
+    "upG": True,
+    "gwSto": True
+}
+# ===========================================
+
+
 @dataclass
 class SimRecord:
     t: pd.Timestamp
     qout: float
+    qin: float
     level: str
+    ol: float = float("nan")
+    ifl: float = float("nan")
+    gw: float = float("nan")
+    upS: float = float("nan")
+    upI: float = float("nan")
+    upG: float = float("nan")
+    gwSto: float = float("nan")
 
 
-# 匹配时间戳行：例如 "2010-01-01 00:00:00"
 TIME_LINE_RE = re.compile(r"^\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s*$")
+NUM = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?"
 
-# 匹配 ResBudget 行，抓 level 和 Qout（最后一个 Qout=... m3/s）
-# 示例行：
-# [ResBudget] day=1 rchID=1176 Sto=... Fill=0.356809 level=(2Lc, Ln] (正常库容以下) Stage=2 qIn=479.242 m3/s Qout_raw=28.8228 m3/s Qout=28.8228 m3/s [Lc=..., Ln=..., ...]
+# 抓 Level、qIn、Qout（同一行）
 RESBUDGET_RE = re.compile(
-    r"\[ResBudget\].*?level\s*=\s*(?P<level>[^S\[]+?)\s+Stage=.*?\bQout\s*=\s*(?P<qout>[+-]?\d+(?:\.\d+)?)\s*m3/s",
+    rf"\[ResBudget\].*?[Ll]evel\s*=\s*(?P<level>.*?)\s+Stage=.*?"
+    rf"\bqIn\s*=\s*(?P<qin>{NUM})\s*m3/s.*?"
+    rf"\bQout\s*=\s*(?P<qout>{NUM})\s*m3/s",
     re.IGNORECASE
 )
 
-# 规范化 Level 文本到固定标签
+PARTS_RE = re.compile(
+    rf"parts:\s*ol=(?P<ol>{NUM})\s*if=(?P<ifl>{NUM})\s*gw=(?P<gw>{NUM})\s*"
+    rf"upS=(?P<upS>{NUM})\s*upI=(?P<upI>{NUM})\s*upG=(?P<upG>{NUM})"
+    rf"(?:.*?gwSto=(?P<gwSto>{NUM}))?",   # gwSto 可选，允许中间夹 precip=... / dt=...
+    re.IGNORECASE
+)
+
+
 def normalize_level(level_raw: str) -> str:
     level_raw = level_raw.strip()
-    # 移除括号后的中文注释
     level_clean = re.sub(r"\s*\(.*?\)\s*$", "", level_raw).strip()
-
-    # 可能的变体映射
     substitutes = {
         "≤2Lc": "≤2Lc",
         "<=2Lc": "≤2Lc",
@@ -52,7 +71,6 @@ def normalize_level(level_raw: str) -> str:
         "(Normal_Flood, Lf]": "(Normal_Flood, Lf]",
         ">Lf": ">Lf"
     }
-    # 若日志里用中文区段名，做一轮启发式替换
     if "保守库容" in level_raw:
         return "≤2Lc"
     if "正常库容以下" in level_raw or "2Lc, Ln" in level_raw:
@@ -63,22 +81,15 @@ def normalize_level(level_raw: str) -> str:
         return "(Normal_Flood, Lf]"
     if "超防洪" in level_raw or ">Lf" in level_raw:
         return ">Lf"
-
-    # 直接映射或返回清洗文本
     return substitutes.get(level_clean, level_clean)
 
 
 def parse_resbudget_log(log_path: str, tz: Optional[str] = None) -> pd.DataFrame:
-    """
-    解析日志文件，返回包含 ['time','Qout','Level'] 的 DataFrame。
-    - tz: 指定时区字符串（如 "UTC", "Asia/Shanghai"），若 None 则按 naive 时间处理。
-    """
     sim_records: List[SimRecord] = []
     current_time: Optional[pd.Timestamp] = None
 
     with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
         for line in f:
-            # 先匹配时间行
             m_t = TIME_LINE_RE.match(line)
             if m_t:
                 try:
@@ -87,24 +98,34 @@ def parse_resbudget_log(log_path: str, tz: Optional[str] = None) -> pd.DataFrame
                         ts = ts.tz_localize(tz) if ts.tzinfo is None else ts.tz_convert(tz)
                     current_time = ts
                 except Exception:
-                    # 忽略解析错误的时间行
                     pass
                 continue
 
-            # 匹配 ResBudget 行
             m = RESBUDGET_RE.search(line)
             if m and current_time is not None:
                 qout = float(m.group("qout"))
-                level_raw = m.group("level")
-                level = normalize_level(level_raw)
-                sim_records.append(SimRecord(current_time, qout, level))
+                qin = float(m.group("qin"))
+                level = m.group("level")
+
+                # 可选的 parts
+                ol = ifl = gw = upS = upI = upG = gwSto = float("nan")
+                p = PARTS_RE.search(line)
+                if p:
+                    ol  = float(p.group("ol"))
+                    ifl = float(p.group("ifl"))
+                    gw  = float(p.group("gw"))
+                    upS = float(p.group("upS"))
+                    upI = float(p.group("upI"))
+                    upG = float(p.group("upG"))
+                    gwSto = float(p.group("gwSto"))
+
+                sim_records.append(SimRecord(current_time, qout, qin, level, ol, ifl, gw, upS, upI, upG,gwSto))
 
     if not sim_records:
         raise ValueError("未在日志中解析到任何 [ResBudget] 记录，请检查文件格式。")
 
-    df = pd.DataFrame([{"time": r.t, "Qout": r.qout, "Level": r.level} for r in sim_records])
-    # 去重并按时间排序（有些日志一天内多条的话，也许你只要第一条/最后一条，视需要可聚合）
-    df = df.sort_values("time").reset_index(drop=True)
+    df = pd.DataFrame([r.__dict__ for r in sim_records]).sort_values("t").reset_index(drop=True)
+    df = df.rename(columns={"t": "time"})
     return df
 
 
@@ -117,95 +138,108 @@ def fetch_observed_timeseries(
     time_field: str = "UTCDATETIME",
     value_field: str = "VALUE"
 ) -> pd.DataFrame:
-    """
-    读取 MongoDB 中的实测流量数据，返回 ['time','Qobs'] 的 DataFrame（UTC 时间）。
-    - time_field 可按你的表结构改为 LOCALDATETIME/UTCDATETIME 等；
-    """
     client = MongoClient(mongo_uri)
     col = client[db_name][collection_name]
-    cursor = col.find(
-        {"STATIONID": station_id, "TYPE": type_value},
-        {time_field: 1, value_field: 1, "_id": 0}
-    )
-
-    rows = list(cursor)
+    rows = list(col.find({"STATIONID": station_id, "TYPE": type_value}, {time_field: 1, value_field: 1, "_id": 0}))
     if not rows:
         raise ValueError("未查询到任何实测数据，请检查 STATIONID/TYPE/字段名。")
-
     obs = pd.DataFrame(rows)
-    # 解析时间
     obs["time"] = pd.to_datetime(obs[time_field])
-    # 若是带 Z 的 UTC 字符串，pandas 会自动识别为 UTC
     obs = obs.sort_values("time").rename(columns={value_field: "Qobs"})
-    obs = obs[["time", "Qobs"]].reset_index(drop=True)
-    return obs
+    return obs[["time", "Qobs"]].reset_index(drop=True)
 
 
 def _color_map() -> Dict[str, str]:
-    """
-    定义 Level -> 颜色 的映射。
-    你也可以替换为你喜欢的配色。
-    """
+    # 保持原有颜色
     return {
-        "≤2Lc": "#2ca02c",                 # 绿色
-        "(2Lc, Ln]": "#1f77b4",            # 蓝色
-        "(Ln, Normal_Flood]": "#ff7f0e",   # 橙色
-        "(Normal_Flood, Lf]": "#d62728",   # 红色
-        ">Lf": "#9467bd"                   # 紫色
+        "≤2Lc": "#2ca02c",              # 绿
+        "(2Lc, Ln]": "#1f77b4",         # 蓝
+        "(Ln, Normal_Flood]": "#ff7f0e",# 橙
+        "(Normal_Flood, Lf]": "#d62728",# 红
+        ">Lf": "#9467bd"                # 紫
     }
 
 
-def plot_sim_vs_obs(sim_df: pd.DataFrame, obs_df: pd.DataFrame, title: str = "", out_png: Optional[str] = None):
-    """
-    画图：
-    - 实测(Qobs)为黑色线；
-    - 模拟(Qout)按 Level 分段着色（连续折线，颜色随 Level 变化）。
-    """
-    # 对两组数据按时间外连接，保证对齐（绘图时不强制对齐，但便于检视范围）
+def plot_sim_vs_obs(sim_df: pd.DataFrame, obs_df: pd.DataFrame,
+                    title: str = "", out_png: Optional[str] = None):
     tmin = min(sim_df["time"].min(), obs_df["time"].min())
     tmax = max(sim_df["time"].max(), obs_df["time"].max())
 
-    fig, ax = plt.subplots(figsize=(12, 5))
+    optional_keys = ["ol", "gw", "upS", "upI", "upG","gwSto"]
+    need_sub_ax = any(SHOW.get(k, False) for k in optional_keys)
 
-    # 实测
-    ax.plot(obs_df["time"], obs_df["Qobs"], label="Observed Q", linewidth=1.5, color="black", alpha=0.8)
+    # —— 这里把画布和高度比例加大 ——
+    MAIN_SUB_RATIO = (3, 2)        # 主图:副图 = 3:2 ；可改 (2,2)、(5,3) 等
+    FIGSIZE = (12, 7.8)            # 画布更高一些
 
-    # 模拟：按 Level 分组绘制连续线段
+    if need_sub_ax:
+        fig, (ax1, ax2) = plt.subplots(
+            2, 1, figsize=FIGSIZE, sharex=True,
+            gridspec_kw={"height_ratios": list(MAIN_SUB_RATIO)}
+        )
+    else:
+        fig, ax1 = plt.subplots(figsize=(12, 5))
+        ax2 = None
+
+    # === 主图：Qobs + qIn + qOut（按 Level 的散点） ===
+    ax1.plot(obs_df["time"], obs_df["Qobs"], label="Observed Q",
+             linewidth=1.5, color="black", alpha=0.85)
+    ax1.plot(sim_df["time"], sim_df["qin"], label="Inflow qIn",
+             linewidth=1.0, color="#8a8a8a", alpha=0.85)
+
     cmap = _color_map()
-    for level, grp in sim_df.groupby("Level"):
-        ax.plot(grp["time"], grp["Qout"], label=f"Sim Qout [{level}]", linewidth=1.2, color=cmap.get(level, None))
+    for level, grp in sim_df.groupby("level"):
+        ax1.scatter(grp["time"], grp["qout"], s=12, alpha=0.9,
+                    color=cmap.get(level, None), label=f"Sim Qout [{level}]")
 
-    ax.set_xlim([tmin, tmax])
-    ax.set_ylabel("Discharge (m³/s)")
-    ax.set_xlabel("Time")
+    ax1.set_xlim([tmin, tmax])
+    ax1.set_ylabel("Discharge (m³/s)")
     if title:
-        ax.set_title(title)
-    ax.grid(True, alpha=0.25)
-    ax.legend(ncol=2, fontsize=9)
-    fig.autofmt_xdate()
+        ax1.set_title(title)
+    ax1.grid(True, alpha=0.25)
+    ax1.legend(ncol=2, fontsize=9)
 
+    # === 副图：可选分量（散点） ===
+    if need_sub_ax and ax2 is not None:
+        sub_colors = {
+            "ol": "#1f78b4",
+            "gw": "#33a02c",
+            "upS": "#ff7f00",
+            "upI": "#6a3d9a",
+            "upG": "#e31a1c",
+            "gwSto": "#17becf",  # 青色，易区分
+        }
+        ms = 10; alpha = 0.85
+        for k in optional_keys:
+            if SHOW.get(k, False) and k in sim_df.columns:
+                sub = sim_df[["time", k]].dropna()
+                ax2.scatter(sub["time"], sub[k], s=ms, alpha=alpha,
+                            label=k, color=sub_colors.get(k, None))
+
+        ax2.set_xlim([tmin, tmax])
+        ax2.set_ylabel("m³/s")
+        ax2.set_xlabel("Time")
+        ax2.grid(True, alpha=0.25)
+        ax2.legend(ncol=5, fontsize=9)
+    else:
+        ax1.set_xlabel("Time")
+
+    fig.autofmt_xdate()
     if out_png:
         plt.tight_layout()
         plt.savefig(out_png, dpi=160)
     plt.tight_layout()
-    return fig, ax
+    return (fig, (ax1, ax2)) if need_sub_ax else (fig, ax1)
+
+
 
 
 if __name__ == "__main__":
-    # === 使用示例 ===
-    # 1) 修改日志路径和 Mongo 连接字符串
-    LOG_PATH = r"C:\path\to\your\debuglog.txt"  # ← 替换成你的日志文件路径
-    MONGO_URI = "mongodb://localhost:27017"     # ← 替换为实际连接字符串
+    LOG_PATH = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model_141\debuglog5.txt"
+    MONGO_URI = "mongodb://localhost:27017"
     STATION_ID = 141
 
-    # 2) 解析模拟日志
-    # 若你的时间是本地时间，可设置 tz="Asia/Shanghai"；若已是UTC或无需时区，保持 None。
-    # sim = parse_resbudget_log(LOG_PATH, tz=None)
-
-    # 3) 读取实测数据
-    # obs = fetch_observed_timeseries(MONGO_URI, station_id=STATION_ID)
-
-    # 4) 画图并保存
-    # plot_sim_vs_obs(sim, obs, title=f"Station {STATION_ID} Sim vs Obs", out_png="sim_vs_obs.png")
-    # plt.show()
-    pass
+    sim = parse_resbudget_log(LOG_PATH, tz=None)
+    obs = fetch_observed_timeseries(MONGO_URI, station_id=STATION_ID)
+    plot_sim_vs_obs(sim, obs, title=f"Station {STATION_ID} Sim vs Obs", out_png="sim_vs_obs.png")
+    plt.show()

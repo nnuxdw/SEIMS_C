@@ -19,32 +19,32 @@ using namespace std;
 // 表示每一层的 HAND 信息
 struct Level {
 	//vector<float> handHeights;   // index is hand id
-	int* handIds;   // index is layer 0,1,2,3..., value is hand id
+	vector<int> handIds;   // index is layer 0,1,2,3..., value is hand id
 	
 	//float m_chOverHeadVol;      /// represents the physical space between the top of the channel banks and the upper boundary, index represents subbasin id for dim 1, index represents layer for dim 2 cooresponding to each HAND height
 	/*float* m_handArea;					/// area of each hand
 	float* m_handWtrDep;			    /// water depth of each hand, initialized by m_bankSto*/
-	float m_levelDepth;                 /// depth of each level, eg. the level is from 0~5m, so the depth is 5-0=5m.
-	double m_levelSumArea;   /// area of each hand level, contains all levels' area lower than this level
-	float m_levelAvgDepth; /// average depth of each layer's all hands, equals (channel's overhead area + lower level's sum area * this level's depth + SUM(this level's hand's area * dem's avg depth in hand))
-	double m_levelSumVol;    /// area of each hand level, cooresponding to m_levelSumArea
-	double m_levelAccVol;              /// contains a level's vol and all lower level's vol, m3
-	float* m_levelLowerAccDepth;   // m
+	float m_levelDepth = 0.0f;                 /// depth of each level, eg. the level is from 0~5m, so the depth is 5-0=5m.
+	double m_levelSumArea = 0.0f;   /// area of each hand level, contains all levels' area lower than this level
+	float m_levelAvgDepth = 0.0; /// average depth of each layer's all hands, equals (channel's overhead area + lower level's sum area * this level's depth + SUM(this level's hand's area * dem's avg depth in hand))
+	double m_levelSumVol = 0.0f;    /// area of each hand level, cooresponding to m_levelSumArea
+	double m_levelAccVol = 0.0;              /// contains a level's vol and all lower level's vol, m3
+	vector<float> m_levelLowerAccDepth;   // m
 
-	int m_levelHandNum;          /// n layers of hand for each level
-	float m_levelWtrDep;              /// water depth of each level,m. contains all water above  the level
+	int m_levelHandNum = 0;          /// n layers of hand for each level
+	float m_levelWtrDep = 0.0f;              /// water depth of each level,m. contains all water above  the level
 
 };
 
 // 表示每个子流域下的所有 HAND 层
 struct Hand {
-	int n_levels;
-	int m_CurInundationLevel;
+	int n_levels = 0;
+	int m_CurInundationLevel = 0;
 	vector<Level> levels;   /// index represents subbasin id (or reach id)
-	float excessWtrVol;     /// water excess subbasin's full volume
+	float excessWtrVol = 0.0f;     /// water excess subbasin's full volume
 
 	// for test
-	float volToAdd;
+	float volToAdd = 0.0f;
 };
 
 class OL_HAND : public SimulationModule {
@@ -73,14 +73,11 @@ public:
 
 private:
 
-	bool HandInundationV1(const int reachId, float sto, float stoLastStep);
-	bool HandInundationV2(const int reachId, float sto);
+
 	bool HandInundation_BinarySearch(const int reachId, float sto);
 	void LoadHandIdsToChHandLevels(const std::string& filename, vector<Hand>& m_Hands);
-	void updateLowerHandsWtrDep(const int reachId);
-	void updateUpperHandsWtrDep(const int reachId);
+
 	void updateAllHandsWtrDep(const int reachId);
-	void updateUpperLevelsWtrDep(const int reachId, int lev, float val);
 	void loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_Hands);
 	vector<float> parseAccDepthArray(const std::string& str);
 
@@ -105,6 +102,7 @@ private:
 	float* m_chLen;            ///< channel length (m)
 	//float** m_chOverHeadVol;       /// represents the physical space between the top of the channel banks and the upper boundary, index represents subbasin id for dim 1, index represents layer for dim 2 cooresponding to each HAND height
 	float* m_handArea;       /// area of each hand
+	float* m_subbasinArea;
 	float* m_handWtrDep;    /// water depth of each hand, initialized by m_bankSto,mm
 	//float** m_handLyrSumArea;   /// area of each hand layer, index represents subbasin id for dim 1, index represents layer for dim 2
 	//float** m_handLyrDepth;        /// depth of each hand layer, index represents subbasin id for dim 1, index represents layer for dim 2

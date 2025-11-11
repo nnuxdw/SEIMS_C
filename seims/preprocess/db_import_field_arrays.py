@@ -417,7 +417,13 @@ if __name__ == "__main__":
     mapper3 = {
         "LAKEB": "LAKEB_1D",
         "LAKE_ALPHA": "LAKE_ALPHA",
-        "CH_N": "CH_N"
+        "CH_N": "CH_N",
+        ## 考虑水库
+        "RES_LC":"RES_LC",
+        "RES_LN":"RES_LN",
+        "RES_LF":"RES_LF",
+        "RES_ADJUST":"RES_ADJUST",
+        "RES_normMult":"RES_normMult"
     }
     # gen_param_group_csv(
     #     conn=conn,
@@ -431,7 +437,7 @@ if __name__ == "__main__":
 
     update_reaches_from_csv(
         conn=conn,
-        db_name='poyang_lake1_longterm_model',
+        db_name='poyang_lake1_longterm_model_141',
         collection='REACHES',
         csv_file=param_group2_ch_csv_file
     )
@@ -458,5 +464,12 @@ if __name__ == "__main__":
         for key, value in list(param_arrays.items()):
             pondVal = value
             import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
-
+    elif bug_type == 2:
+        ##--------------------- 直接重新导入cellarea.csv，修复spatial.file里的面积和cellarea.csv里不一致的问题--------
+        cellarea_csv = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\csv\cellarea.csv'
+        # cellarea_csv = r'/data/user/xiaodw/software/WISE/data/poyang_lake1/workspace/csv/cellarea.csv'
+        param_arrays = read_field_arrays_from_csv(cellarea_csv)
+        for key, value in list(param_arrays.items()):
+            pondVal = value
+            import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
 

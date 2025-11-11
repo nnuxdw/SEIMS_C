@@ -34,19 +34,21 @@ from calibration.sample_lhs import lhs
 import numpy
 from pathlib import Path
 import time, random
-from datetime import datetime
 
 # 会话ID，避免跨实例互相影响（强烈推荐）
-# base_path = '/data/user/xiaodw/software/WISE/data/lock'
-base_path = 'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model'
-# 淹没范围才会用，淹没面积率定不用管
+if os.name == 'nt':  # Windows
+    base_path = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
+else:  # Linux/Unix
+    base_path = '/data/user/xiaodw/software/WISE/data/poyang_lake1'
+# # 淹没范围才会用，淹没面积率定不用管
 subbasin_flood_path = base_path + f'/inundation_cali/subbasin_flood'
 subbasin_ids=[1171,1176,1193,1194,1214]
 
 # 不同的实例指定不同的id，避免锁文件相互影响
-RUN_ID = 'poyanglake_1_2025092701'
+RUN_ID = 'poyanglake_1_20251026'
 cali_inundation_extent = False
 cali_inundation_area = True
+copy_output = True
 # RUN_ID =  time.strftime("%Y%m%d-%H%M%S")
 
 """ xiaodw add
@@ -291,10 +293,6 @@ def _filter_sim_by_obs(sim_obs_dict, invalid_values=(-9999.0,)):
         }
     return out
 
-def _lock_path_for(ind, cali_obj):
-    # 按你的任务唯一标识来建锁文件（建议用 gen+id）
-    gen = getattr(ind, "gen", 0)
-    return Path("/tmp/nsga2_locks") / f"gen{gen}_id{ind.id}.lock"
 
 def evaluate_nowait_or_skip(cali_obj, ind):
     """
@@ -354,11 +352,15 @@ def _fi_bi_from_binary(sim_bin, obs_bin):
 
 def _lock_path_for(ind, cali_obj):
     gen = getattr(ind, "gen", 0)
-    return Path(base_path + "/lock/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
+    # lock = Path(base_path + "/lock/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
+    lock_path = Path(base_path + "/" + cali_obj.model.db_name + "/lock/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
+    return lock_path
 
 def _done_path_for(ind, cali_obj):
     gen = getattr(ind, "gen", 0)
-    return Path(base_path + "/lock/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.done"
+    # lock_path = Path(base_path + "/lock/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.done"
+    lock_path = Path(base_path + "/" + cali_obj.model.db_name + "/lock/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
+    return lock_path
 
 def _mark_done(done_path):
     done_path.parent.mkdir(parents=True, exist_ok=True)
@@ -386,7 +388,8 @@ def evaluate_blocking(cali_obj, ind, timeout_s=None):
                     return -1
 
                 scoop_log(f"[RUN][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 开始运行。")
-                res = calibration_objectives(cali_obj, ind)
+                gen = getattr(ind,'gen',0)
+                res = calibration_objectives(cali_obj, gen, ind)
 
                 # 3) 成功完成 → 写入 DONE 标记（在释放锁之前写，确保可见）
                 _mark_done(done_path)
@@ -408,7 +411,7 @@ def evaluate_blocking(cali_obj, ind, timeout_s=None):
         scoop_log(f"[WAIT][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 已等待 {elapsed:.1f}s，10s 后重试…")
         time.sleep(10)
 
-def calibration_objectives(cali_obj, ind):
+def calibration_objectives(cali_obj, gen, ind):
     """Evaluate the objectives of given individual.
     """
     cali_obj.ID = ind.id
@@ -442,9 +445,7 @@ def calibration_objectives(cali_obj, ind):
     # print(f"ind.cali.vars: {ind.cali.vars}/n, ind.cali.data: {ind.cali.data}/n")
     ind.cali.sim_obs_data = model_obj.ExtractSimObsData(cali_obj.cfg.cali_stime,
                                                         cali_obj.cfg.cali_etime)
-    # xiaodw add, to remove simdata(for some time step)  which doesn't have obs data(no need to do this, which is done in timeseries_data.py: if sim_date not in obs_dict)
-    # print(ind.cali.sim_obs_data)
-    # ind.cali.sim_obs_data = _filter_sim_by_obs(ind.cali.sim_obs_data)
+
 
     ind.cali.objnames, \
     ind.cali.objvalues = model_obj.CalcTimeseriesStatistics(ind.cali.sim_obs_data,
@@ -530,7 +531,9 @@ def calibration_objectives(cali_obj, ind):
     ##-----------------------end calibrate Fi,Bi for inundation extent-----------------------------
     # delete model output directory for saving storage
     print(f"delete output directory: {ind.id}")
-    model_obj.clean(calibration_id=ind.id)
+    if copy_output:
+        model_obj.copy_dir(calibration_id=ind.id,gen = gen)
+    # model_obj.clean(calibration_id=ind.id)
     model_obj.UnsetMongoClient()
 
     return ind

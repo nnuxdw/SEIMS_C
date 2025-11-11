@@ -139,7 +139,9 @@ void ModelMain::Execute() {
         if (preYearIdx != yearIdx) {
             cout << "Simulation year: " << startYear + yearIdx << endl;
         }
-        StatusMessage(ConvertToString2(t).c_str());
+
+		cout <<  ConvertToString2(t).c_str() << endl;
+        //StatusMessage(ConvertToString2(t).c_str());
         for (int i = 0; i < nHs; i++) {
             StepHillSlope(t + i * m_dtHs, yearIdx, i);
         }

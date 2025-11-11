@@ -97,7 +97,7 @@ def insert_F_sites_from_csv(
 
 if __name__ == '__main__':
     base_path = 'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model'
-    subbasin_ids = [1171]
+    # subbasin_ids = [1171]
     subbasin_ids = [123, 141, 214, 225, 322, 347, 457]
     for subbasin_id in subbasin_ids:
         csv_path = os.path.join(base_path,f"TNH_caliparam_sub_{subbasin_id}.csv")

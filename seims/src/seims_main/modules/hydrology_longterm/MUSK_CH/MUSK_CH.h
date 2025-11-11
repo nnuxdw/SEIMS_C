@@ -261,9 +261,9 @@ private:
     float* m_qin1;
     float* m_qout1;
 
-    float* m_resndq;
-    float* m_resminq;
-    float* m_resnormq;
+    float* m_resndq;  // xiaodw,  the unit of this q value is m3/s
+    float* m_resminq;  // xiaodw,  the unit of this q value is m3/s
+    float* m_resnormq;   // xiaodw,  the unit of this q value is m3/s
     float* m_res_normMult;
 
     float* m_lakedp;

@@ -94,6 +94,10 @@ int SUR_MR::Execute() {
     m_maxPcpRf *= m_dt * 1.1574074074074073e-05f; /// 1. / 86400. = 1.1574074074074073e-05;
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
+		//if (i == 15012)
+		//{
+		//	cout << m_landUse[i] << " " << m_rchID[i] << endl;
+		//}
          if(m_landUse[i] ==LANDUSE_ID_WATR && m_rchID[i]<=0.f){
              //坡面湖泊
              m_lakesto[i] += m_pcp[i];

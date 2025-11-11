@@ -19,6 +19,7 @@ from pygeoc.utils import StringClass, UtilClass, FileClass
 from preprocess.text import DBTableNames, ModelCfgFields, FieldNames, SubbsnStatsName, \
     DataValueFields, DataType, StationFields
 from pymongo import MongoClient
+from collections import defaultdict
 
 
 
@@ -150,7 +151,10 @@ def read_simulation_from_txt_new(ws,  # type: AnyStr
             #                       StationFields.outlet: float(is_outlets(param_name, isoutlet)),
             #                       StationFields.base_subbasin: subbasin_id
             #                       }).sort([(StationFields.id, 1)])  # 根据其所属下游subabsinid查
-            client = MongoClient("mongodb://localhost:27017/")
+            if os.name == 'nt':  # Windows
+                client = MongoClient("mongodb://localhost:27017/")
+            else:
+                client = MongoClient("mongodb://localhost:27019/")
             db = client["poyang_lake1_HydroClimate"]
             sites_collection = db[DBTableNames.sites]
             subbasin_id = int(get_subbasinid(v))
@@ -170,28 +174,76 @@ def read_simulation_from_txt_new(ws,  # type: AnyStr
                 found[stationid] = False
             data_items = read_data_items_from_txt(txtfile)
             stationid = -1
-            for item in data_items:
-                item_vs = StringClass.split_string(item[0], ' ', elim_empty=True)
+            site_set = set(site_ids)
+            # 预先把时间范围转成ISO字符串，便于用字符串比较（速度远快于解析datetime）
+            st_str = stime.strftime('%Y-%m-%d %H:%M:%S')
+            en_str = etime.strftime('%Y-%m-%d %H:%M:%S')
 
-                if len(item_vs) == 2:
-                    stationid = int(item_vs[1])
-                    if stationid in site_ids:
-                        found[stationid] = True
-                if not found[stationid]:
+            out = defaultdict(list)
+            cur_station = None
+            keep = False  # 当前块是否需要
+            for rec in data_items:
+                s = rec[0] if isinstance(rec, (list, tuple)) else rec
+                # 最多分成3段：快
+                parts = s.split(None, 2)
+                n = len(parts)
+
+                if n == 2:
+                    # 站点头行：... <stationid>
+                    # 第二段是stationid（你的原逻辑如此）
+                    try:
+                        cur_station = int(parts[1])
+                        keep = (cur_station in site_set)
+                    except ValueError:
+                        keep = False
                     continue
-                if len(item_vs) != 3:
+
+                if not keep:
                     continue
-                date_str = '%s %s' % (item_vs[0], item_vs[1])
-                sim_datetime = StringClass.get_datetime(date_str, "%Y-%m-%d %H:%M:%S")
-                if stime <= sim_datetime <= etime:
-                    if sim_datetime not in tmp_dict:
-                        tmp_dict[sim_datetime] = list()
-                    tmp_dict[sim_datetime].append(float(item_vs[2]))
-            for key, values in tmp_dict.items():
-                if key not in sim_data_dict:
-                    sim_data_dict[key] = []
-                sum_inundation_area_of_subbasin = sum(values)
-                sim_data_dict[key].append(float(sum_inundation_area_of_subbasin))
+
+                if n != 3:
+                    continue
+
+                # 数据行：<date> <time> <value>
+                # 组合成 'YYYY-MM-DD HH:MM:SS'
+                dt_str = parts[0] + ' ' + parts[1]
+
+                # 用字符串范围比较过滤时间（ISO串可直接比较大小）
+                if dt_str < st_str or dt_str > en_str:
+                    continue
+
+                try:
+                    val = float(parts[2])
+                except ValueError:
+                    continue
+
+                out[dt_str].append(val)
+
+            # 若需要datetime键，再统一转换一次（次数更少）
+            from datetime import datetime
+            out_dt = defaultdict(list)
+            for k_str, vals in out.items():
+                out_dt[datetime.strptime(k_str, "%Y-%m-%d %H:%M:%S")].extend(vals)
+
+            # 1) 先计算每天的总和，并按(年,月)分桶
+            daily_sum = {}
+            month_bucket = defaultdict(list)
+
+            for key_dt, values in out_dt.items():
+                s = float(sum(values))  # 当天所有 subbasin 的总和
+                daily_sum[key_dt] = s
+                ym = (key_dt.year, key_dt.month)
+                month_bucket[ym].append(s)
+
+            # 按月平均（基于“每日总和”的均值）
+            month_avg = {ym: (sum(vals) / len(vals)) for ym, vals in month_bucket.items()}
+
+            # 写回 sim_data_dict：先写每日总和，再写该月平均
+            for (y, m), avg in month_avg.items():
+                key_dt = datetime(y, m, 1, 0, 0, 0)  # 该月第一天
+                if key_dt not in sim_data_dict:
+                    sim_data_dict[key_dt] = []
+                sim_data_dict[key_dt].append(float(avg))
                 data_available = True
             if data_available:
                 plot_vars_existed.append(v)

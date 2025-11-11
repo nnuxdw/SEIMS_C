@@ -24,8 +24,9 @@ from spotpy.objectivefunctions import nashsutcliffe, rsquared, rmse, pbias,kge, 
 from preprocess.db_read_model import ReadModelData
 import matplotlib as mpl
 def main():
-    NN = 2  #可调，需要前多少组参数集
-    
+    NN = 1  #可调，需要前多少组参数集
+    watershed_num = 225
+    model_name = f'poyang_lake1_longterm_model_{watershed_num}'
     wtsd_name = get_watershed_name('Specify watershed name to run postprocess.')
     if wtsd_name not in list(DEMO_MODELS.keys()):
         print('%s is not one of the available demo watershed: %s' %
@@ -34,9 +35,10 @@ def main():
 
     cur_path = UtilClass.current_path(lambda: 0)
     SEIMS_path = os.path.abspath(cur_path + '../../..')
-    model_paths = ModelPaths(SEIMS_path, wtsd_name, DEMO_MODELS[wtsd_name])
+    # model_paths = ModelPaths(SEIMS_path, wtsd_name, DEMO_MODELS[wtsd_name])
+    model_paths = ModelPaths(SEIMS_path, wtsd_name, model_name)
     cf = ConfigParser()
-    cali_cfg_file = model_paths.cfg_dir + os.path.sep + 'calibration.ini'
+    cali_cfg_file = model_paths.cfg_dir + os.path.sep + f'calibration_{watershed_num}.ini'
     cf.read(cali_cfg_file)
 
     #读取率定结果

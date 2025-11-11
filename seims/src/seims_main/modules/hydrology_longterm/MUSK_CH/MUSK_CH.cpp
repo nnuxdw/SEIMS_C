@@ -895,7 +895,6 @@ bool MUSK_CH::ChannelFlow(const int i) {
 
     // 1.3. water from bank storage
 	// xiaodw add, for calculating hand water lavel, with no effect on other modules
-	m_bankStoLastStep[i] = m_bankSto[i];
     float bankOut = m_bankSto[i] * (1.f - exp(-m_aBank));
     m_bankSto[i] -= bankOut;
     qIn += bankOut / m_dt;
@@ -1159,7 +1158,7 @@ bool MUSK_CH::ChannelFlow(const int i) {
 
     // todo, compute revap from bank storage. In SWAT, revap coefficient is equal to gw_revap.
 
-#ifdef DEBUG_MUSK_CH
+#ifdef DEBUG_MUSK_CH_CH
 	cout << "===== ChannelFlow Debug: Reach " << i << " Day " << m_dayOfYear << " =====" << endl;
 
 	// 输入部分
@@ -1354,7 +1353,7 @@ bool MUSK_CH::LakeBudget(const int i) {
     m_T_LKWB[i][5] = m_qRchOut[i] * m_dt;
     m_T_LKWB[i][6] = m_chSto[i];
 
-#ifdef DEBUG_MUSK_CH
+#ifdef DEBUG_MUSK_CH_LAKE
 	cout << "===== LakeBudget Debug: rchID=" << i << " Day=" << m_dayOfYear << " =====\n";
 
 	// 1) 输入项
@@ -1417,9 +1416,11 @@ bool MUSK_CH::LakeBudget(const int i) {
 
     return true;
 }
+
 bool MUSK_CH::ResBudget(const int i) {
     //! 1. add all the inflow water
     float qIn = 0.f; /// Water entering reach on current day from both current subbasin and upstreams
+
     // 1.1. water from this subbasin
     qIn += m_olQ2Rch[i]; /// surface flow
     float qiSub = 0.f;   /// interflow flow
@@ -1539,16 +1540,22 @@ bool MUSK_CH::ResBudget(const int i) {
     //Reservoir outflow [m3/s] 
     rtwtr = 0.f;
     rtwtr = ReservoirOutflow1;
-    if(ReservoirFillCC > 2 * ConservativeStorageLimitCC) rtwtr = ReservoirOutflow2;
-    if(ReservoirFillCC > NormalStorageLimitCC) rtwtr = ReservoirOutflow3a;
-    if(ReservoirFillCC > Normal_FloodStorageLimitCC) rtwtr = ReservoirOutflow3b;
-    if(ReservoirFillCC > FloodStorageLimitCC) rtwtr = ReservoirOutflow4;
+	// 1: ≤2Lc, 2: (2Lc,Ln], 3: (Ln,Normal_Flood], 33: (Normal_Flood,Lf], 4: >Lf, by xiaodw
+	int stageUsed = 1;            
+	float rtwtr_raw = ReservoirOutflow1;
+	bool capped = false;
+	if (ReservoirFillCC > 2 * ConservativeStorageLimitCC) { rtwtr = ReservoirOutflow2;  stageUsed = 2;  rtwtr_raw = rtwtr; }
+	if (ReservoirFillCC > NormalStorageLimitCC) { rtwtr = ReservoirOutflow3a; stageUsed = 3;  rtwtr_raw = rtwtr; }
+	if (ReservoirFillCC > Normal_FloodStorageLimitCC) { rtwtr = ReservoirOutflow3b; stageUsed = 33; rtwtr_raw = rtwtr; }
+	if (ReservoirFillCC > FloodStorageLimitCC) { rtwtr = ReservoirOutflow4;  stageUsed = 4;  rtwtr_raw = rtwtr; }
+
 
 
     temp = Min(rtwtr,Max(qIn, NormalReservoirOutflowCC));
-
+	// constrain large outflow
     if((rtwtr > 1.2 * qIn) & (rtwtr > NormalReservoirOutflowCC) & (ReservoirFillCC < FloodStorageLimitCC)){
         rtwtr = temp;
+		capped = true;
     }
     m_qRchOut[i] = rtwtr;
     m_rteWtrOut[i] = m_qRchOut[i] * m_dt;   // m^3
@@ -1578,76 +1585,50 @@ bool MUSK_CH::ResBudget(const int i) {
         m_qgRchOut[i] = 0.f;
     }
 
-#ifdef DEBUG_MUSK_CH
-	cout << "===== ResBudget Debug: rchID=" << i << " Day=" << m_dayOfYear << " =====\n";
+#ifdef DEBUG_MUSK_CH_RSV
+	{
+		// 判定文本分级
+		string levelStr;
+		if (ReservoirFillCC <= 2.f * ConservativeStorageLimitCC) {
+			levelStr = "≤2Lc (保守库容区)";
+		}
+		else if (ReservoirFillCC <= NormalStorageLimitCC) {
+			levelStr = "(2Lc, Ln] (正常库容以下)";
+		}
+		else if (ReservoirFillCC <= Normal_FloodStorageLimitCC) {
+			levelStr = "(Ln, Normal_Flood] (正常~可调洪)";
+		}
+		else if (ReservoirFillCC <= FloodStorageLimitCC) {
+			levelStr = "(Normal_Flood, Lf] (可调洪~防洪上限)";
+		}
+		else {
+			levelStr = ">Lf (超防洪上限)";
+		}
 
-	// 1) 输入项
-	cout << "[Inputs] "
-		<< "olQ2Rch=" << m_olQ2Rch[i]
-		<< ", qiSub=" << qiSub
-		<< ", qgSub=" << qgSub
-		<< ", qsUp=" << qsUp
-		<< ", qiUp=" << qiUp
-		<< ", qgUp=" << qgUp
-		<< ", precip=" << m_prec[i]
-		<< ", qIn(total)=" << qIn
-		<< "\n";
-
-	// 2) 水库容量与规则参数
-	cout << "[Policy] "
-		<< "TotVol=" << m_lakevol[i]
-		<< ", Lc=" << m_ResLc[i]
-		<< ", Ln=" << m_ResLn[i]
-		<< ", Lf=" << m_ResLf[i]
-		<< ", Adjust=" << m_ResAdjust[i]
-		<< ", LNF=" << (m_ResLn[i] + m_ResAdjust[i] * (m_ResLf[i] - m_ResLn[i]))
-		<< "\n";
-
-	cout << "[OutflowRules] "
-		<< "qmin=" << m_resminq[i]
-		<< ", qnorm=" << m_resnormq[i]
-		<< ", qnd=" << m_resndq[i]
-		<< ", normMult=" << m_res_normMult[i]
-		<< "\n";
-
-	// 3) 过程量
-	cout << "[Process] "
-		<< "pre_Sto=" << pre_Sto
-		<< ", add_wtrin(m3)=" << (qIn * m_dt)
-		<< ", evap=" << rtevp
-		<< ", gw=" << ResOutGw
-		<< "\n";
-
-	// 4) 规则分段的计算结果（便于判断处于哪个区间）
-	cout << "[StageOutflow(m3/s)] "
-		<< "F=" << (m_chSto[i] / m_lakevol[i])
-		<< ", O1=" << ReservoirOutflow1
-		<< ", O2=" << ReservoirOutflow2
-		<< ", O3a=" << ReservoirOutflow3a
-		<< ", O3b=" << ReservoirOutflow3b
-		<< ", O4=" << ReservoirOutflow4
-		<< "\n";
-
-	// 5) 结果项
-	cout << "[Results] "
-		<< "qRchOut=" << m_qRchOut[i]
-		<< ", rteWtrOut(day_m3)=" << m_rteWtrOut[i]
-		<< ", chSto(after)=" << m_chSto[i]
-		<< ", depth(after)=" << m_chWtrDepth[i]
-		<< ", Fill=" << (m_chSto[i] / m_lakevol[i])
-		<< "\n";
-
-	// 6) 质量平衡
-	double inflow_m3 = (m_olQ2Rch[i] + qiSub + qgSub + qsUp + qiUp + qgUp + m_prec[i]) * m_dt;
-	double outflow_m3 = m_rteWtrOut[i] + rtevp + ResOutGw;
-	cout << "[WB] "
-		<< "IN(m3)=" << inflow_m3
-		<< ", OUT(m3)=" << outflow_m3
-		<< ", dS(m3)=" << (m_chSto[i] - pre_Sto)
-		<< ", IN-OUT-dS=" << (inflow_m3 - outflow_m3 - (m_chSto[i] - pre_Sto))
-		<< "\n";
-
-	cout << "=============================================\n";
+		std::cout << "[ResBudget] day=" << m_dayOfYear
+			<< " rchID=" << i
+			<< " Sto=" << m_chSto[i] << " m3"
+			<< " Fill=" << ReservoirFillCC
+			<< " Level=" << levelStr
+			<< " Stage=" << stageUsed
+			<< " qIn=" << qIn << " m3/s"
+			<< " Qout_raw=" << rtwtr_raw << " m3/s"
+			<< (capped ? " (capped)" : "")
+			<< " Qout=" << rtwtr << " m3/s"
+			<< " [Lc=" << ConservativeStorageLimitCC
+			<< ", Ln=" << NormalStorageLimitCC
+			<< ", Normal_Flood=" << Normal_FloodStorageLimitCC
+			<< ", Lf=" << FloodStorageLimitCC << "]"
+			<< " parts: ol=" << m_olQ2Rch[i]
+			<< " if=" << qiSub
+			<< " gw=" << qgSub
+			<< " upS=" << qsUp
+			<< " upI=" << qiUp
+			<< " upG=" << qgUp
+			<< " precip=" << m_prec[i]
+			<< " gwSto=" << m_gwSto[i]
+			<< std::endl;
+	}
 #endif
 
 

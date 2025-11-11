@@ -52,6 +52,7 @@ from preprocess.db_mongodb import MongoClient, ConnectMongoDB
 from preprocess.db_read_model import ReadModelData
 from utility import read_simulation_from_txt, parse_datetime_from_ini,read_simulation_from_txt_new
 from utility import match_simulation_observation, calculate_statistics
+from shutil import copy2, copytree, rmtree
 
 
 class ParseSEIMSConfig(object):
@@ -702,6 +703,43 @@ class MainSEIMS(object):
             read_model.CleanScenariosConfiguration(scenario_id)
             if delete_spatial_gfs:
                 read_model.CleanSpatialGridFs(scenario_id)
+
+    def copy_dir(self,  calibration_id=None, gen=None
+              ):
+
+        """
+        将 self.OutputDirectory 下的所有内容复制到：
+            <parent_of_OutputDirectory>/cali_copy/{gen}_{calibration_id}/
+        若目标目录已存在，会先清空再复制。
+        返回目标目录路径。
+        """
+        if calibration_id is None or gen is None:
+            raise ValueError("calibration_id 和 gen 不能为空")
+
+        src = os.path.abspath(self.OutputDirectory)
+        if not os.path.isdir(src):
+            raise FileNotFoundError(f"OutputDirectory 不存在或不是目录: {src}")
+
+        parent_dir = os.path.dirname(src)  # 父目录
+        dst_root = os.path.join(parent_dir, "cali_copy")
+        dst = os.path.join(dst_root, f"gen_{gen}_cali_{calibration_id}")
+
+        os.makedirs(dst_root, exist_ok=True)
+        # 目标已存在则清空
+        if os.path.exists(dst):
+            rmtree(dst, ignore_errors=True)
+        os.makedirs(dst, exist_ok=True)
+
+        # 逐项复制（子目录用 copytree，文件用 copy2）
+        for name in os.listdir(src):
+            s = os.path.join(src, name)
+            d = os.path.join(dst, name)
+            if os.path.isdir(s):
+                copytree(s, d)  # 若要“合并”而不是覆盖，可改成 dirs_exist_ok=True（Python 3.8+）
+            else:
+                copy2(s, d)
+
+        return dst
 
 
 def create_run_model(modelcfg_dict, scenario_id=0, calibration_id=-1, subbasin_id=0):
