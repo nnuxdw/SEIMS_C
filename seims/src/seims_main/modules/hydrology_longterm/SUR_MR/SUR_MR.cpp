@@ -2,6 +2,10 @@
 
 #include "text.h"
 
+// true  = 湖泊参与入渗（新逻辑）
+// false = 湖泊不入渗，走原始 SEIMS 逻辑（兼容旧模型）
+static const bool ENABLE_LAKE_INFILTRATION = true;
+
 SUR_MR::SUR_MR() :
     m_dt(-1), m_nCells(-1), m_netPcp(nullptr), m_potRfCoef(nullptr),
     m_maxSoilLyrs(-1), m_nSoilLyrs(nullptr),
@@ -13,7 +17,9 @@ SUR_MR::SUR_MR() :
     //ljj++
     m_soilIceSto(nullptr),m_soilIceStoPrfl(nullptr),m_soilPor(nullptr),m_soilThk(nullptr),
     m_dem(nullptr),m_landUse(nullptr),m_soilAWC(nullptr),m_rchID(nullptr),m_pcp(nullptr),m_lakesto(nullptr),
-    m_pet(nullptr)
+    m_pet(nullptr),
+	//lj++
+	m_handWtrDep(nullptr)
     {
 }
 
@@ -24,6 +30,7 @@ SUR_MR::~SUR_MR() {
     if (m_soilWtrStoPrfl != nullptr) Release1DArray(m_soilWtrStoPrfl);
     //if (m_soilIceStoPrfl != nullptr) Release1DArray(m_soilIceStoPrfl);   // xiaodw comment, don't need soil temperature now
     if (m_lakesto != nullptr) Release1DArray(m_lakesto);
+	if (m_handWtrDep != nullptr) Release1DArray(m_handWtrDep);
 }
 
 bool SUR_MR::CheckInputData() {
@@ -36,6 +43,8 @@ bool SUR_MR::CheckInputData() {
     CHECK_NODATA(MID_SUR_MR, m_soilFrozenWtrRatio);
     CHECK_POINTER(MID_SUR_MR, m_initSoilWtrStoRatio);
     CHECK_POINTER(MID_SUR_MR, m_potRfCoef);
+	CHECK_POINTER(MID_SUR_MR, m_handWtrDep);
+
     //CHECK_POINTER(MID_SUR_MR, m_soilFC);
     CHECK_POINTER(MID_SUR_MR, m_meanTemp);
     //CHECK_POINTER(MID_SUR_MR, m_soilTemp);   // xiaodw comment, don't need soil temperature now
@@ -88,19 +97,37 @@ int SUR_MR::Execute() {
     m_maxPcpRf *= m_dt * 1.1574074074074073e-05f; /// 1. / 86400. = 1.1574074074074073e-05;
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
-        if(m_landUse[i] ==LANDUSE_ID_WATR && m_rchID[i]<=0.f){
-            //坡面湖泊
-            m_lakesto[i] += m_pcp[i];
-            m_lakesto[i] -= m_pet[i];
-            float m_resday = 31.f;
-            float m_runoff = 1/m_resday  * m_lakesto[i]; // mm
-            m_lakesto[i] -= m_runoff;
-            m_exsPcp[i] = m_runoff;
-            m_infil[i] = 0.f;
-            continue;
-        }
+
+//#pragma omp critical
+//		{
+//			std::cout << "m_handWtrDep[" << i << "] = " << m_handWtrDep[i] << std::endl;
+//		}
+//
+		if (!ENABLE_LAKE_INFILTRATION && m_landUse[i] == LANDUSE_ID_WATR && m_rchID[i] <= 0.f) {
+			m_lakesto[i] += m_pcp[i];
+			m_lakesto[i] -= m_pet[i];
+			float m_resday = 31.f;
+			float m_runoff = (1.0f / m_resday) * m_lakesto[i];
+			m_lakesto[i] -= m_runoff;
+			m_exsPcp[i] = m_runoff;
+			m_infil[i] = 0.f;
+			continue;
+		}
+        //if(m_landUse[i] ==LANDUSE_ID_WATR && m_rchID[i]<=0.f){
+        //    //坡面湖泊
+        //    m_lakesto[i] += m_pcp[i];
+        //    m_lakesto[i] -= m_pet[i];
+        //    float m_resday = 31.f;
+        //    float m_runoff = 1/m_resday  * m_lakesto[i]; // mm
+        //    m_lakesto[i] -= m_runoff;
+        //    m_exsPcp[i] = m_runoff;
+        //    m_infil[i] = 0.f;
+        //    continue;
+        //}
+
         float hWater = 0.f;
-        hWater = m_netPcp[i] + m_deprSto[i];
+        //hWater = m_netPcp[i] + m_deprSto[i];
+		hWater = m_netPcp[i] + m_deprSto[i]+ m_handWtrDep[i];
         if (hWater > 0.f && m_landUse[i] !=18) {
             /// update total soil water content
             m_soilWtrStoPrfl[i] = 0.f;
@@ -231,6 +258,9 @@ void SUR_MR::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(sk, VAR_STREAM_LINK)) m_rchID = data;
     else if (StringMatch(sk, VAR_PCP)) m_pcp = data;
     else if (StringMatch(sk, VAR_PET)) m_pet = data;
+	else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
+		m_handWtrDep = data;
+	}
     else {
         throw ModelException(MID_SUR_MR, "Set1DData", "Parameter " + sk + " does not exist.");
     }

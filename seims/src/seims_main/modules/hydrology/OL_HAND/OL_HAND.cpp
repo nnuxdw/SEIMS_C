@@ -101,10 +101,10 @@ void OL_HAND::InitialOutputs() {
 	{
 		m_handWtrDep = new(nothrow) float[m_nCells];
 		// load floodstep
-		string txt_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\11.159084_48.120933\\rundata\\FloodStep.txt";
+		string txt_filename = "D:\\WISECode\\SEIMS_C\\data\\Cottonwood\\rundata\\FloodStep.txt";
 		LoadHandIdsToChHandLevels(txt_filename, m_Hands);
 		// load 
-		string csv_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\11.159084_48.120933\\rundata\\InundationMap.csv";
+		string csv_filename = "D:\\WISECode\\SEIMS_C\\data\\Cottonwood\\rundata\\InundationMap.csv";
 		loadHandFromCSVIntoVector(csv_filename,m_Hands);
 		
 		// initialize water depth of each level
@@ -182,7 +182,7 @@ int OL_HAND::Execute() {
 	}
 
     return 0;
-}
+}			
 
 void OL_HAND::Get1DData(const char* key, int* n, float** data) {
     string sk(key);

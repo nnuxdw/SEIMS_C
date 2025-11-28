@@ -438,6 +438,10 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_PG_EPIC                          "Calculate plant growth using a simplified version of the EPIC plant growth model as in SWAT"
 #define MID_PG_ORYZA                           "PG_ORYZA"
 #define MDESC_PG_ORYZA                         "Rice crop growth module of ORYZA2000 model"
+#define MCLS_CH4                               "Methane"
+#define MCLSDESC_CH4                           "Methane calculation"
+#define MID_CH4_LPJGUESS                       "CH4_LPJGUESS"
+#define MDESC_CH4_LPJGUESS                     "Calculating methane production, oxidation, and transport from wetlands"
 /// Overland routing related modules
 #define MCLS_OL_ROUTING                        "Overland routing"
 #define MCLSDESC_OL_ROUTING                    "Overland routing module"
@@ -447,8 +451,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_IUH_OL                           "IUH overland method to calculate overland flow routing."
 #define MID_OL_HAND                             "OL_HAND"
 #define MDESC_OL_HAND                           "Use HAND to calculate floodplain inundation."
-#define MID_LISFLOODFP                             "LISFLOODFP"
-#define MDESC_LISFLOODFP                           "Use LISFLOODFP to calculate floodplain inundation."
+#define MID_LISFLOODFP                          "LISFLOODFP"
+#define MDESC_LISFLOODFP                        "Use LISFLOODFP to calculate floodplain inundation."
 /// Channel routing related modules
 #define MCLS_CH_ROUTING                        "Channel routing"
 #define MCLSDESC_CH_ROUTING                    "Channel routing modules"
@@ -2198,6 +2202,20 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_CH4_TOTAL                        "CH4_TOTAL"
 #define DESC_CH4_PRODUCTION                  "Methane production rate in each cell"
 #define DESC_CH4_TOTAL                       "Total methane production in the watershed"
+#define VAR_CH4_CONC                         "CH4 concentration"
+#define DESC_CH4_CONC                        "CH4 concentration"
+#define VAR_CH4_DIFF                         "CH4 diffusion"
+#define DESC_CH4_DIFF                        "CH4 diffusion"
+#define VAR_CH4_PLANT                        "CH4 plant transport"
+#define DESC_CH4_PLANT                       "CH4 plant transport"
+#define VAR_CH4_EBUL                         "CH4 ebullition"
+#define DESC_CH4_EBUL                        "CH4 ebullition"
+#define VAR_CH4_OXID                         "CH4 oxidation"
+#define DESC_CH4_OXID                        "CH4 oxidation"
+#define VAR_CH4_PROD                         "CH4 production"
+#define DESC_CH4_PROD                        "CH4 production"
+#define VAR_SOL_ANOXIC                       "CH4_SOL_ANOXIC"
+#define DESC_SOL_ANOXIC                      "Anoxic degree in each cell"
 
 //////////////////////////////////////////////////////////////////////////
 /// Define Raster/ related constant strings used in SEIMS and preprocess//

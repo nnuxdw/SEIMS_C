@@ -130,5 +130,9 @@ private:
     float* m_pcp;
     float* m_lakesto;
     float* m_pet;
+
+	//lj++
+    ///  water depth of each hand, initialized by m_bankSto,mm
+	float* m_handWtrDep; 
 };
 #endif /* SEIMS_MODULE_SUR_MR_H */

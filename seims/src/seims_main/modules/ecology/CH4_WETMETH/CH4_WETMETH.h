@@ -36,13 +36,15 @@ public:
 	int num_layers;         // Actual number of soil layers for this column
 	
 	// Dynamic variables - soil layer properties
-	float *layer_thickness;    // Thickness of each soil layer (mm) - from VAR_SOILTHICK
-	float *cumulative_depth;   // Cumulative depth from surface (m) - calculated
-	float *soil_water_storage; // Water storage in each soil layer (mm H2O) - from VAR_SOL_ST
+	float *layer_thickness;       // Thickness of each soil layer (mm) - from VAR_SOILTHICK
+	float *cumulative_depth;     // Cumulative depth from surface (m) - calculated
+	float *soil_water_storage;  // Water storage in each soil layer (mm H2O) - from VAR_SOL_ST
 	float *soil_saturated;     // Saturated water capacity of each layer (mm H2O) - from VAR_SOL_UL
-	float *soil_saturation;    // Saturation ratio of each soil layer (0-1) - calculated
-	float *T_soil;            // Temperature of each soil layer (°C) - from VAR_SOTE
-	float *Soc;               // Soil organic matter content (%) - from VAR_SOL_OM
+	float *soil_saturation;   // Saturation ratio of each soil layer (0-1) - calculated
+	float *T_soil;           // Temperature of each soil layer (°C) - from VAR_SOTE
+	float *Soc;             // Soil organic matter content (%) - from VAR_SOL_OM
+	float *m_soilWP;       // water content of soil at -1.5 MPa (wilting point)
+	float *m_soilPor;     // porosity mm/mm
 	
 	// Output variables
 	float SoilCol_CH4;        // Total CH4 production for this soil column (kg C/s)
@@ -116,20 +118,22 @@ private:
 	float *m_nSoilLyrs;        // Actual number of soil layers for each cell
 	
 	// Input data from other modules
-	float *m_area;             // Area of each cell (m²)
-	float **m_layer_thickness; // Thickness of each soil layer (mm) - from VAR_SOILTHICK
+	float *m_area;                  // Area of each cell (m²)
+	float **m_layer_thickness;     // Thickness of each soil layer (mm) - from VAR_SOILTHICK
 	float **m_soil_water_storage; // Water storage in each soil layer (mm H2O) - from VAR_SOL_ST
-	float **m_soil_saturated;  // Saturated water capacity of each layer (mm H2O) - from VAR_SOL_UL
-	// float **m_Soc;             // Soil organic matter content (%) - from VAR_SOL_OM (commented out, using VAR_SOL_WOC instead)
-	float **m_Soc_kg_ha;       // Soil organic carbon content (kg/ha) - from VAR_SOL_WOC
-	float **m_Tsoil;           // Temperature of each soil layer (°C) - from VAR_SOTE
+	float **m_soil_saturated;    // Saturated water capacity of each layer (mm H2O) - from VAR_SOL_UL
+	float **m_soilWP;           // Water content of soil at -1.5 MPa (wilting point) - from VAR_SOL_WPMM
+	float **m_soilPor;         // porosity mm/mm
+	// float **m_Soc;         // Soil organic matter content (%) - from VAR_SOL_OM (commented out, using VAR_SOL_WOC instead)
+	float **m_Soc_kg_ha;     // Soil organic carbon content (kg/ha) - from VAR_SOL_WOC
+	float **m_Tsoil;        // Temperature of each soil layer (°C) - from VAR_SOTE
 	
 	// Soil column objects
-	SoilCol *m_SoilCols;       // Array of soil column objects
+	SoilCol *m_SoilCols;         // Array of soil column objects
 	
 	// Output variables
 	float *m_P_soilcol;        // CH4 production for each soil column (kg C/s)
-	float m_total_CH4;         // Total CH4 production for all cells (kg C/s)
+	float m_total_CH4;        // Total CH4 production for all cells (kg C/s)
 };
 
 

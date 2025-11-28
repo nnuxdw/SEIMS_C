@@ -844,7 +844,7 @@ void SoilTemperatureFINPL::SoilTempTSWAT(const int i) {
         m_psol[i][k]=m_bsol[i][k] / (m_asol[i][k]-m_csol[i][k]*m_psol[i][k-1]);
         m_qsol[i][k]=(m_dsol[i][k]+m_csol[i][k]*m_qsol[i][k-1])/(m_asol[i][k]-m_csol[i][k]*m_psol[i][k-1]);
     }
-    m_soltmp1[i][nly1-1]=m_psol[i][nly1-1]*m_bottmp[i]+m_qsol[i][nly1-1];
+     m_soltmp1[i][nly1-1]=m_psol[i][nly1-1]*m_bottmp[i]+m_qsol[i][nly1-1];
 
     for (int k = nly1-2; k > -1; k--) {
         m_soltmp1[i][k]=m_psol[i][k]*m_soltmp1[i][k+1]+m_qsol[i][k];

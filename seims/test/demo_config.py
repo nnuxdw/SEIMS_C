@@ -36,8 +36,10 @@ from calibration.config import CaliConfig
 DEMO_MODELS = {'youwuzhen': 'demo_youwuzhen30m_longterm_model',
                'hlg_hband': 'hlg_hband_longterm_model',
                'hulugou': 'hulugou_longterm_model',
-                'gongba': 'gongba_longterm_model',
-               'gongba_subbasin':'gongba_subbasin_longterm_model'
+               'gongba': 'gongba_longterm_model',
+               'gongba_subbasin':'gongba_subbasin_longterm_model',
+               'poyang_lake1':'poyang_lake1_longterm_model',
+               'Cottonwood':'Cottonwood_longterm_model'
                }
 
 

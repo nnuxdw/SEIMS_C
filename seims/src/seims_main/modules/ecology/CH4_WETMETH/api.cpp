@@ -1,5 +1,4 @@
 #include "api.h"
-
 #include "CH4_WETMETH.h"
 #include "text.h"
 #include "MetadataInfo.h"
@@ -25,6 +24,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     /// Set parameters from database (Source_ParameterDB or Source_ParameterDB_Optional)
     mdi.AddParameter(VAR_AHRU, UNIT_AREA_M2, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_SOILLAYERS, UNIT_NON_DIM, DESC_SOILLAYERS, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_SOL_WPMM, UNIT_DEPTH_MM, DESC_SOL_WPMM, Source_ParameterDB, DT_Raster2D);
+	mdi.AddParameter(VAR_POROST, UNIT_VOL_FRA_M3M3, DESC_POROST, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_SOILTHICK, UNIT_DEPTH_MM, DESC_SOILTHICK, Source_ParameterDB, DT_Raster2D);
     // mdi.AddParameter(VAR_SOL_OM, UNIT_PERCENT, DESC_SOL_OM, Source_ParameterDB, DT_Raster2D); // commented out, using VAR_SOL_WOC from NUTR_TF instead
     mdi.AddParameter(VAR_SOL_UL, UNIT_DEPTH_MM, DESC_SOL_UL, Source_ParameterDB, DT_Raster2D);
@@ -36,7 +37,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 
 
     /// Set output variables of the current module
-	mdi.AddOutput(VAR_CH4_PRODUCTION, UNIT_KG, DESC_CH4_PRODUCTION, DT_Array1D);
+	mdi.AddOutput(VAR_CH4_PRODUCTION, UNIT_KG, DESC_CH4_PRODUCTION, DT_Raster1D);
 	mdi.AddOutput(VAR_CH4_TOTAL, UNIT_KG, DESC_CH4_TOTAL, DT_Single);
 
 
