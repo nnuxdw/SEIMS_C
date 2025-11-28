@@ -250,12 +250,16 @@ def apply_best_params(
 if __name__ == '__main__':
     base_path = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
     model_name = r'poyang_lake1_longterm_model'
-    cali_name = r'CALI_NSGA2_Gen_100_Pop_20'
+    # cali_name = r'CALI_NSGA2_Gen_100_Pop_20'
+    #
     SUBBASIN_IDs = [123,141,214,225,322,347,457]
+    cali_name_map = {123:'CALI_NSGA2_Gen_100_Pop_20',141:'CALI_NSGA2_Gen_100_Pop_20',214:'CALI_NSGA2_Gen_100_Pop_20',
+                 225:'CALI_NSGA2_Gen_100_Pop_20',322:'CALI_NSGA2_Gen_100_Pop_20',347:'CALI_NSGA2_Gen_100_Pop_20',
+                 457:'CALI_NSGA2_Gen_120_Pop_28'}
     TARGET_SUBBASIN_ID = 1171
     for SUBBASIN_ID in SUBBASIN_IDs:
         # 把下面这些变量改成你的实际文件路径
-        BEST_CSV = os.path.join(base_path,f'{model_name}_{SUBBASIN_ID}',cali_name,'result_1.csv')  # 含 gene_values 的单行CSV
+        BEST_CSV = os.path.join(base_path,f'{model_name}_{SUBBASIN_ID}',cali_name_map[SUBBASIN_ID],'result_1.csv')  # 含 gene_values 的单行CSV
         DEF_FILE = os.path.join(base_path,f'{model_name}_{SUBBASIN_ID}',r'cali_param_rng-Q.def')  # 参数顺序文件
         UPSTREAM_SUBBSIN_CSV = os.path.join(base_path,f'{model_name}_{SUBBASIN_ID}',r'caliparam_sub.csv')     # 两列：第一列ID、第二列flag（取 -9999）
         UPSREAM_HAND_CSV = os.path.join(base_path,f'{model_name}_{SUBBASIN_ID}',r'caliparam.csv')   # 两列：第一列ID、第二列flag（取 -9999）

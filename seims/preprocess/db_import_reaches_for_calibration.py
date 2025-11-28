@@ -127,7 +127,7 @@ def import_fields_from_csv_to_mongo(
     }
 
 if __name__ == '__main__':
-    csv_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\caliparam_sub_141.csv"
+    csv_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\caliparam_sub_1171.csv"
     fields_TO_IMPORT = ['LAKEB_1D']
     result = import_fields_from_csv_to_mongo(
         mongo_uri="mongodb://127.0.0.1:27017",

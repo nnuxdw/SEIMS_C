@@ -11,7 +11,7 @@
 #include "SimulationModule.h"
 #include "Scenario.h"
 //#include "clsReach.h"
-#define FLOOD_DEPTH_THRESH 0.01
+#define FLOOD_DEPTH_THRESH 0.1f
 
 using namespace bmps;
 using namespace std;
@@ -29,7 +29,8 @@ struct Level {
 	float m_levelAvgDepth = 0.0; /// average depth of each layer's all hands, equals (channel's overhead area + lower level's sum area * this level's depth + SUM(this level's hand's area * dem's avg depth in hand))
 	double m_levelSumVol = 0.0f;    /// area of each hand level, cooresponding to m_levelSumArea
 	double m_levelAccVol = 0.0;              /// contains a level's vol and all lower level's vol, m3
-	vector<float> m_levelLowerAccDepth;   // m
+	//vector<float> m_levelLowerAccDepth;   // m
+	float* m_levelLowerAccDepth;   // m
 
 	int m_levelHandNum = 0;          /// n layers of hand for each level
 	float m_levelWtrDep = 0.0f;              /// water depth of each level,m. contains all water above  the level
@@ -126,6 +127,7 @@ private:
 
 	// for inundation area calibration
 	float* m_subbasinInundationArea;
+	float* m_subbasinWtrDep;
 	float m_sumInundationArea;
 
 

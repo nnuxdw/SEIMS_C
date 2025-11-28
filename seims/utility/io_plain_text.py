@@ -21,7 +21,7 @@ from preprocess.text import DBTableNames, ModelCfgFields, FieldNames, SubbsnStat
 from pymongo import MongoClient
 from collections import defaultdict
 
-
+f_type = 'lixiyue'
 
 class SpecialJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -147,12 +147,13 @@ def read_simulation_from_txt_new(ws,  # type: AnyStr
             print('WARNING: Simulation variable file: %s is not existed!' % txtfile)
             continue
         if var == 'F':
+
             # sites = siteTbl.find({StationFields.type: get_observed_name_new(param_name),
             #                       StationFields.outlet: float(is_outlets(param_name, isoutlet)),
             #                       StationFields.base_subbasin: subbasin_id
             #                       }).sort([(StationFields.id, 1)])  # 根据其所属下游subabsinid查
             if os.name == 'nt':  # Windows
-                client = MongoClient("mongodb://localhost:27017/")
+                client = MongoClient("mongodb://172.21.124.127:27019/")
             else:
                 client = MongoClient("mongodb://localhost:27019/")
             db = client["poyang_lake1_HydroClimate"]
@@ -224,29 +225,47 @@ def read_simulation_from_txt_new(ws,  # type: AnyStr
             out_dt = defaultdict(list)
             for k_str, vals in out.items():
                 out_dt[datetime.strptime(k_str, "%Y-%m-%d %H:%M:%S")].extend(vals)
+            if f_type == 'longdi':
+                # 1) 先计算每天的总和，并按(年,月)分桶
+                daily_sum = {}
+                month_bucket = defaultdict(list)
 
-            # 1) 先计算每天的总和，并按(年,月)分桶
-            daily_sum = {}
-            month_bucket = defaultdict(list)
+                for key_dt, values in out_dt.items():
+                    s = float(sum(values))  # 当天所有 subbasin 的总和
+                    daily_sum[key_dt] = s
+                    ym = (key_dt.year, key_dt.month)
+                    month_bucket[ym].append(s)
 
-            for key_dt, values in out_dt.items():
-                s = float(sum(values))  # 当天所有 subbasin 的总和
-                daily_sum[key_dt] = s
-                ym = (key_dt.year, key_dt.month)
-                month_bucket[ym].append(s)
+                # 按月平均（基于“每日总和”的均值）
+                month_avg = {ym: (sum(vals) / len(vals)) for ym, vals in month_bucket.items()}
 
-            # 按月平均（基于“每日总和”的均值）
-            month_avg = {ym: (sum(vals) / len(vals)) for ym, vals in month_bucket.items()}
+                # 写回 sim_data_dict：先写每日总和，再写该月平均
+                for (y, m), avg in month_avg.items():
+                    key_dt = datetime(y, m, 1, 0, 0, 0)  # 该月第一天
+                    if key_dt not in sim_data_dict:
+                        sim_data_dict[key_dt] = []
+                    sim_data_dict[key_dt].append(float(avg))
+                    data_available = True
+                if data_available:
+                    plot_vars_existed.append(v)
+            elif f_type == 'lixiyue':
+                # 1) 直接按“每日”处理，不再收集到 month_bucket
+                daily_sum = {}
 
-            # 写回 sim_data_dict：先写每日总和，再写该月平均
-            for (y, m), avg in month_avg.items():
-                key_dt = datetime(y, m, 1, 0, 0, 0)  # 该月第一天
-                if key_dt not in sim_data_dict:
-                    sim_data_dict[key_dt] = []
-                sim_data_dict[key_dt].append(float(avg))
-                data_available = True
-            if data_available:
-                plot_vars_existed.append(v)
+                for key_dt, values in out_dt.items():
+                    s = float(sum(values))  # 当天所有 subbasin 的总和
+                    daily_sum[key_dt] = s
+
+                # 2) 逐日写回 sim_data_dict
+                for key_dt, s in daily_sum.items():
+                    if key_dt not in sim_data_dict:
+                        sim_data_dict[key_dt] = []
+                    sim_data_dict[key_dt].append(s)
+                    data_available = True
+
+                # 3) 记录该变量已存在
+                if data_available:
+                    plot_vars_existed.append(v)
         else:
 
             data_items = read_data_items_from_txt(txtfile)

@@ -11,7 +11,7 @@ using namespace utils_array;
 using namespace utils_string;
 using namespace utils_math;
 
-const int REACH_PARAM_NUM = 84; /// Numerical parameters, except GROUP related
+const int REACH_PARAM_NUM = 85; /// Numerical parameters, except GROUP related
 const char* REACH_PARAM_NAME[] = {
     REACH_SUBBASIN, REACH_NUMCELLS,                           // 0-1
     REACH_DOWNSTREAM, REACH_UPDOWN_ORDER, REACH_DOWNUP_ORDER, // 2-4
@@ -35,7 +35,7 @@ const char* REACH_PARAM_NAME[] = {
     "RES_minq","RES_normq","RES_ndq","RES_normMult",
     REACH_DIC, REACH_LDOC, REACH_RDOC, REACH_LPOC, REACH_RPOC,
     REACH_SURFRDOC,REACH_LATRDOC,REACH_GWDRDOC,REACH_BED_MEAN_ELEV,REACH_BED_START_ELEV,REACH_BED_END_ELEV,REACH_LAKE_HAND_LEVEL_INI,
-	REACH_LAKEB_1D
+	REACH_LAKEB_1D,VAR_LAKE_MNVOL_1D
 };
 const int REACH_GROUP_METHOD_NUM = 2; /// Group methods
 const char* REACH_GROUP_NAME[] = {REACH_KMETIS, REACH_PMETIS};

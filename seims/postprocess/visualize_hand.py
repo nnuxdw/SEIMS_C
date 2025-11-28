@@ -805,113 +805,7 @@ def filter_paths_by_time(path_list, start_time, end_time, pattern_prefix="", tim
     matched_files.sort(key=lambda x: x[0])
     return [f for _, f in matched_files]
 
-
-if __name__ == '__main__':
-    # missouri
-    # work_dir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347'
-    # longter_model_name = '-90_124556_38_819347_longterm_model'
-    # 鄱阳湖
-    work_dir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
-    longter_model_name = 'poyang_lake1_longterm_model'
-    longterm_model_dir = os.path.join(work_dir,longter_model_name)
-    directory = os.path.join(longterm_model_dir,'gen_62_cali_5')
-    # prefix = 'SNAC_TS'
-    # pattern_prefix = 'SNAC_TS_'
-    # prefix = 'SNME_TS'
-    # pattern_prefix = 'SNME_TS_'
-    # prefix = 'TMAX_TS'
-    # pattern_prefix = 'TMAX_TS_'
-    #('SNAC_TS', 'SNAC_TS_'),,('SNME_TS','SNME_TS_'),('TMAX_TS','TMAX_TS_')
-    # pairs = [('SNAC_TS', 'SNAC_TS_'),('SNME_TS', 'SNME_TS_')]
-    # pairs = [('OL_Hand_WTRDEP_TS_AVG', 'OL_Hand_WTRDEP_TS_AVG_')]
-    pairs = [('OL_Hand_WTRDEP_TS', 'OL_Hand_WTRDEP_TS_')]
-    suffix = 'txt'
-
-    #########################  将HAND输出的结果生成为shp  ################################
-    shp_path = os.path.join(work_dir,r"workspace\HRU_file\HRU_mollwede.shp")
-    # start = datetime(2019, 3, 10, 0, 0, 0)
-    # end = datetime(2019, 3, 22, 0, 0, 0)
-    start = datetime(2010, 1, 1, 0, 0, 0)
-    end = datetime(2012, 1, 30, 0, 0, 0)
-    # 多线程容易报错
-    # files_in_range = []
-    # for prefix, pattern_prefix in pairs:
-    #     txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
-    #     files_in_range.extend(filter_paths_by_time(txt_paths, start, end, pattern_prefix))
-    # def run_gen_hand_shp(txt_path, shp_path):
-    #     output_tif_path = replace_txt_with_shp(txt_path)
-    #     write_value_to_hrushp(shp_path, txt_path, output_tif_path, id_field="FIELDID", value_field="value",
-    #                           fill_missing=None)
-    # max_workers = 2
-    # with ThreadPoolExecutor(max_workers=max_workers) as executor:
-    #     futures = [
-    #         executor.submit(run_gen_hand_shp, txt_path, shp_path)
-    #         for txt_path in files_in_range
-    #     ]
-    #
-    #     # 可选：显示进度 & 捕捉错误
-    #     for future in as_completed(futures):
-    #         try:
-    #             future.result()
-    #         except Exception as e:
-    #             print(f"发生错误：{e}")
-    ### 单线程
-    # for prefix, pattern_prefix in pairs:
-    #     txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
-    #     files_in_range = filter_paths_by_time(txt_paths, start, end, pattern_prefix)
-    #     for txt_path in files_in_range:
-    #         output_tif_path = replace_txt_with_shp(txt_path)
-    #         write_value_to_hrushp(shp_path, txt_path, output_tif_path, id_field="FIELDID", value_field="value", fill_missing=None)
-
-    #########################  将HAND输出的结果生成为tif  ################################
-    work_dir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
-    longter_model_name = 'poyang_lake1_longterm_model'
-    # prefix = 'OL_Hand_WTRDEP_TS'
-    # prefix = 'SNAC_TS_'
-
-    input_tif_path = os.path.join(work_dir,'workspace\HRU_file\ALL_HRU_final.tif')
-
-    # HAND水深 txt 转 tif
-    # txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
-    # for txt_path in txt_paths:
-    #     output_tif_path = replace_txt_with_tif(txt_path)
-    #     gen_hand_tif_by_txt(
-    #         txt_path=txt_path,
-    #         input_tif_path=input_tif_path,
-    #         output_tif_path=output_tif_path
-    #     )
-    # 多线程生成tif
-    # 设置最大线程数（建议不超过 CPU 核心数的 2~4 倍）
-    def run_gen_hand_tif(txt_path, input_tif_path):
-        output_tif_path = replace_txt_with_tif(txt_path)
-        # gen_hand_tif_by_txt(
-        #     txt_path=txt_path,
-        #     input_tif_path=input_tif_path,
-        #     output_tif_path=output_tif_path
-        # )
-        gen_hand_tif_by_txt_fast(
-            txt_path=txt_path,
-            input_tif_path=input_tif_path,
-            output_tif_path=output_tif_path
-                                 )
-    max_workers = 1
-    files_in_range = []
-    for prefix, pattern_prefix in pairs:
-        txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
-        files_in_range.extend(filter_paths_by_time(txt_paths, start, end, pattern_prefix))
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [
-                executor.submit(run_gen_hand_tif, txt_path, input_tif_path)
-                for txt_path in files_in_range
-            ]
-
-            # 可选：显示进度 & 捕捉错误
-            for future in as_completed(futures):
-                try:
-                    future.result()
-                except Exception as e:
-                    print(f"发生错误：{e}")
-
+def gen_gif_by_tifs():
     # tif生成gif
     OUTPUT_file = r'gen_62_cali_5'
     tif_folder = os.path.join(longterm_model_dir,OUTPUT_file)
@@ -968,4 +862,115 @@ if __name__ == '__main__':
     # for colormap in colormap_options:
     #     output_file = output_file_base + colormap + '.gif'
     #     create_gif_by_tif(image_files, years,output_file,bakgrnd_tif,colormap,-9999)
+
+if __name__ == '__main__':
+    # missouri
+    # work_dir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347'
+    # longter_model_name = '-90_124556_38_819347_longterm_model'
+    # 鄱阳湖
+    if os.name == 'nt':  # Windows
+        work_dir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
+    else:
+        work_dir = f'/data/user/xiaodw/software/WISE/data/poyang_lake1'
+    longter_model_name = 'poyang_lake1_longterm_model_1171'
+    calibration_name = 'OUTPUT0-9'
+    longterm_model_dir = os.path.join(work_dir,longter_model_name)
+    directory = os.path.join(longterm_model_dir,calibration_name)
+    # prefix = 'SNAC_TS'
+    # pattern_prefix = 'SNAC_TS_'
+    # prefix = 'SNME_TS'
+    # pattern_prefix = 'SNME_TS_'
+    # prefix = 'TMAX_TS'
+    # pattern_prefix = 'TMAX_TS_'
+    #('SNAC_TS', 'SNAC_TS_'),,('SNME_TS','SNME_TS_'),('TMAX_TS','TMAX_TS_')
+    # pairs = [('SNAC_TS', 'SNAC_TS_'),('SNME_TS', 'SNME_TS_')]
+    # pairs = [('OL_Hand_WTRDEP_TS_AVG', 'OL_Hand_WTRDEP_TS_AVG_')]
+    pairs = [('OL_Hand_WTRDEP_TS', 'OL_Hand_WTRDEP_TS_')]
+    suffix = 'txt'
+
+    #########################  将HAND输出的结果生成为shp  ################################
+    shp_path = os.path.join(work_dir,r"workspace\HRU_file\HRU_mollwede.shp")
+    # start = datetime(2019, 3, 10, 0, 0, 0)
+    # end = datetime(2019, 3, 22, 0, 0, 0)
+    start = datetime(2010, 1, 1, 0, 0, 0)
+    end = datetime(2019, 12, 30, 0, 0, 0)
+    # 多线程容易报错
+    # files_in_range = []
+    # for prefix, pattern_prefix in pairs:
+    #     txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
+    #     files_in_range.extend(filter_paths_by_time(txt_paths, start, end, pattern_prefix))
+    # def run_gen_hand_shp(txt_path, shp_path):
+    #     output_tif_path = replace_txt_with_shp(txt_path)
+    #     write_value_to_hrushp(shp_path, txt_path, output_tif_path, id_field="FIELDID", value_field="value",
+    #                           fill_missing=None)
+    # max_workers = 2
+    # with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    #     futures = [
+    #         executor.submit(run_gen_hand_shp, txt_path, shp_path)
+    #         for txt_path in files_in_range
+    #     ]
+    #
+    #     # 可选：显示进度 & 捕捉错误
+    #     for future in as_completed(futures):
+    #         try:
+    #             future.result()
+    #         except Exception as e:
+    #             print(f"发生错误：{e}")
+    ### 单线程
+    # for prefix, pattern_prefix in pairs:
+    #     txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
+    #     files_in_range = filter_paths_by_time(txt_paths, start, end, pattern_prefix)
+    #     for txt_path in files_in_range:
+    #         output_tif_path = replace_txt_with_shp(txt_path)
+    #         write_value_to_hrushp(shp_path, txt_path, output_tif_path, id_field="FIELDID", value_field="value", fill_missing=None)
+
+    #########################  将HAND输出的结果生成为tif  ################################
+
+    # prefix = 'OL_Hand_WTRDEP_TS'
+    # prefix = 'SNAC_TS_'
+
+    input_tif_path = os.path.join(work_dir,r'workspace/HRU_file/ALL_HRU_final.tif')
+
+    # HAND水深 txt 转 tif
+    # txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
+    # for txt_path in txt_paths:
+    #     output_tif_path = replace_txt_with_tif(txt_path)
+    #     gen_hand_tif_by_txt(
+    #         txt_path=txt_path,
+    #         input_tif_path=input_tif_path,
+    #         output_tif_path=output_tif_path
+    #     )
+    # 多线程生成tif
+    # 设置最大线程数（建议不超过 CPU 核心数的 2~4 倍）
+    def run_gen_hand_tif(txt_path, input_tif_path):
+        output_tif_path = replace_txt_with_tif(txt_path)
+        # gen_hand_tif_by_txt(
+        #     txt_path=txt_path,
+        #     input_tif_path=input_tif_path,
+        #     output_tif_path=output_tif_path
+        # )
+        gen_hand_tif_by_txt_fast(
+            txt_path=txt_path,
+            input_tif_path=input_tif_path,
+            output_tif_path=output_tif_path
+                                 )
+    max_workers = 10
+    files_in_range = []
+    for prefix, pattern_prefix in pairs:
+        txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
+        files_in_range.extend(filter_paths_by_time(txt_paths, start, end, pattern_prefix))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                executor.submit(run_gen_hand_tif, txt_path, input_tif_path)
+                for txt_path in files_in_range
+            ]
+
+            # 可选：显示进度 & 捕捉错误
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"发生错误：{e}")
+
+
 

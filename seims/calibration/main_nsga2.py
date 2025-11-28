@@ -95,7 +95,7 @@ else:
     # multiobj.setdefault('Q_322', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_123', [['NSE', 1., -100, '>0']])
-    multiobj.setdefault('Q_141', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_214', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_255', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_347', [['NSE', 1., -100, '>0']])
@@ -104,6 +104,7 @@ else:
     # multiobj.setdefault('F_322', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('F_123', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('F_214', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('F_1171', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('F_1171', [['FI', 1., -1.], ['BI', -1., 2.]])
 
 

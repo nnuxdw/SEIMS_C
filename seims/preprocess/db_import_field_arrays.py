@@ -423,7 +423,8 @@ if __name__ == "__main__":
         "RES_LN":"RES_LN",
         "RES_LF":"RES_LF",
         "RES_ADJUST":"RES_ADJUST",
-        "RES_normMult":"RES_normMult"
+        "RES_normMult":"RES_normMult",
+        "LAKE_MNLWL_1D": "LAKE_MNLWL_1D",
     }
     # gen_param_group_csv(
     #     conn=conn,
@@ -437,7 +438,7 @@ if __name__ == "__main__":
 
     update_reaches_from_csv(
         conn=conn,
-        db_name='poyang_lake1_longterm_model_141',
+        db_name='poyang_lake1_longterm_model_457',
         collection='REACHES',
         csv_file=param_group2_ch_csv_file
     )

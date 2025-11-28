@@ -368,6 +368,8 @@ class ReadModelData(object):
                     if val is not None:
                         sum_by_time[utc] = sum_by_time.get(utc, 0.0) + float(val)
                 for curt, total in sorted(sum_by_time.items()):
+                    if curt not in data_dict:
+                        data_dict[curt] = [None] * len(vars)
                     data_dict[curt][i] = total
 
             else:

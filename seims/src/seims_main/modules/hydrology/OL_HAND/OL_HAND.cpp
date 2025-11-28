@@ -10,7 +10,7 @@
 OL_HAND::OL_HAND() :
 	m_dt(-1), m_inputSubbsnID(-1), m_nCells(-1), m_nSubbsns(-1),
 	m_chWth(nullptr), m_chDepth(nullptr), m_chLen(nullptr), m_islake(nullptr), m_handWtrDep(nullptr), m_chBedMeanElev(nullptr), m_isres(nullptr),
-	curLev(0), levCounter(0), m_isHandFlooded(nullptr), m_subbasinInundationArea(nullptr), m_sumInundationArea(0),m_outletID(-1), m_subbasinArea(nullptr)
+	curLev(0), levCounter(0), m_isHandFlooded(nullptr), m_subbasinInundationArea(nullptr), m_subbasinWtrDep(nullptr),m_sumInundationArea(0),m_outletID(-1), m_subbasinArea(nullptr)
   {
 }
 
@@ -67,7 +67,6 @@ void OL_HAND::Set1DData(const char* key, const int n, float* data) {
 	else if (StringMatch(sk, VAR_SUBBSN)) m_subbsnID = data;
 	else if (StringMatch(sk, VAR_CHWTRDEPTH)) m_chWtrDepth = data;
 	else if (StringMatch(sk, VAR_CHWTRWIDTH)) m_chWtrWth = data;
-
 	
 	else {
 		throw ModelException(MID_OL_HAND, "Set1DData", "Parameter " + sk + " does not exist.");
@@ -123,6 +122,7 @@ void OL_HAND::InitialOutputs() {
 		m_isHandFlooded = new(nothrow) float[m_nCells];
 		m_subbasinArea = new(nothrow) float[m_nreach + 1];
 		m_subbasinInundationArea = new(nothrow) float[m_nreach + 1];
+		m_subbasinWtrDep = new(nothrow) float[m_nreach + 1];
 
 
 #ifdef _WIN32
@@ -210,15 +210,20 @@ int OL_HAND::Execute() {
 void OL_HAND::Get1DData(const char* key, int* n, float** data) {
     string sk(key);
 	if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
-	*data = m_handWtrDep;
-	*n = m_nCells;
+		*data = m_handWtrDep;
+		*n = m_nCells;
 	}else if (StringMatch(sk, VAR_IS_HAND_FLOODED)) {
 		*data = m_isHandFlooded;
 		*n = m_nCells;
 	}else if (StringMatch(sk, VAR_SUBBASIN_FLOODED_AREA)) {
-		m_subbasinInundationArea[0] = m_subbasinInundationArea[m_outletID];
 		*data = m_subbasinInundationArea;
 	}
+	else if (StringMatch(sk, VAR_SUBBASIN_WTR_DEPTH)) {
+		*data = m_subbasinWtrDep;
+	}
+
+	
+
 	//else if (StringMatch(sk, VAR_CHWTRDEPTH)) {
 	//	m_chWtrDepth[0] = m_chWtrDepth[m_outletID];
 	//	*data = m_chWtrDepth;
@@ -242,10 +247,7 @@ void OL_HAND::Get2DData(const char* key, int* n, int* col, float*** data) {
 void OL_HAND::updateAllHandsWtrDep(const int reachId) {
 	float inundationArea = 0.0;
 	float subbasinArea = 0.0;
-#ifdef DEBUG_OL_HAND
-	cout << "reachId: " << reachId << endl;
 
-#endif // DEBUG_OL_HAND
 
 	//m_Hands[reachId].levels[lev].m_levelWtrDep = 0.0;
 	for (int ll = 1; ll <= m_Hands[reachId].n_levels; ll++)
@@ -263,14 +265,12 @@ void OL_HAND::updateAllHandsWtrDep(const int reachId) {
 				m_isHandFlooded[handId] = 0.0;
 			}
 			subbasinArea += m_handArea[handId];
-#ifdef DEBUG_OL_HAND
-			cout << "handId: " << handId << "  area: " << m_handArea[handId] * 0.000001 << endl;
 
-#endif // DEBUG_OL_HAND
 		}
 	}
 	m_subbasinInundationArea[reachId] = inundationArea * 0.000001;
 	m_subbasinArea[reachId] = subbasinArea * 0.000001;
+	m_subbasinWtrDep[reachId] = m_Hands[reachId].levels[1].m_levelWtrDep;
 	//m_chWtrDepth[reachId] = m_Hands[reachId].levels[1].m_levelWtrDep;
 	return;
 }
@@ -340,7 +340,37 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 	
 	updateAllHandsWtrDep(reachId);
 	
+#ifdef DEBUG_OL_HAND
+	if (reachId == 1171)
+	{
+		cout << "===== HAND Debug: reachId = " << reachId << " =====\n";
+		cout << "Input water volume (sto) = " << sto << " m3\n";
+		cout << "Located in level = " << target_level << " / " << n << "\n";
 
+		if (target_level > 1) {
+			cout << "Volume below this level = " << levels[target_level - 1].m_levelAccVol << " m3\n";
+		}
+		cout << "Remaining volume in this level = " << remaining << " m3\n";
+		cout << "Partial depth added = " << partial_depth << " m\n\n";
+
+		cout << "---- Level Water Depths ----\n";
+		for (int i = 1; i <= n; ++i) {
+			cout << "Level " << i
+				<< ": WaterDepth = " << levels[i].m_levelWtrDep
+				<< " m"
+				<< (i == target_level ? "  <-- active level" : "")
+				<< "\n";
+		}
+
+		if (sto > maxVolume) {
+			cout << "Excess Water = " << hand.excessWtrVol << " m3 (exceeds HAND max storage)\n";
+		}
+
+		cout << "====================================\n\n";
+		cout.flush();
+	}
+	
+#endif
 	return true;
 }
 
@@ -385,37 +415,43 @@ void OL_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 		string token;
 		vector<string> tokens;
 
-		// 取前7个字段
-		for (int i = 0; i < 7 && getline(ss, token, ','); ++i) {
+		// 取前 7 个字段:
+		// 0 Subbasin
+		// 1 Flood_Level
+		// 2 LevelDepth
+		// 3 SumArea
+		// 4 SumVolume
+		// 5 AvgDepth
+		// 6 AccVolume
+		for (int i = 0; i < 7 && std::getline(ss, token, ','); ++i) {
 			tokens.push_back(token);
 		}
 
-		// 第8列：AccDepth，会包含整个 "[0.0, ..., ...]" 的字符串
-		string accDepthStr;
-		getline(ss, accDepthStr, '"');  // 先跳过前引号
-		getline(ss, accDepthStr, '"');  // 获取中间数组字符串
+		// 第 8 列：LowerAccDepth，形如 "[0.0, ...]"，被双引号包着
+		std::string accDepthStr;
+		std::getline(ss, accDepthStr, '"');  // 跳过前一个引号（可能是空串）
+		std::getline(ss, accDepthStr, '"');  // 取中间数组字符串
 
+		// ---- 解析基本字段 ----
+		int subbasin = std::stoi(tokens[0]);
+		int lev = std::stoi(tokens[1]);
 
-		// 解析基本字段
-		int subbasin = stoi(tokens[0]);
-		int lev = stoi(tokens[1]);
-
-		// 你的 vector 和结构校验逻辑
+		// 结构校验 & 获取 Hand
 		Hand& hand = m_Hands[subbasin];
-		if (lev >= hand.levels.size()) {
+		if (lev >= static_cast<int>(hand.levels.size())) {
 			hand.levels.resize(lev + 1);
 		}
 
 		Level& level = hand.levels[lev];
-		level.m_levelDepth = stof(tokens[2]);
-		level.m_levelSumArea = stof(tokens[3]);
-		level.m_levelSumVol = stod(tokens[4]);
-		level.m_levelAvgDepth = stof(tokens[5]);
-		level.m_levelAccVol = stod(tokens[6]);
+		level.m_levelDepth = std::stof(tokens[2]);
+		level.m_levelSumArea = std::stof(tokens[3]);
+		level.m_levelSumVol = std::stod(tokens[4]);
+		level.m_levelAvgDepth = std::stof(tokens[5]);
+		level.m_levelAccVol = std::stod(tokens[6]);
 
-		// 解析 AccDepth 数组
-		vector<float> accDepthVec = parseAccDepthArray(accDepthStr);
-		level.m_levelLowerAccDepth = vector<float>(accDepthVec.size());
+		// ---- 解析 LowerAccDepth 数组 ----
+		std::vector<float> accDepthVec = parseAccDepthArray(accDepthStr);
+		level.m_levelLowerAccDepth = new float[accDepthVec.size()];
 		for (size_t i = 0; i < accDepthVec.size(); ++i) {
 			level.m_levelLowerAccDepth[i] = accDepthVec[i];
 		}
@@ -424,8 +460,9 @@ void OL_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 	}
 
 	file.close();
-	cout << "Finished loading Inundation data from file: " << csvPath << endl;
+	std::cout << "Finished loading Inundation data from file: " << csvPath << std::endl;
 }
+
 
 
 void OL_HAND::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_Hands) {

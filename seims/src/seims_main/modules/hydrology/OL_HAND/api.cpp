@@ -35,7 +35,6 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddInput(VAR_CHWTRDEPTH, UNIT_LEN_M, DESC_CHWTDEPTH, Source_Module, DT_Array1D);
 	mdi.AddInput(VAR_CHWTRWIDTH, UNIT_LEN_M, DESC_CHWTWIDTH, Source_Module, DT_Array1D);
 	
-	
 	// add reach information
 	mdi.AddParameter(VAR_REACH_PARAM, UNIT_NON_DIM, DESC_REACH_PARAM, Source_ParameterDB, DT_Reach);
 
@@ -43,7 +42,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddOutput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, DT_Raster1D);
 	mdi.AddOutput(VAR_IS_HAND_FLOODED, UNIT_NON_DIM, DESC_IS_HAND_FLOODED, DT_Raster1D);
 	mdi.AddOutput(VAR_SUBBASIN_FLOODED_AREA, UNIT_AREA_M2, DESC_SUBBASIN_FLOODED_AREA, DT_Array1D);
-
+	mdi.AddOutput(VAR_SUBBASIN_WTR_DEPTH, UNIT_AREA_M2, DESC_SUBBASIN_WTR_DEPTH, DT_Array1D);
+	
 
     /// write out the XML file.
     res = mdi.GetXMLDocument();

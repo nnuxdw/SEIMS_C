@@ -23,9 +23,12 @@ import matplotlib.pyplot as plt
 from spotpy.objectivefunctions import nashsutcliffe, rsquared, rmse, pbias,kge, lognashsutcliffe,rsr,mae
 from preprocess.db_read_model import ReadModelData
 import matplotlib as mpl
+import matplotlib.dates as mdates
+from matplotlib.ticker import NullFormatter, FuncFormatter
+
 def main():
     NN = 1  #可调，需要前多少组参数集
-    watershed_num = 225
+    watershed_num = 1171
     model_name = f'poyang_lake1_longterm_model_{watershed_num}'
     wtsd_name = get_watershed_name('Specify watershed name to run postprocess.')
     if wtsd_name not in list(DEMO_MODELS.keys()):
@@ -203,6 +206,20 @@ def main():
 
         ax.set_ylabel('%s'%kk, fontsize=15)
         ax.tick_params('both', length=5, width=2, which='major',labelsize=15)
+        # major：按年打刻度，并显示年份标签
+        ax.xaxis.set_major_locator(mdates.YearLocator())
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+
+        # minor：按月打刻度，但不显示标签
+        ax.xaxis.set_minor_locator(mdates.MonthLocator())
+        def june_only(x, pos):
+            dt = mdates.num2date(x)
+            if dt.month == 6:
+                # 你可以改成 'Jun' / '06' / '6月' 任意格式
+                return '6'
+            return ''
+
+        ax.xaxis.set_minor_formatter(FuncFormatter(june_only))
         plt.tight_layout()
         plt.savefig(model_paths.model_dir + os.path.sep + r'CALI_NSGA2_Gen_%s_Pop_%s\%s.png'%(ngens,npop,kk), dpi=300)
         print(model_paths.model_dir + os.path.sep + r'CALI_NSGA2_Gen_%s_Pop_%s\%s.png'%(ngens,npop,kk))

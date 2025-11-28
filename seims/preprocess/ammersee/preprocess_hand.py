@@ -40,53 +40,59 @@ def compute_hand_area_volume(hand_df, ch_map):
 
     for sbid, group in grouped:
         levels = group.groupby("Flood_Level")
-        sorted_levels = sorted(levels, key=lambda x: x[0])  # 按层升序
+        sorted_levels = sorted(levels, key=lambda x: x[0])
 
         prev_hand_area_sum = 0.0
-        sub_result = []
 
+        sub_result = []
         level_depths = []
         avg_depths = []
         level_indices = []
 
         for idx, (level, level_df) in enumerate(sorted_levels):
-            hand_area_sum = level_df["area"].sum()
-            hand_volume = (level_df["area"] * level_df["Depth"]).sum()
+            hand_area = level_df["area"].iloc[0]
+            hand_volume = level_df["area"].iloc[0] * level_df["Depth"].iloc[0]
+
             interval = level_df["HAND_Threshold_Interval"].iloc[0]
             lower, upper = map(float, interval.split(","))
             level_depth = upper - lower
 
             ch = ch_map.get(int(sbid), {})
-            ch_area = 0
-            channel_volume = 0
+            ch_area = 0.0
+            channel_volume = 0.0
+
             is_lake = ch.get("Is_Lake", 0)
             is_res = ch.get("Is_Res", 0)
 
             if is_lake != 1 and is_res != 1 and idx == 0:
-                ch_area = ch.get("CH_WIDTH", 0) * ch.get("CH_LEN", 0)
+                ch_area = ch.get("CH_WIDTH", 0.0) * ch.get("CH_LEN", 0.0)
                 channel_volume = ch_area * level_depth
 
             prev_hand_volume = prev_hand_area_sum * level_depth
+
             sum_volume = channel_volume + prev_hand_volume + hand_volume
-            sum_area = ch_area + prev_hand_area_sum + hand_area_sum
+            sum_area = ch_area + prev_hand_area_sum + hand_area
 
             avg_depth = sum_volume / sum_area if sum_area > 0 else 0.0
 
-            sub_result.append({
+
+            row = {
                 "Subbasin": sbid,
                 "Flood_Level": level,
                 "LevelDepth": level_depth,
                 "SumArea": sum_area,
                 "SumVolume": sum_volume,
-                "AvgDepth": avg_depth
-            })
+                "AvgDepth": avg_depth,
+            }
+            sub_result.append(row)
+
+            prev_hand_area_sum += hand_area
 
             level_depths.append(level_depth)
             avg_depths.append(avg_depth)
             level_indices.append(level)
 
-            prev_hand_area_sum += hand_area_sum
-
+        # ===== LowerAccDepth 保留你的原逻辑 =====
         n = len(level_depths)
         acc_depth_matrix = [[0.0 for _ in range(n + 1)] for _ in range(n + 1)]
 
@@ -98,8 +104,7 @@ def compute_hand_area_volume(hand_df, ch_map):
                     acc_depth_matrix[i][lev] = avg_depths[i - 1] + sum(level_depths[i:lev - 1])
 
         for i in range(1, n + 1):
-            acc_depth = [round(v, 3) for v in acc_depth_matrix[i]]
-            sub_result[i - 1]["LowerAccDepth"] = acc_depth
+            sub_result[i - 1]["LowerAccDepth"] = [round(v, 3) for v in acc_depth_matrix[i]]
 
         result.extend(sub_result)
 
@@ -108,17 +113,19 @@ def compute_hand_area_volume(hand_df, ch_map):
 
     df_result["AccVolume"] = df_result.groupby("Subbasin")["SumVolume"].cumsum()
 
-    # 保留 3 位小数
     df_result["SumArea"] = df_result["SumArea"].round(3)
     df_result["SumVolume"] = df_result["SumVolume"].round(3)
     df_result["AvgDepth"] = df_result["AvgDepth"].round(3)
     df_result["AccVolume"] = df_result["AccVolume"].round(3)
 
-    # 确保 AccDepth 在最后一列
-    cols = [col for col in df_result.columns if col != "LowerAccDepth"] + ["LowerAccDepth"]
-    df_result = df_result[cols]
+    cols = [
+               col for col in df_result.columns
+               if col not in ("LowerAccDepth")
+           ] + ["LowerAccDepth"]
 
+    df_result = df_result[cols]
     return df_result
+
 
 
 
@@ -294,10 +301,11 @@ def repair_flood_levels(input_path: str, output_path: str):
 
 
 if __name__ == '__main__':
-    input_shp = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\HRU_file\HRU_mollwede.shp"
+    ### 注意input_shp一定要是按照FIELDID合并之后且投影到等面积的
+    input_shp = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_shp\subbasin_mollwede_dissolved.shp"
     input_hand_flood_step_old = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepOld.txt"
     input_hand_flood_step = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStep.txt"
-    output_map = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\InundationMap.csv"
+    output_map = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\InundationMap1.csv"
     repaired_flood_level = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepRepair.txt"
     modifyed_flood_level = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepModify.txt"
     # 检查缺失层级
@@ -313,6 +321,6 @@ if __name__ == '__main__':
         hand_txt_path=input_hand_flood_step,
         output_csv=output_map,
         mongo_uri="mongodb://localhost:27017",
-        mongo_db="poyang_lake1_longterm_model",
+        mongo_db="poyang_lake1_longterm_model_1171",
         mongo_col="REACHES",
     )

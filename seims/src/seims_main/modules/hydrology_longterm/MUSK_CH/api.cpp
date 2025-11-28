@@ -75,16 +75,23 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_LAKE_EVP, UNIT_NON_DIM, DESC_LAKE_EVP, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_LAKE_SEEP, UNIT_NON_DIM, DESC_LAKE_SEEP, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_LAKE_MNVOL, UNIT_NON_DIM, DESC_LAKE_MNVOL, Source_ParameterDB, DT_Single);
+	//mdi.AddParameter(VAR_LAKE_MNVOL_1D, UNIT_NON_DIM, DESC_LAKE_MNVOL, Source_ParameterDB, DT_Array1D);
+
 	mdi.AddParameter("LAKEB", UNIT_NON_DIM, DESC_LAKE_MNVOL, Source_ParameterDB, DT_Single);
 	//mdi.AddParameter(REACH_LAKEB_1D, UNIT_NON_DIM, DESC_LAKE_MNVOL, Source_ParameterDB, DT_Array1D);
 	mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_DEM, UNIT_LEN_M, DESC_DEM, Source_ParameterDB_Optional, DT_Raster1D);
     mdi.AddParameter(VAR_RUNOFF_CO, UNIT_NON_DIM, DESC_RUNOFF_CO, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_SLOPE, UNIT_PERCENT, DESC_SLOPE, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter("ep_ch_1d", UNIT_WTRDLT_MMH, DESC_EP_CH, Source_ParameterDB, DT_Raster1D);
 
     mdi.AddInput(VAR_PCP, UNIT_DEPTH_MM, DESC_PCP, Source_Module, DT_Raster1D); 
     mdi.AddInput(VAR_PET, UNIT_WTRDLT_MMD, DESC_PET, Source_Module, DT_Raster1D);
 	//mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);   // xiaodw comment, don't need soil temperature now
+	// xdw++
+	//mdi.AddInput(REACH_LAKEAREA, UNIT_AREA_M2, DESC_REACH_LAKEAREA, Source_Module, DT_Array1D);
+	mdi.AddInput(VAR_SUBBASIN_WTR_DEPTH, UNIT_LEN_M, DESC_SUBBASIN_WTR_DEPTH, Source_Module, DT_Array1D);
+	mdi.AddInput(VAR_SUBBASIN_FLOODED_AREA, UNIT_AREA_M2, DESC_SUBBASIN_FLOODED_AREA, Source_Module, DT_Array1D);
 
     mdi.AddOutput(VAR_qout, UNIT_NON_DIM, DESC_QRECH, DT_Raster1D);
     mdi.AddOutput(VAR_qsurf, UNIT_NON_DIM, DESC_QS, DT_Raster1D);
@@ -95,7 +102,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput("Qout", UNIT_NON_DIM, DESC_QS, DT_Raster1D);
 
     mdi.AddOutput("rrtime", UNIT_NON_DIM, "the water travel time ", DT_Array1D);
-    mdi.AddParameter("ep_ch_1d", UNIT_WTRDLT_MMH, DESC_EP_CH, Source_ParameterDB, DT_Raster1D);
+
+
 
 
     res = mdi.GetXMLDocument();

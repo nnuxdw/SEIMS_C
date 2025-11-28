@@ -832,7 +832,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_OLFLOW "OL_Flow" /// m_surfRf, overland flow in each cell calculated during overland routing
 #define VAR_OL_HAND_WTRDEP "OL_Hand_WTRDEP" /// m_surfRf, overland flow in each cell calculated during overland routing
 #define VAR_IS_HAND_FLOODED "m_isHandFlooded" /// are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water 
-#define VAR_SUBBASIN_FLOODED_AREA "m_chInundationArea"  // sum of  flooded hand's area in  each subbasin
+#define VAR_SUBBASIN_FLOODED_AREA "SUBBASIN_FLOODED_AREA"  // sum of  flooded hand's area in  each subbasin
+#define VAR_SUBBASIN_WTR_DEPTH "SUBBASIN_WTR_DEPTH"  // water depth in  each subbasin
 #define VAR_QG "QG" /// m_qgRchOut, Groundwater discharge at each reach outlet and at each time step
 #define VAR_QI "QI" /// m_qiRchOut, Interflow at each reach outlet and at each time step
 #define VAR_QOVERLAND "QOverland"
@@ -1373,6 +1374,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_CHTMX "maximum canopy height (m)"
 #define DESC_CHWIDTH "Channel width"
 #define DESC_CHWTWIDTH "Channel water width"
+#define DESC_REACH_LAKEAREA "Channel and lake's area"
 #define DESC_CHBTMWIDTH "the bottom width of channel"
 #define DESC_CHCROSSAREA "channel cross-sectional area"
 #define DESC_CHWTDEPTH "channel water depth"
@@ -1600,6 +1602,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_OLFLOW "overland flow in each cell calculated during overland routing"
 #define DESC_IS_HAND_FLOODED "are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water "
 #define DESC_SUBBASIN_FLOODED_AREA "sum of  flooded hand's area in  each subbasin"
+#define DESC_SUBBASIN_WTR_DEPTH "water depth in  each subbasin"
 #define DESC_QG "Groundwater discharge at each reach outlet"
 #define DESC_QI "Interflow at each reach outlet"
 #define DESC_QOVERLAND "Water discharge in the downslope boundary of cells"
@@ -2039,6 +2042,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_LAKE_EVP                        "LAKE_EVP"
 #define VAR_LAKE_SEEP                       "LAKE_SEEP"
 #define VAR_LAKE_MNVOL                      "LAKE_MNLWL"
+#define VAR_LAKE_MNVOL_1D                      "LAKE_MNLWL_1D"
 #define VAR_ENRPOC                          "enr_poc"
 #define VAR_KDOC                            "kd_oc"
 #define VAR_PERCO_DOC                       "perco_doc"

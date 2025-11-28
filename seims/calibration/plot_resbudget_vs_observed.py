@@ -235,7 +235,7 @@ def plot_sim_vs_obs(sim_df: pd.DataFrame, obs_df: pd.DataFrame,
 
 
 if __name__ == "__main__":
-    LOG_PATH = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model_141\debuglog5.txt"
+    LOG_PATH = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model_141\debuglog6.txt"
     MONGO_URI = "mongodb://localhost:27017"
     STATION_ID = 141
 

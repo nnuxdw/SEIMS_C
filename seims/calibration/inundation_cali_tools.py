@@ -1104,16 +1104,16 @@ if __name__ == '__main__':
     # 6.2 计算每个subbasin每个月的淹没面积，并写入MEASUREMENT表
     csv_path = os.path.join(inundation_cali_path, 'subbasin_flood_area.csv')
     # df = calculate_inundation_area(subbasin_flood_map_mollweide_path,None, csv_path)
-    mongo_uri = "mongodb://localhost:27017"
+    mongo_uri = "mongodb://172.21.124.127:27019"
     db_name = "poyang_lake1_HydroClimate"
     collection_name = "MEASUREMENT"
-    # load_flood_csv_to_mongo(
-    #     csv_path=csv_path,
-    #     mongo_uri=mongo_uri,
-    #     db_name=db_name,
-    #     collection_name=collection_name,
-    #     type_code="F",      # 你想写入的TYPE
-    # )
+    load_flood_csv_to_mongo(
+        csv_path=csv_path,
+        mongo_uri=mongo_uri,
+        db_name=db_name,
+        collection_name=collection_name,
+        type_code="F",      # 你想写入的TYPE
+    )
 
     # 6 如果用每个子流域逐月的淹没范围率定，用该方法
     # 6.1 加载每个子流域逐月淹没的tif,时间为闭区间
