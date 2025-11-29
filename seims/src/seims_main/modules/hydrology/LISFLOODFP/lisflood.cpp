@@ -29,14 +29,411 @@ Tel: +44-117-928-9108, Fax: +44-117-928-7878
 #endif
 
 #include "lisflood2/file_tool.h"
-#include "lisflood2/lis2_output.h"
+
+#include "time_tool.h"
+
+//#include "lisflood2/lis2_output.h"
+//#include "lisflood2/lisflood_processing.h"
 
 //---------------------------------------------------------------------------
-int main(int argc, char *argv[]) {
-	//return LisFloodFP_Initilize(argc, argv);
-	return 1;
+void printversion(int verbose)
+// printout header with program and version number
+{
+  printf("***************************\n");
+  printf(" BASINFLOOD version %d.%d.%d (%s)\n", LF_VersionMajor, LF_VersionMinor, LF_VersionInc, NUMERIC_TYPE_NAME);
+  if (verbose == ON)
+  {
+#if defined (__INTEL_COMPILER)
+	  printf("Intel Compiler version: %d\n", __INTEL_COMPILER);
+
+	  //https://software.intel.com/en-us/node/514528
+	  printf("CPU instructions used:");
+#if defined (__AVX2__)
+	  printf(" AVX2");
+#endif
+#if defined (__AVX__)
+	  printf(" AVX");
+#endif
+#if defined (__SSE4_2__)
+	  printf(" SSE_4.2");
+#endif
+#if defined (__SSE4_1__)
+	  printf(" SSE_4.1");
+#endif
+#if defined (__SSE3__)
+	  printf(" SSE3");
+#endif
+#if defined (__SSE2__)
+	  printf(" SSE2");
+#endif
+#if defined (__SSE__)
+	  printf(" SSE");
+#endif
+	  printf("\n");
+
+#endif
+  }
+
+#if defined (CUDA)
+  printf("CUDA supported\n");
+#endif
+#if defined (_PROFILE_MODE) && _PROFILE_MODE > 0
+  printf("Profile Mode Enabled: %d\n", _PROFILE_MODE);
+#endif
+#if defined (_SGM_BY_BLOCKS) && _SGM_BY_BLOCKS > 0
+  printf("_SGM_BY_BLOCKS: %d\n", _SGM_BY_BLOCKS);
+#endif
+#if defined (_BALANCE_TYPE) && _BALANCE_TYPE > 0
+  printf("_BALANCE_TYPE: %d\n", _BALANCE_TYPE);
+#endif
+#if defined (_ONLY_RECT) && _ONLY_RECT == 1
+  printf("Rectangular channels only.\n");
+#endif
+#if defined (_DISABLE_WET_DRY) && _DISABLE_WET_DRY == 1
+  printf("_DISABLE_WET_DRY.\n");
+#endif
+#if defined (_CALCULATE_Q_MODE) && (_CALCULATE_Q_MODE != 0)
+  printf("_CALCULATE_Q_MODE %d.\n", _CALCULATE_Q_MODE);
+#endif
+
+  printf("***************************\n\n");
 }
-//---------------------------------------------------------------------------
+
+//-------------------DataTypes.cpp-------------------------
+void AllocateWetDryRowBound(int row_count, int block_count, WetDryRowBound * wet_dry_bounds)
+{
+	wet_dry_bounds->fp_h = (IndexRange*)memory_allocate(row_count * sizeof(IndexRange));
+	wet_dry_bounds->fp_h_prev = (IndexRange*)memory_allocate(row_count * sizeof(IndexRange));
+	wet_dry_bounds->fp_vol = (IndexRange*)memory_allocate(row_count * sizeof(IndexRange));
+	wet_dry_bounds->dem_data = (IndexRange*)memory_allocate(row_count * sizeof(IndexRange));
+
+
+	wet_dry_bounds->block_count = block_count;
+	wet_dry_bounds->block_row_bounds = (IndexRange*)memory_allocate(sizeof(IndexRange*) * block_count);
+
+	for (int block_index = 0; block_index < block_count; block_index++)
+	{
+		wet_dry_bounds->block_row_bounds[block_index].start = -1;
+		wet_dry_bounds->block_row_bounds[block_index].end = -1;
+	}
+}
+
+void AllocateSubGridCellInfo(int cell_count, SubGridCellInfo * sub_grid_cell_info)
+{
+	sub_grid_cell_info->cell_count = cell_count;
+
+	sub_grid_cell_info->sg_cell_x = (int*)memory_allocate(cell_count * sizeof(int));
+	sub_grid_cell_info->sg_cell_y = (int*)memory_allocate(cell_count * sizeof(int));
+	sub_grid_cell_info->sg_cell_grid_index_lookup = (int*)memory_allocate(cell_count * sizeof(int));
+
+	sub_grid_cell_info->sg_cell_cell_area = (NUMERIC_TYPE*)memory_allocate(cell_count * sizeof(NUMERIC_TYPE));
+	sub_grid_cell_info->sg_cell_dem = (NUMERIC_TYPE*)memory_allocate(cell_count * sizeof(NUMERIC_TYPE));
+
+	sub_grid_cell_info->sg_cell_SGC_width = (NUMERIC_TYPE*)memory_allocate(cell_count * sizeof(NUMERIC_TYPE));
+	sub_grid_cell_info->sg_cell_SGC_c = (NUMERIC_TYPE*)memory_allocate(cell_count * sizeof(NUMERIC_TYPE));
+	sub_grid_cell_info->sg_cell_SGC_BankFullHeight = (NUMERIC_TYPE*)memory_allocate(cell_count * sizeof(NUMERIC_TYPE));
+	sub_grid_cell_info->sg_cell_SGC_BankFullVolume = (NUMERIC_TYPE*)memory_allocate(cell_count * sizeof(NUMERIC_TYPE));
+
+	sub_grid_cell_info->sg_cell_SGC_group = (int*)memory_allocate(cell_count * sizeof(int));
+	sub_grid_cell_info->sg_cell_SGC_is_large = (int*)memory_allocate(cell_count * sizeof(int));
+}
+
+void ZeroSubGridCellInfo(SubGridCellInfo * sub_grid_cell_info, int cell_index)
+{
+	sub_grid_cell_info->sg_cell_x[cell_index] = -1;
+	sub_grid_cell_info->sg_cell_y[cell_index] = -1;
+	sub_grid_cell_info->sg_cell_grid_index_lookup[cell_index] = -1;
+
+	sub_grid_cell_info->sg_cell_cell_area[cell_index] = C(-1.0);
+	sub_grid_cell_info->sg_cell_dem[cell_index] = C(-1.0);
+
+	sub_grid_cell_info->sg_cell_SGC_width[cell_index] = C(-1.0);
+	sub_grid_cell_info->sg_cell_SGC_BankFullHeight[cell_index] = C(-1.0);
+	sub_grid_cell_info->sg_cell_SGC_BankFullVolume[cell_index] = C(-1.0);
+	sub_grid_cell_info->sg_cell_SGC_c[cell_index] = C(-1.0);
+
+	sub_grid_cell_info->sg_cell_SGC_group[cell_index] = -1;
+	sub_grid_cell_info->sg_cell_SGC_is_large[cell_index] = -1;
+}
+
+void AllocateWaterSource(int count, WaterSource * waterSource)
+{
+	waterSource->count = count;
+
+	waterSource->Ident = (ESourceType*)memory_allocate(count * sizeof(ESourceType));
+	waterSource->Val = (NUMERIC_TYPE*)memory_allocate(count * sizeof(NUMERIC_TYPE));
+	waterSource->timeSeries = (TimeSeries**)memory_allocate(count * sizeof(TimeSeries*));
+	waterSource->Q_FP_old = (NUMERIC_TYPE*)memory_allocate(count * sizeof(NUMERIC_TYPE));
+	waterSource->Q_SG_old = (NUMERIC_TYPE*)memory_allocate(count * sizeof(NUMERIC_TYPE));
+	waterSource->g_friction_squared_FP = (NUMERIC_TYPE*)memory_allocate(count * sizeof(NUMERIC_TYPE));
+	waterSource->g_friction_squared_SG = (NUMERIC_TYPE*)memory_allocate(count * sizeof(NUMERIC_TYPE));
+
+	AllocateSubGridCellInfo(count, &waterSource->ws_cell);
+}
+
+
+void AllocateWeir(int count, WeirLayout * weirs)
+{
+	weirs->weir_index_qx = (int*)memory_allocate(count * sizeof(int));
+	weirs->weir_index_qy = (int*)memory_allocate(count * sizeof(int));
+
+	int weir_count = weirs->weir_count;
+
+	weirs->Weir_Q_old_SG = (NUMERIC_TYPE*)memory_allocate(weir_count * sizeof(NUMERIC_TYPE));
+	weirs->Weir_grid_index = (int*)memory_allocate(weir_count * sizeof(int));
+	weirs->Weir_g_friction_sq = (NUMERIC_TYPE*)memory_allocate(weir_count * sizeof(NUMERIC_TYPE));
+
+	weirs->Weir_pair_stream_flow_index = (int*)memory_allocate(2 * weir_count * sizeof(int));
+	AllocateSubGridCellInfo(2 * weir_count, &weirs->cell_pair);
+}
+
+
+void AllocateRoutingDynamicList(int rows, int grid_cols_padded, RouteDynamicList * route_dynamic_list)
+{
+	route_dynamic_list->row_route_qx_count = (int*)memory_allocate(rows * sizeof(int));
+	route_dynamic_list->row_route_qy_count = (int*)memory_allocate(rows * sizeof(int));
+	route_dynamic_list->route_list_i_lookup_qx = (int*)memory_allocate(grid_cols_padded * rows * sizeof(int));
+	route_dynamic_list->route_list_i_lookup_qy = (int*)memory_allocate(grid_cols_padded * rows * sizeof(int));
+}
+
+//-------------------lisflood.cpp-------------------------
+static long total_allocated = 0;
+static long total_legacy_allocated = 0;
+
+NUMERIC_TYPE* memory_allocate_zero_numeric_legacy(size_t size)
+{
+	NUMERIC_TYPE* memory = new NUMERIC_TYPE[size]();
+
+	if (memory == NULL)
+	{
+		printf("memory allocation failed %ldMB, legacy %ld, total %ld\n", total_allocated / 1024 / 1024, total_legacy_allocated / 1024 / 1024, (total_allocated + total_legacy_allocated) / 1024 / 1024);
+		exit(-1);
+	}
+	total_legacy_allocated += size * sizeof(NUMERIC_TYPE);
+	return memory;
+}
+
+NUMERIC_TYPE* memory_allocate_numeric_legacy(size_t size)
+{
+	NUMERIC_TYPE* memory = new NUMERIC_TYPE[size];
+
+	if (memory == NULL)
+	{
+		printf("memory allocation failed %ldMB, legacy %ld, total %ld\n", total_allocated / 1024 / 1024, total_legacy_allocated / 1024 / 1024, (total_allocated + total_legacy_allocated) / 1024 / 1024);
+		exit(-1);
+	}
+	total_legacy_allocated += size * sizeof(NUMERIC_TYPE);
+	return memory;
+}
+
+void memory_free_legacy(int** memory)
+{
+	if (*memory != NULL)
+	{
+		total_legacy_allocated -= sizeof *memory;
+
+		delete[] * memory;
+		*memory = NULL;
+	}
+}
+
+void memory_free_legacy(NUMERIC_TYPE** memory)
+{
+	if (*memory != NULL)
+	{
+		total_legacy_allocated -= sizeof *memory;
+
+		delete[] * memory;
+		*memory = NULL;
+	}
+}
+///////******************xiaodw, 避免linux内存分配错误*****************
+size_t align_up(size_t size, size_t alignment) {
+	return (size + alignment - 1) & ~(alignment - 1);
+}
+
+void* memory_allocate_aligned(size_t size, size_t alignment)
+{
+	void* memory = NULL;
+
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+	memory = _mm_malloc(size, alignment);  // Windows or Intel
+#else
+	size_t aligned_size = align_up(size, alignment);  // 自动补齐
+	int result = posix_memalign(&memory, alignment, aligned_size);
+	if (result != 0) memory = NULL;
+#endif
+
+	if (memory == NULL) {
+		printf("memory allocation failed: requested %lu bytes (aligned to %lu)\n", size, alignment);
+		exit(-1);
+	}
+
+	total_allocated += size;
+	return memory;
+}
+
+void* memory_allocate(size_t size)
+{
+#if defined(_MSC_VER) || defined (__INTEL_COMPILER)
+	void* memory = _mm_malloc(size, 64);
+#else
+	void* memory = NULL;
+	posix_memalign(&memory, 64, size);
+#endif
+	if (memory == NULL)
+	{
+		printf("memory allocation failed %ldMB, legacy %ld, total %ld\n", total_allocated / 1024 / 1024, total_legacy_allocated / 1024 / 1024, (total_allocated + total_legacy_allocated) / 1024 / 1024);
+		exit(-1);
+	}
+	total_allocated += size;
+	return memory;
+}
+
+void memory_free(int** memory)
+{
+	memory_free((void**)memory);
+}
+
+void memory_free(NUMERIC_TYPE** memory)
+{
+	memory_free((void**)memory);
+}
+
+void memory_free(void** memory)
+{
+#if defined(_MSC_VER) || defined (__INTEL_COMPILER)
+	_mm_free(*memory);
+#else
+	free(*memory);  // xiaodw, 正确释放 malloc 或 posix_memalign 分配的内存
+	//posix_memalign((void**)&memory, sizeof(float) * 100* 128, 64);
+#endif
+	*memory = NULL;
+}
+
+void memory_free(void** memory, size_t size)
+{
+	memory_free(memory);
+	total_allocated += size;
+}
+
+
+
+// Note: This function returns a pointer to a substring of the original string.
+// If the given string was allocated dynamically, the caller must not overwrite
+// that pointer with the returned value, since the original pointer must be
+// deallocated using the same allocator with which it was allocated.  The return
+// value must NOT be deallocated using free() etc.
+char *trimwhitespace(char *str)
+{
+	char *end;
+
+	// Trim leading space
+	while (isspace(*str)) str++;
+
+	if (*str == 0)  // All spaces?
+		return str;
+
+	// Trim trailing space
+	end = str + strlen(str) - 1;
+	while (end > str && isspace(*end)) end--;
+
+	// Write new null terminator
+	*(end + 1) = 0;
+
+	return str;
+}
+
+void SetArrayValue(int* arr, int value, int length)
+{
+	for (int j = 0; j < length; j++)
+	{
+		arr[j] = value;
+	}
+}
+
+
+
+void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr, ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr)
+{
+	if (LFPContextPtr->verbose == ON)
+	{
+		printf("\nStarting time steps: ");
+		fflush(stdout);
+	}
+	Solverptr->itrn_time_now = Solverptr->itrn_time;
+
+	// Populating Tstep variables prior to start of simulation
+	// 注意这里可以选择不同的时间步长策略
+	if (Statesptr->adaptive_ts == ON)
+	{
+		if (Solverptr->t == 0)
+		{
+			Solverptr->Tstep = Solverptr->InitTstep;
+			Solverptr->MinTstep = Solverptr->InitTstep;
+		}
+		if (LFPContextPtr->verbose == ON) printf("adaptive mode\n\n");
+		fflush(stdout);
+	}
+	else if (Statesptr->acceleration == ON)
+	{
+		if (Solverptr->t == 0)
+		{
+			Solverptr->Tstep = Solverptr->InitTstep;
+			Solverptr->MinTstep = Solverptr->InitTstep;
+		}
+		if (LFPContextPtr->verbose == ON) printf("acceleration mode\n\n");
+		fflush(stdout);
+	}
+	else if (Statesptr->Roe == ON)
+	{
+		if (Solverptr->t == 0)
+		{
+			Solverptr->Tstep = Solverptr->InitTstep;
+			Solverptr->MinTstep = Solverptr->InitTstep;
+		}
+		if (LFPContextPtr->verbose == ON) printf("Roe mode\n\n");
+		fflush(stdout);
+	}
+	else
+	{
+		if (Solverptr->t == 0)
+		{
+			Solverptr->Tstep = Solverptr->InitTstep;
+			Solverptr->MinTstep = Solverptr->InitTstep;
+		}
+		if (LFPContextPtr->verbose == ON) printf("non-adaptive mode\n\n");
+		fflush(stdout);
+	}
+	if (Statesptr->SGC == ON)
+	{
+		// because the SGC model calculates the time step in UpdateH rather than during calcFPflow it needs to initalise 
+		// SGCtmpTstep, which would usually be calculated in UpdateH
+		Solverptr->Tstep = Solverptr->InitTstep;
+		CalcT(Parptr, Solverptr, Arrptr);
+		Solverptr->SGCtmpTstep = Solverptr->Tstep;
+		if (LFPContextPtr->verbose == ON) printf("SGC mode\n\n");
+		fflush(stdout);
+	}
+	//	NUMERIC_TYPE init[16];
+	//#pragma omp parallel for default(shared) schedule(static)
+	//	for (int j = 0; j < 16; j++)
+	//	{
+	//		#pragma omp critical
+	//		{
+	//			init[j] = CBRT((NUMERIC_TYPE)j);
+	//		}
+	//
+	//	}
+	//	for (int j = 0; j < 16; j++)
+	//	{
+	//		printf("Init done: %" NUM_FMT"\n", init[j]);
+	//	}
+	//Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
+	//	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr)
+	Fast_MainInit(Fnameptr, Fptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Locptr, ChannelSegments, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr);
+}
+
 
 int LisFloodFP_Finilize(Solver *Solverptr, Arrays *Arrptr, Fnames *Fnameptr, Files* FpsPtr, States *Statesptr, Pars *Parptr, LISFLOODFPContext *LFPContext, char* tmpFileNamePtr) {
 
@@ -62,15 +459,15 @@ int LisFloodFP_Finilize(Solver *Solverptr, Arrays *Arrptr, Fnames *Fnameptr, Fil
 #endif
 
 
-	//output final output
-	WriteOutput(Fnameptr, LFPContext->grid_cols, LFPContext->grid_rows, LFPContext->grid_cols_padded,
-		LFPContext->depth_thresh,
-		LFPContext->tmp_grid1,
-		LFPContext->initHtm_grid, LFPContext->totalHtm_grid, LFPContext->maxH_grid, LFPContext->maxHtm_grid,
-		LFPContext->maxVc_grid, LFPContext->maxVc_height_grid, LFPContext->maxHazard_grid,
-		LFPContext->Vx_max_grid, LFPContext->Vy_max_grid,
-		LFPContext->dem_grid, LFPContext->SGC_BankFullHeight_grid,
-		Statesptr, Parptr, &Statesptr->output_params);
+	////output final output
+	//WriteOutput(Fnameptr, LFPContext->grid_cols, LFPContext->grid_rows, LFPContext->grid_cols_padded,
+	//	LFPContext->depth_thresh,
+	//	LFPContext->tmp_grid1,
+	//	LFPContext->initHtm_grid, LFPContext->totalHtm_grid, LFPContext->maxH_grid, LFPContext->maxHtm_grid,
+	//	LFPContext->maxVc_grid, LFPContext->maxVc_height_grid, LFPContext->maxHazard_grid,
+	//	LFPContext->Vx_max_grid, LFPContext->Vy_max_grid,
+	//	LFPContext->dem_grid, LFPContext->SGC_BankFullHeight_grid,
+	//	Statesptr, Parptr, &Statesptr->output_params);
 
 #ifndef RESULT_CHECK
 
@@ -381,18 +778,17 @@ int LisFloodFP_Finilize(Solver *Solverptr, Arrays *Arrptr, Fnames *Fnameptr, Fil
 		if (FpsPtr->dam_fp != NULL) fclose(FpsPtr->dam_fp);
 		sprintf(tmpFileNamePtr, "%s%s", Fnameptr->resrootname, ".dam");
 	}
+	return 1;
 }
+
 int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, Fnames *Fnameptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Stageptr, SGCprams *SGCptr, DamData *Damptr,
-	vector<ChannelSegmentType> *ChannelSegmentsVecPtr, LISFLOODFPContext* LFPContextPtr, char* tmpFileNamePtr, char* tmpSysCmdPtr)
-//int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, Fnames *Fnameptr,States *Statesptr,Pars *Parptr,Solver *Solverptr,Pois *Poisptr,BoundCs *BCptr,Stage *Stageptr,SGCprams *SGCptr,DamData *Damptr,
-//	 vector<ChannelSegmentType> *ChannelSegmentsVecPtr, LISFLOODFPContext* LFPContextPtr, SuperGridLinksList *Super_linksptr, char* tmpFileNamePtr, char* tmpSysCmdPtr)
+	vector<ChannelSegmentType> *ChannelSegmentsVecPtr, LISFLOODFPContext* LFPContextPtr, SuperGridLinksList *Super_linksptr, char* tmpFileNamePtr, char* tmpSysCmdPtr)
 {
 	int i, chseg;
 	FILE *tmp_fp;
 	//char t1[255];
 	NUMERIC_TYPE tmp;
 	//char tmp_sys_com[255]; // temporary string to hold system command
-
 	// Instances of Structures
 	//Arrays Raster;
 	//Files Fps;
@@ -405,8 +801,6 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	//Stage OutLocs;
 	//SGCprams SGCchanprams;
 	//DamData DamDataprams;
-
-
 	//Instances of Vectors
 	vector<ChannelSegmentType> ChannelSegments; // CCS Contains the channel information for ALL rivers (indexed using RiversIndex vector below).
 	//vector<ChannelSegmentType> *ChannelSegmentsVecPtr; // CCS
@@ -443,7 +837,6 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	//Stage *Stageptr = &OutLocs;
 	//SGCprams *SGCptr = &SGCchanprams;
 	//DamData *Damptr = &DamDataprams; //FEOL
-
 	// Define initial value for common simulation states (eg. verbose)
 	Statesptr->output_params = OutputParams();
 
@@ -515,6 +908,7 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	//Parptr->multi_lyr_soilThickness = C(0.0);
 	//Parptr->multi_lyr_soilInitMoisture = C(0.0);
 	//Parptr->multi_lyr_soilPoreIndex = C(0.0);
+
 
 	Parptr->Routing_Speed = C(0.1); // CCS default routing speed for shallow rainfall flows C(0.1) m/s
 	Parptr->RouteInt = C(0.0); // CCS will be reasigned when FlowDirDEM function is called
@@ -692,7 +1086,7 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	strcpy(Fnameptr->res_prefix, "res");
 
 	int verbosemode = ReadVerboseMode(argc, argv);
-
+	LFPContextPtr->verbose = verbosemode;
 	printversion(verbosemode);
 
 	ReadConfiguration(argc, argv, Fnameptr, Statesptr, Parptr, Solverptr,
@@ -998,9 +1392,9 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 			if (Statesptr->use_interflow_multilayer == ON)
 			{
 				// 每一层
-				for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
+				for (int lyrr = 0; lyrr < Parptr->multi_nSoilLyrs; lyrr++)
 				{
-					fprintf(FpsPtr->mass_fp, " InterGenQ_%d(m3/s) InterRoff_%d(m3) InterRoff_%d(m3/s) Inter2ChQ_%d(m3/s)", lyr, lyr, lyr, lyr);
+					fprintf(FpsPtr->mass_fp, " InterGenQ_%d(m3/s) InterRoff_%d(m3) InterRoff_%d(m3/s) Inter2ChQ_%d(m3/s)", lyrr, lyrr, lyrr, lyrr);
 				}
 				// 所有层总的
 				fprintf(FpsPtr->mass_fp, " InterGenQ(m3/s) InterRoff(m3) InterRoff(m3/s) Inter2ChQ(m3/s)");
@@ -1248,9 +1642,9 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 	if (Statesptr->SGC == ON) // SGC output
 	{
 		// SGC模拟
-		Fast_MainStart(Fnameptr, FpsPtr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Stageptr, CSTypePtr, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr,  LFPContextPtr); //Damptr added by FEOL
-		//Fast_MainStart(Fnameptr, FpsPtr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Stageptr, CSTypePtr, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr, Super_linksptr); //Damptr added by FEOL
+		//Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr, ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, int verbose)
 
+		Fast_MainStart(Fnameptr, FpsPtr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Stageptr, CSTypePtr, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr); //Damptr added by FEOL
 	}
 	else if (Statesptr->fv1 == ON)
 	{
@@ -1270,68 +1664,5 @@ int LisFloodFP_Initilize(int argc, char *argv[], Arrays *Arrptr, Files* FpsPtr, 
 
 
 	return 0;
-}
-
-void printversion(int verbose)
-// printout header with program and version number
-{
-  printf("***************************\n");
-  printf(" BASINFLOOD version %d.%d.%d (%s)\n", LF_VersionMajor, LF_VersionMinor, LF_VersionInc, NUMERIC_TYPE_NAME);
-  if (verbose == ON)
-  {
-#if defined (__INTEL_COMPILER)
-	  printf("Intel Compiler version: %d\n", __INTEL_COMPILER);
-
-	  //https://software.intel.com/en-us/node/514528
-	  printf("CPU instructions used:");
-#if defined (__AVX2__)
-	  printf(" AVX2");
-#endif
-#if defined (__AVX__)
-	  printf(" AVX");
-#endif
-#if defined (__SSE4_2__)
-	  printf(" SSE_4.2");
-#endif
-#if defined (__SSE4_1__)
-	  printf(" SSE_4.1");
-#endif
-#if defined (__SSE3__)
-	  printf(" SSE3");
-#endif
-#if defined (__SSE2__)
-	  printf(" SSE2");
-#endif
-#if defined (__SSE__)
-	  printf(" SSE");
-#endif
-	  printf("\n");
-
-#endif
-  }
-
-#if defined (CUDA)
-  printf("CUDA supported\n");
-#endif
-#if defined (_PROFILE_MODE) && _PROFILE_MODE > 0
-  printf("Profile Mode Enabled: %d\n", _PROFILE_MODE);
-#endif
-#if defined (_SGM_BY_BLOCKS) && _SGM_BY_BLOCKS > 0
-  printf("_SGM_BY_BLOCKS: %d\n", _SGM_BY_BLOCKS);
-#endif
-#if defined (_BALANCE_TYPE) && _BALANCE_TYPE > 0
-  printf("_BALANCE_TYPE: %d\n", _BALANCE_TYPE);
-#endif
-#if defined (_ONLY_RECT) && _ONLY_RECT == 1
-  printf("Rectangular channels only.\n");
-#endif
-#if defined (_DISABLE_WET_DRY) && _DISABLE_WET_DRY == 1
-  printf("_DISABLE_WET_DRY.\n");
-#endif
-#if defined (_CALCULATE_Q_MODE) && (_CALCULATE_Q_MODE != 0)
-  printf("_CALCULATE_Q_MODE %d.\n", _CALCULATE_Q_MODE);
-#endif
-
-  printf("***************************\n\n");
 }
 

@@ -52,6 +52,11 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput("SNO_AREA", UNIT_DEPTH_MM, DESC_SNME, DT_Array1D);
     mdi.AddOutput("SNAC_AREA", UNIT_DEPTH_MM, DESC_SNME, DT_Array1D);
     mdi.AddOutput("SNO_DAY", UNIT_DEPTH_MM, DESC_SNME, DT_Raster1D);
+	// xiaodw, for calibtrate snow melt
+	mdi.AddOutput(VAR_TMAX, UNIT_TEMP_DEG, DESC_TMAX, DT_Raster1D);
+	mdi.AddOutput(VAR_TMEAN, UNIT_TEMP_DEG, DESC_TMEAN, DT_Raster1D);
+	mdi.AddOutput(VAR_T0, UNIT_TEMP_DEG, DESC_T0, DT_Single);
+	mdi.AddOutput(VAR_T_SNOW, UNIT_TEMP_DEG, DESC_T_SNOW, DT_Single);
 
     mdi.AddParameter(VAR_LANDUSE, UNIT_NON_DIM, DESC_LANDUSE, Source_ParameterDB, DT_Raster1D);
     //mdi.AddInput("Qfg", UNIT_TEMP_DEG, DESC_TMAX, Source_Module, DT_Array1D);    // xiaodw comment, don't need glacier now

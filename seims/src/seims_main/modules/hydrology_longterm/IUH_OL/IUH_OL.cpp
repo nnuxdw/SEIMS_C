@@ -89,6 +89,7 @@ void IUH_OL::InitialOutputs() {
         for (int i = 0; i < m_nCells; i++) {
             float t_ch = 0;
             float hru_dafr = m_area[i]*1.e-6f/da_km;
+
             float sub_fr = tmp_Sub_area[CVT_INT(m_subbsnID[i])] / da_km;
             float slsubbsn = 30.f;
             if(tmp_Sub_slp[CVT_INT(m_subbsnID[i])]/tmp_Sub_area[CVT_INT(m_subbsnID[i])]< 0.01f) slsubbsn=120;
@@ -108,6 +109,11 @@ void IUH_OL::InitialOutputs() {
             tconc[i] = t_ov +  t_ch;
             m_brt[i] = 1. - exp(-1* m_surlag / tconc[i]);
             m_brt[i] = Min(m_brt[i],1.f);
+
+#ifdef DEBUG_IUH_OL
+			cout << i << " m_area " << m_area[i] << " da_km  " << da_km << " m_slope " << m_slope[i] << " slsubbsn " << slsubbsn << " m_ManningN " << m_ManningN[i] << " hru_dafr " << hru_dafr
+				<< " sub_fr " << sub_fr << " ch_l1 " << ch_l1 << " m_chMan " << m_chMan[CVT_INT(m_subbsnID[i])] << " t_ch " << t_ch << " tconc " << tconc[i] << " m_surlag " << m_surlag << " m_brt " << m_brt[i] << endl;
+#endif // DEBUG_IUH_OL
         }
         delete[] tmp_Sub_area;
         delete[] tmp_Sub_slp;

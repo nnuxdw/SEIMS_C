@@ -25,7 +25,7 @@ import matplotlib
 from mpl_toolkits.mplot3d import Axes3D  # Do not delete this import
 
 if os.name != 'nt':  # Force matplotlib to not use any Xwindows backend.
-    matplotlib.use('Agg')
+    matplotlib.use('Agg', warn=False)
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy

@@ -105,7 +105,7 @@ int SNO_SP::Execute() {
                 float snowCoverFrac = 0.f; //fraction of HRU area covered with snow
                 if (m_SA[rw] < m_snowCoverMax) {
                     float xx = m_SA[rw] / m_snowCoverMax;
-                    snowCoverFrac = xx / (xx + exp(m_snowCoverCoef1 = m_snowCoverCoef2 * xx));
+                    snowCoverFrac = xx / (xx + exp(m_snowCoverCoef1 - m_snowCoverCoef2 * xx));
                 } else {
                     snowCoverFrac = 1.f;
                 }
@@ -170,8 +170,19 @@ void SNO_SP::Get1DData(const char* key, int* n, float** data) {
     else if (StringMatch(s, "SNO_AREA")) *data = m_snoarea;  //ljj
     else if (StringMatch(s, "SNAC_AREA")) *data = m_snacarea;  //ljj
     else if (StringMatch(s, "SNO_DAY")) *data = m_snoday;  //ljj
+	else if (StringMatch(s, VAR_TMEAN)) *data = m_meanTemp;  //xiaodw, for calibrate snow melt
+	else if (StringMatch(s, VAR_TMAX)) *data = m_maxTemp;  //xiaodw, for calibrate snow melt
     else {
         throw ModelException(MID_SNO_SP, "Get1DData", "Result " + s + " does not exist.");
     }
     *n = m_nCells;
+}
+
+void SNO_SP::GetValue(const char* key, float* value) {
+	string s(key);
+	if (StringMatch(s, VAR_T0)) *value = m_t0;  //xiaodw, for calibrate snow melt
+	else if (StringMatch(s, VAR_T_SNOW)) *value = m_snowTemp;    //xiaodw, for calibrate snow melt
+	else {
+		throw ModelException(MID_SNO_SP, "GetValue", "Result " + s + " does not exist.");
+	}
 }

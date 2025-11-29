@@ -79,6 +79,9 @@ def output_population_details(pops, outdir, gen_num,
     #      and the simulation data separately.
     vali_sim_obs_data = list()
     vali_sim_data = list()
+    # print(f"pops[0]:{pops[0]}")
+    # print(f"pops[0].vali:{pops[0].vali}")
+    # print(f"pops[0].vali.valid:{pops[0].vali.valid}")
     if pops[0].vali.valid:
         json_file = outdir + os.path.sep + 'gen%d_valiObsData.json' % gen_num
         with open(json_file, 'w', encoding='utf-8') as f:
@@ -317,14 +320,14 @@ def calculate_95ppu(sim_obs_data, sim_data, outdir, gen_num,
 
 
 if __name__ == '__main__':
-    wp = r'C:\z_data\ChangTing\seims_models_phd\youwuzhen10m_longterm_model\Cali_NSGAII_Gen_3_Pop_4'
+    wp = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\-90_124556_38_819347_longterm_model\CALI_NSGA2_Gen_40_Pop_20'
     simdir = wp + os.path.sep + 'simulated_data'
     all_cali_obs_data = list()
     all_cali_data = list()
     gen_cali_id = list()
     with open(simdir + os.path.sep + 'gen0_caliObsData.json', 'r', encoding='utf-8') as f:
         cali_obs_data = json.load(f)
-    with open(simdir + os.path.sep + 'gen0_caliSimData.pickle', 'r', encoding='utf-8') as f:
+    with open(simdir + os.path.sep + 'gen0_caliSimData.pickle', 'rb') as f:
         cali_data = pickle.load(f)
     # validation data
     with open(simdir + os.path.sep + 'gen0_valiObsData.json', 'r', encoding='utf-8') as f:

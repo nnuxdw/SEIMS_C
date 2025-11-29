@@ -30,14 +30,19 @@ class PostConfig(object):
         self.model_cfg = ParseSEIMSConfig(cf)
         # 2. Parameters
         self.plt_subbsnid = -1
+        # self.plt_subbsnid = []   # xdw, support multi subbasin id
         self.plot_vars = list()
         if 'PARAMETERS' in cf.sections():
             self.plt_subbsnid = cf.getint('PARAMETERS', 'plot_subbasinid')
+            # plt_subbsnid_str = cf.getint('PARAMETERS', 'plot_subbasinid')
+            # self.plt_subbsnid = StringClass.split_string(plt_subbsnid_str, [',', ' '])   # xdw, support multi subbasin id
             plt_vars_str = cf.get('PARAMETERS', 'plot_variables')
         else:
             raise ValueError("[PARAMETERS] section MUST be existed in *.ini file.")
         if self.plt_subbsnid < 0:
             raise ValueError("PLOT_SUBBASINID must be greater or equal than 0.")
+        # if len(self.plt_subbsnid) <= 0:          # xdw, support multi subbasin id
+        #     raise ValueError("Length PLOT_SUBBASINID must be greater or equal than 0.")
         if plt_vars_str != '':
             self.plot_vars = StringClass.split_string(plt_vars_str, [',', ' '])
         else:

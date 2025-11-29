@@ -46,6 +46,8 @@ int Interpolate::Execute() {
             //by wanghaocheng
             int k = (int)m_itpWeights_id[i][j];
             value += m_stationData[k] * m_itpWeights[i][j];
+			//cout << "CELL:" << i << ", Site: " << k << ", Weight: " << m_itpWeights[i][j] <<
+			//	", siteData: " << m_stationData[k] << ", Value:" << value << ";" << endl; //by wanghaocheng
             if (value != value) {
                 err_count++;
                 //cout << "CELL:" << i << ", Site: " << j << ", Weight: " << m_itpWeights[index] <<

@@ -14,6 +14,14 @@ from datetime import datetime
 from typing import List, Dict, Optional, Union, AnyStr
 from pygeoc.utils import MathClass,StringClass
 from spotpy.objectivefunctions import nashsutcliffe, rsquared, rmse, pbias, lognashsutcliffe, correlationcoefficient,kge,kge_non_parametric
+from datetime import timezone
+# def to_utc_naive(dt):
+#     if dt is None:
+#         return None
+#     if dt.tzinfo is None:
+#         # 认为拿到的是 UTC 的 naive 时间；如果你知道它其实是本地时间，改成 astimezone 逻辑
+#         return dt
+#     return dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 def match_simulation_observation(sim_vars,  # type: List[AnyStr]
                                  sim_dict,  # type: Dict[datetime, List[float]]
@@ -53,17 +61,26 @@ def match_simulation_observation(sim_vars,  # type: List[AnyStr]
             continue
         sim_to_obs[i] = obs_vars.index(param_name)
         sim_obs_dict[param_name] = {'UTCDATETIME': list(), 'Obs': list(), 'Sim': list()}
+        # print(f"sim_to_obs: {sim_to_obs[i]}, sim_obs_dict: {sim_obs_dict[param_name]}, {i}, {param_name}")
+
+    # print(f"sim_to_obs: {sim_to_obs}")
+    # print(f"obs_dict: {obs_dict}")
     for sim_date, sim_values in sim_dict.items():
+        # print(f"sim_date: {sim_date} , sim_values: {sim_values} /n")
         if sim_date not in obs_dict or not start_time <= sim_date <= end_time:
+            # print(f"sim_date: {sim_date},start_time:{start_time},end_time:{end_time}")
+            # print(f"1: {sim_date not in obs_dict},2:{not start_time <= sim_date <= end_time}")
             continue
         for sim_i, obs_i in sim_to_obs.items():
             param_name = sim_vars[sim_i]
             obs_values = obs_dict.get(sim_date)
             if obs_i > len(obs_values) or obs_values[obs_i] is None:
+                # print(f"obs_i: {obs_i},obs_values[obs_i]:{obs_values[obs_i]}")
                 continue
             sim_obs_dict[param_name]['UTCDATETIME'].append(sim_date)
             sim_obs_dict[param_name]['Obs'].append(obs_values[obs_i])
             sim_obs_dict[param_name]['Sim'].append(sim_values[sim_i])
+            # print(f"param_name: {param_name},sim_date:{sim_date},Obs:{obs_values[obs_i]},Sim:{sim_values[sim_i]},{obs_i},{sim_i}")
 
     # for param, values in self.sim_obs_dict.items():
     #     print('Observation-Simulation of %s' % param)

@@ -131,8 +131,16 @@ private:
     float* m_lakesto;
     float* m_pet;
 
+	//xdw++
+	/// m_soilPor * m_soilThk
+	float** m_soilPorDepth;
+	/// m_soilFC * m_soilThk
+	float** m_soilFCDepth;
+
+	int m_nSubbsns;
+
 	//lj++
-    ///  water depth of each hand, initialized by m_bankSto,mm
-	float* m_handWtrDep; 
+	///  water depth of each hand, initialized by m_bankSto,mm
+	float* m_handWtrDep;
 };
 #endif /* SEIMS_MODULE_SUR_MR_H */

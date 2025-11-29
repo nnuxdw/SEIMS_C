@@ -1118,6 +1118,18 @@ void CheckParam(char* param_name, char* param_value_ptr, int line_number, Fnames
 	{
 		return;
 	}
+	// xiaodw add, for seims
+	if (read_string_param(param_name, line_number, param_value_ptr, "seims_begin_time", Solverptr->seims_begin_time, verbose, mode))
+	{
+		printf("seims_begin_time changed to %" NUM_FMT" s \n", Solverptr->seims_begin_time);
+		return;
+	}
+	if (read_string_param(param_name, line_number, param_value_ptr, "seims_end_time", Solverptr->seims_end_time, verbose, mode))
+	{
+		printf("seims_end_time changed to %" NUM_FMT" s \n", Solverptr->seims_end_time);
+		return;
+	}
+
 	if (read_string_param(param_name, line_number, param_value_ptr, "rain_begin_time", Solverptr->rain_begin_time, verbose, mode))
 	{
 		return;

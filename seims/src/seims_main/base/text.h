@@ -113,6 +113,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define Tag_Maximum                            "MAX"
 #define Tag_SpecificCells                      "SPECIFIC"
 #define Tag_TimeSeries							"TS"
+#define Tag_TimeSeriesAvg							"TS_AVG"
 
 #define TAG_OUT_QOUTLET                        "QOUTLET"
 #define TAG_OUT_QTOTAL                         "QTotal"
@@ -451,8 +452,10 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_IUH_OL                           "IUH overland method to calculate overland flow routing."
 #define MID_OL_HAND                             "OL_HAND"
 #define MDESC_OL_HAND                           "Use HAND to calculate floodplain inundation."
-#define MID_LISFLOODFP                          "LISFLOODFP"
-#define MDESC_LISFLOODFP                        "Use LISFLOODFP to calculate floodplain inundation."
+#define MID_LISFLOODFP                             "LISFLOODFP"
+#define MDESC_LISFLOODFP                           "Use LISFLOODFP to calculate floodplain inundation."
+#define MID_LISFLOODFP_MUSK                             "LISFLOODFP_MUSK"
+#define MDESC_LISFLOODFP_MUSK                       "Use LISFLOODFP_MUSK to calculate floodplain inundation."
 /// Channel routing related modules
 #define MCLS_CH_ROUTING                        "Channel routing"
 #define MCLSDESC_CH_ROUTING                    "Channel routing modules"
@@ -654,7 +657,9 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_EXCP "EXCP" /// m_exsPcp, excess precipitation, which could be depressed or generated as runoff
 #define VAR_EXT_COEF "EXT_COEF" /// m_lightExtCoef, light extinction coefficient
 #define VAR_FERTILIZER_LOOKUP "FertilizerLookup" /// m_fertLookup, Fertilizer lookup table
-#define VAR_FIELDCAP "FieldCap"                     /// Soil field capacity"
+#define VAR_FIELDCAP "FieldCap"                     /// Soil field capacity
+#define VAR_FIELDCAPDEP "FieldCapDepth"                     /// Soil field capacity * soil thickness
+#define VAR_POROSTDEP "PorosityDepth"                     /// Soil porpsity * soil thickness
 #define VAR_FLAT "flat"
 #define VAR_FLOWDIR "FLOW_DIR"
 #define VAR_FLOWWIDTH "FlowWidth"
@@ -829,6 +834,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_QCH "QCH"
 #define VAR_OLFLOW "OL_Flow" /// m_surfRf, overland flow in each cell calculated during overland routing
 #define VAR_OL_HAND_WTRDEP "OL_Hand_WTRDEP" /// m_surfRf, overland flow in each cell calculated during overland routing
+#define VAR_IS_HAND_FLOODED "m_isHandFlooded" /// are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water 
+#define VAR_SUBBASIN_FLOODED_AREA "m_chInundationArea"  // sum of  flooded hand's area in  each subbasin
 #define VAR_QG "QG" /// m_qgRchOut, Groundwater discharge at each reach outlet and at each time step
 #define VAR_QI "QI" /// m_qiRchOut, Interflow at each reach outlet and at each time step
 #define VAR_QOVERLAND "QOverland"
@@ -1428,6 +1435,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_EXT_COEF "light extinction coefficient"
 #define DESC_FERTILIZER_LOOKUP "Fertilizer lookup table"
 #define DESC_FIELDCAP "Soil field capacity"
+#define DESC_FIELDCAPDEP "Soil field capacity depth"            /// Soil field capacity * soil thickness
+#define DESC_POROSTDEP "Soil porosity Depth"                     /// Soil porpsity * soil thickness
 #define DESC_FLAT "lateral flow in soil layer"
 #define DESC_FLOWDIR "Flow direction by the rule of TauDEM"
 #define DESC_FLOWIN_INDEX_D8 "The index of flow in (D8) cell in the compressed array, and the first element in each sub-array is the number of flow in cells in this sub-array"
@@ -1591,6 +1600,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_PUPDIS "Phosphorus uptake distribution parameter"
 #define DESC_QCH "Flux in the downslope boundary of cells"
 #define DESC_OLFLOW "overland flow in each cell calculated during overland routing"
+#define DESC_IS_HAND_FLOODED "are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water "
+#define DESC_SUBBASIN_FLOODED_AREA "sum of  flooded hand's area in  each subbasin"
 #define DESC_QG "Groundwater discharge at each reach outlet"
 #define DESC_QI "Interflow at each reach outlet"
 #define DESC_QOVERLAND "Water discharge in the downslope boundary of cells"
@@ -2122,6 +2133,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define REACH_BED_MIN_ELEV                       "Bed_Min_Elev"
 #define REACH_BED_START_ELEV                       "Bed_Start_Elev"
 #define REACH_BED_END_ELEV                       "Bed_End_Elev"
+// xiaodw add, this is not water level, it's HAND's level, eg. 1,2,3,4,5...
+#define REACH_LAKE_HAND_LEVEL_INI                      "Lake_Hand_Level_Ini" 
 
 #define DESC_GWH                             "groundwater height"
 #define DESC_GW_SH                           "shallow groundwater stroage"

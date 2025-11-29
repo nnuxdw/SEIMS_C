@@ -24,7 +24,7 @@ from typing import Dict, List, Tuple, Union, AnyStr, Optional
 from preprocess.db_mongodb import MongoClient, MongoQuery
 from preprocess.text import DBTableNames, ModelCfgFields, FieldNames, SubbsnStatsName, \
     DataValueFields, DataType, StationFields
-
+from datetime import timezone
 
 class ReadModelData(object):
     def __init__(self, conn, dbname):
@@ -266,14 +266,14 @@ class ReadModelData(object):
                     vars_existed.append(param_name)
                 curt = obs[DataValueFields.utc]
                 curv = obs[DataValueFields.value]
-                if(get_observed_name(param_name) == "LWL"): 
+                if(get_observed_name(param_name) == "LWL"):
                     curv = curv-site_elve
                 if curt not in data_dict:
                     data_dict[curt] = [None] * len(vars)
                 data_dict[curt][i] = curv
         if not vars_existed:
             return None, None
- 
+
         # remove the redundant None in data_dict, in case of len(vars_existed) != len(vars)
         delidx = list()
         for i, vname in enumerate(vars):
@@ -307,10 +307,10 @@ class ReadModelData(object):
         coll_list = self.climatedb.collection_names()
         if DBTableNames.observes not in coll_list:
             return None, None
-        
+
         isoutlet = 0
 
-        def is_outlets(name,isoutlet):      
+        def is_outlets(name,isoutlet):
             subbsn_id = float(get_subbasinid(name))
             if subbsn_id == self.OutletID:
                 isoutlet = 1
@@ -330,32 +330,39 @@ class ReadModelData(object):
 
         siteTbl = self.climatedb[DBTableNames.sites]
         obsTbl = self.climatedb[DBTableNames.observes]
-        
+        # print(f"vars: {vars}, vars_existed: {vars_existed}")
+
         for i, param_name in enumerate(vars):
             site_items = siteTbl.find_one({StationFields.type: get_observed_name_new(param_name),
                                            StationFields.outlet: is_outlets(param_name,isoutlet),
                                            StationFields.subbsn: float(get_subbasinid(param_name))})
             if site_items is None:
+                print(f"None:site_items {site_items} is None, id: {StationFields.id}, param_name:{param_name},is_outlets:{is_outlets(param_name,isoutlet)},subbsn:{get_subbasinid(param_name)}")
                 continue
             site_id = site_items.get(StationFields.id)
             site_elve = site_items.get(StationFields.elev)
+            # print(f"site_id: {site_id}")
             for obs in obsTbl.find({DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
                                     #DataValueFields.type: get_observed_name(param_name),
                                     DataValueFields.type: get_observed_name_new(param_name),
                                     DataValueFields.id: site_id}).sort([(DataValueFields.utc, 1)]):
+                # print(f"for:site_items {site_items} is None, id: {StationFields.id}, param_name:{param_name},is_outlets:{is_outlets(param_name,isoutlet)},subbsn:{get_subbasinid(param_name)}")
+
                 if param_name not in vars_existed:
                     vars_existed.append(param_name)
                 curt = obs[DataValueFields.utc]
                 curv = obs[DataValueFields.value]
-                # if(get_observed_name_new(param_name) == "LWL"): 
+                # print("DEBUG curt=", curt, "tzinfo=", getattr(curt, "tzinfo", None))
+                # if(get_observed_name_new(param_name) == "LWL"):
                 #     curv = curv-site_elve
                 #     print(curv)
                 if curt not in data_dict:
+                    # print(f"param_name: {param_name},  curt: {curt}")
                     data_dict[curt] = [None] * len(vars)
-                data_dict[curt][i] = curv        
+                data_dict[curt][i] = curv
         if not vars_existed:
             return None, None
- 
+
         # remove the redundant None in data_dict, in case of len(vars_existed) != len(vars)
         delidx = list()
         for i, vname in enumerate(vars):

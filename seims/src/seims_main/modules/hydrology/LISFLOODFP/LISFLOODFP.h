@@ -6,8 +6,8 @@
 
 #include "SimulationModule.h"
 #include "Scenario.h"
-//#include "lisflood.h"
-#include "./lisflood2/DataTypes.h"
+#include "lisflood.h"
+//#include "./lisflood2/DataTypes.h"
 
 using namespace bmps;
 using namespace std;
@@ -49,8 +49,12 @@ private:
 	int m_dt;            ///< time step (sec)
 	int m_nCells;
 	int m_nSubbsns;
-	int m_inputSubbsnID; ///< current subbasin ID, 0 for the entire watershed
+	//int m_inputSubbsnID; ///< current subbasin ID, 0 for the entire watershed
+	/// subbasin grid (subbasins ID)
+	float* m_subbsnID;
 	int counter;
+	string seims_start_time;
+
 	// Instances of Structures
 	Arrays Raster;
 	Files Fps;
@@ -64,32 +68,27 @@ private:
 	SGCprams SGCchanprams;
 	DamData DamDataprams;
 	vector<ChannelSegmentType> ChannelSegments;
-	//SuperGridLinksList superGridLinksList;
-	//LISFLOODFPContext LFPContext;
+	LISFLOODFPContext LFPContext;
 	//int verbosemode;
 	
 
-	Arrays *Arrptr;
-	Files* FpsPtr;
-	Fnames *Fnameptr;
-	States *Statesptr;
-	Pars *Parptr;
-	Solver *Solverptr;
-	Pois *Poisptr;
-	BoundCs *BCptr;
-	Stage *Stageptr;
-	SGCprams *SGCptr;
-	DamData *Damptr;
-	Stage *Locptr;
+	struct Arrays *Arrptr;
+	struct Files* FpsPtr;
+	struct Fnames *Fnameptr;
+	struct States *Statesptr;
+	struct Pars *Parptr;
+	struct Solver *Solverptr;
+	struct Pois *Poisptr;
+	struct BoundCs *BCptr;
+	struct Stage *Stageptr;
+	struct SGCprams *SGCptr;
+	struct DamData *Damptr;
+	struct Stage *Locptr;
 	char* tmpFileNamePtr;
 	char* tmpSysCmdPtr;
 	vector<ChannelSegmentType> *ChannelSegmentsVecPtr;
-	//SuperGridLinksList* Super_linksptr;
-	LISFLOODFPContext* LFPContextPtr;
-
-	
-
-	
+	struct SuperGridLinksList *Super_linksptr;
+	struct LISFLOODFPContext* LFPContextPtr;
 
 };
 #endif 
