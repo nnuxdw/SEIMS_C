@@ -2,9 +2,6 @@
 
 #include "text.h"
 
-// true  = 湖泊参与入渗（新逻辑）
-// false = 湖泊不入渗，走原始 SEIMS 逻辑（兼容旧模型）
-static const bool ENABLE_LAKE_INFILTRATION = true;
 
 SUR_MR::SUR_MR() :
     m_dt(-1), m_nCells(-1), m_netPcp(nullptr), m_potRfCoef(nullptr),

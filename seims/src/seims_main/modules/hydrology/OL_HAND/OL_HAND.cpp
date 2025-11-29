@@ -107,11 +107,11 @@ void OL_HAND::InitialOutputs() {
 		m_subbasinInundationArea = new(nothrow) float[m_nreach + 1];
 
 		// load floodstep
-		string txt_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\poyang_lake1\\rundata\\FloodStep.txt";
+		string txt_filename = "E:\\SEIMS_C\\data\\Cottonwood\\rundata\\FloodStep.txt";
 		//string txt_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/FloodStep.txt";
 		LoadHandIdsToChHandLevels(txt_filename, m_Hands);
 		// load 
-		string csv_filename = "G:\\program\\seims\\SEIMS_HAND\\data\\poyang_lake1\\rundata\\InundationMap.csv";
+		string csv_filename = "E:\\SEIMS_C\\data\\Cottonwood\\rundata\\InundationMap.csv";
 		//string csv_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/InundationMap.csv";
 		loadHandFromCSVIntoVector(csv_filename,m_Hands);
 		

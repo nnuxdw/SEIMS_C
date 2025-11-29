@@ -1,6 +1,8 @@
 #include "CH4_WETMETH.h"
 #include "text.h"
 #include <cmath>
+#include <algorithm>
+
 
 // Soil column constructor
 // Initialize all member variables, set pointers to nullptr, set values to 0
@@ -59,19 +61,17 @@ void SoilCol::calculate_soil_saturation() {
 			//<< ", m_soilWP[" << i << "] = " << m_soilWP[i] << std::endl;
 		if (soil_saturated[i] > 0.0f) {
 			// Calculate saturation ratio, limit between 0-1
-//            soil_saturation[i] = std::min(1.0f, std::max(0.0f, soil_water_storage[i] / soil_saturated[i]));
-			//float ratio = soil_water_storage[i] / soil_saturated[i];
+            //soil_saturation[i] = std::min(1.0f, std::max(0.0f, soil_water_storage[i] / soil_saturated[i]));
 			//float ratio = ((soil_water_storage[i] + m_soilWP[i]) / layer_thickness[i]) / m_soilPor[i];
-			//float ratio = soil_water_storage[i] / (layer_thickness[i] * m_soilPor[i]);
 			float ratio = (soil_water_storage[i] + m_soilWP[i]) / (layer_thickness[i] * m_soilPor[i]);
 			soil_saturation[i] = (ratio > 1.0f) ? 1.0f : ((ratio < 0.0f) ? 0.0f : ratio);
 			// 打印最终的饱和度值
 			//std::cout << "Layer " << i << " final saturation: " << soil_saturation[i] << std::endl;
-			// 只打印饱和度为1的值
-			/*if (soil_saturation[i] >= 0.9f) {
-				std::cout << "Layer " << i << " is fully saturated: " << soil_saturation[i]
-					<< " (ratio: " << ratio << ")" << std::endl;
-			}*/
+			//// 只打印饱和度为1的值
+			//if (soil_saturation[i] >= 0.9f) {
+			//	std::cout << "Layer " << i << " is fully saturated: " << soil_saturation[i]
+			//		<< " (ratio: " << ratio << ")" << std::endl;
+			//}
 		} else {
 			soil_saturation[i] = 0.0f;
 		}

@@ -378,7 +378,7 @@ void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parp
 			Solverptr->MinTstep = Solverptr->InitTstep;
 		}
 		if (LFPContextPtr->verbose == ON) printf("adaptive mode\n\n");
-		fflush(stdout);
+       		fflush(stdout);
 	}
 	else if (Statesptr->acceleration == ON)
 	{

@@ -28,6 +28,10 @@
 
 #include "SimulationModule.h"
 
+ // true  = 湖泊参与入渗（新逻辑）
+ // false = 湖泊不入渗，走原始 SEIMS 逻辑（兼容旧模型）
+static const bool ENABLE_LAKE_INFILTRATION = true;
+
 /** \defgroup SUR_MR
  * \ingroup Hydrology_longterm
  * \brief Modified Rational Method to calculate infiltration and excess precipitation
