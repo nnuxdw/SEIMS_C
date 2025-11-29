@@ -31,7 +31,7 @@ Tel: +44-117-928-9108, Fax: +44-117-928-7878
 
 #include "time_tool.h"
 
-//#include "lisflood2/lis2_output.h"
+#include "lisflood2/lis2_output.h"
 //#include "lisflood2/lisflood_processing.h"
 
 //---------------------------------------------------------------------------
