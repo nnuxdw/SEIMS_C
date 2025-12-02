@@ -1,3 +1,5 @@
+import os.path
+
 import pandas as pd
 import geopandas as gpd
 from pymongo import MongoClient
@@ -301,13 +303,13 @@ def repair_flood_levels(input_path: str, output_path: str):
 
 
 if __name__ == '__main__':
+    # base_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1"
+    base_path = r"G:\program\seims\SEIMS_HAND\data\Cottonwood"
     ### 注意input_shp一定要是按照FIELDID合并之后且投影到等面积的
-    input_shp = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_shp\subbasin_mollwede_dissolved.shp"
-    input_hand_flood_step_old = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepOld.txt"
-    input_hand_flood_step = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStep.txt"
-    output_map = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\InundationMap1.csv"
-    repaired_flood_level = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepRepair.txt"
-    modifyed_flood_level = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepModify.txt"
+    input_shp = os.path.join(base_path,"workspace\spatial_shp\subbasin_mollwede_dissolved.shp")
+    input_hand_flood_step = os.path.join(base_path,"rundata\FloodStep.txt")
+    output_map = os.path.join(base_path,"rundata\InundationMap.csv")
+
     # 检查缺失层级
     # check_flood_level_gaps(input_hand_flood_step_old)
     # 修复层号从0开始的情况，改为从1开始

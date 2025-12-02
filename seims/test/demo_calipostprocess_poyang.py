@@ -28,7 +28,7 @@ from matplotlib.ticker import NullFormatter, FuncFormatter
 
 def main():
     NN = 1  #可调，需要前多少组参数集
-    watershed_num = 1171
+    watershed_num = 347
     model_name = f'poyang_lake1_longterm_model_{watershed_num}'
     wtsd_name = get_watershed_name('Specify watershed name to run postprocess.')
     if wtsd_name not in list(DEMO_MODELS.keys()):
