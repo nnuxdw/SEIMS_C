@@ -108,7 +108,7 @@ def main():
     # 气候数据库：poyang_lake1_HydroClimate
     hydroclim_db = conn['poyang_lake1_HydroClimate']
 
-    csv_path = r"J:\G\program\seims\SEIMS_HAND\data\poyang_lake\鄱阳湖全天候面积逐日数据集（2014-2023年)\鄱阳湖全天候面积逐日数据集（2014-2023年）_数据实体\鄱阳湖.csv"
+    csv_path = r"J:\G\program\seims\SEIMS_HAND\data\poyang_lake\鄱阳湖全天候面积逐日数据集（2014-2023年)\鄱阳湖全天候面积逐日数据集（2014-2023年）_数据实体\鄱阳湖面积可用.csv"
 
     import_from_csv(csv_path, hydro_clim_db=hydroclim_db,
                     station_id=1171,

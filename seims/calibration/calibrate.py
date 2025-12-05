@@ -425,7 +425,7 @@ def calibration_objectives(cali_obj, gen, ind):
 
     # Execute model
     model_obj.SetMongoClient()
-    # model_obj.run()
+    model_obj.run()
     time.sleep(0.1)  # Wait a moment in case of unpredictable file system error
 
     # read simulation data of the entire simulation period (include calibration and validation)

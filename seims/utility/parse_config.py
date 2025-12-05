@@ -15,6 +15,7 @@ from datetime import datetime
 from typing import Optional, AnyStr
 from pygeoc.utils import FileClass, StringClass, UtilClass
 
+REMOVE_CALI_DIR = False
 
 def get_optimization_config(desc='The help information is supposed not be empty.'):
     # type: (AnyStr) -> (ConfigParser, AnyStr)
@@ -100,10 +101,12 @@ class ParseNSGA2Config(object):
             dir_template = 'NSGA2_Gen_%d_Pop_%d'
         self.dirname = dir_template % (self.ngens, self.npop)
         self.out_dir = wp + os.path.sep + self.dirname
-        UtilClass.rmmkdir(self.out_dir)
+        if REMOVE_CALI_DIR:
+            UtilClass.rmmkdir(self.out_dir)
 
         self.hypervlog = self.out_dir + os.path.sep + 'hypervolume.txt'
         self.logfile = self.out_dir + os.path.sep + 'runtime.log'
         self.logbookfile = self.out_dir + os.path.sep + 'logbook.txt'
         self.simdata_dir = self.out_dir + os.path.sep + 'simulated_data'
-        UtilClass.rmmkdir(self.simdata_dir)
+        if REMOVE_CALI_DIR:
+            UtilClass.rmmkdir(self.simdata_dir)

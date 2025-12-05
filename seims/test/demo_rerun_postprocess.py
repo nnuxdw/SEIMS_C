@@ -27,7 +27,8 @@ def main():
     NN = 1  #可调，需要前多少组参数集
     # tar = ['QG','QI','QS','SBGS']
     tar = ['F']
-    conn = MongoClient('127.0.0.1', 27017)
+    watershed_num = 1171
+    conn = MongoClient('172.21.124.127', 2709)
     db = conn.poyang_lake1_longterm_model   #需要自己修改数据库名字
 
     wtsd_name = get_watershed_name('Specify watershed name to run postprocess.')
@@ -40,7 +41,7 @@ def main():
     SEIMS_path = os.path.abspath(cur_path + '../../..')
     model_paths = ModelPaths(SEIMS_path, wtsd_name, DEMO_MODELS[wtsd_name])
     cf = ConfigParser()
-    cali_cfg_file = model_paths.cfg_dir + os.path.sep + 'calibration.ini'
+    cali_cfg_file = model_paths.cfg_dir + os.path.sep + f'calibration_{watershed_num}.ini'
     cf.read(cali_cfg_file)
 
     #读取率定结果

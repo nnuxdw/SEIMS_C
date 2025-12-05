@@ -873,7 +873,7 @@ if __name__ == '__main__':
     else:
         work_dir = f'/data/user/xiaodw/software/WISE/data/poyang_lake1'
     longter_model_name = 'poyang_lake1_longterm_model_1171'
-    calibration_name = 'OUTPUT0-9'
+    calibration_name = 'OUTPUT0-0'
     longterm_model_dir = os.path.join(work_dir,longter_model_name)
     directory = os.path.join(longterm_model_dir,calibration_name)
     # prefix = 'SNAC_TS'
