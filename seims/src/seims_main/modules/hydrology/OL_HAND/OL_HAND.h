@@ -104,7 +104,7 @@ private:
 	//float** m_chOverHeadVol;       /// represents the physical space between the top of the channel banks and the upper boundary, index represents subbasin id for dim 1, index represents layer for dim 2 cooresponding to each HAND height
 	float* m_handArea;       /// area of each hand
 	float* m_subbasinArea;
-	float* m_handWtrDep;    /// water depth of each hand, initialized by m_bankSto,mm
+	float* m_handWtrDep;    /// water depth of each hand, initialized by m_bankSto,m
 	//float** m_handLyrSumArea;   /// area of each hand layer, index represents subbasin id for dim 1, index represents layer for dim 2
 	//float** m_handLyrDepth;        /// depth of each hand layer, index represents subbasin id for dim 1, index represents layer for dim 2
 	//float* m_handNumLyrs;          /// n layers of hand for each subbasin ,index represents subbasin id
@@ -126,7 +126,7 @@ private:
 	float* m_isHandFlooded;
 
 	// for inundation area calibration
-	float* m_subbasinInundationArea;
+	float* m_subbasinInundationArea;   // km2
 	float* m_subbasinWtrDep;
 	float m_sumInundationArea;
 

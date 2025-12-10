@@ -4,11 +4,11 @@
 #include "utils_time.h"
 
 clsPI_MCS::clsPI_MCS() :
-    m_embnkFr(0.15f), m_pcp2CanalFr(0.5f), m_landUse(nullptr),
+    m_embnkFr(0.15f), m_pcp2CanalFr(0.5f), m_landUse(nullptr), m_outletID(-1), m_nreach(-1),
     m_intcpStoCapExp(-1.f), m_initIntcpSto(0.f), m_maxIntcpStoCap(nullptr),
     m_minIntcpStoCap(nullptr),
     m_pcp(nullptr), m_pet(nullptr), m_canSto(nullptr),
-    m_intcpLoss(nullptr), m_netPcp(nullptr), m_nCells(-1) {
+    m_intcpLoss(nullptr), m_netPcp(nullptr), m_nCells(-1),  m_handWtrDep(nullptr), m_subbsnID(nullptr), m_chSto(nullptr), m_handArea(nullptr) {
 #ifndef STORM_MODE
     m_IntcpET = nullptr;
 #else
@@ -26,17 +26,46 @@ clsPI_MCS::~clsPI_MCS() {
 #endif
 }
 
-void clsPI_MCS::Set1DData(const char* key, int nrows, float* data) {
-    CheckInputSize(MID_PI_MCS, key, nrows, m_nCells);
+void clsPI_MCS::Set1DData(const char* key, int n, float* data) {
     string s(key);
-    if (StringMatch(s, VAR_PCP)) m_pcp = data;
+	if (StringMatch(s, VAR_PCP)) {
+		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
+		m_pcp = data;
+	}
     else if (StringMatch(s, VAR_PET)) {
 #ifndef STORM_MODE
-        m_pet = data;
+		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
+		m_pet = data;
 #endif
-    } else if (StringMatch(s, VAR_INTERC_MAX)) m_maxIntcpStoCap = data;
-    else if (StringMatch(s, VAR_INTERC_MIN)) m_minIntcpStoCap = data;
-    else if (StringMatch(s, VAR_LANDUSE)) m_landUse = data;
+	}
+	else if (StringMatch(s, VAR_INTERC_MAX)) {
+		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
+		m_maxIntcpStoCap = data;
+	}
+	else if (StringMatch(s, VAR_INTERC_MIN)) {
+		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
+		m_minIntcpStoCap = data;
+	}
+	else if (StringMatch(s, VAR_LANDUSE)) {
+		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
+		m_landUse = data;
+	}
+	else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
+		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
+		m_handWtrDep = data;
+	}
+	else if (StringMatch(s, VAR_SUBBSN)) {
+		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
+		m_subbsnID = data;
+	}
+	else if (StringMatch(s, VAR_CHST)) {
+		CheckInputSize(MID_PI_MCS, key, n - 1, m_nreach);
+		m_chSto = data;
+	}
+	else if (StringMatch(s, VAR_AHRU)) {
+		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
+		m_handArea = data;
+	}
     else {
         throw ModelException(MID_PI_MCS, "Set1DData", "Parameter " + s + " does not exist.");
     }
@@ -48,6 +77,7 @@ void clsPI_MCS::SetValue(const char* key, const float value) {
     else if (StringMatch(s, VAR_INIT_IS)) m_initIntcpSto = value;
     else if (StringMatch(s, VAR_PCP2CANFR_PR)) m_pcp2CanalFr = value;
     else if (StringMatch(s, VAR_EMBNKFR_PR)) m_embnkFr = value;
+	else if (StringMatch(s, VAR_OUTLETID)) m_outletID = CVT_INT(value);
 #ifdef STORM_MODE
     else if (StringMatch(s, Tag_HillSlopeTimeStep)) m_hilldt = data;
 #endif // STORM_MODE
@@ -69,7 +99,14 @@ void clsPI_MCS::Get1DData(const char* key, int* nRows, float** data) {
         *data = m_canSto;
     } else if (StringMatch(s, VAR_NEPR)) {
         *data = m_netPcp;
-    } else {
+    } else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
+		*data = m_handWtrDep;
+	}
+	else if (StringMatch(s, VAR_CHST)) {
+		m_chSto[0] = m_chSto[m_outletID];
+		*data = m_chSto;
+	}
+	else {
         throw ModelException(MID_PI_MCS, "Get1DData", "Result " + s + " does not exist.");
     }
     *nRows = m_nCells;
@@ -90,6 +127,17 @@ void clsPI_MCS::InitialOutputs() {
     if (m_intcpLoss == nullptr) {
         Initialize1DArray(m_nCells, m_intcpLoss, 0.f);
     }
+	if (m_handWtrDep == nullptr)
+	{
+		Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
+	}
+}
+
+void clsPI_MCS::SetReaches(clsReaches* reaches) {
+	if (nullptr == reaches) {
+		throw ModelException(MID_MUSK_CH, "SetReaches", "The reaches input can not to be NULL.");
+	}
+	m_nreach = reaches->GetReachNumber();
 }
 
 int clsPI_MCS::Execute() {
@@ -100,12 +148,27 @@ int clsPI_MCS::Execute() {
 
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
+		int subbasinId = CVT_INT(m_subbsnID[i]);
         if (m_pcp[i] > 0.f) {
 #ifdef STORM_MODE
             /// correction for slope gradient, water spreads out over larger area
             /// 1. / 3600. = 0.0002777777777777778
             m_P[i] = m_P[i] * m_hilldt * 0.0002777777777777778f * cos(atan(m_slope[i]));
 #endif // STORM_MODE
+			// xiaodw++, when inundation occours at a HAND, interception is now allowed, thus interception alse not allowed
+			float handWtrDepMM = m_handWtrDep[i] * 1000.0;
+			if (handWtrDepMM > 0.0)
+			{
+				m_netPcp[i] = m_pcp[i];
+				if (m_canSto[i] > 0.0)
+				{
+					m_chSto[subbasinId] += m_handArea[i] * m_canSto[i] * 0.001;
+					m_canSto[i] = 0.0;
+				}
+				m_intcpLoss[i] = 0.f;
+				m_IntcpET[i] = 0.f;
+				continue;
+			}
             //interception storage capacity, 1. / 365. = 0.0027397260273972603
             float degree = 2.f * PI * (m_dayOfYear - 87.f) * 0.0027397260273972603f;
             /// For water, min and max are both 0, then no need for specific handling.

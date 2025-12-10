@@ -863,6 +863,9 @@ def gen_gif_by_tifs():
     #     output_file = output_file_base + colormap + '.gif'
     #     create_gif_by_tif(image_files, years,output_file,bakgrnd_tif,colormap,-9999)
 
+
+
+
 if __name__ == '__main__':
     # missouri
     # work_dir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347'
@@ -890,33 +893,11 @@ if __name__ == '__main__':
 
     #########################  将HAND输出的结果生成为shp  ################################
     shp_path = os.path.join(work_dir,r"workspace\HRU_file\HRU_mollwede.shp")
-    # start = datetime(2019, 3, 10, 0, 0, 0)
-    # end = datetime(2019, 3, 22, 0, 0, 0)
     start = datetime(2010, 1, 1, 0, 0, 0)
     end = datetime(2019, 12, 30, 0, 0, 0)
-    # 多线程容易报错
-    # files_in_range = []
-    # for prefix, pattern_prefix in pairs:
-    #     txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
-    #     files_in_range.extend(filter_paths_by_time(txt_paths, start, end, pattern_prefix))
-    # def run_gen_hand_shp(txt_path, shp_path):
-    #     output_tif_path = replace_txt_with_shp(txt_path)
-    #     write_value_to_hrushp(shp_path, txt_path, output_tif_path, id_field="FIELDID", value_field="value",
-    #                           fill_missing=None)
-    # max_workers = 2
-    # with ThreadPoolExecutor(max_workers=max_workers) as executor:
-    #     futures = [
-    #         executor.submit(run_gen_hand_shp, txt_path, shp_path)
-    #         for txt_path in files_in_range
-    #     ]
-    #
-    #     # 可选：显示进度 & 捕捉错误
-    #     for future in as_completed(futures):
-    #         try:
-    #             future.result()
-    #         except Exception as e:
-    #             print(f"发生错误：{e}")
-    ### 单线程
+    #########################  将HAND输出的结果生成为tif  ################################
+
+    """ HAND淹没水深txt转shp """
     # for prefix, pattern_prefix in pairs:
     #     txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
     #     files_in_range = filter_paths_by_time(txt_paths, start, end, pattern_prefix)
@@ -924,37 +905,22 @@ if __name__ == '__main__':
     #         output_tif_path = replace_txt_with_shp(txt_path)
     #         write_value_to_hrushp(shp_path, txt_path, output_tif_path, id_field="FIELDID", value_field="value", fill_missing=None)
 
-    #########################  将HAND输出的结果生成为tif  ################################
 
     # prefix = 'OL_Hand_WTRDEP_TS'
     # prefix = 'SNAC_TS_'
 
     input_tif_path = os.path.join(work_dir,r'workspace/HRU_file/ALL_HRU_final.tif')
 
-    # HAND水深 txt 转 tif
-    # txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
-    # for txt_path in txt_paths:
-    #     output_tif_path = replace_txt_with_tif(txt_path)
-    #     gen_hand_tif_by_txt(
-    #         txt_path=txt_path,
-    #         input_tif_path=input_tif_path,
-    #         output_tif_path=output_tif_path
-    #     )
-    # 多线程生成tif
+    """ HAND淹没水深txt转tif """
     # 设置最大线程数（建议不超过 CPU 核心数的 2~4 倍）
+    max_workers = 10
     def run_gen_hand_tif(txt_path, input_tif_path):
         output_tif_path = replace_txt_with_tif(txt_path)
-        # gen_hand_tif_by_txt(
-        #     txt_path=txt_path,
-        #     input_tif_path=input_tif_path,
-        #     output_tif_path=output_tif_path
-        # )
         gen_hand_tif_by_txt_fast(
             txt_path=txt_path,
             input_tif_path=input_tif_path,
             output_tif_path=output_tif_path
                                  )
-    max_workers = 10
     files_in_range = []
     for prefix, pattern_prefix in pairs:
         txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
@@ -972,5 +938,8 @@ if __name__ == '__main__':
                 except Exception as e:
                     print(f"发生错误：{e}")
 
+    """ HAND淹没水深tif叠加观测范围tif绘图 """
 
+
+    """ HAND淹没水深tif叠加观测范围tif的图转gif """
 

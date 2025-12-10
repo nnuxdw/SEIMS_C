@@ -44,6 +44,8 @@ public:
 
     void Get1DData(const char* key, int* nrows, float** data) OVERRIDE;
 
+	void SetReaches(clsReaches* reaches) OVERRIDE;
+
 private:
     int m_nCells; ///< valid cells number
     int m_maxSoilLyrs; ///< maximum number of soil layers
@@ -67,5 +69,13 @@ private:
 	/// number of routing layers
 	int m_nRteLyrs;
 	float **m_rteLyrs;
+	/// water depth of each hand, initialized by m_bankSto,m
+	float* m_handWtrDep;
+	/// subbasin grid (ID of subbasin)
+	float *m_subbsnID;
+	float* m_chSto;		///< reach storage (m^3), rchstor in SWAT
+	int m_outletID;    ///< outlet ID, also can be derived by m_reachLayers.rbegin()->second[0];
+	float* m_handArea;       /// area of each hand
+	int m_nreach;      ///< reach number (= subbasin number)
 };
 #endif /* SEIMS_MODULE_SET_LM_H */

@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 from spotpy.objectivefunctions import nashsutcliffe, rsquared, rmse, pbias, kge, lognashsutcliffe, rsr, mae
 from preprocess.db_read_model import ReadModelData
 import matplotlib as mpl
+import re
 
 
 def main():
@@ -38,11 +39,17 @@ def main():
     NN = 1
     # tar = ['QG','QI','QS','SBGS']
     tar = ['F','Q']
-    watershed_num = 1171
+    plot_tar_map = {'F':'Inundation Area(km²)','Q':'Discharge(m³/s)'}
+    subbasin_id = 1171
     conn = MongoClient('127.0.0.1', 27017)
     db = conn.poyang_lake1_longterm_model_1171   #需要自己修改数据库名字
 
     wtsd_name = "poyang_lake1"
+    plot_legent = False
+    label_font_size = 24
+    title_font_size = 28
+    nse_font_size = 28
+
     if wtsd_name not in list(DEMO_MODELS.keys()):
         print('%s is not one of the available demo watershed: %s' %
               (wtsd_name, ','.join(list(DEMO_MODELS.keys()))))
@@ -52,7 +59,7 @@ def main():
     SEIMS_path = os.path.abspath(cur_path + '../../..')
     model_paths = ModelPaths(SEIMS_path, wtsd_name, DEMO_MODELS[wtsd_name])
     cf = ConfigParser()
-    cali_cfg_file = model_paths.cfg_dir + os.path.sep + f'calibration_{watershed_num}.ini'
+    cali_cfg_file = model_paths.cfg_dir + os.path.sep + f'calibration_{subbasin_id}.ini'
     cf.read(cali_cfg_file)
 
     # 读取率定结果
@@ -146,7 +153,6 @@ def main():
             continue
         names.append(item[0])
     print("率定参数：", names)
-
     out = dict()
 
     # parameters 维度：行 = 选中的参数集数 M；列 = 参数个数 P
@@ -156,12 +162,9 @@ def main():
     for j in range(parameters.shape[1]):  # 按“列”循环：每一列是一个参数
         # 这个参数在所有选中参数集中的取值：长度 M
         data = parameters.iloc[:, j].astype(float)
-
         # 拼成字符串："v1,v2,...,vM"
         s = ",".join(str(v) for v in data.tolist())
-
         param_name = names[j]
-
         print(f"import calibration values to mongoDB for parameter {param_name}")
         # 只更新这一条参数记录
         db["PARAMETERS"].find_one_and_update(
@@ -197,40 +200,89 @@ def main():
     # model_obj.run()
 
     # 获取模拟数据
-    # 获取模拟数据
     path = model_paths.model_dir + os.path.sep + f'OUTPUT0-{int(id2row[SPECIFIC_ID])}'
-
     for index, name in enumerate(tar):
         filename = os.path.join(path, f"{name}.txt")
 
-        # 1. 读整个文件（不再用 skiprows，让 Subbasin: 也读进来）
-        temp = pd.read_table(
-            filename,
-            sep=r"\s+",
-            header=None,
-            names=['DATE', 'TIME', 'value'],
-            engine="python",
-            dtype=str  # 先都读成字符串，方便过滤
-        )
+        if name == 'F':
+            # ===== F：保持现在的按日期求和逻辑 =====
+            temp = pd.read_table(
+                filename,
+                sep=r"\s+",
+                header=None,
+                names=['DATE', 'TIME', 'value'],
+                engine="python",
+                dtype=str
+            )
 
-        # 2. 只保留形如 2010-01-01 的日期行，自动丢掉 "Subbasin:" 之类的
-        mask = temp['DATE'].str.match(r'^\d{4}-\d{2}-\d{2}$')
-        temp = temp[mask].copy()
+            mask = temp['DATE'].str.match(r'^\d{4}-\d{2}-\d{2}$')
+            temp = temp[mask].copy()
+            temp['value'] = temp['value'].astype(float)
 
-        # 3. 数值转成 float
-        temp['value'] = temp['value'].astype(float)
+            # 多 subbasin 时，同一天求和
+            temp_group = temp.groupby('DATE', as_index=False)['value'].sum()
 
-        # 4. 关键：按 DATE 聚合求和（多 Subbasin 时，把同一天相加）
-        temp_group = temp.groupby('DATE', as_index=False)['value'].sum()
+            out.setdefault(name, []).append(list(temp_group['value']))
 
-        # 5. 把聚合后的结果塞进 out
-        out.setdefault(name, []).append(list(temp_group['value']))
+            if index == 0:
+                out.setdefault('Date', []).append(list(temp_group['DATE']))
 
-        # 只第一次循环时记录日期序列
-        if index == 0:
-            out.setdefault('Date', []).append(list(temp_group['DATE']))
+        elif name == 'Q':
+            # ===== Q：只读取指定 Subbasin =====
+            target_sub = int(subbasin_id)  # 比如 141
 
-    # ========= 画图：加入观测值 + 率定/验证指标 =========
+            records = []
+            current_sub = None
+
+            with open(filename, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    parts = line.split()
+
+                    # 识别 "Subbasin: 141" 行
+                    if parts[0] == 'Subbasin:' and len(parts) >= 2:
+                        try:
+                            current_sub = int(parts[1])
+                        except ValueError:
+                            current_sub = None
+                        continue
+
+                    # 只在当前块为目标 subbasin 时，读日期行
+                    if current_sub == target_sub and re.match(r'^\d{4}-\d{2}-\d{2}$', parts[0]):
+                        date_str = parts[0]
+                        time_str = parts[1] if len(parts) > 1 else "00:00:00"
+                        val_str = parts[2] if len(parts) > 2 else "nan"
+                        try:
+                            val = float(val_str)
+                        except ValueError:
+                            continue
+                        records.append((date_str, time_str, val))
+
+            if not records:
+                raise RuntimeError(f"在 {filename} 中没有找到 Subbasin: {target_sub} 的数据")
+
+            temp = pd.DataFrame(records, columns=['DATE', 'TIME', 'value'])
+
+            # Q 不需要再 groupby（每个 date 只有一个值）
+            out.setdefault(name, []).append(list(temp['value']))
+
+            if index == 0:
+                out.setdefault('Date', []).append(list(temp['DATE']))
+
+        else:
+            # 其它变量类型的话，你可以按需要扩展
+            raise ValueError(f"暂时不支持的变量类型: {name}")
+
+    # ================== 降雨读取：循环外初始化一次 ==================
+    HOSTNAME = cf.get('SEIMS_Model', 'HOSTNAME')
+    PORT = int(cf.get('SEIMS_Model', 'PORT'))
+    mongoclient = ConnectMongoDB(HOSTNAME, PORT).get_conn()
+    # 这里假设你前面已经有 wtsd_name（流域名），如 'Poyang' 之类
+    readData = ReadModelData(mongoclient, DEMO_MODELS[wtsd_name])
+
     # ========= 画图：F 全时段指标；Q 保持率定/验证分开 =========
     for index, name in enumerate(tar):
         # ---------- 1. 构造模拟序列 DataFrame ----------
@@ -243,10 +295,16 @@ def main():
         # 只跑了一个参数集的话，这里通常只有一列 name_0
         sim_col = f'{name}_0'
 
-        # ---------- 2. 从 cali/vali Obs JSON 里取观测 ----------
-        var_full_name = f'{name}_{watershed_num}'  # 比如 F_1171 / Q_1171
+        # ============ 根据模拟时间段读取降雨 ============
+        start = newdf.index[0]
+        end = newdf.index[-1]
+        pcp_date_value = readData.Precipitation(0, start, end)
+        pcp_date = [v[0] for v in pcp_date_value]
+        preci = [v[1] for v in pcp_date_value]
 
-        # 观测值与模拟（率定+验证期）
+        # ---------- 2. 从 cali/vali Obs JSON 里取观测 ----------
+        var_full_name = f'{name}_{subbasin_id}'  # 比如 F_1171 / Q_1171
+
         cali_obs_data = None
         vali_obs_data = None
 
@@ -276,14 +334,86 @@ def main():
                 vali_obs_data = item.get(var_full_name, None)
                 break
 
-        if cali_obs_data is None or vali_obs_data is None:
-            print(f"没有在 Obs JSON 中找到 {var_full_name} 的观测数据，{name} 只画模拟。")
-            obs_series = None
-        else:
+        # ---------- 2.1 先尝试用 JSON 组装 obs_series ----------
+        # ---------- 2. 从 cali/vali Obs JSON 里取观测 ----------
+        var_full_name = f'{name}_{subbasin_id}'  # 比如 F_1171 / Q_1171
+
+        cali_obs_data = None
+        vali_obs_data = None
+
+        with open(
+            model_paths.model_dir + os.path.sep
+            + r'CALI_NSGA2_Gen_%s_Pop_%s/simulated_data/gen%s_caliObsData.json'
+            % (ngens, npop, SPECIFIC_GENERATION),
+            'r', encoding='utf-8'
+        ) as f:
+            cali_list = json.load(f)
+
+        with open(
+            model_paths.model_dir + os.path.sep
+            + r'CALI_NSGA2_Gen_%s_Pop_%s/simulated_data/gen%s_valiObsData.json'
+            % (ngens, npop, SPECIFIC_GENERATION),
+            'r', encoding='utf-8'
+        ) as f:
+            vali_list = json.load(f)
+
+        for item in cali_list:
+            if int(item['Gen']) == SPECIFIC_GENERATION and int(item['ID']) == SPECIFIC_ID:
+                cali_obs_data = item.get(var_full_name, None)
+                break
+
+        for item in vali_list:
+            if int(item['Gen']) == SPECIFIC_GENERATION and int(item['ID']) == SPECIFIC_ID:
+                vali_obs_data = item.get(var_full_name, None)
+                break
+
+        # ========== 先尝试 JSON，没有再从 MongoDB.MEASUREMENT 读取 ==========
+        obs_series = None
+
+        if cali_obs_data is not None and vali_obs_data is not None:
+            # --- 用 JSON ---
             obs_dates = cali_obs_data['UTCDATETIME'][:] + vali_obs_data['UTCDATETIME'][:]
             obs_vals = cali_obs_data['Obs'][:] + vali_obs_data['Obs'][:]
             obs_dt = [StringClass.get_datetime(s) for s in obs_dates]
             obs_series = pd.Series(obs_vals, index=obs_dt, dtype='float64', name='Obs')
+        else:
+            print(f"JSON 中没有找到 {var_full_name} 的观测数据，尝试从 MongoDB.MEASUREMENT 读取……")
+
+            # start / end 前面已经有：start = newdf.index[0]; end = newdf.index[-1]
+            # 根据你之前的结构：mongoclient = ConnectMongoDB(...).get_conn()
+            # DEMO_MODELS[wtsd_name] 是当前模型所在的数据库名
+            db = mongoclient['poyang_lake1_HydroClimate']
+            coll = db['MEASUREMENT']
+
+            # start / end 原来就是 pandas 的 datetime（无时区），按 UTC 处理就行
+            from datetime import timezone
+            start_utc = start.replace(tzinfo=timezone.utc)
+            end_utc = end.replace(tzinfo=timezone.utc)
+
+            query = {
+                "STATIONID": int(subbasin_id),  # 1171 之类
+                "TYPE": name,  # 'Q' 或 'F'
+                "UTCDATETIME": {"$gte": start_utc, "$lte": end_utc}
+            }
+            proj = {"_id": 0, "UTCDATETIME": 1, "VALUE": 1}
+
+            docs = list(coll.find(query, proj).sort("UTCDATETIME", 1))
+
+            if docs:
+                obs_dt_raw = [d["UTCDATETIME"] for d in docs]
+
+                # 如果你希望跟 newdf.index 一样是“无时区”的 datetime，可以去掉 tzinfo
+                obs_dt = [
+                    dt.replace(tzinfo=None) if isinstance(dt, datetime) else StringClass.get_datetime(str(dt))
+                    for dt in obs_dt_raw
+                ]
+
+                obs_vals = [float(d["VALUE"]) for d in docs]
+                obs_series = pd.Series(obs_vals, index=obs_dt, dtype='float64', name='Obs')
+                print(f"从 MongoDB.MEASUREMENT 读取到 {len(obs_series)} 条 {var_full_name} 观测数据。")
+            else:
+                print(f"MongoDB.MEASUREMENT 中也没有 {var_full_name} 的观测数据，将只画模拟曲线。")
+                obs_series = None
 
         # ---------- 3. 合并 Obs 和模拟，算指标 ----------
         etime = StringClass.get_datetime(cf.get('CALI_Settings', 'cali_time_end'))
@@ -329,107 +459,239 @@ def main():
                 metrics_whole["Rsquare"] = rsquared(merged['Obs'], merged['Sim'])
                 metrics_whole["pbias"] = pbias(merged['Obs'], merged['Sim'])
 
-        # ---------- 4. 画图 ----------
-        fig, ax = plt.subplots(1, 1, figsize=(22, 8), dpi=100)
+        # ---------- 3. 合并 Obs 和模拟，算指标 ----------
+        etime = StringClass.get_datetime(cf.get('CALI_Settings', 'cali_time_end'))
 
-        # 4.1 观测
+        metrics_cali = None
+        metrics_vali = None
+        metrics_whole = None
+
         if obs_series is not None:
-            ax.scatter(
-                x=obs_series.index,
-                y=obs_series.values,
-                label='Observation',
-                color='#6F6F6F',
-                s=13
+            merged = pd.concat(
+                [obs_series, newdf[sim_col].rename('Sim')],
+                axis=1
+            ).dropna()
+
+            if name == 'Q':
+                # === Q：率定/验证分开 ===
+                cali_vals = merged[merged.index <= etime]
+                vali_vals = merged[merged.index > etime]
+
+                metrics_cali = {}
+                metrics_vali = {}
+
+                metrics_cali["NSE"] = nashsutcliffe(cali_vals['Obs'], cali_vals['Sim'])
+                metrics_vali["NSE"] = nashsutcliffe(vali_vals['Obs'], vali_vals['Sim'])
+
+                metrics_cali["logNSE"] = lognashsutcliffe(cali_vals['Obs'], cali_vals['Sim'])
+                metrics_vali["logNSE"] = lognashsutcliffe(vali_vals['Obs'], vali_vals['Sim'])
+
+                metrics_cali["KGE"] = kge(cali_vals['Obs'], cali_vals['Sim'])
+                metrics_vali["KGE"] = kge(vali_vals['Obs'], vali_vals['Sim'])
+
+                metrics_cali["Rsquare"] = rsquared(cali_vals['Obs'], cali_vals['Sim'])
+                metrics_vali["Rsquare"] = rsquared(vali_vals['Obs'], vali_vals['Sim'])
+
+                metrics_cali["pbias"] = pbias(cali_vals['Obs'], cali_vals['Sim'])
+                metrics_vali["pbias"] = pbias(vali_vals['Obs'], vali_vals['Sim'])
+            else:
+                # === F：全时段一个指标 ===
+                metrics_whole = {}
+                metrics_whole["NSE"] = nashsutcliffe(merged['Obs'], merged['Sim'])
+                metrics_whole["logNSE"] = lognashsutcliffe(merged['Obs'], merged['Sim'])
+                metrics_whole["KGE"] = kge(merged['Obs'], merged['Sim'])
+                metrics_whole["Rsquare"] = rsquared(merged['Obs'], merged['Sim'])
+                metrics_whole["pbias"] = pbias(merged['Obs'], merged['Sim'])
+
+            # ---------- 4. 画图（SCI 风格） ----------
+            fig, ax = plt.subplots(1, 1, figsize=(22, 8), dpi=300)
+
+            # 统一：去掉顶部和右侧边框，更“期刊范”
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+
+            # 4.1 观测：用黑色小圆点
+            if obs_series is not None:
+                ax.scatter(
+                    x=obs_series.index,
+                    y=obs_series.values,
+                    label='Observation',
+                    color='k',
+                    s=10,
+                    alpha=0.7,
+                    zorder=3
+                )
+
+            # 4.2 模拟：红色实线，略粗一点
+            ax.plot(
+                newdf.index,
+                newdf[sim_col],
+                label='Simulation',
+                color='#C82423',
+                linewidth=1.6,
+                zorder=4
             )
 
-        # 4.2 模拟
-        ax.plot(
-            newdf.index,
-            newdf[sim_col],
-            label='Simulation',
-            color='#C82423'
-        )
-
-        # 分位数带（以后有多条曲线时也适用）
-        low_CI_bound = newdf.quantile(0.1, axis=1)
-        high_CI_bound = newdf.quantile(0.9, axis=1)
-        x = newdf.index
-        ax.fill_between(
-            x,
-            low_CI_bound,
-            high_CI_bound,
-            linewidth=1,
-            color='#F8AC8C',
-            label='10th - 90th percentile'
-        )
-
-        # Q 画率定/验证分界线，F 不画
-        if name == 'Q':
-            plt.axvline(etime, c='#000000', ls='--', lw=1)
-
-        # 4.3 指标文字
-        if metrics_cali is not None and metrics_vali is not None:
-            # Q：左侧 Cali，右侧 Vali
-            metric_names = ["NSE", "logNSE", "KGE", "Rsquare", "pbias"]
-            for idx_m, m in enumerate(metric_names):
-                y_pos = 0.80 - idx_m * 0.04
-                ax.text(
-                    0.15, y_pos,
-                    "Cali %s = %.3f" % (m, metrics_cali[m]),
-                    fontsize=13,
-                    transform=ax.transAxes
-                )
-                ax.text(
-                    0.55, y_pos,
-                    "Vali %s = %.3f" % (m, metrics_vali[m]),
-                    fontsize=13,
-                    transform=ax.transAxes
-                )
-        elif metrics_whole is not None:
-            # F：只写一列全时段指标
-            metric_names = ["NSE", "logNSE", "KGE", "Rsquare", "pbias"]
-            for idx_m, m in enumerate(metric_names):
-                y_pos = 0.80 - idx_m * 0.04
-                ax.text(
-                    0.20, y_pos,
-                    "%s = %.3f" % (m, metrics_whole[m]),
-                    fontsize=13,
-                    transform=ax.transAxes
+            # Q 画率定/验证分界线，F 不画
+            if name == 'Q':
+                ax.axvline(
+                    etime,
+                    color='k',
+                    linestyle='--',
+                    linewidth=1.0,
+                    alpha=0.8
                 )
 
-        # 4.4 y 轴范围
-        sim_max = np.nanmax(newdf[sim_col])
-        if obs_series is not None:
-            obs_max = np.nanmax(obs_series)
-            maxy = max(sim_max, obs_max) * 1.8
-        else:
-            maxy = sim_max * 1.8
-        ax.set_ylim(0, maxy)
+            # ========== 在上方画降雨（倒 Y 轴） ==========
+            ax2 = ax.twinx()  # 共享 x 轴
+            ax2.spines['top'].set_visible(False)
 
-        ax.legend(
-            frameon=False,
-            fontsize=14,
-            bbox_to_anchor=(0., 1.02, 1., 0.102),
-            borderaxespad=0.,
-            ncol=3,
-            loc='lower left',
-            fancybox=True
-        )
+            # 降雨柱状图：淡蓝色、半透明，放在背景层
+            if len(preci) > 0:
+                p3 = ax2.bar(
+                    pcp_date,
+                    preci,
+                    label='Precipitation',
+                    linewidth=0,
+                    align='center',
+                    color='blue',
+                    zorder=1
+                )
 
-        ax.set_ylabel('%s' % name, fontsize=15)
-        ax.tick_params('both', length=5, width=2, which='major', labelsize=15)
+                # 倒 Y 轴：上小下大
+                pmax = float(max(preci))
+                pmin = float(min(preci))
+                ax2.set_ylim(pmax * 2.5, pmin * 0.0)
 
-        plt.tight_layout()
-        plt.savefig(
-            model_paths.model_dir + os.path.sep
-            + r'CALI_NSGA2_Gen_%s_Pop_%s/%s.png' % (ngens, npop, name),
-            dpi=300
-        )
-        print(
-            model_paths.model_dir + os.path.sep
-            + r'CALI_NSGA2_Gen_%s_Pop_%s/%s.png' % (ngens, npop, name)
-        )
-        print("///////查看结果///////")
+            ax2.set_ylabel('Precipitation (mm)', fontsize=title_font_size,fontweight='bold')
+            ax2.tick_params('y', length=4, width=1, labelsize=title_font_size)
+            ax2.grid(False)
+
+            # 4.3 指标文字：左侧 Calibration，右侧 Validation
+            if metrics_cali is not None and metrics_vali is not None:
+                # metric_names = ["NSE", "logNSE", "KGE", "Rsquare", "pbias"]
+                metric_names = ["KGE"]
+                # ---- 大标题：Calibration / Validation（类似图2，加粗一点）----
+                ax.text(
+                    0.20, 0.86, "Calibration Period",
+                    fontsize=label_font_size, fontweight='bold',
+                    transform=ax.transAxes,
+                    ha='center'
+                )
+                ax.text(
+                    0.78, 0.86, "Validation Period",
+                    fontsize=label_font_size, fontweight='bold',
+                    transform=ax.transAxes,
+                    ha='center'
+                )
+
+                # ---- 下面两列是各自的评价指标（略小一号）----
+                y0 = 0.75  # 起始高度
+                dy = 0.06  # 行距
+
+                for idx_m, m in enumerate(metric_names):
+                    y_pos = y0 - idx_m * dy
+
+                    # 左侧：Calibration 指标
+                    ax.text(
+                        0.20, y_pos,
+                        "{0:<7}= {1:6.3f}".format(m, metrics_cali[m]),
+                        fontsize=nse_font_size,
+                        fontweight='bold',
+                        transform=ax.transAxes,
+                        ha='center',
+                        color='black'
+                    )
+
+                    # 右侧：Validation 指标
+                    ax.text(
+                        0.78, y_pos,
+                        "{0:<7}= {1:6.3f}".format(m, metrics_vali[m]),
+                        fontsize=nse_font_size,
+                        fontweight='bold',
+                        transform=ax.transAxes,
+                        ha='center',
+                        color='black'
+                    )
+
+            elif metrics_whole is not None:
+                # metric_names = ["NSE", "logNSE", "KGE", "Rsquare", "pbias"]
+                metric_names = [ "KGE"]
+
+                # --- 定义整列的中心位置 ---
+                x_center = 0.48  # 正中央
+
+                # --- 大标题（居中） ---
+                # ax.text(
+                #     x_center, 0.88, "Full period",
+                #     fontsize=15, fontweight='bold',
+                #     transform=ax.transAxes,
+                #     ha='center'
+                # )
+
+                # --- 指标组：字体与 Q 图一致（13号，居中对齐） ---
+                y0 = 0.78  # 起始高度
+                dy = 0.045  # 行距，与 Q 一致
+
+                for idx_m, m in enumerate(metric_names):
+                    y = y0 - idx_m * dy
+                    ax.text(
+                        x_center, y,
+                        f"{m:<7}= {metrics_whole[m]:6.3f}",
+                        fontsize=nse_font_size,
+                        fontweight='bold',
+                        transform=ax.transAxes,
+                        ha='center',  # 小文字也严格居中
+                        color='black'
+                    )
+
+            # 4.4 y 轴范围（流量 / 淹没面积）
+            sim_max = np.nanmax(newdf[sim_col])
+            if obs_series is not None:
+                obs_max = np.nanmax(obs_series)
+                maxy = max(sim_max, obs_max) * 1.3
+                min_y = 0
+            else:
+                maxy = sim_max * 1.3
+                min_y = 0
+            ax.set_ylim(min_y, maxy)
+
+            # X 轴日期格式、网格
+            ax.tick_params('both', length=5, width=1.5, which='major', labelsize=title_font_size)
+            ax.grid(alpha=0.25, linestyle='--', linewidth=0.8, axis='y')
+
+            ax.set_ylabel('%s' % plot_tar_map[name], fontsize=title_font_size,fontweight='bold')
+
+            # ========== legend：合并主轴 + 降雨 ==========
+            handles1, labels1 = ax.get_legend_handles_labels()
+            handles2, labels2 = ax2.get_legend_handles_labels()
+            handles = handles1 + handles2
+            labels = labels1 + labels2
+            if plot_legent:
+            # 图例放上边居中，稍微缩小一些
+                ax.legend(
+                    handles,
+                    labels,
+                    frameon=False,
+                    fontsize=11,
+                    bbox_to_anchor=(0., 1.02, 1., 0.102),
+                    borderaxespad=0.,
+                    ncol=3,
+                    loc='lower left'
+                )
+
+            plt.tight_layout()
+            plt.savefig(
+                model_paths.model_dir + os.path.sep
+                + r'CALI_NSGA2_Gen_%s_Pop_%s/%s.png' % (ngens, npop, f'{name}_{subbasin_id}'),
+                dpi=300
+            )
+            print(
+                model_paths.model_dir + os.path.sep
+                + r'CALI_NSGA2_Gen_%s_Pop_%s/%s.png' % (ngens, npop, f'{name}_{subbasin_id}')
+            )
+            print("///////查看结果///////")
+
 
 
 if __name__ == "__main__":

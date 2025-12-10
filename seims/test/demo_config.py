@@ -34,7 +34,8 @@ from parameters_sensitivity.config import PSAConfig
 from calibration.config import CaliConfig
 
 DEMO_MODELS = {
-    'poyang_lake1':'poyang_lake1_longterm_model_1171'
+    'poyang_lake1':'poyang_lake1_longterm_model_1171',
+
    #  'youwuzhen': 'demo_youwuzhen30m_longterm_model',
    # 'hlg_hband': 'hlg_hband_longterm_model',
    # 'hulugou': 'hulugou_longterm_model',

@@ -67,7 +67,9 @@ void OL_HAND::Set1DData(const char* key, const int n, float* data) {
 	else if (StringMatch(sk, VAR_SUBBSN)) m_subbsnID = data;
 	else if (StringMatch(sk, VAR_CHWTRDEPTH)) m_chWtrDepth = data;
 	else if (StringMatch(sk, VAR_CHWTRWIDTH)) m_chWtrWth = data;
-	
+	else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
+		m_handWtrDep = data;
+	}
 	else {
 		throw ModelException(MID_OL_HAND, "Set1DData", "Parameter " + sk + " does not exist.");
 	}
@@ -118,13 +120,27 @@ void OL_HAND::InitialOutputs() {
 	CHECK_POSITIVE(MID_OL_HAND, m_nCells);
 	if (m_Hands.empty())
 	{
-		m_handWtrDep = new(nothrow) float[m_nCells];
-		m_isHandFlooded = new(nothrow) float[m_nCells];
-		m_subbasinArea = new(nothrow) float[m_nreach + 1];
-		m_subbasinInundationArea = new(nothrow) float[m_nreach + 1];
-		m_subbasinWtrDep = new(nothrow) float[m_nreach + 1];
-
-
+		if (nullptr == m_handWtrDep)
+		{
+			Initialize1DArray(m_nCells, m_handWtrDep, 0.f);
+		}
+		if (nullptr == m_isHandFlooded)
+		{
+			Initialize1DArray(m_nCells, m_isHandFlooded, 0.f);
+		}
+		if (nullptr == m_subbasinArea)
+		{
+			Initialize1DArray(m_nreach + 1, m_subbasinArea, 0.f);
+		}
+		if (nullptr == m_subbasinInundationArea)
+		{
+			Initialize1DArray(m_nreach + 1, m_subbasinInundationArea, 0.f);
+		}
+		if (nullptr == m_subbasinWtrDep)
+		{
+			Initialize1DArray(m_nreach + 1, m_subbasinWtrDep, 0.f);
+		}
+		
 #ifdef _WIN32
 		string txt_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/FloodStep.txt";
 		string csv_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/InundationMap.csv";
@@ -216,6 +232,10 @@ void OL_HAND::Get1DData(const char* key, int* n, float** data) {
 		*data = m_isHandFlooded;
 		*n = m_nCells;
 	}else if (StringMatch(sk, VAR_SUBBASIN_FLOODED_AREA)) {
+		if (nullptr != m_subbasinInundationArea)
+		{
+			m_subbasinInundationArea[0] = m_subbasinInundationArea[m_outletID];
+		}
 		*data = m_subbasinInundationArea;
 	}
 	else if (StringMatch(sk, VAR_SUBBASIN_WTR_DEPTH)) {
