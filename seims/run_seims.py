@@ -164,8 +164,8 @@ class MainSEIMS(object):
                  model_dir='',  # type: AnyStr # The directory of SEIMS model
                  nthread=4,  # type: int # Thread number for OpenMP
                  lyrmtd=0,  # type: int # Layering method, can be 0 (UP_DOWN) or 1 (DOWN_UP)
-                 host='172.21.124.127',  # type: AnyStr # MongoDB host address, default is `localhost`
-                 port=27019,  # type: int # MongoDB port, default is 27017
+                 host='127.0.0.1',  # type: AnyStr # MongoDB host address, default is `localhost`
+                 port=27017,  # type: int # MongoDB port, default is 27017
                  db_name='',  # type: AnyStr  # Main spatial dbname which can diff from dirname
                  scenario_id=-1,  # type: int # Scenario ID defined in `<model>_Scenario` database
                  calibration_id=-1,  # type: int # Calibration ID used for model auto-calibration

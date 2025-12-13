@@ -347,7 +347,7 @@ if __name__ == "__main__":
 
     seims_cfg = parse_ini_configuration()
     client = ConnectMongoDB(seims_cfg.hostname, seims_cfg.port)
-    db_name = 'poyang_lake1_longterm_model'
+    db_name = 'poyang_lake1_longterm_model_1171'
     conn = client.get_conn()
     db_model_field = conn[db_name]
     spatial_gfs = GridFS(db_model_field, DBTableNames.gridfs_spatial)
@@ -392,7 +392,8 @@ if __name__ == "__main__":
         "Base_ex": "BASE_EX_1D",
         "Kg": "KG_1D",
         "gw_delay": "GW_DELAY_1D",
-        "ep_ch":"EP_CH_1D"
+        "ep_ch":"EP_CH_1D",
+        "GWMAX_1D":"GWMAX_1D"
     }
 
 
@@ -405,11 +406,11 @@ if __name__ == "__main__":
     #     csv_in_col='subbasin',
     #     csv_out=param_group2_csv_file
     # )
-    # param_arrays = read_field_arrays_from_csv(param_group2_csv_file)
-    # prefix = 0
-    # for key, value in list(param_arrays.items()):
-    #     pondVal = value
-    #     import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
+    param_arrays = read_field_arrays_from_csv(param_group2_csv_file)
+    prefix = 0
+    for key, value in list(param_arrays.items()):
+        pondVal = value
+        import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
 
     ############# 根据PARAMETER表中的VALUE生成param_group2_ch.csv,并导入REACHES ############
     caliparam_sub_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\caliparam_sub.csv"

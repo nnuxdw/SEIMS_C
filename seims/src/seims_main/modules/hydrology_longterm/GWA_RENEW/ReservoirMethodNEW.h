@@ -68,6 +68,7 @@ public:
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
 
+
     //TimeStepType GetTimeStepType() OVERRIDE { return TIMESTEP_CHANNEL; }
 
 private:
@@ -137,6 +138,7 @@ private:
     float m_GWT0;
     //! maximum ground water storage
     float m_GWMAX;
+	float *m_GWMAX_1d;
 
     float* m_petSubbsn; ///< Average PET of each subbasin, mm
     float* m_gwSto;     ///<  Groundwater storage (mm) of the subbasin
@@ -177,6 +179,12 @@ private:
 
     float* m_area;
     float* curBasinArea;
+	float* gw_delay_1d;
+	float* m_Kg_1d;
+	float* m_Base_ex_1d;
+	float*  m_hand_eavp;
+	float* m_handWtrDep;
+	float* m_chSto;		///< reach storage (m^3), rchstor in SWAT
 
 };
 

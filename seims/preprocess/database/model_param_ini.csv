@@ -291,3 +291,4 @@ Reservior,RES_minq,TODO, ,ChannelRouting,-9999,0,AC,40,10
 Reservior,RES_normq,TODO, ,ChannelRouting,-9999,0,AC,300,40
 Reservior,RES_ndq,TODO, ,ChannelRouting,-9999,0,AC,2500,800
 LAKE,LAKE_MNLWL_1D,TODO,,ChannelRouting,-9999,0,AC,10000000,100
+groundwater,GWMAX_1D,maximum ground water storage,mm,GWA_REnew,-9999,0,AC,1000,10

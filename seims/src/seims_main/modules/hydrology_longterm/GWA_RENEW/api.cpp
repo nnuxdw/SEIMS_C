@@ -40,6 +40,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_SOILLAYERS, UNIT_NON_DIM, DESC_SOILLAYERS, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_SOILTHICK, UNIT_DEPTH_MM, DESC_SOILTHICK, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_SLOPE, UNIT_PERCENT, DESC_SLOPE, Source_ParameterDB, DT_Raster1D);
+	// xiaodw++
+	mdi.AddParameter(VAR_GWMAX_1D, UNIT_DEPTH_MM, DESC_GWMAX, Source_ParameterDB, DT_Array1D);
 
     mdi.AddInput(VAR_INET, UNIT_DEPTH_MM, DESC_INET, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_DEET, UNIT_DEPTH_MM, DESC_DEET, Source_Module, DT_Raster1D);
@@ -51,6 +53,10 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     // VAR_PERCO is from percolation modules
     mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Array2D);
     mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);
+	mdi.AddInput(VAR_HAND_EVAP, UNIT_DEPTH_MM, DESC_HAND_EVAP, Source_Module, DT_Raster1D);   // xiaodw, hand water evap,mm 
+	mdi.AddInput(VAR_CHST, UNIT_VOL_M3, DESC_CHST, Source_Module, DT_Array1D);
+	mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Raster1D);   // xiaodw, infundation water depth,m 
+
 
     mdi.AddOutput(VAR_GWWB, UNIT_NON_DIM, DESC_NONE, DT_Array2D);
     mdi.AddOutput(VAR_REVAP, UNIT_DEPTH_MM, DESC_REVAP, DT_Raster1D);              //used by soil water balance module
@@ -59,6 +65,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     //mdi.AddOutput(VAR_SBQGSUBAREA, UNIT_FLOW_CMS, DESC_SBQG, DT_Array1D); //used to expression
     mdi.AddOutput(VAR_SBPET, UNIT_DEPTH_MM, DESC_SBPET, DT_Array1D);
     mdi.AddOutput(VAR_SBGS, UNIT_DEPTH_MM, DESC_SBGS, DT_Array1D);
+	mdi.AddOutput(VAR_CHST_LAST_STEP, UNIT_VOL_M3, DESC_CHST_LAST_STEP, DT_Array1D);   // xiaodw add, output for OL_HAND module
+
 
     mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
 
@@ -79,6 +87,9 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_SURU, UNIT_DEPTH_MM, DESC_SURU, Source_Module, DT_Raster1D);
     mdi.AddParameter(VAR_SOL_AWC, UNIT_DEPTH_MM, DESC_SOL_AWC, Source_ParameterDB, DT_Raster2D);   // m_fc
     //mdi.AddParameter(VAR_WASCOB, UNIT_LEN_M, DESC_FLOWOUT_LEN, Source_ParameterDB_Optional, DT_Raster1D);
+	mdi.AddParameter("gw_delay_1d", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter("Kg_1d", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter("Base_ex_1d", UNIT_NON_DIM, DESC_BASE_EX, Source_ParameterDB, DT_Raster1D);
 
     res = mdi.GetXMLDocument();
 

@@ -155,7 +155,7 @@ bool DataCenter::CheckAdjustment(const string& para_name) {
     // 参数名单：这些参数使用 caliparam2.csv，其余使用 caliparam.csv
     static const std::unordered_set<std::string> csv2_params_set = {
         "BASE_EX_1D","KG_1D","GW_DELAY_1D","EP_CH_1D","CH_N","HLIFE_DOCGW_1D","LAKEB_1D","LAKE_ALPHA",
-        "KRP_1D","KD_RP_1D","SV_RP_1D","KRD_1D","RES_LC","RES_LN","RES_LF","RES_normMult","RES_ADJUST","LAKE_MNLWL_1D" // 大写
+        "KRP_1D","KD_RP_1D","SV_RP_1D","KRD_1D","RES_LC","RES_LN","RES_LF","RES_normMult","RES_ADJUST","LAKE_MNLWL_1D","GWMAX_1D" // 大写
     };
 
     // 加载 caliparam.csv（仅一次）

@@ -676,6 +676,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_GW_Q "GW"
 #define VAR_GW0 "GW0"                               /// initial ground water storage
 #define VAR_GWMAX "GWMAX"                           /// maximum ground water storage
+#define VAR_GWMAX_1D "GWMAX_1D"                           /// maximum ground water storage
 #define VAR_GWSOLP_CONC "gwsolp_conc" /// m_gwSolPConc
 #define VAR_GWSOLP "gwsolp" /// m_gwSolP
 #define VAR_GWNEW "GWNEW"                           /// The volume of water from the bank storage to the adjacent unsaturated zone and groundwater storage
