@@ -156,19 +156,19 @@ int clsPI_MCS::Execute() {
             m_P[i] = m_P[i] * m_hilldt * 0.0002777777777777778f * cos(atan(m_slope[i]));
 #endif // STORM_MODE
 			// xiaodw++, when inundation occours at a HAND, interception is now allowed, thus interception alse not allowed
-			float handWtrDepMM = m_handWtrDep[i] * 1000.0;
-			if (handWtrDepMM > 0.0)
-			{
-				m_netPcp[i] = m_pcp[i];
-				if (m_canSto[i] > 0.0)
-				{
-					m_chSto[subbasinId] += m_handArea[i] * m_canSto[i] * 0.001;
-					m_canSto[i] = 0.0;
-				}
-				m_intcpLoss[i] = 0.f;
-				m_IntcpET[i] = 0.f;
-				continue;
-			}
+			//float handWtrDepMM = m_handWtrDep[i] * 1000.0;
+			//if (handWtrDepMM > 0.0)
+			//{
+			//	m_netPcp[i] = m_pcp[i];
+			//	if (m_canSto[i] > 0.0)
+			//	{
+			//		m_chSto[subbasinId] += m_handArea[i] * m_canSto[i] * 0.001;
+			//		m_canSto[i] = 0.0;
+			//	}
+			//	m_intcpLoss[i] = 0.f;
+			//	m_IntcpET[i] = 0.f;
+			//	continue;
+			//}
             //interception storage capacity, 1. / 365. = 0.0027397260273972603
             float degree = 2.f * PI * (m_dayOfYear - 87.f) * 0.0027397260273972603f;
             /// For water, min and max are both 0, then no need for specific handling.

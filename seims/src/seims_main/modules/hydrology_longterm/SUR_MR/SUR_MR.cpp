@@ -110,25 +110,34 @@ int SUR_MR::Execute() {
 		/// debug
 		float netPcp = m_netPcp[i];
 		float deprSto = m_deprSto[i];
-        //hWater = m_netPcp[i] + m_deprSto[i];
-		hWater = m_netPcp[i] + m_deprSto[i];   //  xiaodw, allow inundation water to infiltrate
+        hWater = m_netPcp[i] + m_deprSto[i];
+		//hWater = m_netPcp[i] + m_deprSto[i] + handWtrDepMM;   //  xiaodw, allow inundation water to infiltrate
 		//runoff percentage
 		float runoffPercentage;
 		float surfq;
 		int subbasinId = CVT_INT(m_subbsnID[i]);
 		float handWtrDepMM = m_handWtrDep[i] * 1000.0;
-		if (handWtrDepMM >= m_soilPor[i][0] * m_soilThk[i][0] - m_soilWtrSto[i][0])
+		if (handWtrDepMM >.0f)
 		{
-			
-			m_infil[i] = m_soilPor[i][0] * m_soilThk[i][0] - m_soilWtrSto[i][0];
-			m_chSto[subbasinId] -= m_handArea[i] * m_infil[i] * 0.001;
-			m_exsPcp[i] = hWater;
+			float hand_infil = 0.f;
+			float hand_infil_acc = 0.f;
+			for (int ly = CVT_INT(m_nSoilLyrs[i]) - 1; ly >= 0; ly--) {
+				if (handWtrDepMM >= m_soilPor[i][ly] * m_soilThk[i][ly] - m_soilWtrSto[i][ly]) {
+					hand_infil = m_soilPor[i][ly] * m_soilThk[i][ly] - m_soilWtrSto[i][ly];
+					m_soilWtrSto[i][ly] = m_soilPor[i][ly] * m_soilThk[i][ly];
+					hand_infil_acc += hand_infil;
+					handWtrDepMM -= hand_infil;
+				}
+				else {
+					hand_infil = handWtrDepMM;
+					m_soilWtrSto[i][ly] += hand_infil;
+					hand_infil_acc += hand_infil;
+					handWtrDepMM = 0.f;
+				}
+			}
+			m_chSto[subbasinId] -= m_handArea[i] * hand_infil_acc * 0.001;
 		}
-		else if (handWtrDepMM >= 0.0) {
-			m_infil[i] = handWtrDepMM;
-			m_chSto[subbasinId] -= m_handArea[i] * m_infil[i] * 0.001;
-			m_exsPcp[i] = hWater;
-		}else if (hWater > 0.f ) {
+		if (hWater > 0.f ) {
             /// update total soil water content
             m_soilWtrStoPrfl[i] = 0.f;
             for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[i]); ly++) {

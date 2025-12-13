@@ -77,5 +77,6 @@ private:
 	int m_outletID;    ///< outlet ID, also can be derived by m_reachLayers.rbegin()->second[0];
 	float* m_handArea;       /// area of each hand
 	int m_nreach;      ///< reach number (= subbasin number)
+	float*  m_hand_eavp;
 };
 #endif /* SEIMS_MODULE_SET_LM_H */

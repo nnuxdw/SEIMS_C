@@ -620,6 +620,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_DAYLEN_MIN "daylenmin" /// m_dayLenMin, minimum day length
 #define VAR_DEEPST "deepst"
 #define VAR_DEET "DEET" /// m_deprStoET, evaporation from the depression storage
+#define VAR_HAND_EVAP "HAND_EVAP" /// m_hand_evap, evaporation from inundated area
 #define VAR_DEM "DEM" /// m_dem, Digital Elevation Model
 #define VAR_DEPREIN "Depre_in"                        /// initial depression storage coefficient
 #define VAR_DEPRESSION "Depression"                   /// Depression storage capacity
@@ -807,6 +808,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_PLTPET_TOT "plt_pet_tot" /// m_totPltPET, potential ET simulated during life of plant, plt_pet in SWAT
 #define VAR_POREIDX "Poreindex" /// m_poreIdx, pore size distribution index
 #define VAR_POROST "Porosity" /// m_soilPor, soil porosity
+#define VAR_GWSUBAREA "GWSUBAREA"
 #define VAR_POT_NO3 "pot_no3" /// m_potNo3, amount of nitrate in pothole water body
 #define VAR_POT_NH4 "pot_nh4"
 #define VAR_POT_ORGN "pot_orgn"
@@ -1600,6 +1602,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_PUPDIS "Phosphorus uptake distribution parameter"
 #define DESC_QCH "Flux in the downslope boundary of cells"
 #define DESC_OLFLOW "overland flow in each cell calculated during overland routing"
+#define DESC_HAND_EVAP "hand evaporation in each cell "
 #define DESC_IS_HAND_FLOODED "are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water "
 #define DESC_SUBBASIN_FLOODED_AREA "sum of  flooded hand's area in  each subbasin"
 #define DESC_SUBBASIN_WTR_DEPTH "water depth in  each subbasin"

@@ -1,11 +1,11 @@
 #include "api.h"
 
-#include "DepressionLinsley.h"
+#include "DepressionLinsleyHand.h"
 #include "MetadataInfo.h"
 #include "text.h"
 
 extern "C" SEIMS_MODULE_API SimulationModule* GetInstance() {
-    return new DepressionFSDaily();
+    return new DepressionLinsleyHand();
 }
 
 extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
@@ -34,14 +34,11 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Raster1D);   // xiaodw, infundation water depth,m 
 	mdi.AddInput(VAR_CHST, UNIT_VOL_M3, DESC_CHST, Source_Module, DT_Array1D);
 	mdi.AddInput(VAR_DPST, UNIT_DEPTH_MM, DESC_DPST, Source_Module, DT_Raster1D);
-	mdi.AddInput(VAR_HAND_EVAP, UNIT_DEPTH_MM, DESC_HAND_EVAP, Source_Module, DT_Raster1D);   // xiaodw, hand water evap,mm 
-
-	
     mdi.AddOutput(VAR_DPST, UNIT_DEPTH_MM, DESC_DPST, DT_Raster1D);
     mdi.AddOutput(VAR_DEET, UNIT_DEPTH_MM, DESC_DEET, DT_Raster1D);
     mdi.AddOutput(VAR_SURU, UNIT_DEPTH_MM, DESC_SURU, DT_Raster1D);
 	mdi.AddOutput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, DT_Raster1D); // xiaodw, infundation water depth,m 
-
+	mdi.AddOutput(VAR_HAND_EVAP, UNIT_DEPTH_MM, DESC_HAND_EVAP, DT_Raster1D);
 
     // set the dependencies
     mdi.AddDependency(MCLS_CLIMATE, MCLSDESC_CLIMATE);

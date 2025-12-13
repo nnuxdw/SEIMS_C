@@ -251,14 +251,19 @@ bool SSR_DA::FlowInSoil(const int id) {
 		{
 			if (id == 15012)
 			{
-				// 这里用你前面已经算过的变量：smOld, qUp, qUpVol, s0, flowWidth, k 等
-			// 若担心某些变量没定义，你也可以在上面就近给默认值。
+				float sm_new = m_soilWtrSto[id][j];
+				float dSm = smOld - sm_new;  // 本层土壤水减少量(>0 表示有水流出)
+				float awc_excess_old = smOld - m_soilAWC[id][j]; // 本步开始时相对 AWC 的超量
+				float sat_excess_old = smOld - m_soilSat[id][j]; // 本步开始时相对饱和含水量的超量
 
-			// 下一层土壤水(更新前)你已保存为 soilWtrStoNexLyrOld
-				float next_sm_new = (j < CVT_INT(m_nSoilLyrs[id]) - 1) ? m_soilWtrSto[id][j + 1] : -1.f;
-				// 冻土修正导水率（仅 frez==1 时有效），打印也给出来
-				//float WCND_used = (frez == 1) ? WCND : -1.f;
+				// 下一层前后对比（只为看 perco 的去向）
+				float next_sm_old = soilWtrStoNexLyrOld;
+				float next_sm_new = (j < CVT_INT(m_nSoilLyrs[id]) - 1)
+					? m_soilWtrSto[id][j + 1]
+					: -1.f;
+
 				std::cout << std::fixed << std::setprecision(6);
+
 				// ---- 基本标识 ----
 				std::cout << "[SSR_DA] "
 					<< "id=" << id
@@ -267,69 +272,44 @@ bool SSR_DA::FlowInSoil(const int id) {
 					<< " landUse=" << m_landUse[id]
 					<< " rchID=" << m_rchID[id]
 					<< "\n";
-
-				// ---- 几何参数 ----
-				//std::cout << "  geom: "
-				//	<< "slope=" << s0
-				//	<< " area=" << m_area[id]
-				//	<< " slplen=" << m_slplen[id]
-				//	<< "\n";
-
-				// ---- 土壤结构参数 ----
-				std::cout << "  soil_struct: "
-					<< "thk=" << m_soilThk[id][j]
-					<< " por=" << m_soilPor[id][j]
-					<< " poreIdx=" << m_poreIdx[id][j]
-					<< " clay=" << m_clay[id][j]
+				std::cout.flush();
+				// ---- 本层水量 & 容量 ----
+				std::cout << "  storage_layer: "
+					<< "sm_old=" << smOld
+					<< " sm_new=" << sm_new
 					<< " SatCap=" << m_soilSat[id][j]
 					<< " AWC=" << m_soilAWC[id][j]
+					<< " awc_excess_old=" << awc_excess_old
+					<< " sat_excess_old=" << sat_excess_old
 					<< "\n";
-
-				// ---- 水量状态（本层/下一层/上游）----
-				std::cout << "  water_state: "
-					<< "sm_old=" << smOld
-					<< " sm_new=" << m_soilWtrSto[id][j]
-					<< " next_sm_old=" << soilWtrStoNexLyrOld
-					<< " next_sm_new=" << next_sm_new
-					<< " qUp=" << qUp << "mm"
-					<< " qUpVol=" << qUpVol << "m3"
+				std::cout.flush();
+				// ---- 垂向渗漏 & 侧向流（本步）----
+				std::cout << "  fluxes_layer: "
+					<< "perco=" << m_soilPerco[id][j] << "mm"
+					<< " subRf_step=" << m_subSurfRf[id][j] << "mm"   // 本步真正释放出去的侧向流
+					<< " dSm=" << dSm << "mm"  // 本层水量减少量
 					<< "\n";
-
-				// ---- 导水与时间尺度 ----
-				// k 是本步用于计算的实际导水率（含非饱和/冻土修正逻辑）；ks 为饱和导水率
-				std::cout << "  conductance: "
-					<< "ks=" << m_ks[id][j]
-					<< " k_used=" << k
-					//<< " WCND=" << WCND_used
-					<< " ki=" << m_ki_1d[id]
-					<< " dt=" << m_dt
-					<< "\n";
-
-				// ---- 超量/渗漏时间尺度 ----
-				std::cout << "  excess_perc: "
-					<< "sw_excess=" << (m_soilWtrSto[id][j] + m_soilPerco[id][j] + m_subSurfRf[id][j] - m_soilAWC[id][j])
-					<< " maxPerc=" << (m_soilSat[id][j] - m_soilAWC[id][j])
-					<< " tt=" << ((m_ks[id][j] > 0.f) ? (3600.f * (m_soilSat[id][j] - m_soilAWC[id][j]) / m_ks[id][j]) : -1.f)
-					<< " TTlag=" << m_TTlag[id][j]
-					<< "\n";
-
-				// ---- 通量（本步生成）----
-				std::cout << "  fluxes: "
-					<< "subRf=" << m_subSurfRf[id][j] << "mm"
-					<< " perco=" << m_soilPerco[id][j] << "mm"
-					<< " subRfVol=" << m_subSurfRfVol[id][j] << "m3"
-					<< "\n";
-
-				// ---- 蓄积与地表径流前后 ----
-				std::cout << "  storage_flow: "
-					<< " cellFlow_aft=" << m_cellFlow[id][j]
-					<< " surf_bef=" << surFlowOld
-					<< " surf_aft=" << m_surfRf[id]
+				std::cout.flush();
+				// ---- 垂向渗漏在下一层的体现 ----
+				if (j < CVT_INT(m_nSoilLyrs[id]) - 1)
+				{
+					std::cout << "  next_layer_storage: "
+						<< "next_sm_old=" << next_sm_old
+						<< " next_sm_new=" << next_sm_new
+						<< " (delta_next=" << (next_sm_new - next_sm_old) << ")"
+						<< "\n";
+				}
+				std::cout.flush();
+				// ---- 简单水量收支检查：dSm ≈ perco + subRf_step ----
+				float budget_residual = dSm - (m_soilPerco[id][j] + m_subSurfRf[id][j]);
+				std::cout << "  budget_check: "
+					<< "dSm - (perco + subRf_step)=" << budget_residual
 					<< "\n\n";
+				std::cout.flush();
 			}
 		}
-			
 #endif
+
 
 
         if (m_soilWtrSto[id][j] != m_soilWtrSto[id][j] || m_soilWtrSto[id][j] < 0.f) {

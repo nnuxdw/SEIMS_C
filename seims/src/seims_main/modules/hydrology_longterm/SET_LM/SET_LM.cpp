@@ -8,7 +8,7 @@ SET_LM::SET_LM() :
     m_pet(nullptr), m_IntcpET(nullptr),
     m_deprStoET(nullptr), m_maxPltET(nullptr), m_soilTemp(nullptr),
     m_soilFrozenTemp(NODATA_VALUE),
-    m_soilET(nullptr),m_soilAWC(nullptr), m_handWtrDep(nullptr), m_subbsnID(nullptr), m_chSto(nullptr), m_handArea(nullptr) {
+    m_soilET(nullptr),m_soilAWC(nullptr), m_handWtrDep(nullptr), m_subbsnID(nullptr), m_chSto(nullptr), m_handArea(nullptr), m_hand_eavp(nullptr) {
 }
 
 SET_LM::~SET_LM() {
@@ -25,46 +25,35 @@ int SET_LM::Execute() {
 		//if (m_soilTemp[i] <= m_soilFrozenTemp) { continue; }     // xiaodw comment, don't need soil temperature now
 	   //float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_maxPltET[i];   // xiaodw comment, don't need plant et now, remove it 
 		// xiaodw++, If a HAND  is inundated, its water is evaporated with priority
-		int subbasinId = CVT_INT(m_subbsnID[i]);
-		float handWtrDepMM = m_handWtrDep[i] * 1000.0;
-		
-		float etDeficiency;
-		if (handWtrDepMM >= m_pet[i])
-		{
-			m_chSto[subbasinId] -= m_handArea[i] * m_pet[i] * 0.001;
-			etDeficiency = 0.0;
-		}
-		else{
-			m_chSto[subbasinId] -= m_handArea[i] * handWtrDepMM * 0.001;
-			float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - handWtrDepMM;
-			for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
-				if (etDeficiency <= 0.f) break;
-				float et2d = 0.f;
-				//if (m_soilWtrSto[i][j] >= m_soilFC[i][j]) {
-				float smBefore = m_soilWtrSto[i][j];
-				if (m_soilWtrSto[i][j] >= m_soilAWC[i][j]) {
-					et2d = etDeficiency;
-				}
-				else if (m_soilWtrSto[i][j] >= 0.f) {
-					//et2d = etDeficiency * m_soilWtrSto[i][j] / m_soilFC[i][j];
-					et2d = etDeficiency * m_soilWtrSto[i][j] / m_soilAWC[i][j];
-				}
-				else {
-					et2d = 0.0f;
-				}
-				if (et2d > m_soilWtrSto[i][j]) {
-					et2d = m_soilWtrSto[i][j];
-					m_soilWtrSto[i][j] = 0.f;
-				}
-				else {
-					m_soilWtrSto[i][j] -= et2d;
-				}
-				if (m_soilWtrSto[i][j] < 0.f) {
-					cout << "SET_LM: moisture is less than zero" << m_soilWtrSto[i][j] << "\t" << et2d << endl;
-					errCount++;
-				}
-				etDeficiency -= et2d;
-				m_soilET[i] += et2d;
+		float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_hand_eavp[i];//m_deprStoET
+		for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
+			if (etDeficiency <= 0.f) break;
+			float et2d = 0.f;
+			//if (m_soilWtrSto[i][j] >= m_soilFC[i][j]) {
+			float smBefore = m_soilWtrSto[i][j];
+			if (m_soilWtrSto[i][j] >= m_soilAWC[i][j]) {
+				et2d = etDeficiency;
+			}
+			else if (m_soilWtrSto[i][j] >= 0.f) {
+				//et2d = etDeficiency * m_soilWtrSto[i][j] / m_soilFC[i][j];
+				et2d = etDeficiency * m_soilWtrSto[i][j] / m_soilAWC[i][j];
+			}
+			else {
+				et2d = 0.0f;
+			}
+			if (et2d > m_soilWtrSto[i][j]) {
+				et2d = m_soilWtrSto[i][j];
+				m_soilWtrSto[i][j] = 0.f;
+			}
+			else {
+				m_soilWtrSto[i][j] -= et2d;
+			}
+			if (m_soilWtrSto[i][j] < 0.f) {
+				cout << "SET_LM: moisture is less than zero" << m_soilWtrSto[i][j] << "\t" << et2d << endl;
+				errCount++;
+			}
+			etDeficiency -= et2d;
+			m_soilET[i] += et2d;
 #ifdef DEBUG_SET_LM
 				if (i == 2562)
 				{
@@ -80,7 +69,7 @@ int SET_LM::Execute() {
 				}
 
 #endif // DEBUG_SET_LM
-			}
+			
 		}
     }
     if (errCount > 0) {
@@ -166,6 +155,10 @@ void SET_LM::Set1DData(const char* key, const int n, float* data) {
 		CheckInputSize(MID_SET_LM, key, n, m_nCells);
 		m_handArea = data;
 	}
+	else if (StringMatch(s, VAR_HAND_EVAP)) {
+		CheckInputSize(MID_SET_LM, key, n, m_nCells);
+		m_hand_eavp = data;
+	}
 	else {
 		throw ModelException(MID_SET_LM, "Set1DData", "Parameter " + s + " does not exist.");
 	}
@@ -203,4 +196,9 @@ void SET_LM::InitialOutputs() {
 	{
 		Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
 	}
+	if (m_hand_eavp == nullptr)
+	{
+		Initialize1DArray(m_nCells, m_hand_eavp, 0.f);//xdw++
+	}
+	
 }
