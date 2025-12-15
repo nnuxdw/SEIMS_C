@@ -83,7 +83,19 @@ int ReservoirMethodNEW::Execute() {
         //#pragma omp parallel for reduction(+:perco, fPET, revap)
         for (int i = 0; i < curCellsNum; i++) {
             int index = curCells[i];
-            float tmp_perc = max(0, m_soilPerco[index][CVT_INT(m_nSoilLyrs[index]) - 1]);
+			int nly = CVT_INT(m_nSoilLyrs[index]);
+			int last = nly - 1;
+
+			// 先缓存“更新前”的量（用于算变化量 ）
+			float gw_before = gwSub[index];
+			float soil_before_last = m_soilWtrSto[index][last];
+
+			// 如果你还想看每层变化量，就把每层都缓存下来
+			vector<float> soil_before;
+			soil_before.reserve(nly);
+			for (int ly = 0; ly < nly; ++ly) soil_before.push_back(m_soilWtrSto[index][ly]);
+
+            float tmp_perc = MAX(0, m_soilPerco[index][CVT_INT(m_nSoilLyrs[index]) - 1]);
             if (tmp_perc + gwSub[index] >= m_GWMAX_1d[subID])
             {
                 float excessWater = tmp_perc + gwSub[index] - m_GWMAX_1d[subID];
@@ -174,6 +186,61 @@ int ReservoirMethodNEW::Execute() {
             }
             ////revap += m_revap[index];
             revap += m_revap[index] * (m_area[index] / curBasinArea[subID]);
+
+			/// xiaodw++, output for debug
+			#ifdef DEBUG_GWA_RENEW
+			if (index == 15012) {
+				float tmp_perc_last = m_soilPerco[index][last];      // 最下层向地下水渗漏（mm）——注意你前面可能会被改写
+				float revap_mm = m_revap[index];                     // 地下水蒸发回补（mm）
+				float dGW_mm = tmp_perc_last - revap_mm;             // 本步地下水变化量（mm）（按你的更新公式）
+				float gw_after = gwSub[index];
+
+				std::cout << std::fixed << std::setprecision(6);
+				std::cout << "\n[GWA_RENEW] subID=" << subID
+					<< " index=" << index
+					<< " date=" << m_year << "-" << m_month << "-" << m_day
+					<< " dt=" << m_dt
+					<< "\n  nly=" << nly
+					<< " area=" << m_area[index]
+					<< " slopeCoef=" << curSub->GetSlopeCoef()
+					<< "\n  --- Fluxes (mm) ---"
+					<< "\n  perc_last(mm)=" << tmp_perc_last
+					<< "  revap(mm)=" << revap_mm
+					<< "  dGW(mm)=perc_last-revap=" << dGW_mm
+					<< "\n  --- GW Storage (mm) ---"
+					<< "\n  gw_before(mm)=" << gw_before
+					<< "  gw_after(mm)=" << gw_after
+					<< "  GWMAX_1d(mm)=" << m_GWMAX_1d[subID]
+					<< "\n  --- Soil Water (mm) ---";
+
+				// 每层土壤含水量 & 饱和含水量 & 变化量
+				for (int ly = 0; ly < nly; ++ly) {
+					float sw_before = soil_before[ly];
+					float sw_after = m_soilWtrSto[index][ly];
+					float dsw = sw_after - sw_before;
+					float sat = m_soilSat[index][ly];
+
+					std::cout << "\n  ly=" << ly
+						<< "  soil_before=" << sw_before
+						<< "  soil_after=" << sw_after
+						<< "  dSoil=" << dsw
+						<< "  sat=" << sat
+						<< "  (after-sat)=" << (sw_after - sat);
+				}
+
+				// 额外：一些你这段里最容易导致异常的关键量
+				std::cout << "\n  --- Key Vars ---"
+					<< "\n  infiltr(mm)=" << m_infil[index]
+					<< "  surfRf(mm)=" << m_surfRf[index]
+					<< "  handWtrDep(m)=" << m_handWtrDep[index]
+					<< "  hand_eavp(mm)=" << m_hand_eavp[index]
+					<< "\n  pet=" << m_pet[index]
+					<< "  IntcpET=" << m_IntcpET[index]
+					<< "  deprStoET=" << m_deprStoET[index]
+					<< "  soilET=" << m_soilET[index]
+					<< "\n" << std::endl;
+			}
+#endif
         }
         // perco /= curCellsNum; // mean mm
         // fPET /= curCellsNum;
@@ -232,6 +299,7 @@ int ReservoirMethodNEW::Execute() {
             }
         }
         double groundStorage = 0;
+		double groundStorageBefore = 0;
         //groundStorage += perco - revap - percoDeep - groundRunoff;
         for (int i = 0; i < curCellsNum; i++) {
             int index = curCells[i];
@@ -270,15 +338,19 @@ int ReservoirMethodNEW::Execute() {
                 << "\t" << m_Kg << "\t" << m_Base_ex << "\t" << slopeCoef << endl;
             throw ModelException("Subbasin", "setInputs", oss.str());
         }
-#ifdef PRINT_DEBUG
-        cout << "ID: " << subID <<
-            ", pet: " << std::fixed << setprecision(6) << fPET <<
-            ", perco: " << std::fixed << setprecision(6) << perco <<
-            ", percoDeep: " << std::fixed << setprecision(6) << percoDeep <<
-            ", revap: " << std::fixed << setprecision(6) << revap <<
-            ", groundRunoff: " << std::fixed << setprecision(6) << groundRunoff <<
-            ", groundQ: " << std::fixed << setprecision(6) << groundQ <<
-            ", gwStore: " << std::fixed << setprecision(6) << groundStorage << endl;
+#ifdef DEBUG_GWA_RENEW
+		if (subID == 1171)
+		{
+			cout << "ID: " << subID <<
+				", pet: " << std::fixed << setprecision(6) << fPET <<
+				", perco: " << std::fixed << setprecision(6) << perco <<
+				", percoDeep: " << std::fixed << setprecision(6) << percoDeep <<
+				", revap: " << std::fixed << setprecision(6) << revap <<
+				", groundRunoff: " << std::fixed << setprecision(6) << groundRunoff <<
+				", groundQ: " << std::fixed << setprecision(6) << groundQ <<
+				", gwStore: " << std::fixed << setprecision(6) << groundStorage << endl;
+		}
+
 #endif
         m_petSubbsn[subID] = curSub->GetPet();
         m_T_Perco[subID] = curSub->GetPerco();

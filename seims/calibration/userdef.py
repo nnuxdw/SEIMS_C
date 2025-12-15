@@ -53,6 +53,7 @@ def output_population_details(pops, outdir, gen_num,
     # Save as json, which can be loaded by json.load()
     # 1. Save the time series simulation data of the entire simulation period
     all_sim_data = list()
+    os.makedirs(outdir, exist_ok=True)
     pickle_file = outdir + os.path.sep + 'gen%d_allSimData.pickle' % gen_num
     with open(pickle_file, 'wb') as f:
         for ind in pops:
