@@ -366,7 +366,7 @@ def _mark_done(done_path):
     done_path.parent.mkdir(parents=True, exist_ok=True)
     open(done_path, "w").close()  # 空文件即表示 DONE
 
-def evaluate_blocking(cali_obj, ind, timeout_s=None):
+def evaluate_blocking(cali_obj, ind, timeout_s=2400):
     lock_path = str(_lock_path_for(ind, cali_obj))
     done_path = _done_path_for(ind, cali_obj)
 
