@@ -62,6 +62,8 @@ public:
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
 
+	void SetReaches(clsReaches* reaches) OVERRIDE;
+
 private:
     /// Hillslope time step (second)
     float m_dt;
@@ -131,12 +133,21 @@ private:
     float* m_lakesto;
     float* m_pet;
 
+
 	//xdw++
 	/// m_soilPor * m_soilThk
 	float** m_soilPorDepth;
 	/// m_soilFC * m_soilThk
 	float** m_soilFCDepth;
+	/// water depth of each hand, initialized by m_bankSto,m
+	float* m_handWtrDep;
 
 	int m_nSubbsns;
+	/// subbasin grid (ID of subbasin)
+	float *m_subbsnID;
+	float* m_chSto;		///< reach storage (m^3), rchstor in SWAT
+	int m_outletID;    ///< outlet ID, also can be derived by m_reachLayers.rbegin()->second[0];
+	float* m_handArea;       /// area of each hand
+	int m_nreach;      ///< reach number (= subbasin number)
 };
 #endif /* SEIMS_MODULE_SUR_MR_H */

@@ -149,7 +149,7 @@ void PrintInfoItem::Flush(const string& projectPath, MongoGridFs* gfs, FloatRast
 			//for (int i = 0; i < TimeSeriesDataForRasterCount; i++) {}
 			string filename = projectPath + Filename + "_" + ConvertToString3(it->first) + "." + Suffix;
 			// xiaodw, support output txt and tif timeseries for 1DRaster, set TYPE to TS and FILENAME to XXX.tif if you want to output tif timeseries,  set TYPE to TS and FILENAME to XXX.txt if you want to output txt timeseries
-			
+
 			if (StringMatch(Suffix, TextExtension))
 			{
 				float* tsTxtData = it->second;
@@ -171,15 +171,13 @@ void PrintInfoItem::Flush(const string& projectPath, MongoGridFs* gfs, FloatRast
 			else {
 				FloatRaster(templateRaster, it->second).OutputToFile(projectPath + filename + "." + Suffix);
 			}
-			
+
 		}
 	}
     if (!TimeSeriesDataForSubbasin.empty() && SubbasinID != -1) {
         //time series data for subbasin
         std::ofstream fs;
-
         string filename = projectPath + Filename + "." + TextExtension;
-	
         fs.open(filename.c_str(), std::ios::out | std::ios::app);
         if (fs.is_open()) {
             fs << endl;
@@ -389,7 +387,7 @@ void PrintInfoItem::Aggregate1DArrayDataAvg(time_t time, int numrows, float* dat
 		++m_Counter;
 	}
 
-	
+
 }
 
 void PrintInfoItem::Aggregate1DArrayData(time_t time, int numrows, float* data) {
@@ -403,7 +401,7 @@ void PrintInfoItem::Aggregate1DArrayData(time_t time, int numrows, float* data) 
 		TimeSeriesDataForSubbasin[time] = temp;
 		TimeSeriesDataForSubbasinCount = numrows;
 	}
-	
+
 }
 
 void PrintInfoItem::AggregateData(time_t time, int numrows, float* data) {
@@ -486,7 +484,7 @@ void PrintInfoItem::AggregateData(time_t time, int numrows, float* data) {
                     break;
                 default: break;
             }
-        }
+		}
 		// xiaodw add, output one txt  per interval, eg, output a txt per month, so 2010.0101,2010.0201...will be output
 		if (m_AggregationType == AT_RasterTimeSeries)
 		{
@@ -494,7 +492,7 @@ void PrintInfoItem::AggregateData(time_t time, int numrows, float* data) {
 			if (ShouldOutputByInterval(startTime, time, intervals, interval_Unit))
 			{
 				add1DRasterTimeSeriesResult(time, m_nRows, data);
-			}			
+			}
 		}
 		// xiaodw add, output one avg txt  per interval, eg, output a txt per month, so 2010.0101~0131 avg,2010.0201~0228 avg...will be output
 		if (m_AggregationType == AT_RasterTimeSeriesAvg)
@@ -522,6 +520,7 @@ void PrintInfoItem::AggregateData(time_t time, int numrows, float* data) {
 			}
 
 		}
+
         m_Counter++;
     }
 }
@@ -703,12 +702,12 @@ string PrintInfo::getOutputTimeSeriesHeader() {
         //headers.emplace_back("MoistureDepth");
     } else if (StringMatch(m_OutputID, VAR_GWWB)) {
         headers.emplace_back("Time");
-        headers.emplace_back("Percolation(mm)");
-        headers.emplace_back("Revaporization(mm)");
-        headers.emplace_back("DeepPercolation(mm)");
-        headers.emplace_back("Baseflow(mm)");
-        headers.emplace_back("Groundwaterstorage(mm)");
-        headers.emplace_back("Baseflowdischarge(m3/s)");
+        headers.emplace_back("Percolation (mm)");
+        headers.emplace_back("Revaporization (mm)");
+        headers.emplace_back("Deep Percolation (mm)");
+        headers.emplace_back("Baseflow (mm)");
+        headers.emplace_back("Groundwater storage (mm)");
+        headers.emplace_back("Baseflow discharge (m3/s)");
     }
 	else if (StringMatch(m_OutputID, VAR_SOL_ST)) {
 		headers.emplace_back("Time");

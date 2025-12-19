@@ -899,7 +899,7 @@ void Biomass_EPIC::CheckDormantStatus(const int i) {
 
         if (idc == CROP_IDC_PERENNIAL_LEGUME || idc == CROP_IDC_PERENNIAL) {
             m_dormFlag[i] = 1;
-            float resnew = 0.; 
+            float resnew = 0.;
             resnew = m_bmdieoff[i] * m_biomass[i];
 
             float BLG1 = 0.f, BLG2 = 0.f, BLG3 = 0.f, CLG = 0.f;
@@ -920,7 +920,7 @@ void Biomass_EPIC::CheckDormantStatus(const int i) {
             sol_min_n = m_soilNO3[i][0] + m_soilNH4[i][0];
 
             resnew = m_bmdieoff[i] * m_biomass[i];
-            resnew_n = m_bmdieoff[i] *  m_pltN[i];	 
+            resnew_n = m_bmdieoff[i] *  m_pltN[i];
             resnew_ne = resnew_n + sf * sol_min_n;
 
             RLN = resnew * CLG / (resnew_n + 1.e-5f);
@@ -952,7 +952,7 @@ void Biomass_EPIC::CheckDormantStatus(const int i) {
 
             /// update no3 and nh4 in soil
             m_soilNO3[i][0] *= 1.f - sf;
-            m_soilNH4[i][0] *= 1.f - sf; 
+            m_soilNH4[i][0] *= 1.f - sf;
 
             m_soilRsd[i][0] = m_soilRsd[i][0] + resnew;
             m_soilRsd[i][0]  = Max(m_soilRsd[i][0] ,0.);
@@ -998,7 +998,7 @@ int Biomass_EPIC::Execute() {
     InitialOutputs();
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
-        if(m_landuse[i]==LANDUSE_ID_WATR && m_landuse[i]==LANDUSE_ID_GLC) continue;
+        if(m_landuse[i]==LANDUSE_ID_WATR || m_landuse[i]==LANDUSE_ID_GLC) continue;
         if(0<m_dormFlag[i] && m_dormFlag[i]<1) m_dormFlag[i] = 1;  //ljj for averged parameter in HRU
         /// calculate albedo in current day, albedo.f of SWAT
         float cej = -5.e-5f;

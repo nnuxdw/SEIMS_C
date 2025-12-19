@@ -32,7 +32,6 @@ enum AggregationType {
 	AT_RasterTimeSeries = 6,   /// raster time series
 	AT_RasterTimeSeriesAvg = 8,   /// raster time series, avg
 	AT_All = 7
-	
 };
 
 /*!
@@ -67,7 +66,7 @@ public:
     map<time_t, float *> TimeSeriesDataForSubbasin;
     //! Count of #TimeSeriesDataForSubbasin
     int TimeSeriesDataForSubbasinCount;
-	//! For time series data of DT_Raster1D(output some .tif files. Distinct from TimeSeriesDataForSubbasin,which output some .txt files) 
+	//! For time series data of DT_Raster1D(output some .tif files. Distinct from TimeSeriesDataForSubbasin,which output some .txt files)
 	map<time_t, float *> TimeSeriesDataForRaster;
 	//! Count of #TimeSeriesDataForRaster
 	int TimeSeriesDataForRasterCount;
@@ -75,7 +74,6 @@ public:
     void add1DTimeSeriesResult(time_t, int n, const float* data);
 	//! Add 1D time series data result to #TimeSeriesDataForRaster
 	void add1DRasterTimeSeriesResult(time_t, int n, const float* data);
-
     //! used only by PET_TS???
     ///< The site id
     int SiteID;
@@ -150,7 +148,6 @@ public:
 	void Aggregate1DArrayData(time_t time, int numrows, float* data);
 
 	void Aggregate1DArrayDataAvg(time_t time, int numrows, float* data);
-	
 
 private:
     //! Scenario ID

@@ -63,7 +63,7 @@ int PER_STR::Execute() {
 //                 float alpha = 3;
 //                 float f_frozen=exp(-alpha*(1-Min(m_soilIceSto[i][j]/(m_soilPor[i][j]*m_soilThk[i][j]),1)));
 //                 f_frozen = Max(0.f,f_frozen);
-//                 f_frozen = f_frozen - exp(-alpha); 
+//                 f_frozen = f_frozen - exp(-alpha);
 //                 float WCND =  (1-f_frozen)*m_ks[i][j] * Min(1.0,pow(FACTR, EXPON))*3600;
 //                 WCND = Min(WCND,m_ks[i][j]);
 //             }
@@ -170,7 +170,7 @@ void PER_STR::Set2DData(const char* key, const int nrows, const int ncols, float
     else if (StringMatch(sk, VAR_SOILTHICK)) m_soilThk = data;
     else if (StringMatch(sk, VAR_SOL_UL)) m_soilSat = data;
     else if (StringMatch(sk, VAR_SOL_AWC)) m_soilAWC = data; //m_soilFC = data;
-	else if (StringMatch(sk, VAR_SOL_ST)) {
+    else if (StringMatch(sk, VAR_SOL_ST)) {
 		CheckInputSize2D(MID_SSR_DA, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
 		m_soilWtrSto = data;
 	}
@@ -216,7 +216,7 @@ bool PER_STR::CheckInputData() {
     CHECK_POINTER(MID_PER_STR, m_soilWtrSto);
     CHECK_POINTER(MID_PER_STR, m_soilWtrStoPrfl);
     CHECK_POINTER(MID_PER_STR, m_soilThk);
-    //CHECK_POINTER(MID_PER_STR, m_soilTemp);   // xiaodw comment, don't need soil temperature now
-    CHECK_POINTER(MID_PER_STR, m_infil);
+	//CHECK_POINTER(MID_PER_STR, m_soilTemp);   // xiaodw comment, don't need soil temperature now
+	CHECK_POINTER(MID_PER_STR, m_infil);
     return true;
 }

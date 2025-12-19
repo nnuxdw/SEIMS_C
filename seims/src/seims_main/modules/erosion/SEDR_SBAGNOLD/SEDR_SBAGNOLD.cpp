@@ -206,7 +206,7 @@ int SEDR_SBAGNOLD::Execute() {
                 SedChannelRouting(reachIndex);
                 // compute changes in channel dimensions caused by downcutting and widening
                 ChannelDowncuttingWidening(reachIndex);
-                // if(m_islake[reachIndex] == 0 && m_isres[reachIndex] == 0 ){ 
+                // if(m_islake[reachIndex] == 0 && m_isres[reachIndex] == 0 ){
                 //     //ChannelFlow(reachIndex);
                 //     SedChannelRouting(reachIndex);
                 //     // compute changes in channel dimensions caused by downcutting and widening
@@ -398,7 +398,7 @@ void SEDR_SBAGNOLD::SetReaches(clsReaches* reaches) {
     if (nullptr == m_A_Vb) reaches->GetReachesSingleProperty("A_Vb", &m_A_Vb);
     if (nullptr == m_A_a) reaches->GetReachesSingleProperty("A_a", &m_A_a);
     if (nullptr == m_A_b) reaches->GetReachesSingleProperty("A_b", &m_A_b);
-   
+
 }
 
 void SEDR_SBAGNOLD::SedResRouting(const int i){
@@ -413,7 +413,7 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
     m_gravelRchOut[i] = 0.f;
 
     // initialize water in reach during time step
-    float qdin = m_chSto[i] + m_rteWtrOut[i]; ///< water in reach during time step, m^3
+    float qdin = m_chSto[i] + m_rteWtrOut[i] + UTIL_ZERO; ///< water in reach during time step, m^3
 
     // calculate shape parameters for surface area equation
     float depth =  pow(m_chSto[i]*1.e-9f/ m_A_Va[i],1.0/m_A_Vb[i]) ;
@@ -500,46 +500,51 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
 	}
 
     //compute change in sediment concentration due to settling
-    if (res_sed < 1.e-6) res_sed = 0.0;  
+    if (res_sed < 1.e-6) res_sed = 0.0;
     //assume 12mg/l as equilibrium concentration in the pond, Huber et al. 2006
-    float res_nsed = m_resnsed[i]; 
+    float res_nsed = m_resnsed[i];
     float sed_stlr = exp(-.184 * m_res_d50[i]);
-
+    //ljj++
+    float tao = (m_chSto[i]+m_rteWtrOut[i])/m_rteWtrOut[i];
+    float TE = (1.f - 0.05f/sqrt(tao))*0.01;
     float remsetsed = 0.;
-    if (res_sed > res_nsed) {
+    //if (res_sed > res_nsed) {
+    if (res_sed > 0.f) {
         float inised = res_sed;
-        res_sed = (res_sed - res_nsed) *sed_stlr + res_nsed;
+        //res_sed = (res_sed - res_nsed) *sed_stlr + res_nsed;
         float finsed = res_sed;
+        finsed = inised*(1-TE);
+        res_sed = finsed;
         float setsed = inised - finsed;
-        
+
         if (res_gra >= setsed) {
             res_gra = res_gra - setsed;
             remsetsed = 0.;
 	    }else{
             remsetsed = setsed - res_gra;
             res_gra = 0.;
-            
+
             if (res_lag>= remsetsed) {
                 res_lag = res_lag - remsetsed;
                 remsetsed = 0.;
             }else{
                 remsetsed = remsetsed - res_lag;
                 res_lag = 0.;
-                
+
                 if (res_san>= remsetsed) {
                     res_san = res_san - remsetsed;
                     remsetsed = 0.;
                 }else{
                     remsetsed = remsetsed - res_san;
                     res_san = 0.;
-                    
+
                     if (res_sag>= remsetsed) {
                         res_sag = res_sag - remsetsed;
                         remsetsed = 0.;
                     }else{
                         remsetsed = remsetsed - res_sag;
                         res_sag = 0.;
-                        
+
                         if (res_sil>= remsetsed) {
                             res_sil = res_sil - remsetsed;
                             remsetsed = 0.;
@@ -579,8 +584,7 @@ void SEDR_SBAGNOLD::SedResRouting(const int i){
     m_lagRchOut[i] = lagin * outfract;                    // rch_lag in SWAT
     m_gravelRchOut[i] = gravelin * outfract;              // rch_gra in SWAT
 
-    m_sedRchOut[i] = Min(m_sedRchOut[i],sedin + m_sedSto[i]);  
-    
+    m_sedRchOut[i] = Min(m_sedRchOut[i],sedin + m_sedSto[i]);
     if (m_sedRchOut[i] < UTIL_ZERO) {
         m_sedRchOut[i] = 0.f;
         m_sedConcRchOut[i] = 0.f;

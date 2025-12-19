@@ -46,8 +46,6 @@ int Interpolate::Execute() {
             //by wanghaocheng
             int k = (int)m_itpWeights_id[i][j];
             value += m_stationData[k] * m_itpWeights[i][j];
-			//cout << "CELL:" << i << ", Site: " << k << ", Weight: " << m_itpWeights[i][j] <<
-			//	", siteData: " << m_stationData[k] << ", Value:" << value << ";" << endl; //by wanghaocheng
             if (value != value) {
                 err_count++;
                 //cout << "CELL:" << i << ", Site: " << j << ", Weight: " << m_itpWeights[index] <<
@@ -96,15 +94,15 @@ void Interpolate::Set2DData(const char* key, const int n_rows, const int n_cols,
             m_lapseRate = data;
         }
     }
-    else if (StringMatch(sk, Tag_Weight[0])) 
+    else if (StringMatch(sk, Tag_Weight[0]))
     {
         CheckInputSize2D(MID_ITP, key, n_rows, n_cols, m_nCells, m_weight_nStations);
-        m_itpWeights = data; 
+        m_itpWeights = data;
     }
     else if (StringMatch(sk, Tag_Weight_ID[0])) {// by wanghaocheng
         CheckInputSize2D(MID_ITP, key, n_rows, n_cols, m_nCells, m_weight_nStations);
         m_itpWeights_id = data;
-        
+
     }
     else {
         throw ModelException(MID_ITP, "Set2DData", "Parameter " + sk + " does not exist.");
