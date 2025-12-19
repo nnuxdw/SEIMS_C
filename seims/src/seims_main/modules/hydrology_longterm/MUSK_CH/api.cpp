@@ -5,23 +5,23 @@
 #include "MetadataInfo.h"
 
 extern "C" SEIMS_MODULE_API SimulationModule* GetInstance() {
-	return new MUSK_CH();
+    return new MUSK_CH();
 }
 
 extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
-	string res;
-	MetadataInfo mdi;
+    string res;
+    MetadataInfo mdi;
 
-	// set the information properties
-	mdi.SetAuthor("Junzhi Liu; Liangjun Zhu");
-	mdi.SetClass(MCLS_CH_ROUTING, MCLSDESC_CH_ROUTING);
-	mdi.SetDescription(MDESC_MUSK_CH);
-	mdi.SetEmail(SEIMS_EMAIL);
-	mdi.SetHelpfile("");
-	mdi.SetID(MID_MUSK_CH);
-	mdi.SetName(MID_MUSK_CH);
-	mdi.SetVersion("1.2");
-	mdi.SetWebsite(SEIMS_SITE);
+    // set the information properties
+    mdi.SetAuthor("Junzhi Liu; Liangjun Zhu");
+    mdi.SetClass(MCLS_CH_ROUTING, MCLSDESC_CH_ROUTING);
+    mdi.SetDescription(MDESC_MUSK_CH);
+    mdi.SetEmail(SEIMS_EMAIL);
+    mdi.SetHelpfile("");
+    mdi.SetID(MID_MUSK_CH);
+    mdi.SetName(MID_MUSK_CH);
+    mdi.SetVersion("1.2");
+    mdi.SetWebsite(SEIMS_SITE);
 
 	mdi.AddParameter(Tag_ChannelTimeStep, UNIT_SECOND, DESC_TIMESTEP, File_Input, DT_Single);
 	mdi.AddParameter(Tag_SubbasinId, UNIT_NON_DIM, Tag_SubbasinId, Source_ParameterDB, DT_Single);
@@ -39,25 +39,23 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	// add BMPs management operations, such as point source discharge
 	mdi.AddParameter(VAR_SCENARIO, UNIT_NON_DIM, DESC_SCENARIO, Source_ParameterDB, DT_Scenario);
 
-	// Inputs from other modules
-	mdi.AddInput(VAR_SBPET, UNIT_DEPTH_MM, DESC_SBPET, Source_Module, DT_Array1D);
-	mdi.AddInput(VAR_SBGS, UNIT_DEPTH_MM, DESC_SBGS, Source_Module, DT_Array1D);
-	mdi.AddInput(VAR_SBOF, UNIT_FLOW_CMS, DESC_SBOF, Source_Module, DT_Array1D);
-	mdi.AddInput(VAR_SBIF, UNIT_FLOW_CMS, DESC_SBIF, Source_Module, DT_Array1D);
-	mdi.AddInput(VAR_SBQG, UNIT_FLOW_CMS, DESC_SBQG, Source_Module, DT_Array1D);
+    // Inputs from other modules
+    mdi.AddInput(VAR_SBPET, UNIT_DEPTH_MM, DESC_SBPET, Source_Module, DT_Array1D);
+    mdi.AddInput(VAR_SBGS, UNIT_DEPTH_MM, DESC_SBGS, Source_Module, DT_Array1D);
+    mdi.AddInput(VAR_SBOF, UNIT_FLOW_CMS, DESC_SBOF, Source_Module, DT_Array1D);
+    mdi.AddInput(VAR_SBIF, UNIT_FLOW_CMS, DESC_SBIF, Source_Module, DT_Array1D);
+    mdi.AddInput(VAR_SBQG, UNIT_FLOW_CMS, DESC_SBQG, Source_Module, DT_Array1D);
 
-	// Outputs
-	mdi.AddInOutput(VAR_QRECH, UNIT_FLOW_CMS, DESC_QRECH, DT_Array1D, TF_SingleValue);
-	mdi.AddInOutput(VAR_QS, UNIT_NON_DIM, DESC_QS, DT_Array1D, TF_SingleValue);
-	mdi.AddInOutput(VAR_QI, UNIT_NON_DIM, DESC_QI, DT_Array1D, TF_SingleValue);
-	mdi.AddInOutput(VAR_QG, UNIT_NON_DIM, DESC_QG, DT_Array1D, TF_SingleValue);
+    // Outputs
+    mdi.AddInOutput(VAR_QRECH, UNIT_FLOW_CMS, DESC_QRECH, DT_Array1D, TF_SingleValue);
+    mdi.AddInOutput(VAR_QS, UNIT_NON_DIM, DESC_QS, DT_Array1D, TF_SingleValue);
+    mdi.AddInOutput(VAR_QI, UNIT_NON_DIM, DESC_QI, DT_Array1D, TF_SingleValue);
+    mdi.AddInOutput(VAR_QG, UNIT_NON_DIM, DESC_QG, DT_Array1D, TF_SingleValue);
 
-	mdi.AddOutput(VAR_CHST, UNIT_VOL_M3, DESC_CHST, DT_Array1D);
-	mdi.AddOutput(VAR_CHST_LAST_STEP, UNIT_VOL_M3, DESC_CHST_LAST_STEP, DT_Array1D);   // xiaodw add, output for OL_HAND module
-	mdi.AddOutput(VAR_RTE_WTRIN, UNIT_VOL_M3, DESC_RTE_WTRIN, DT_Array1D);
-	mdi.AddOutput(VAR_RTE_WTROUT, UNIT_VOL_M3, DESC_RTE_WTROUT, DT_Array1D);
-	mdi.AddOutput(VAR_BKST, UNIT_VOL_M3, DESC_BKST, DT_Array1D);
-	mdi.AddOutput(VAR_BKST_LAST_STEP, UNIT_VOL_M3, DESC_BKST_LAST_STEP, DT_Array1D);   // xiaodw add, output for OL_HAND module
+    mdi.AddOutput(VAR_CHST, UNIT_VOL_M3, DESC_CHST, DT_Array1D);
+    mdi.AddOutput(VAR_RTE_WTRIN, UNIT_VOL_M3, DESC_RTE_WTRIN, DT_Array1D);
+    mdi.AddOutput(VAR_RTE_WTROUT, UNIT_VOL_M3, DESC_RTE_WTROUT, DT_Array1D);
+    mdi.AddOutput(VAR_BKST, UNIT_VOL_M3, DESC_BKST, DT_Array1D);
 
 	mdi.AddOutput(VAR_CHWTRDEPTH, UNIT_LEN_M, DESC_CHWTDEPTH, DT_Array1D);
 	mdi.AddOutput(VAR_CHWTRWIDTH, UNIT_LEN_M, DESC_CHWTWIDTH, DT_Array1D);
@@ -79,23 +77,29 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddParameter(VAR_RUNOFF_CO, UNIT_NON_DIM, DESC_RUNOFF_CO, Source_ParameterDB, DT_Raster1D);
 	mdi.AddParameter(VAR_SLOPE, UNIT_PERCENT, DESC_SLOPE, Source_ParameterDB, DT_Raster1D);
 
-	mdi.AddInput(VAR_PCP, UNIT_DEPTH_MM, DESC_PCP, Source_Module, DT_Raster1D);
-	mdi.AddInput(VAR_PET, UNIT_WTRDLT_MMD, DESC_PET, Source_Module, DT_Raster1D);
+    mdi.AddInput(VAR_PCP, UNIT_DEPTH_MM, DESC_PCP, Source_Module, DT_Raster1D);
+    mdi.AddInput(VAR_PET, UNIT_WTRDLT_MMD, DESC_PET, Source_Module, DT_Raster1D);
 	//mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);   // xiaodw comment, don't need soil temperature now
+	// xdw++
+	//mdi.AddInput(REACH_LAKEAREA, UNIT_AREA_M2, DESC_REACH_LAKEAREA, Source_Module, DT_Array1D);
+	mdi.AddInput(VAR_SUBBASIN_WTR_DEPTH, UNIT_LEN_M, DESC_SUBBASIN_WTR_DEPTH, Source_Module, DT_Array1D);
+	mdi.AddInput(VAR_SUBBASIN_FLOODED_AREA, UNIT_AREA_M2, DESC_SUBBASIN_FLOODED_AREA, Source_Module, DT_Array1D);
 
-	mdi.AddOutput(VAR_qout, UNIT_NON_DIM, DESC_QRECH, DT_Raster1D);
-	mdi.AddOutput(VAR_qsurf, UNIT_NON_DIM, DESC_QS, DT_Raster1D);
-	mdi.AddOutput("lake_wb", UNIT_NON_DIM, DESC_NONE, DT_Array2D);
+    mdi.AddOutput(VAR_qout, UNIT_NON_DIM, DESC_QRECH, DT_Raster1D);
+    mdi.AddOutput(VAR_qsurf, UNIT_NON_DIM, DESC_QS, DT_Raster1D);
+    mdi.AddOutput("lake_wb", UNIT_NON_DIM, DESC_NONE, DT_Array2D);
 
-	mdi.AddOutput("LAKE_P", UNIT_NON_DIM, DESC_QS, DT_Raster1D);
-	mdi.AddOutput("LAKE_E", UNIT_NON_DIM, DESC_QS, DT_Raster1D);
-	mdi.AddOutput("Qout", UNIT_NON_DIM, DESC_QS, DT_Raster1D);
+    mdi.AddOutput("LAKE_P", UNIT_NON_DIM, DESC_QS, DT_Raster1D);
+    mdi.AddOutput("LAKE_E", UNIT_NON_DIM, DESC_QS, DT_Raster1D);
+    mdi.AddOutput("Qout", UNIT_NON_DIM, DESC_QS, DT_Raster1D);
 
-	mdi.AddOutput("rrtime", UNIT_NON_DIM, "the water travel time ", DT_Array1D);
+    mdi.AddOutput("rrtime", UNIT_NON_DIM, "the water travel time ", DT_Array1D);
 
 
-	res = mdi.GetXMLDocument();
-	char* tmp = new char[res.size() + 1];
-	strprintf(tmp, res.size() + 1, "%s", res.c_str());
-	return tmp;
+
+
+    res = mdi.GetXMLDocument();
+    char* tmp = new char[res.size() + 1];
+    strprintf(tmp, res.size() + 1, "%s", res.c_str());
+    return tmp;
 }

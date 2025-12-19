@@ -18,7 +18,7 @@
 #define SEIMS_EMAIL                            "zlj@lreis.ac.cn"
 #define SEIMS_SITE                             "https://github.com/lreis2415/SEIMS"
 
-//! Constant input variables
+ //! Constant input variables
 #define CONS_IN_ELEV                           "Elevation"
 #define CONS_IN_LAT                            "Latitude"
 #define CONS_IN_XPR                            "xpr"
@@ -52,7 +52,7 @@
 //#define Tag_Weight                             "WEIGHT"                  // m_itpWeights
 #define Tag_DataType                           "DATATYPE"                // m_dataType
 //#define Tag_Weight                             "WEIGHT"                  // m_itpWeights
-CONST_CHARS_LIST Tag_Weight[] = {"WEIGHT", "Weight used for interpolation"};
+CONST_CHARS_LIST Tag_Weight[] = { "WEIGHT", "Weight used for interpolation" };
 CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolation" };   ///< m_itpWeights by wanghaocheng
 
 ///////  define parameter calibration related string constants  ///////
@@ -620,6 +620,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_DAYLEN_MIN "daylenmin" /// m_dayLenMin, minimum day length
 #define VAR_DEEPST "deepst"
 #define VAR_DEET "DEET" /// m_deprStoET, evaporation from the depression storage
+#define VAR_HAND_EVAP "HAND_EVAP" /// m_hand_evap, evaporation from inundated area
 #define VAR_DEM "DEM" /// m_dem, Digital Elevation Model
 #define VAR_DEPREIN "Depre_in"                        /// initial depression storage coefficient
 #define VAR_DEPRESSION "Depression"                   /// Depression storage capacity
@@ -806,6 +807,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_PLTPET_TOT "plt_pet_tot" /// m_totPltPET, potential ET simulated during life of plant, plt_pet in SWAT
 #define VAR_POREIDX "Poreindex" /// m_poreIdx, pore size distribution index
 #define VAR_POROST "Porosity" /// m_soilPor, soil porosity
+#define VAR_GWSUBAREA "GWSUBAREA"
 #define VAR_POT_NO3 "pot_no3" /// m_potNo3, amount of nitrate in pothole water body
 #define VAR_POT_NH4 "pot_nh4"
 #define VAR_POT_ORGN "pot_orgn"
@@ -830,8 +832,9 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_QCH "QCH"
 #define VAR_OLFLOW "OL_Flow" /// m_surfRf, overland flow in each cell calculated during overland routing
 #define VAR_OL_HAND_WTRDEP "OL_Hand_WTRDEP" /// m_surfRf, overland flow in each cell calculated during overland routing
-#define VAR_IS_HAND_FLOODED "m_isHandFlooded" /// are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water 
-#define VAR_SUBBASIN_FLOODED_AREA "m_chInundationArea"  // sum of  flooded hand's area in  each subbasin
+#define VAR_IS_HAND_FLOODED "m_isHandFlooded" /// are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water
+#define VAR_SUBBASIN_FLOODED_AREA "SUBBASIN_FLOODED_AREA"  // sum of  flooded hand's area in  each subbasin
+#define VAR_SUBBASIN_WTR_DEPTH "SUBBASIN_WTR_DEPTH"  // water depth in  each subbasin
 #define VAR_QG "QG" /// m_qgRchOut, Groundwater discharge at each reach outlet and at each time step
 #define VAR_QI "QI" /// m_qiRchOut, Interflow at each reach outlet and at each time step
 #define VAR_QOVERLAND "QOverland"
@@ -1371,6 +1374,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_CHTMX "maximum canopy height (m)"
 #define DESC_CHWIDTH "Channel width"
 #define DESC_CHWTWIDTH "Channel water width"
+#define DESC_REACH_LAKEAREA "Channel and lake's area"
 #define DESC_CHBTMWIDTH "the bottom width of channel"
 #define DESC_CHCROSSAREA "channel cross-sectional area"
 #define DESC_CHWTDEPTH "channel water depth"
@@ -1596,8 +1600,10 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_PUPDIS "Phosphorus uptake distribution parameter"
 #define DESC_QCH "Flux in the downslope boundary of cells"
 #define DESC_OLFLOW "overland flow in each cell calculated during overland routing"
+#define DESC_HAND_EVAP "hand evaporation in each cell "
 #define DESC_IS_HAND_FLOODED "are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water "
 #define DESC_SUBBASIN_FLOODED_AREA "sum of  flooded hand's area in  each subbasin"
+#define DESC_SUBBASIN_WTR_DEPTH "water depth in  each subbasin"
 #define DESC_QG "Groundwater discharge at each reach outlet"
 #define DESC_QI "Interflow at each reach outlet"
 #define DESC_QOVERLAND "Water discharge in the downslope boundary of cells"
@@ -1999,14 +2005,14 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 
 #define VAR_GWH                             "GW_HEIGHT"
 #define VAR_GW_SH                           "GW_SH"
-#define VAR_GWMIN                           "GWMIN" 
-#define VAR_CHSEEPAGE                       "CHSEEPAGE" 
+#define VAR_GWMIN                           "GWMIN"
+#define VAR_CHSEEPAGE                       "CHSEEPAGE"
 #define VAR_CHK                             "CHK"
 #define VAR_ALPHABF                         "ALPHABF"
 #define VAR_DELAY                           "DELAY"
-#define VAR_QGS                             "QGS" /// m_qgsRchOut, 
-#define VAR_AHRU                            "CELLAREA" /// m_qgsRchOut, 
-#define VAR_FLOWOUT_LEN                     "flowout_length" /// m_qgsRchOut, 
+#define VAR_QGS                             "QGS" /// m_qgsRchOut,
+#define VAR_AHRU                            "CELLAREA" /// m_qgsRchOut,
+#define VAR_FLOWOUT_LEN                     "flowout_length" /// m_qgsRchOut,
 #define VAR_BM_DIEOFF                       "BM_DIEOFF"
 #define VAR_BIOMS                           "BIOMS"
 #define VAR_LMC                             "LMC"
@@ -2106,7 +2112,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define REACH_SPYLD                         "GW_SPYLD"
 #define REACH_ISLAKE                        "Is_Lake"
 #define REACH_LAKEAREA                      "Lake_Area"
-#define REACH_LAKEVOL                       "Lake_Vol" 
+#define REACH_LAKEVOL                       "Lake_Vol"
 #define REACH_LAKEDPINI                     "Lake_Depini"
 #define REACH_LAKEALPHA                     "LAKE_ALPHA"
 #define REACH_ISRES                         "Is_Res"
@@ -2130,7 +2136,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define REACH_BED_START_ELEV                       "Bed_Start_Elev"
 #define REACH_BED_END_ELEV                       "Bed_End_Elev"
 // xiaodw add, this is not water level, it's HAND's level, eg. 1,2,3,4,5...
-#define REACH_LAKE_HAND_LEVEL_INI                      "Lake_Hand_Level_Ini" 
+#define REACH_LAKE_HAND_LEVEL_INI                      "Lake_Hand_Level_Ini"
 
 #define DESC_GWH                             "groundwater height"
 #define DESC_GW_SH                           "shallow groundwater stroage"
@@ -2223,7 +2229,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MapWindowRasterExtension ".asc"
 #define File_HydroClimateDB "HydroClimate.db3"
 #define Table_LapseRate "lapse_rate"
-#define DataType_WindDirection "WD"	
+#define DataType_WindDirection "WD"
 const string TagParameterDescription = "description";
 const string TagParameterSource = "source";
 const string TagParameterDimension = "dimension";

@@ -44,8 +44,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_INET, UNIT_DEPTH_MM, DESC_INET, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_DEET, UNIT_DEPTH_MM, DESC_DEET, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_SOET, UNIT_DEPTH_MM, DESC_SOET, Source_Module, DT_Raster1D);
-    //mdi.AddInput(VAR_AET_PLT, UNIT_DEPTH_MM, DESC_AET_PLT, Source_Module, DT_Raster1D);    // xiaodw comment, don't need m_actPltET now
-    mdi.AddInput(VAR_PET, UNIT_DEPTH_MM, DESC_PET, Source_Module, DT_Raster1D);
+	//mdi.AddInput(VAR_AET_PLT, UNIT_DEPTH_MM, DESC_AET_PLT, Source_Module, DT_Raster1D);    // xiaodw comment, don't need m_actPltET now
+	mdi.AddInput(VAR_PET, UNIT_DEPTH_MM, DESC_PET, Source_Module, DT_Raster1D);
     // VAR_GWNEW is OPTIONALLY from IUH_CH or other channel routing module
     mdi.AddInput(VAR_GWNEW, UNIT_DEPTH_MM, DESC_GWNEW, Source_Module_Optional, DT_Array1D);
     // VAR_PERCO is from percolation modules

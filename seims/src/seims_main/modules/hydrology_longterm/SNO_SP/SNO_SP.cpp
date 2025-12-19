@@ -154,7 +154,7 @@ void SNO_SP::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(s, VAR_TMAX)) m_maxTemp = data;
     else if (StringMatch(s, VAR_NEPR)) m_netPcp = data;
     else if (StringMatch(s, VAR_LANDUSE)) m_landUse = data;
-    else if (StringMatch(s, "Qfg")) Qfg = data;   
+    else if (StringMatch(s, "Qfg")) Qfg = data;
     else if (StringMatch(s, VAR_AHRU)) m_area = data;
     else {
         throw ModelException(MID_SNO_SP, "Set1DData", "Parameter " + s + " does not exist.");

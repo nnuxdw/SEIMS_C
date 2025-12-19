@@ -65,6 +65,8 @@ public:
      */
     void InitialOutputs() OVERRIDE;
 
+	void SetReaches(clsReaches* reaches) OVERRIDE;
+
 private:
     /// valid cells number
     int m_nCells;
@@ -93,5 +95,14 @@ private:
     float* m_ed;
     /// surface runoff
     float* m_sr;
+	/// water depth of each hand, initialized by m_bankSto,m
+	float* m_handWtrDep;
+	/// subbasin grid (ID of subbasin)
+	float *m_subbsnID;
+	float* m_chSto;		///< reach storage (m^3), rchstor in SWAT
+	int m_outletID;    ///< outlet ID, also can be derived by m_reachLayers.rbegin()->second[0];
+	float* m_handArea;       /// area of each hand
+	int m_nreach;      ///< reach number (= subbasin number)
+	float*  m_hand_eavp;
 };
 #endif /* SEIMS_MODULE_DEP_LINSLEY_H */
