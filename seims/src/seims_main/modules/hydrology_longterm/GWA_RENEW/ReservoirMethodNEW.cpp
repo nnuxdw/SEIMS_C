@@ -19,7 +19,7 @@ ReservoirMethodNEW::ReservoirMethodNEW() :
     m_nSubbsns(-1), m_inputSubbsnID(-1), m_subbasinsInfo(nullptr),
     m_area(nullptr), curBasinArea(nullptr), gwSub(nullptr), QGSub(nullptr), m_surfRf(nullptr), m_potVol(nullptr), m_infil(nullptr), m_impoundTrig(nullptr),
 	// xiaodw++
-	m_GWMAX_1d(nullptr), m_Base_ex_1d(nullptr), m_Kg_1d(nullptr), gw_delay_1d(nullptr), m_hand_eavp(nullptr), m_handWtrDep(nullptr), m_chSto(nullptr)
+	 m_hand_eavp(nullptr), m_handWtrDep(nullptr), m_chSto(nullptr)
 {
 }
 
@@ -86,19 +86,19 @@ int ReservoirMethodNEW::Execute() {
 			int nly = CVT_INT(m_nSoilLyrs[index]);
 			int last = nly - 1;
 
-			// ÏÈ»º´æ¡°¸üÐÂÇ°¡±µÄÁ¿£¨ÓÃÓÚËã±ä»¯Á¿ £©
+			// ï¿½È»ï¿½ï¿½æ¡°ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ä»¯ï¿½ï¿½ ï¿½ï¿½
 			float gw_before = gwSub[index];
 			float soil_before_last = m_soilWtrSto[index][last];
 
-			// Èç¹ûÄã»¹Ïë¿´Ã¿²ã±ä»¯Á¿£¬¾Í°ÑÃ¿²ã¶¼»º´æÏÂÀ´
+			// ï¿½ï¿½ï¿½ï¿½ã»¹ï¿½ë¿´Ã¿ï¿½ï¿½ä»¯ï¿½ï¿½ï¿½ï¿½ï¿½Í°ï¿½Ã¿ï¿½ã¶¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			vector<float> soil_before;
 			soil_before.reserve(nly);
 			for (int ly = 0; ly < nly; ++ly) soil_before.push_back(m_soilWtrSto[index][ly]);
 
             float tmp_perc = MAX(0, m_soilPerco[index][CVT_INT(m_nSoilLyrs[index]) - 1]);
-            if (tmp_perc + gwSub[index] >= m_GWMAX_1d[subID])
+            if (tmp_perc + gwSub[index] >= m_GWMAX)
             {
-                float excessWater = tmp_perc + gwSub[index] - m_GWMAX_1d[subID];
+                float excessWater = tmp_perc + gwSub[index] - m_GWMAX;
                 m_soilWtrSto[index][CVT_INT(m_nSoilLyrs[index]) - 1] += excessWater;
                 tmp_perc = tmp_perc - excessWater;
                 m_soilPerco[index][CVT_INT(m_nSoilLyrs[index]) - 1] = tmp_perc;
@@ -169,7 +169,7 @@ int ReservoirMethodNEW::Execute() {
                 //m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_actPltET[index];
 				m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_hand_eavp[index];
                 m_revap[index] = Max(m_revap[index], 0.f);
-                m_revap[index] = m_revap[index] * m_gwSto[subID] / m_GWMAX_1d[subID];
+                m_revap[index] = m_revap[index] * m_gwSto[subID] / m_GWMAX;
             //}
             float dGW = tmp_perc - m_revap[index];
             gwSub[index] = gwSub[index] + dGW;
@@ -190,9 +190,9 @@ int ReservoirMethodNEW::Execute() {
 			/// xiaodw++, output for debug
 			#ifdef DEBUG_GWA_RENEW
 			if (index == 15012) {
-				float tmp_perc_last = m_soilPerco[index][last];      // ×îÏÂ²ãÏòµØÏÂË®ÉøÂ©£¨mm£©¡ª¡ª×¢ÒâÄãÇ°Ãæ¿ÉÄÜ»á±»¸ÄÐ´
-				float revap_mm = m_revap[index];                     // µØÏÂË®Õô·¢»Ø²¹£¨mm£©
-				float dGW_mm = tmp_perc_last - revap_mm;             // ±¾²½µØÏÂË®±ä»¯Á¿£¨mm£©£¨°´ÄãµÄ¸üÐÂ¹«Ê½£©
+				float tmp_perc_last = m_soilPerco[index][last];      // ï¿½ï¿½ï¿½Â²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë®ï¿½ï¿½Â©ï¿½ï¿½mmï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½Ü»á±»ï¿½ï¿½Ð´
+				float revap_mm = m_revap[index];                     // ï¿½ï¿½ï¿½ï¿½Ë®ï¿½ï¿½ï¿½ï¿½ï¿½Ø²ï¿½ï¿½ï¿½mmï¿½ï¿½
+				float dGW_mm = tmp_perc_last - revap_mm;             // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë®ï¿½ä»¯ï¿½ï¿½ï¿½ï¿½mmï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¸ï¿½ï¿½Â¹ï¿½Ê½ï¿½ï¿½
 				float gw_after = gwSub[index];
 
 				std::cout << std::fixed << std::setprecision(6);
@@ -213,7 +213,7 @@ int ReservoirMethodNEW::Execute() {
 					<< "  GWMAX_1d(mm)=" << m_GWMAX_1d[subID]
 					<< "\n  --- Soil Water (mm) ---";
 
-				// Ã¿²ãÍÁÈÀº¬Ë®Á¿ & ±¥ºÍº¬Ë®Á¿ & ±ä»¯Á¿
+				// Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë®ï¿½ï¿½ & ï¿½ï¿½ï¿½Íºï¿½Ë®ï¿½ï¿½ & ï¿½ä»¯ï¿½ï¿½
 				for (int ly = 0; ly < nly; ++ly) {
 					float sw_before = soil_before[ly];
 					float sw_after = m_soilWtrSto[index][ly];
@@ -228,7 +228,7 @@ int ReservoirMethodNEW::Execute() {
 						<< "  (after-sat)=" << (sw_after - sat);
 				}
 
-				// ¶îÍâ£ºÒ»Ð©ÄãÕâ¶ÎÀï×îÈÝÒ×µ¼ÖÂÒì³£µÄ¹Ø¼üÁ¿
+				// ï¿½ï¿½ï¿½â£ºÒ»Ð©ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×µï¿½ï¿½ï¿½ï¿½ì³£ï¿½Ä¹Ø¼ï¿½ï¿½ï¿½
 				std::cout << "\n  --- Key Vars ---"
 					<< "\n  infiltr(mm)=" << m_infil[index]
 					<< "  surfRf(mm)=" << m_surfRf[index]
@@ -260,15 +260,15 @@ int ReservoirMethodNEW::Execute() {
                 cout << " m_revap[index] : " << m_revap[index] << " index: " << index
                     << " m_pet[index]: " << m_pet[index] << " m_IntcpET[index]: " << m_IntcpET[index] << " m_deprStoET[index]: " << m_deprStoET[index]
                     << " m_soilET[index]: " << m_soilET[index] << " m_actPltET[index]: " << m_actPltET[index] << endl;
-                throw ModelException("ReservoirMethodNEW", "Execute", "Õô·¢¹ý´ó");
+                throw ModelException("ReservoirMethodNEW", "Execute", "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
             }
             revap = m_gwSto[subID];
         }
 
         // groundwater runoff (mm)
         float slopeCoef = curSub->GetSlopeCoef();
-        float kg = m_Kg_1d[subID] * slopeCoef;
-        float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex_1d[subID]); // mm
+        float kg = m_Kg * slopeCoef;
+        float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex); // mm
         //float groundQ = groundRunoff * curCellsNum * QGConvert;     // groundwater discharge (m3/s)
         float groundQ = groundRunoff * curBasinArea[subID] * QGConvert;
         //if (m_gwSto[subID] > m_GWMAX) {
@@ -278,7 +278,7 @@ int ReservoirMethodNEW::Execute() {
         //    m_gwSto[subID] = m_GWMAX;
         //}
         double totalVolume = 0;
-        for (int i = 0; i < curCellsNum; i++) {//ÕâÀï½÷É÷¼Ó²¢ÐÐ£¬Òª²»È»ÈÝÒ×Ò»´ÎÒ»¸ö½á¹û
+        for (int i = 0; i < curCellsNum; i++) {//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó²ï¿½ï¿½Ð£ï¿½Òªï¿½ï¿½È»ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½
             int index = curCells[i];
             totalVolume += gwSub[index] * m_area[index];
 			//cout << i << "  " << index << "  " << subID << "  " << totalVolume << endl;
@@ -316,7 +316,7 @@ int ReservoirMethodNEW::Execute() {
         {
             cout << " m_year: " << m_year << " m_month: " << m_month << " m_day: " << m_day << " subID: " << subID << endl;
 			cout.flush();
-			throw ModelException("ReservoirMethodNEW", "EXECUTE", "µØÏÂË®Îªnan");
+			throw ModelException("ReservoirMethodNEW", "EXECUTE", "ï¿½ï¿½ï¿½ï¿½Ë®Îªnan");
         }
         groundStorage = Max(groundStorage, 0.f);
         for (int i = 0; i < curCellsNum; i++) {
@@ -505,20 +505,8 @@ void ReservoirMethodNEW::Set1DData(const char* key, const int n, float* data) {
 		CheckInputSize(MID_GWA_RE, key, n, m_nCells);
         m_infil = data;
     }
-	else if (StringMatch(sk, VAR_GWMAX_1D)) {
-		m_GWMAX_1d = data;
-	}
-	else if (StringMatch(sk, "Base_ex_1d")) {
-		m_Base_ex_1d = data;
-	}
-	else if (StringMatch(sk, "Kg_1d")) {
-		m_Kg_1d = data;
-	}
-	else if (StringMatch(sk, "gw_delay_1d")) {
-		gw_delay_1d = data;
-	}
 	else if (StringMatch(sk, VAR_CHST)) {
-		// ×¢ÒâÕâÀï°´ÄãµÄÒªÇóÓÃµÄÊÇ n - 1 ºÍ m_nreach
+		// ×¢ï¿½ï¿½ï¿½ï¿½ï¿½ï°´ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½ n - 1 ï¿½ï¿½ m_nreach
 		m_chSto = data;
 	}
 	else if (StringMatch(sk, VAR_HAND_EVAP)) {
@@ -640,7 +628,7 @@ void ReservoirMethodNEW::SetScenario(Scenario* sce) {
     //            tiledrainSubarea[tile->subareaId].push_back(tile);
     //            if (tiledrainSubarea[tile->subareaId].size() > 1)
     //            {
-    //                throw ModelException("ReservoirMethodNEW", "SetScenario", "Ò»¸ösubareaÖ»ÄÜ¶ÔÓ¦Ò»¸ötiledrain");
+    //                throw ModelException("ReservoirMethodNEW", "SetScenario", "Ò»ï¿½ï¿½subareaÖ»ï¿½Ü¶ï¿½Ó¦Ò»ï¿½ï¿½tiledrain");
     //            }
     //        }
     //    }
@@ -678,7 +666,7 @@ void ReservoirMethodNEW::Get1DData(const char* key, int* nrows, float** data) {
 		*data = m_chSto;
 	}
     //else if (StringMatch(sk, VAR_SBQGSUBAREA)) {
-    //    *data = QGSub;  
+    //    *data = QGSub;
     //}
     else {
         throw ModelException(MID_GWA_RE, "Get1DData", "Parameter " + sk + " does not exist.");

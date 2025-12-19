@@ -85,7 +85,7 @@ private:
     //map<int, vector<BMPTileDrain*>> tiledrain;
     //// tiledrain map of reach i
     //map<int, vector<BMPTileDrain*>> tiledrainReach;
-    //map<int, vector<BMPTileDrain*>> tiledrainSubarea;//°´subarea×éÖ¯µÄtiledrain
+    //map<int, vector<BMPTileDrain*>> tiledrainSubarea;//ï¿½ï¿½subareaï¿½ï¿½Ö¯ï¿½ï¿½tiledrain
     float* m_rootDepth;
     //float** m_tileDrainOutputs;
     float* QGSub;//QG organized by subarea
@@ -138,7 +138,6 @@ private:
     float m_GWT0;
     //! maximum ground water storage
     float m_GWMAX;
-	float *m_GWMAX_1d;
 
     float* m_petSubbsn; ///< Average PET of each subbasin, mm
     float* m_gwSto;     ///<  Groundwater storage (mm) of the subbasin
@@ -179,9 +178,6 @@ private:
 
     float* m_area;
     float* curBasinArea;
-	float* gw_delay_1d;
-	float* m_Kg_1d;
-	float* m_Base_ex_1d;
 	float*  m_hand_eavp;
 	float* m_handWtrDep;
 	float* m_chSto;		///< reach storage (m^3), rchstor in SWAT

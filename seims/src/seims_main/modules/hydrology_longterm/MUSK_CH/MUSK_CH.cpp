@@ -38,7 +38,7 @@ MUSK_CH::MUSK_CH() :
 	m_dem(nullptr), curBasinDem(nullptr), m_charge(nullptr), m_qin(nullptr), m_recharge(nullptr),
 	m_potRfCoef(nullptr), m_slope(nullptr), flowoutlength(nullptr), m_T_LKWB(nullptr),
 	m_resminq(nullptr), m_resndq(nullptr), m_resnormq(nullptr), m_res_normMult(nullptr), m_rrtime(nullptr),
-	m_lakeperc(nullptr), m_lakepcp(nullptr), m_chBedMeanElev(nullptr), m_chBedStartElev(nullptr), m_chBedEndElev(nullptr),
+	m_lakeperc(nullptr), m_lakepcp(nullptr),
 	// xiaodw ++
 	m_lakeHandLevelini(nullptr)
 {
@@ -1086,8 +1086,7 @@ bool MUSK_CH::ChannelFlow(const int i) {
             //assuming the transport is very fast, rep is small???
             if (rtwtr > 0.f) {
                 /// In SWAT source code, line 306 of rtmusk.f, I think aaa should be divided by nn! By lj.
-                //float aaa = m_Epch * m_petSubbsn[i] * 0.001f / nn; // m
-                float aaa = m_Epch_1d[i] * m_petSubbsn[i] * 0.001f / nn; // m
+                float aaa = m_Epch * m_petSubbsn[i] * 0.001f / nn; // m
                 if (m_chWtrDepth[i] <= m_chDepth[i]) {
                     rtevp = aaa * m_chLen[i] * m_chWtrWth[i]; // m^3
                 } else {
