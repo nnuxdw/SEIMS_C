@@ -11,7 +11,7 @@
 #ifndef SEIMS_MODULE_CH4_WETMETH_H
 #define SEIMS_MODULE_CH4_WETMETH_H
 
-// Module ID definition
+ // Module ID definition
 #define MID_CH4_WETMETH "CH4_WETMETH"
 
 // WETMETH model constants from paper
@@ -34,7 +34,7 @@ public:
 	float z_oxic;           // Oxic-anoxic interface depth (m)
 	float area_Soilcol;     // Area of current soil column (m²)
 	int num_layers;         // Actual number of soil layers for this column
-	
+
 	// Dynamic variables - soil layer properties
 	float *layer_thickness;       // Thickness of each soil layer (mm) - from VAR_SOILTHICK
 	float *cumulative_depth;     // Cumulative depth from surface (m) - calculated
@@ -45,24 +45,24 @@ public:
 	float *Soc;             // Soil organic matter content (%) - from VAR_SOL_OM
 	float *m_soilWP;       // water content of soil at -1.5 MPa (wilting point)
 	float *m_soilPor;     // porosity mm/mm
-	
+
 	// Output variables
 	float SoilCol_CH4;        // Total CH4 production for this soil column (kg C/s)
-	
+
 public:
 	// Constructor and destructor
 	SoilCol();
 	~SoilCol();
-	
+
 	// Initialize soil column with given number of layers
 	void Initialize(int num_layers);
-	
+
 	// Calculate methane production for the current soil column
-	float SoilColMethane();
-	
+	float SoilColMethane(int cell_idx);
+
 	// Calculate soil saturation ratio for each layer
-	void calculate_soil_saturation();
-	
+	void calculate_soil_saturation(int cell_idx);
+
 	// Calculate oxic zone depth based on soil saturation
 	float calculate_oxic_depth();
 };
@@ -73,50 +73,50 @@ class CH4_WETMETH : public SimulationModule {
 public:
 	CH4_WETMETH();
 
-    ~CH4_WETMETH();
+	~CH4_WETMETH();
 
-    ///////////// SetData series functions /////////////
+	///////////// SetData series functions /////////////
 	// 数据输入接口
-    void SetValue(const char* key, float value) OVERRIDE;
+	void SetValue(const char* key, float value) OVERRIDE;
 
-    void SetValueByIndex(const char* key, int index, float value) OVERRIDE;
+	void SetValueByIndex(const char* key, int index, float value) OVERRIDE;
 
-    void Set1DData(const char* key, int n, float* data) OVERRIDE;
+	void Set1DData(const char* key, int n, float* data) OVERRIDE;
 
-    void Set2DData(const char* key, int n, int col, float** data) OVERRIDE;
+	void Set2DData(const char* key, int n, int col, float** data) OVERRIDE;
 
-    void SetReaches(clsReaches* rches) OVERRIDE;
+	void SetReaches(clsReaches* rches) OVERRIDE;
 
-    void SetSubbasins(clsSubbasins* subbsns) OVERRIDE;
+	void SetSubbasins(clsSubbasins* subbsns) OVERRIDE;
 
-    void SetScenario(Scenario* sce) OVERRIDE;
+	void SetScenario(Scenario* sce) OVERRIDE;
 
-    ///////////// CheckInputData and InitialOutputs /////////////
+	///////////// CheckInputData and InitialOutputs /////////////
 	// 执行函数
-    bool CheckInputData() OVERRIDE;
+	bool CheckInputData() OVERRIDE;
 
-    void InitialOutputs() OVERRIDE;
+	void InitialOutputs() OVERRIDE;
 
-    ///////////// Main control structure of execution code /////////////
+	///////////// Main control structure of execution code /////////////
 
-    int Execute() OVERRIDE;
+	int Execute() OVERRIDE;
 
-    ///////////// GetData series functions /////////////
+	///////////// GetData series functions /////////////
 	// 数据输出接口
-    TimeStepType GetTimeStepType() OVERRIDE;
+	TimeStepType GetTimeStepType() OVERRIDE;
 
-    void GetValue(const char* key, float* value) OVERRIDE;
+	void GetValue(const char* key, float* value) OVERRIDE;
 
-    void Get1DData(const char* key, int* n, float** data) OVERRIDE;
+	void Get1DData(const char* key, int* n, float** data) OVERRIDE;
 
-    void Get2DData(const char* key, int* n, int* col, float*** data) OVERRIDE;
+	void Get2DData(const char* key, int* n, int* col, float*** data) OVERRIDE;
 
 private:
 	// Basic parameters
 	int m_nCells;              // Number of valid cells (HRUs)
 	int m_maxSoilLyrs;         // Maximum number of soil layers
 	float *m_nSoilLyrs;        // Actual number of soil layers for each cell
-	
+
 	// Input data from other modules
 	float *m_area;                  // Area of each cell (m²)
 	float **m_layer_thickness;     // Thickness of each soil layer (mm) - from VAR_SOILTHICK
@@ -127,13 +127,14 @@ private:
 	// float **m_Soc;         // Soil organic matter content (%) - from VAR_SOL_OM (commented out, using VAR_SOL_WOC instead)
 	float **m_Soc_kg_ha;     // Soil organic carbon content (kg/ha) - from VAR_SOL_WOC
 	float **m_Tsoil;        // Temperature of each soil layer (°C) - from VAR_SOTE
-	
+
 	// Soil column objects
 	SoilCol *m_SoilCols;         // Array of soil column objects
-	
+
 	// Output variables
-	float *m_P_soilcol;        // CH4 production for each soil column (kg C/s)
-	float m_total_CH4;        // Total CH4 production for all cells (kg C/s)
+	float *m_P_soilcol;            // CH4 production for each soil column (kg C/s)
+	float *m_P_soilcol_flux;       // CH4 flux for each soil column (kg C/s)
+	float m_total_CH4;             // Total CH4 production for all cells (kg C/s)
 };
 
 

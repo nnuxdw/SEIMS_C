@@ -1,11 +1,11 @@
 #include "api.h"
 
-#include "RecessionMethod.h"
+#include "ReservoirMethodNEW.h"
 #include "MetadataInfo.h"
 #include "text.h"
 
 extern "C" SEIMS_MODULE_API SimulationModule* GetInstance() {
-    return new ReservoirMethod();
+    return new ReservoirMethodNEW();
 }
 
 extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
@@ -13,7 +13,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     MetadataInfo mdi;
 
     // set the information properties
-    mdi.SetAuthor("Jiaojiao Liu");
+    mdi.SetAuthor("Wu Hui; Zhiqiang Yu; Liang-Jun Zhu");
     mdi.SetClass(MCLS_GW, MCLSDESC_GW);
     mdi.SetDescription(MDESC_GWA_RE);
     mdi.SetEmail(SEIMS_EMAIL);
@@ -49,27 +49,36 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     // VAR_GWNEW is OPTIONALLY from IUH_CH or other channel routing module
     mdi.AddInput(VAR_GWNEW, UNIT_DEPTH_MM, DESC_GWNEW, Source_Module_Optional, DT_Array1D);
     // VAR_PERCO is from percolation modules
-    mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Raster2D);
+    mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Array2D);
     mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);
 
     mdi.AddOutput(VAR_GWWB, UNIT_NON_DIM, DESC_NONE, DT_Array2D);
     mdi.AddOutput(VAR_REVAP, UNIT_DEPTH_MM, DESC_REVAP, DT_Raster1D);              //used by soil water balance module
     mdi.AddOutput(VAR_RG, UNIT_DEPTH_MM, DESC_RG, DT_Array1D);     //used by soil water balance module
     mdi.AddOutput(VAR_SBQG, UNIT_FLOW_CMS, DESC_SBQG, DT_Array1D); //used by channel flow routing module
+    //mdi.AddOutput(VAR_SBQGSUBAREA, UNIT_FLOW_CMS, DESC_SBQG, DT_Array1D); //used to expression
     mdi.AddOutput(VAR_SBPET, UNIT_DEPTH_MM, DESC_SBPET, DT_Array1D);
     mdi.AddOutput(VAR_SBGS, UNIT_DEPTH_MM, DESC_SBGS, DT_Array1D);
 
-    //ljj++
-    // add reach information
-    mdi.AddParameter(VAR_REACH_PARAM, UNIT_NON_DIM, DESC_REACH_PARAM, Source_ParameterDB, DT_Reach);
-    mdi.AddParameter(VAR_ALPHABF, UNIT_DEPTH_MM, DESC_ALPHABF, Source_ParameterDB, DT_Single);
-    mdi.AddParameter(VAR_DELAY, UNIT_DAY, DESC_DELAY, Source_ParameterDB, DT_Single);
-    mdi.AddParameter(VAR_GWMIN, UNIT_DEPTH_MM, DESC_GWMIN, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
-    mdi.AddParameter(VAR_SOL_UL, UNIT_DEPTH_MM, DESC_SOL_UL, Source_ParameterDB, DT_Raster2D);   // m_sat
-    
-    mdi.AddOutput(VAR_GW_SH, UNIT_VOL_M3, DESC_GW_SH, DT_Array1D);
-    mdi.AddOutput(VAR_GWH, UNIT_LEN_M, DESC_GWH, DT_Array1D);
+
+    //whc++ for tiledrain
+    //mdi.AddParameter(VAR_GWT0, UNIT_DEPTH_MM, DESC_GW0, Source_ParameterDB, DT_Single);
+    mdi.AddParameter(VAR_SCENARIO, UNIT_NON_DIM, DESC_SCENARIO, Source_ParameterDB_Optional, DT_Scenario);
+    mdi.AddParameter(VAR_ROOTDEPTH, UNIT_LEN_M, DESC_ROOTDEPTH, Source_ParameterDB, DT_Raster1D);
+    //mdi.AddOutput(VAR_BMP_TILEDRAIN, UNIT_NON_DIM, DESC_NONE, DT_Array2D);
+    mdi.AddParameter(VAR_FIELDCAP, UNIT_VOL_FRA_M3M3, DESC_FIELDCAP, Source_ParameterDB, DT_Raster2D);
+    mdi.AddParameter(VAR_POROST, UNIT_VOL_FRA_M3M3, DESC_POROST, Source_ParameterDB, DT_Raster2D);
+    mdi.AddOutput(VAR_GWSUBAREA, UNIT_FLOW_CMS, DESC_SBQG, DT_Array1D); //used to expression
+    //mdi.AddOutput(VAR_SBQGSUBAREA, UNIT_FLOW_CMS, DESC_SBQG, DT_Array1D); //used to expression
+    //mdi.AddOutput(VAR_PERCOWB, UNIT_DEPTH_MM, DESC_PERCO, DT_Array2D);
+    mdi.AddParameter(VAR_SOL_UL, UNIT_DEPTH_MM, DESC_SOL_UL, Source_ParameterDB, DT_Raster2D); // m_sat
+    mdi.AddInput(VAR_POT_VOL, UNIT_DEPTH_MM, DESC_POT_VOL, Source_Module_Optional, DT_Raster1D);
+    mdi.AddInput(VAR_IMPOUND_TRIG, UNIT_NON_DIM, DESC_IMPOUND_TRIG, Source_Module_Optional, DT_Raster1D);
+    mdi.AddInput(VAR_INFIL, UNIT_DEPTH_MM, DESC_INFIL, Source_Module, DT_Raster1D);
+    mdi.AddInput(VAR_SURU, UNIT_DEPTH_MM, DESC_SURU, Source_Module, DT_Raster1D);
+    mdi.AddParameter(VAR_SOL_AWC, UNIT_DEPTH_MM, DESC_SOL_AWC, Source_ParameterDB, DT_Raster2D);   // m_fc
+    //mdi.AddParameter(VAR_WASCOB, UNIT_LEN_M, DESC_FLOWOUT_LEN, Source_ParameterDB_Optional, DT_Raster1D);
 
     res = mdi.GetXMLDocument();
 

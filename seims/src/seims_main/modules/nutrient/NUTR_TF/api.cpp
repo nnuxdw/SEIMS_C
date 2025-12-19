@@ -56,7 +56,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 
     // from other modules
     mdi.AddInput(VAR_SOTE, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Raster1D);
-    mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Raster2D);
+    mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);
 
     /// tillage operation during CENTURY model
     mdi.AddInput(VAR_TILLAGE_DAYS, UNIT_DAY, DESC_TILLAGE_DAYS, Source_Module_Optional, DT_Raster1D);

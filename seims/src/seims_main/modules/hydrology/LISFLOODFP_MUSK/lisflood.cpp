@@ -3,7 +3,7 @@
 LISFLOOD-FP flood inundation model
 #####################################################################################
 
-� copyright Bristol University Hydrology Research Group 2008
+  copyright Bristol University Hydrology Research Group 2008
 
 webpage -	http://www.ggy.bris.ac.uk/research/hydrology/models/lisflood
 contact -	Professor Paul Bates, email: paul.bates@Bristol.ac.uk,
@@ -31,7 +31,7 @@ Tel: +44-117-928-9108, Fax: +44-117-928-7878
 
 #include "time_tool.h"
 
-#include "lisflood2/lis2_output.h"
+//#include "lisflood2/lis2_output.h"
 //#include "lisflood2/lisflood_processing.h"
 
 //---------------------------------------------------------------------------
@@ -378,7 +378,7 @@ void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parp
 			Solverptr->MinTstep = Solverptr->InitTstep;
 		}
 		if (LFPContextPtr->verbose == ON) printf("adaptive mode\n\n");
-       		fflush(stdout);
+		fflush(stdout);
 	}
 	else if (Statesptr->acceleration == ON)
 	{
@@ -436,7 +436,7 @@ void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parp
 	//	}
 	//Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
 	//	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr)
-	Fast_MainInit(Fnameptr, Fptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Locptr, ChannelSegments, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr, Super_linksptr,LfpCouplingInfoPtr);
+	Fast_MainInit(Fnameptr, Fptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Locptr, ChannelSegments, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr, Super_linksptr, LfpCouplingInfoPtr);
 }
 
 

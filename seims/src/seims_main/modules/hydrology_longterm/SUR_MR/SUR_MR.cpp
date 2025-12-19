@@ -69,8 +69,9 @@ void SUR_MR::InitialOutputs() {
             for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
                 // if (m_initSoilWtrStoRatio[i] >= 0.f && m_initSoilWtrStoRatio[i] <= 1.f && m_soilFC[i][j] >= 0.f) {
                 //     m_soilWtrSto[i][j] = m_initSoilWtrStoRatio[i] * m_soilFC[i][j];
-                if (m_initSoilWtrStoRatio[i] >= 0.f && m_initSoilWtrStoRatio[i] <= 1.f && m_soilAWC[i][j] >= 0.f) {
-                    m_soilWtrSto[i][j] = m_initSoilWtrStoRatio[i] * m_soilAWC[i][j];
+                if (m_initSoilWtrStoRatio[i] >= 0.f && m_initSoilWtrStoRatio[i] <= 1.f && m_soilAWC[i][j] >= 0.f) {      
+					m_soilWtrSto[i][j] = m_soilSat[i][j];// 设置土壤初值为饱和状态
+                    //m_soilWtrSto[i][j] = m_initSoilWtrStoRatio[i] * m_soilAWC[i][j]
 
                 } else {
                     m_soilWtrSto[i][j] = 0.f;
@@ -136,7 +137,8 @@ int SUR_MR::Execute() {
 		/// debug
 		float netPcp = m_netPcp[i];
 		float deprSto = m_deprSto[i];
-        if (hWater > 0.f && m_landUse[i] !=18) {
+        //if (hWater > 0.f && m_landUse[i] !=18) {
+		if (hWater > 0.f && (m_landUse[i] != 18 || ENABLE_LAKE_INFILTRATION)) {
             /// update total soil water content
             m_soilWtrStoPrfl[i] = 0.f;
             for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[i]); ly++) {

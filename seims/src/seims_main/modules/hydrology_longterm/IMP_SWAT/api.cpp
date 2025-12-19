@@ -61,7 +61,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_CLAYYLD, UNIT_KG, DESC_CLAYYLD, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_SAGYLD, UNIT_KG, DESC_SAGYLD, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_LAGYLD, UNIT_KG, DESC_LAGYLD, Source_Module, DT_Raster1D);
-    mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Raster2D);
+    mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);
     mdi.AddInput(VAR_SOL_SW, UNIT_DEPTH_MM, DESC_SOL_SW, Source_Module, DT_Raster1D); /// sol_sw in SWAT
     mdi.AddInput(VAR_SUR_NO3, UNIT_CONT_KGHA, DESC_SUR_NO3, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_SUR_NH4, UNIT_CONT_KGHA, DESC_SUR_NH4, Source_Module, DT_Raster1D);

@@ -1259,6 +1259,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define UNIT_WAT_RATIO "mm/mm"         /// mm H2O/mm Soil
 #define UNIT_WTRDLT_MMD "mm/d"                      /// Millimeter per day of water changes
 #define UNIT_WTRDLT_MMH "mm/h"                      /// Millimeter per hour of water changes
+#define UNIT_G_M2_HOUR "g/m2/h"                      /// flux g/m2/h
 
 /// Units used in rice growth module (PG_ORYZA), by Fang Shen
 #define UNIT_DVR "deg C/d"
@@ -2212,23 +2213,27 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 
 /// Methane module variables
 #define VAR_CH4_PRODUCTION                   "CH4_PRODUCTION"
+#define VAR_CH4_EMISSION_FLUX                "CH4_EMISSION_FLUX"
 #define VAR_CH4_TOTAL                        "CH4_TOTAL"
 #define DESC_CH4_PRODUCTION                  "Methane production rate in each cell"
+#define DESC_CH4_EMISSION_FLUX               "Methane emission flux in each cell"
 #define DESC_CH4_TOTAL                       "Total methane production in the watershed"
-#define VAR_CH4_CONC                         "CH4 concentration"
-#define DESC_CH4_CONC                        "CH4 concentration"
-#define VAR_CH4_DIFF                         "CH4 diffusion"
-#define DESC_CH4_DIFF                        "CH4 diffusion"
+#define VAR_CH4_DIFF                         "CH4_diffusion"
+#define DESC_CH4_DIFF                        "CH4 diffusion(gC/m2/hour)"
 #define VAR_CH4_PLANT                        "CH4 plant transport"
-#define DESC_CH4_PLANT                       "CH4 plant transport"
-#define VAR_CH4_EBUL                         "CH4 ebullition"
-#define DESC_CH4_EBUL                        "CH4 ebullition"
-#define VAR_CH4_OXID                         "CH4 oxidation"
-#define DESC_CH4_OXID                        "CH4 oxidation"
-#define VAR_CH4_PROD                         "CH4 production"
-#define DESC_CH4_PROD                        "CH4 production"
+#define DESC_CH4_PLANT                       "CH4 plant transport(gC/m2/hour)"
+#define VAR_CH4_EBUL                         "CH4_ebullition"
+#define DESC_CH4_EBUL                        "CH4 ebullition(gC/m2/hour)"
+#define VAR_CH4_OXID                         "CH4_oxidation"
+#define DESC_CH4_OXID                        "CH4 oxidation(gC/m2/hour)"
+#define VAR_CH4_PROD                         "CH4_production"
+#define DESC_CH4_PROD                        "CH4 production(gC/m2/hour)"
+#define VAR_CH4_FLUX                         "CH4_flux"
+#define DESC_CH4_FLUX                        "CH4 flux(gC/m2/hour)"
 #define VAR_SOL_ANOXIC                       "CH4_SOL_ANOXIC"
 #define DESC_SOL_ANOXIC                      "Anoxic degree in each cell"
+#define VAR_GWSUBAREA                        "GWSUBAREA"
+
 
 //////////////////////////////////////////////////////////////////////////
 /// Define Raster/ related constant strings used in SEIMS and preprocess//

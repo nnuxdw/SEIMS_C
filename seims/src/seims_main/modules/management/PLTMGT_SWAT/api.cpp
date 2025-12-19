@@ -109,7 +109,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_POT_NH4, UNIT_KG, DESC_POT_NH4, Source_Module_Optional, DT_Raster1D);
     mdi.AddInput(VAR_POT_SOLP, UNIT_PER_DAY, DESC_POT_SOLP, Source_Module_Optional, DT_Raster1D);
 
-    mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Raster2D);
+    mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);
     mdi.AddInput(VAR_SOL_SW, UNIT_DEPTH_MM, DESC_SOL_SW, Source_Module, DT_Raster1D); /// sol_sw in SWAT
 
     /**** set inputs for CENTURY C/N cycling model derived from NUTR_TF module, if CSWAT = 2. As optional inputs. ****/

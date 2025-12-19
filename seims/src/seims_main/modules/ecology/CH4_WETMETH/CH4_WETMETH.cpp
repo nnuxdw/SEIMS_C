@@ -19,7 +19,7 @@ SoilCol::SoilCol() :
 	T_soil(nullptr),
 	Soc(nullptr),
 	m_soilPor(nullptr),
-	m_soilWP(nullptr){
+	m_soilWP(nullptr) {
 }
 
 // Release dynamically allocated memory to prevent memory leaks
@@ -51,42 +51,92 @@ void SoilCol::Initialize(int num_layers) {
 	}
 }
 
-// Calculate saturation ratio for each soil layer: saturation =
-void SoilCol::calculate_soil_saturation() {
-	// Use actual layer count from member variable for calculation
+//// Calculate saturation ratio for each soil layer: saturation 
+//void SoilCol::calculate_soil_saturation(int i) {
+//	//std::cout << ">>> Enter calculate_soil_saturation(), num_layers = " << num_layers << std::endl;
+//
+//	for (int i = 0; i < num_layers; i++) {
+//
+//		//std::cout << "Layer " << i
+//			//<< " sat_cap=" << soil_saturated[i]
+//			//<< " water=" << soil_water_storage[i]
+//			//<< " WP=" << m_soilWP[i]
+//			//<< " por=" << m_soilPor[i]
+//			//<< " thick=" << layer_thickness[i]
+//			//<< std::endl;
+//
+//		if (soil_saturated[i] > 0.0f) {
+//
+//			float ratio = (soil_water_storage[i] + m_soilWP[i]) / (layer_thickness[i] * m_soilPor[i]);
+//
+//			soil_saturation[i] = (ratio > 1.0f ? 1.0f : (ratio < 0.0f ? 0.0f : ratio));
+//
+//			//std::cout << "saturation ratio = " << soil_saturation[i]
+//				//<< "  (raw=" << ratio << ")" << std::endl;
+//
+//			// 如果饱和度达到 1，则输出提示
+//			if (soil_saturation[i] == 1.0f) {
+//				std::cout << ">>> Layer " << i
+//					<< " is FULLY SATURATED (saturation = 1.0)" << std::endl;
+//			}
+//
+//		}
+//		else {
+//			soil_saturation[i] = 0.0f;
+//			std::cout << " saturated capacity = 0, set saturation=0" << std::endl;
+//		}
+//	}
+//}
+
+
+void SoilCol::calculate_soil_saturation(int cell_idx) {
+
 	for (int i = 0; i < num_layers; i++) {
-		//std::cout << "Debug - Layer " << i << ": m_soilPor[" << i << "] = " << m_soilPor[i]
-			//<< ", layer_thickness[" << i << "] = " << layer_thickness[i]
-			//<< ", soil_water_storage[" << i << "] = " << soil_water_storage[i]
-			//<< ", m_soilWP[" << i << "] = " << m_soilWP[i] << std::endl;
+
 		if (soil_saturated[i] > 0.0f) {
-			// Calculate saturation ratio, limit between 0-1
-            //soil_saturation[i] = std::min(1.0f, std::max(0.0f, soil_water_storage[i] / soil_saturated[i]));
-			//float ratio = ((soil_water_storage[i] + m_soilWP[i]) / layer_thickness[i]) / m_soilPor[i];
-			float ratio = (soil_water_storage[i] + m_soilWP[i]) / (layer_thickness[i] * m_soilPor[i]);
-			soil_saturation[i] = (ratio > 1.0f) ? 1.0f : ((ratio < 0.0f) ? 0.0f : ratio);
-			// 打印最终的饱和度值
-			//std::cout << "Layer " << i << " final saturation: " << soil_saturation[i] << std::endl;
-			//// 只打印饱和度为1的值
-			//if (soil_saturation[i] >= 0.9f) {
-			//	std::cout << "Layer " << i << " is fully saturated: " << soil_saturation[i]
-			//		<< " (ratio: " << ratio << ")" << std::endl;
-			//}
-		} else {
+
+			/*std::cout << ">>> Cell " << cell_idx
+				<< ", Layer " << i
+				<< "saturation water = " << soil_saturated[i]
+				<< ", WP=" << m_soilWP[i]
+				<< "  water=" << soil_water_storage[i]
+				<< std::endl;*/
+
+
+			float ratio = (soil_water_storage[i] + m_soilWP[i]) /
+				(layer_thickness[i] * m_soilPor[i]);
+
+			soil_saturation[i] =
+				(ratio > 1.0f ? 1.0f : (ratio < 0.0f ? 0.0f : ratio));
+
+			if (soil_saturation[i] == 1.0f) {
+				std::cout << ">>> Cell " << cell_idx
+					<< ", Layer " << i
+					<< " is FULLY SATURATED (saturation=1.0)"
+					<< "  [water=" << soil_water_storage[i]
+					<< ", WP=" << m_soilWP[i]
+					<< ", saturation=" << soil_saturation[i]
+					<< ", por=" << m_soilPor[i]
+					<< ", thick=" << layer_thickness[i]
+					<< "]" << std::endl;
+			}
+		}
+		else {
 			soil_saturation[i] = 0.0f;
 		}
 	}
 }
 
-float SoilCol::SoilColMethane()
+
+float SoilCol::SoilColMethane(int cell_idx)
 {
 	// Reset CH4 production for current soil column
 	SoilCol_CH4 = 0.0f;
 	float CH4_Soilcol_total = 0.0f;
 	
 	// Calculate soil saturation for all layers first
-	calculate_soil_saturation();
-	
+	calculate_soil_saturation(cell_idx);
+
 	// Calculate cumulative depth for each layer
     float cumulative_depth_val = 0.0f;
     for (int i = 0; i < num_layers; i++) {
@@ -101,36 +151,84 @@ float SoilCol::SoilColMethane()
         // Convert temperature from °C to K: T_soil[i] + 273.15
         // Convert thickness from mm to m: layer_thickness[i] / 1000.0
         float T_kelvin = T_soil[i] + 273.15f;  // Convert °C to K
-		//std::cout << "T: " << T_soil[i] << std::endl;
-        float Pi = CH4_R * Soc[i] * soil_saturation[i] *
+		//std::cout << "T: " << T_soil[i] << std::endl; 
+        float Pi = CH4_R * Soc[i] * soil_saturation[i] *                            // Pi: kg C m⁻³ s⁻¹ → g C m⁻³ s⁻¹
                    std::exp((T_kelvin - CH4_T0) / 10 * std::log(CH4_Q10)) *
-                   std::exp(-cumulative_depth[i] / CH4_TAU_PROD)*1e9f; // Use stored cumulative_depth
+                   std::exp(-cumulative_depth[i] / CH4_TAU_PROD) * 1e3f;            // Use stored cumulative_depth
 
         // Total CH4 production = rate * layer thickness
-        // Pi: kg C m⁻³ s⁻¹, layer_thickness: mm → m, result: μg C m⁻² s⁻¹
-        CH4_Soilcol_total += (float)(Pi * (layer_thickness[i] / 1000.0f));
-		//std::cout << "CH4: " << CH4_Soilcol_total << std::endl;
-
+        // Pi: g C m⁻³ s⁻¹, layer_thickness: mm → m, result: g C m⁻² h⁻¹  
+        CH4_Soilcol_total += (float)(Pi * (layer_thickness[i] / 1000.0f) * 3600.0f);
 	}
 
+	// ------ BEFORE oxidation ------
+	SoilCol_CH4 = CH4_Soilcol_total;
 
 	// Calculate oxic zone depth
 	z_oxic = calculate_oxic_depth();
-	//std::cout << "oxic deep = " <<  z_oxic << std::endl;
+
+	std::cout << "cell=" << cell_idx
+		<< " oxic_deep=" << z_oxic
+		<< " CH4_before_oxid=" << SoilCol_CH4
+		<< std::endl;
+
+	std::cout << "tau_runtime=" << CH4_TAU_OXID << std::endl;
 
 	// Apply oxidation reduction based on oxic zone depth
-	// area_Soilcol: m², CH4_Soilcol_total: μg C m⁻² s⁻¹, result: μg C s⁻¹
-	CH4_Soilcol_total = CH4_Soilcol_total * exp(-z_oxic/CH4_TAU_OXID);
-	//std::cout << "E = " << CH4_Soilcol_total << std::endl;
-	//std::cout << "SOIL: " << CH4_TAU_OXID << std::endl;
-	//std::cout << "After oxidation: " << CH4_Soilcol_total << std::endl;
-	return CH4_Soilcol_total;
+	// area_Soilcol: m², CH4_Soilcol_total: g C m⁻² h⁻¹
+	//CH4_Soilcol_total = (float)(CH4_Soilcol_total * std::exp(-z_oxic/CH4_TAU_OXID));
+
+	//std::cout << "[WETMETH] cell=" << cell_idx
+		//<< " CH4_after_oxid=" << CH4_Soilcol_total
+		//<< std::endl;
+
+	//// Calculate the flux after oxidation
+	//float expo = -z_oxic / CH4_TAU_OXID;
+	//float factor = std::exp(expo);
+	//float before = CH4_Soilcol_total;
+	//float after = before * factor;
+	//float delta = before - after;
+
+	//std::cout << std::fixed << std::setprecision(7)
+	//	<< "[WETMETH][OXID_DEBUG] cell=" << cell_idx
+	//	//<< " z=" << z
+	//	//<< " tau=" << tau
+	//	<< " expo=" << expo
+	//	<< " factor=" << factor
+	//	<< " before=" << before
+	//	<< " after=" << after
+	//	<< " delta=" << delta
+	//	<< std::endl;
+
+	//// Apply oxidation reduction
+	//CH4_Soilcol_total = after;
+
+	// ------ AFTER oxidation ------
+	float factor = std::exp(-z_oxic / CH4_TAU_OXID);
+	float CH4_after = SoilCol_CH4 * factor;  // 通量（氧化后）
+
+	// ---- DEBUG PRINT (AFTER OXIDATION) ----
+	std::cout << std::fixed << std::setprecision(7)
+		<< "[WETMETH] cell=" << cell_idx
+		<< " CH4_after_oxid=" << CH4_after
+		<< std::endl;
+
+	return CH4_after;
+
+	//// ---- DEBUG PRINT (AFTER OXIDATION) ----
+	//std::cout << std::fixed << std::setprecision(7)
+	//	<< "[WETMETH] cell=" << cell_idx
+	//	<< " CH4_after_oxid=" << CH4_Soilcol_total
+	//	<< std::endl;
+
+	/*return CH4_Soilcol_total;*/
 }
 
 // Calculate oxic zone depth based on soil saturation
 // According to WETMETH model, oxic depth is calculated as the depth where
 // soil saturation drops below a certain threshold, plus transition zone
 float SoilCol::calculate_oxic_depth() {
+
 	float oxic_depth = 0.0f;
 	bool found_saturated_layer = false;
 	
@@ -152,6 +250,39 @@ float SoilCol::calculate_oxic_depth() {
 	if (found_saturated_layer) {
 		oxic_depth += CH4_Z_OATZ;
 	}
+
+	
+	//float total_depth = 0.0f;  // total soil column thickness (m)
+	//float unsat_sum = 0.0f;    // sum of UNSAT layer thickness (m)
+
+	//// Traverse all layers
+	//for (int i = 0; i < num_layers; i++) {
+
+	//	float thk_m = layer_thickness[i] / 1000.0f;   // mm -> m
+	//	total_depth += thk_m;
+
+	//	// UNSAT thickness accumulation
+	//	if (soil_saturation[i] < 0.99999) {
+	//		unsat_sum += thk_m;
+	//	}
+	//}
+
+	//// Case 1: all layers saturated -> only transition zone
+	//if (unsat_sum <= 0.0f) {
+	//	oxic_depth = CH4_Z_OATZ;
+	//}
+	//// Case 2: all layers unsaturated -> total soil thickness (no extra 0.05 m)
+	//else if (fabs(unsat_sum - total_depth) < 1e-7f) {
+	//	oxic_depth = total_depth;
+	//}
+	//// Case 3: mixed -> sum of UNSAT thickness + transition zone
+	//else {
+	//	oxic_depth = unsat_sum + CH4_Z_OATZ;
+
+	//	// optional safety cap (uncomment if you want to prevent exceeding total depth)
+	//	// if (oxic_depth > total_depth) oxic_depth = total_depth;
+	//}
+
 	
 	return oxic_depth;
 }
@@ -172,6 +303,7 @@ CH4_WETMETH::CH4_WETMETH() :
 	m_Tsoil(nullptr),
 	m_SoilCols(nullptr),
 	m_P_soilcol(nullptr),
+	m_P_soilcol_flux(nullptr),
 	m_total_CH4(0.0f)
 {
 
@@ -179,6 +311,7 @@ CH4_WETMETH::CH4_WETMETH() :
 
 CH4_WETMETH::~CH4_WETMETH() {
 	if (m_P_soilcol != nullptr) Release1DArray(m_P_soilcol);
+	if (m_P_soilcol_flux != nullptr) Release1DArray(m_P_soilcol_flux);
 	if (m_area != nullptr) Release1DArray(m_area);
 	if (m_nSoilLyrs != nullptr) Release1DArray(m_nSoilLyrs);
 	if (m_layer_thickness != nullptr) Release2DArray(m_nCells, m_layer_thickness);
@@ -302,28 +435,31 @@ bool CH4_WETMETH::CheckInputData() {
 void CH4_WETMETH::InitialOutputs() {
 	if (m_SoilCols == nullptr) {
 		m_SoilCols = new SoilCol[m_nCells];
+
 		Initialize1DArray(m_nCells, m_P_soilcol, 0.0f);
+		Initialize1DArray(m_nCells, m_P_soilcol_flux,0.0f);
 		
 		// Initialize each soil column
 		for (int i = 0; i < m_nCells; i++) {
 			m_SoilCols[i].Initialize(m_maxSoilLyrs);
 		}
 	}
-	m_total_CH4 = 0.0f;
 }
 
-int CH4_WETMETH::Execute() {
-	// Validate input data
-	CheckInputData();
 
-	// Initialize outputs if not already done
+int CH4_WETMETH::Execute() {
+
+	CheckInputData();
 	InitialOutputs();
+
+	m_total_CH4 = 0.0f;
 
 	// Process each cell
 	for (int i = 0; i < m_nCells; i++) {
+
 		// Set soil column properties
 		m_SoilCols[i].area_Soilcol = m_area[i];
-		
+
 		// Get actual number of soil layers for this cell
 		int actual_layers = (int)m_nSoilLyrs[i];
 		m_SoilCols[i].num_layers = actual_layers;
@@ -335,20 +471,28 @@ int CH4_WETMETH::Execute() {
 			m_SoilCols[i].soil_saturated[j] = m_soil_saturated[i][j];
 			m_SoilCols[i].m_soilWP[j] = m_soilWP[i][j];
 			m_SoilCols[i].m_soilPor[j] = m_soilPor[i][j];
+
 			// Convert kg/ha to kg C/m³ for WETMETH model
 			// kg/ha / (thickness_m * 10000) = kg C/m³
-			float thickness_m = m_layer_thickness[i][j] / 1000.0f; // Convert mm to m
-			m_SoilCols[i].Soc[j] = m_Soc_kg_ha[i][j] / (thickness_m * 10000.0f);    // kg/ha ÷ (thick_m × 10000) = kg C/m³
+			float thickness_m = m_layer_thickness[i][j] / 1000.0f;  // Convert mm to m
+			m_SoilCols[i].Soc[j] = m_Soc_kg_ha[i][j] / (thickness_m * 10000.0f);
 			m_SoilCols[i].T_soil[j] = m_Tsoil[i][j];
 		}
 
-		// Calculate CH4 production for this soil column
-		m_P_soilcol[i] = m_SoilCols[i].SoilColMethane();
-		m_total_CH4 += m_P_soilcol[i];
+		// after (flux)
+		float CH4_after = m_SoilCols[i].SoilColMethane(i);
+
+		// before (production) -> SoilCol_CH4 在 SoilColMethane() 内已经写好
+		float CH4_before = m_SoilCols[i].SoilCol_CH4;
+
+		m_P_soilcol[i] = CH4_before;
+		m_P_soilcol_flux[i] = CH4_after;
+
+		m_total_CH4 += CH4_after;
 	}
-	
 	return 0;
 }
+
 
 TimeStepType CH4_WETMETH::GetTimeStepType() {
     return TIMESTEP_HILLSLOPE;
@@ -360,7 +504,8 @@ void CH4_WETMETH::GetValue(const char* key, float* value) {
 	string sk(key);
 	if (StringMatch(sk, VAR_CH4_TOTAL)) {
 		*value = m_total_CH4;
-	} else {
+	}
+	else {
 		throw ModelException(MID_CH4_WETMETH, "GetValue", "Result " + sk + " does not exist.");
 	}  
 }
@@ -371,7 +516,12 @@ void CH4_WETMETH::Get1DData(const char* key, int* n, float** data) {
 	if (StringMatch(sk, VAR_CH4_PRODUCTION)) {
 		*data = m_P_soilcol; 
 		*n = m_nCells;
-	} else {
+	}
+	else if (StringMatch(sk, VAR_CH4_EMISSION_FLUX)) {
+		*data = m_P_soilcol_flux;
+		*n = m_nCells;
+	}
+	else {
 		throw ModelException(MID_CH4_WETMETH, "Get1DData", "Result " + sk + " does not exist.");
 	}
 }

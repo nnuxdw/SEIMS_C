@@ -32,13 +32,14 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);
 
 	/// Set inputs from other modules (Source_Module or Source_Module_Optional)
-	mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Raster2D);
+	mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);
 	mdi.AddInput(VAR_SOL_WOC, UNIT_CONT_KGHA, DESC_SOL_WOC, Source_Module, DT_Raster2D);
 
 
     /// Set output variables of the current module
-	mdi.AddOutput(VAR_CH4_PRODUCTION, UNIT_KG, DESC_CH4_PRODUCTION, DT_Raster1D);
-	mdi.AddOutput(VAR_CH4_TOTAL, UNIT_KG, DESC_CH4_TOTAL, DT_Single);
+	mdi.AddOutput(VAR_CH4_PRODUCTION, UNIT_G_M2_HOUR, DESC_CH4_PRODUCTION, DT_Raster1D);
+	mdi.AddOutput(VAR_CH4_EMISSION_FLUX, UNIT_G_M2_HOUR, DESC_CH4_EMISSION_FLUX, DT_Raster1D);
+	mdi.AddOutput(VAR_CH4_TOTAL, UNIT_G_M2_HOUR, DESC_CH4_TOTAL, DT_Single);
 
 
     /// Write out the XML file.
