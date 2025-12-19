@@ -254,7 +254,7 @@ if __name__ == '__main__':
     #
     SUBBASIN_IDs = [123,141,214,225,322,347,457]
     cali_name_map = {123:'CALI_NSGA2_Gen_100_Pop_20',141:'CALI_NSGA2_Gen_100_Pop_20',214:'CALI_NSGA2_Gen_100_Pop_20',
-                 225:'CALI_NSGA2_Gen_100_Pop_20',322:'CALI_NSGA2_Gen_100_Pop_20',347:'CALI_NSGA2_Gen_65_Pop_20',
+                 225:'CALI_NSGA2_Gen_100_Pop_20',322:'CALI_NSGA2_Gen_100_Pop_20',347:'CALI_NSGA2_Gen_55_Pop_20',
                  457:'CALI_NSGA2_Gen_100_Pop_20'}
     TARGET_SUBBASIN_ID = 1171
     for SUBBASIN_ID in SUBBASIN_IDs:

@@ -696,6 +696,7 @@ def main(watershed_num):
 
 
 if __name__ == "__main__":
-    watershed_nums = [123,141,214,225,322,347,457]
+    # watershed_nums = [123,141,214,225,322,347,457]
+    watershed_nums = [347]
     for watershed_num in watershed_nums:
         main(watershed_num)
