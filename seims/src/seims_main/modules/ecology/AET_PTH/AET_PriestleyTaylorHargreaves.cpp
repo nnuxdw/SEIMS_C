@@ -59,8 +59,8 @@ bool AET_PT_H::CheckInputData() {
     CHECK_POINTER(MID_AET_PTH, m_esco);
     CHECK_POINTER(MID_AET_PTH, m_nSoilLyrs);
     CHECK_POINTER(MID_AET_PTH, m_tMean);
-    //CHECK_POINTER(MID_AET_PTH, m_lai); // xiaodw comment, don't need LAI now
-    CHECK_POINTER(MID_AET_PTH, m_pet);
+	//CHECK_POINTER(MID_AET_PTH, m_lai); // xiaodw comment, don't need LAI now
+	CHECK_POINTER(MID_AET_PTH, m_pet);
     CHECK_POINTER(MID_AET_PTH, m_snowAccum);
     /// If m_snowSB is not provided, it will be initialized in  InitialOutputs().
     // CHECK_POINTER(MID_AET_PTH, m_snowSB);
@@ -102,13 +102,12 @@ int AET_PT_H::Execute() {
             continue;
         }
         /// compute potential plant evapotranspiration (PPT) other than Penman-Monteith method
-		 // xiaodw comment, don't need LAI now
-        //if (m_lai[i] <= 3.f) {
-        //    m_maxPltET[i] = m_lai[i] * pet * _1div3;
-        //} else {
-        //    m_maxPltET[i] = pet;
-        //}
-		m_maxPltET[i] = pet;
+		// xiaodw comment, don't need LAI now
+		//if (m_lai[i] <= 3.f) {
+  //          m_maxPltET[i] = m_lai[i] * pet * _1div3;
+  //      } else {
+  //          m_maxPltET[i] = pet;
+  //      }
         if (m_maxPltET[i] < 0.f) m_maxPltET[i] = 0.f;
         /// compute potential soil evaporation
         cej = -5.e-5f;

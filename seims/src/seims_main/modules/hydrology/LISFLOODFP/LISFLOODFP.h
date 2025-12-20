@@ -1,5 +1,9 @@
-#pragma once
-
+/*!
+ * \brief A IO test demo of developing module for SEIMS.
+ *
+ * \author Dawei Xiao
+ * \date 2018-02-07
+ */
 
 #ifndef SEIMS_MODULE_LISFLOODFP_H
 #define SEIMS_MODULE_LISFLOODFP_H

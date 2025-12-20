@@ -1,4 +1,3 @@
-#pragma once
 #include "LISFLOODFP.h"
 
 
@@ -93,6 +92,7 @@ void LISFLOODFP::InitialOutputs() {
 	memset(&OutLocs, 0, sizeof(Stage));
 	memset(&SGCchanprams, 0, sizeof(SGCprams));
 	memset(&DamDataprams, 0, sizeof(DamData));
+	memset(&LFPContext, 0, sizeof(LISFLOODFPContext));
 	
 	
 	Arrptr = &Raster;

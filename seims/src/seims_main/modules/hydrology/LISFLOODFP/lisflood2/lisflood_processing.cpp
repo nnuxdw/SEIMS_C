@@ -1569,11 +1569,6 @@ float CalculateCapillarySuction(float por, float clay, float sand) {
 	return cs;
 }
 
-
-
-//void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
-//	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr,
-//	SuperGridLinksList *Super_linksptr)
 void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
 	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr)
 {
@@ -3191,75 +3186,6 @@ void Fast_MainInit(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parpt
 
 }
 // ITERATE THROUGH TIME STEPS
-//void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
-//	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr, SuperGridLinksList *Super_linksptr)
-void Fast_MainStart(Fnames *Fnameptr, Files *Fptr, States *Statesptr, Pars *Parptr, Solver *Solverptr, Pois *Poisptr, BoundCs *BCptr, Stage *Locptr,
-	ChannelSegmentType *ChannelSegments, Arrays *Arrptr, SGCprams *SGCptr, vector<ChannelSegmentType> *ChannelSegmentsVecPtr, DamData *Damptr, LISFLOODFPContext* LFPContextPtr)
-{
-	if (LFPContextPtr->verbose == ON)
-	{
-		printf("\nStarting time steps: ");
-		fflush(stdout);
-	}
-	Solverptr->itrn_time_now = Solverptr->itrn_time;
-
-	// Populating Tstep variables prior to start of simulation
-	// 注意这里可以选择不同的时间步长策略
-	if (Statesptr->adaptive_ts == ON)
-	{
-		if (Solverptr->t == 0)
-		{
-			Solverptr->Tstep = Solverptr->InitTstep;
-			Solverptr->MinTstep = Solverptr->InitTstep;
-		}
-		if (LFPContextPtr->verbose == ON) printf("adaptive mode\n\n");
-		fflush(stdout);
-	}
-	else if (Statesptr->acceleration == ON)
-	{
-		if (Solverptr->t == 0)
-		{
-			Solverptr->Tstep = Solverptr->InitTstep;
-			Solverptr->MinTstep = Solverptr->InitTstep;
-		}
-		if (LFPContextPtr->verbose == ON) printf("acceleration mode\n\n");
-		fflush(stdout);
-	}
-	else if (Statesptr->Roe == ON)
-	{
-		if (Solverptr->t == 0)
-		{
-			Solverptr->Tstep = Solverptr->InitTstep;
-			Solverptr->MinTstep = Solverptr->InitTstep;
-		}
-		if (LFPContextPtr->verbose == ON) printf("Roe mode\n\n");
-		fflush(stdout);
-	}
-	else
-	{
-		if (Solverptr->t == 0)
-		{
-			Solverptr->Tstep = Solverptr->InitTstep;
-			Solverptr->MinTstep = Solverptr->InitTstep;
-		}
-		if (LFPContextPtr->verbose == ON) printf("non-adaptive mode\n\n");
-		fflush(stdout);
-	}
-	if (Statesptr->SGC == ON)
-	{
-		// because the SGC model calculates the time step in UpdateH rather than during calcFPflow it needs to initalise 
-		// SGCtmpTstep, which would usually be calculated in UpdateH
-		Solverptr->Tstep = Solverptr->InitTstep;
-		CalcT(Parptr, Solverptr, Arrptr);
-		Solverptr->SGCtmpTstep = Solverptr->Tstep;
-		if (LFPContextPtr->verbose == ON) printf("SGC mode\n\n");
-		fflush(stdout);
-	}
-
-	Fast_MainInit(Fnameptr, Fptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Locptr, ChannelSegments, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr);
-	//Fast_MainInit(Fnameptr, Fptr, Statesptr, Parptr, Solverptr, Poisptr, BCptr, Locptr, ChannelSegments, Arrptr, SGCptr, ChannelSegmentsVecPtr, Damptr, LFPContextPtr, Super_linksptr);
-
-}
 
 
 

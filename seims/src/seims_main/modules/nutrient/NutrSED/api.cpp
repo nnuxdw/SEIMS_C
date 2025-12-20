@@ -118,6 +118,11 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput("BRT", "none", "fraction of surface runoff that takes one day or less to reach the subbasin", Source_Module, DT_Array1D);
     mdi.AddInput(VAR_SURU, UNIT_DEPTH_MM, DESC_SURU, Source_Module, DT_Raster1D);
 
+    mdi.AddOutput(VAR_ENR_RPOC, UNIT_CONT_KGHA, "todo", DT_Raster1D);
+	mdi.AddOutput(VAR_ENR_LPOC, UNIT_CONT_KGHA, "todo", DT_Raster1D);
+	mdi.AddOutput(VAR_SURF_DIC, UNIT_CONT_KGHA, "todo", DT_Raster1D);
+	mdi.AddOutput(VAR_SURF_DOC, UNIT_CONT_KGHA, "todo", DT_Raster1D);
+
     // mdi.AddInput("SURFDOC", UNIT_KG, DESC_SEDYLD, Source_Module, DT_Raster1D);
     // mdi.AddInput("SURFPOC", UNIT_KG, DESC_SEDYLD, Source_Module, DT_Raster1D);
     // mdi.AddInput("SUBSURFDOC", UNIT_KG, DESC_SEDYLD, Source_Module, DT_Raster2D);

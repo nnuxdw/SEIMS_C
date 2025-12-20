@@ -64,7 +64,7 @@ void IUH_OL::InitialOutputs() {
     //     t_ch = 0
     //     ch_l1(j) = ch_l1(j) * hru_dafr(j) / sub_fr(hru_sub(j))
     //     t_ov(j) = .0556 * (slsubbsn(j)*ov_n(j)) ** .6 / hru_slp(j) ** .3
-    //     t_ch = .62 * ch_l1(j) * ch_n(1,hru_sub(j)) ** .75 /             
+    //     t_ch = .62 * ch_l1(j) * ch_n(1,hru_sub(j)) ** .75 /
     //  &              ((da_km*hru_dafr(j))**.125*ch_s(1,hru_sub(j))**.375)
     //     tconc(j) = t_ov(j) + t_ch
         float* tmp_Sub_area = new float[m_nSubbsns + 1];
@@ -77,7 +77,7 @@ void IUH_OL::InitialOutputs() {
         for (int i = 0; i < m_nCells; i++) {
             tmp_Sub_area[CVT_INT(m_subbsnID[i])] += m_area[i]*1.e-6f;
             da_km += m_area[i]*1.e-6f;
-            tmp_Sub_slp[CVT_INT(m_subbsnID[i])] += m_slope[i]*m_area[i]*1.e-6f; 
+            tmp_Sub_slp[CVT_INT(m_subbsnID[i])] += m_slope[i]*m_area[i]*1.e-6f;
         }
             //def getSlsubbsn(meanSlope) :
             //    """Estimate the average slope length in metres from the mean slope."""
@@ -89,7 +89,6 @@ void IUH_OL::InitialOutputs() {
         for (int i = 0; i < m_nCells; i++) {
             float t_ch = 0;
             float hru_dafr = m_area[i]*1.e-6f/da_km;
-
             float sub_fr = tmp_Sub_area[CVT_INT(m_subbsnID[i])] / da_km;
             float slsubbsn = 30.f;
             if(tmp_Sub_slp[CVT_INT(m_subbsnID[i])]/tmp_Sub_area[CVT_INT(m_subbsnID[i])]< 0.01f) slsubbsn=120;
@@ -99,11 +98,11 @@ void IUH_OL::InitialOutputs() {
             slsubbsn = Min(m_dis2Stream[i],300.f);
             slsubbsn = Max(m_dis2Stream[i],1.f);
             //ljj++ consitent with SERO
-            if(m_slope[i] <= 0.1)   slsubbsn = 61; 
-            if(m_slope[i] <= 0.2 && m_slope[i] > 0.1)   slsubbsn = 24; 
-            if(m_slope[i] > 0.2)   slsubbsn = 9.1; 
+            if(m_slope[i] <= 0.1)   slsubbsn = 61;
+            if(m_slope[i] <= 0.2 && m_slope[i] > 0.1)   slsubbsn = 24;
+            if(m_slope[i] > 0.2)   slsubbsn = 9.1;
             float t_ov = 0.0556f * pow((slsubbsn)*m_ManningN[i], 0.6f) / pow(m_slope[i], 0.3f);
-            
+
             float ch_l1 = m_chLen[CVT_INT(m_subbsnID[i])] *0.001f *hru_dafr / sub_fr;
             t_ch = 0.62 * ch_l1 * pow(m_chMan[CVT_INT(m_subbsnID[i])], 0.75f )/ (pow(da_km*hru_dafr,0.125f)* pow(m_chSlope[CVT_INT(m_subbsnID[i])],0.375f));
             tconc[i] = t_ov +  t_ch;
@@ -176,6 +175,7 @@ int IUH_OL::Execute() {
         {
             for (int i = 1; i <= m_nSubbsns; i++) {
                 m_Q_SBOF[i] += tmp_qsSub[i];
+
             }
         }
         delete[] tmp_qsSub;
@@ -186,6 +186,7 @@ int IUH_OL::Execute() {
         //get overland flow routing for entire watershed.
         m_Q_SBOF[0] += m_Q_SBOF[n];
     }
+
     return 0;
 }
 
@@ -209,8 +210,8 @@ void IUH_OL::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(sk, VAR_SURU)) m_surfRf = data;
     else if (StringMatch(sk, VAR_AHRU)) m_area = data;
     else if (StringMatch(sk, VAR_SLOPE)) m_slope = data;
-    else if (StringMatch(sk, VAR_MANNING)) m_ManningN = data; 
-    else if (StringMatch(sk, VAR_DISTSTREAM)) m_dis2Stream = data; 
+    else if (StringMatch(sk, VAR_MANNING)) m_ManningN = data;
+    else if (StringMatch(sk, VAR_DISTSTREAM)) m_dis2Stream = data;
     else {
         throw ModelException(MID_IUH_OL, "Set1DData", "Parameter " + sk + " does not exist.");
     }

@@ -1,4 +1,3 @@
-#pragma once
 /*
 #####################################################################################
 LISFLOOD-FP flood inundation model
@@ -15,7 +14,7 @@ Tel: +44-117-928-9108, Fax: +44-117-928-7878
 
 #include "lisflood.h"
 #include "VersionHistory.h"
-//#include "lisflood2/lisflood_processing.h"
+#include "lisflood2/lisflood_processing.h"
 #include "utility.h"
 #include "sgc.h"
 #include "swe/fv1.h"

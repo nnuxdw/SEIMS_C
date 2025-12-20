@@ -68,6 +68,7 @@ public:
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
 
+
     //TimeStepType GetTimeStepType() OVERRIDE { return TIMESTEP_CHANNEL; }
 
 private:
@@ -84,7 +85,7 @@ private:
     //map<int, vector<BMPTileDrain*>> tiledrain;
     //// tiledrain map of reach i
     //map<int, vector<BMPTileDrain*>> tiledrainReach;
-    //map<int, vector<BMPTileDrain*>> tiledrainSubarea;//°´subarea×éÖ¯µÄtiledrain
+    //map<int, vector<BMPTileDrain*>> tiledrainSubarea;//ï¿½ï¿½subareaï¿½ï¿½Ö¯ï¿½ï¿½tiledrain
     float* m_rootDepth;
     //float** m_tileDrainOutputs;
     float* QGSub;//QG organized by subarea
@@ -177,6 +178,9 @@ private:
 
     float* m_area;
     float* curBasinArea;
+	float*  m_hand_eavp;
+	float* m_handWtrDep;
+	float* m_chSto;		///< reach storage (m^3), rchstor in SWAT
 
 };
 

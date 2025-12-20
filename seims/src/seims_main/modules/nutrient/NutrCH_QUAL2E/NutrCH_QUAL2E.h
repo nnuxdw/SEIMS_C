@@ -60,11 +60,11 @@ public:
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
 
     TimeStepType GetTimeStepType() OVERRIDE { return TIMESTEP_CHANNEL; }
-    
+
     void SetSubbasins(clsSubbasins* subbasins) OVERRIDE;
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
-  
+
 private:
     bool CheckInputCellSize(const char* key, int n);
 
@@ -350,7 +350,7 @@ private:
     float m_npoc;
     float m_FRAC;
     float m_intercpt;
-    
+
     float* m_chDOCcon;
     float* m_sedst;
     float* m_area;
@@ -365,7 +365,7 @@ private:
     float* m_LPOCToCH;
     float* m_RPOCToCH;
     float* m_LDOCToCH;
-    
+
     float* m_chDIC;
     float* m_chLPOC;
     float* m_chRPOC;
@@ -385,7 +385,7 @@ private:
     float* m_chOutsurfRDOC;
     float* m_chOutlatRDOC;
     float* m_chOutgwRDOC;
-   
+
     float* m_chOutDICConc;
     float* m_chOutLDOCConc;
     float* m_chOutRDOCConc;
@@ -410,6 +410,7 @@ private:
     float* m_A_a;
     float* m_A_Vb;
     float* m_A_Va;
+    float* m_lakearea;
 
     float* m_airtemp;
     float* m_rrtime;

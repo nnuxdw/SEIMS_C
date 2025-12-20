@@ -4,7 +4,7 @@
 *  Created on: 14 May 2014
 *      Author: td14281
 */
-#pragma once
+
 #include "../lisflood.h"
 #include "../utility.h"
 #include "sgm_fast.h"
@@ -7899,7 +7899,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	Files *Fptr,
 	Stage *Locptr,
 	DamData *Damptr,
-	//SuperGridLinksList *Super_linksptr,
+	SuperGridLinksList *Super_linksptr,
 	//DynamicRain<> & dynamic_rain, removed JCN
 	NUMERIC_TYPE ** tmp_thread_data, NUMERIC_TYPE ** tmp_thread_data_ch,
 	const int verbose, NUMERIC_TYPE last_gw_time)
@@ -8003,7 +8003,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			}
 			//cout << "loop " << itCount << " debug " << 5 << endl;
 
-
+			
 			bool not_last_row = (j < grid_rows - 1);
 			// PFU: this is processing Qy
 			//skip last row
@@ -8068,7 +8068,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 #if _SGM_BY_BLOCKS == 0
 			// 计算sub grid河道上的流量，包含河道内+河道上底之上且范围在河道宽度内
 			ProcessSubGridQBlock(j, grid_cols_padded, depth_thresh, delta_time, g, sub_grid_layout_rows, sub_grid_state_rows, SGCptr, h_grid,
-				wet_dry_bounds, Qx_grid, Qy_grid, Qx_old_grid, Qy_old_grid, Parptr->max_Froude, Poisptr->Q_Ch, Parptr->sgcStartH, Statesptr, row_cell_area);
+				wet_dry_bounds, Qx_grid, Qy_grid, Qx_old_grid, Qy_old_grid, Parptr->max_Froude, Poisptr->Q_Ch, Parptr->sgcStartH, Statesptr,row_cell_area);
 			if (curr_time >= Parptr->SaveTotal && Statesptr->SGCvoutput == ON)
 			{
 				SGC2_UpdateVelocitySubGrid_block(j, grid_cols_padded, depth_thresh, delta_time, sub_grid_layout_rows, sub_grid_state_rows, SGCptr, h_grid);
@@ -8100,10 +8100,10 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 				SGC2_UpdateVelocitySubGrid_block(j, grid_cols_padded, depth_thresh, delta_time, sub_grid_layout_blocks, sub_grid_state_blocks, SGCptr, h_grid);
 			}
 		}
+	}	
 	}
-}
-{
-
+	{
+		
 #endif
 
 	// this block of code is executed by the first thread that finishes it's updateQ (with nowait clause) 
@@ -8153,27 +8153,27 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			Statesptr, Parptr, boundary_cond, SGCptr, Parptr->max_Froude);
 
 		if (Statesptr->calc_evap == ON)
-		{
-			// evap_deltaH_step = InterpolateTimeSeries(evap_time_series, curr_time); //constant rate across whole floodplain
-			for (int j = 0; j < evap_time_series->count; j++) {
-				if (evap_time_series->time[j] > curr_time) {
-					evap_deltaH_step = evap_time_series->value[j];
-					break;
-				}
-			}
-			evap_deltaH_step *= delta_time;
-			for (int j = 0; j < grid_cols_padded * grid_rows; j++) {
-				evap_grid->data[j] = evap_deltaH_step;
-			}
-		}
+		  {
+		    // evap_deltaH_step = InterpolateTimeSeries(evap_time_series, curr_time); //constant rate across whole floodplain
+		    for (int j = 0; j < evap_time_series->count; j++) {
+		      if (evap_time_series->time[j] > curr_time) {
+			evap_deltaH_step = evap_time_series->value[j];
+			break;
+		      }
+		    }
+		    evap_deltaH_step *= delta_time;
+		    for (int j = 0; j < grid_cols_padded * grid_rows; j++) {
+		      evap_grid->data[j] = evap_deltaH_step;
+		    }
+		  }
 		else if (Statesptr->calc_evap == TIME_SPACE)
-		{
-			for (int j = 0; j < grid_cols_padded * grid_rows; j++) {
-				evap_grid->data[j] *= delta_time;
-				if (evap_grid->data[j] > 0.0)
-					evap_deltaH_step = evap_grid->data[j];
-			}
-		}
+		  {
+		    for (int j =0; j < grid_cols_padded * grid_rows; j++) {
+		      evap_grid->data[j] *= delta_time;
+		      if (evap_grid->data[j] > 0.0)
+			evap_deltaH_step = evap_grid->data[j];
+		    }
+		  }
 		// 下渗累积量
 		//if (Statesptr->calc_evap == ON)
 		//{
@@ -8203,9 +8203,9 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			{
 				if (Statesptr->use_temperature == OFF)
 				{
-					cout << "You have to specify a temperature timeseries file when using glacier and melt model. Please set 'temperature' file in par file." << endl;
+					cout << "You have to specify a temperature timeseries file when using glacier and melt model. Please set 'temperature' file in par file."  << endl;
 				}
-
+				
 				if (temperature_step <= Parptr->melt_temperature)
 				{
 					snow_deltaH_step = rain_deltaH_step;
@@ -8233,7 +8233,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 #endif
 	// Toby suggest DamFlowVolume go here!!! FEOL
 #pragma omp barrier // ensure all threads have finished their updateQ (nowait) and single section
-
+	
 	if (Statesptr->DamMode == ON)
 	{
 #pragma omp single
@@ -8243,8 +8243,6 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		}
 		//End Dam FEOL
 	}
-	// xiaodw.................................................
-	SuperGridLinksList *Super_linksptr = new SuperGridLinksList();
 	// supergrid channel links... currently in OMP single section
 	if (Statesptr->ChanMaskRead == ON)
 	{
@@ -8293,8 +8291,8 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		}
 	}
 
-
-
+	
+	
 	//cout << "*********************************333*********************************** " << endl;
 	if (Statesptr->routing_mass_check == ON || weir_bridges->row_cols_padded > 0 || Statesptr->hazard == ON)
 	{
@@ -8359,7 +8357,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		{
 
 			//#pragma omp barrier
-#pragma omp single
+			#pragma omp single
 			{
 				int padding_count = grid_cols_padded - grid_cols;
 				int padding = sizeof(NUMERIC_TYPE) * padding_count;
@@ -8381,7 +8379,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							Parptr->satFlow2NeiborPD[index] = 0.0;
 							Parptr->PercExcess2SurfPD[index] = 0.0;
 
-
+							
 							Parptr->waterLevelPD[index] = dem_grid[index] - Parptr->tableDepthPD[index];
 							if (Statesptr->save_poi == ON) {
 								/*Poisptr->Rain_Grid[index] = 0.0;
@@ -8400,7 +8398,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 									//Poisptr->soil_lat_flowout_Grid[lyr][index] = 0.0;
 									//Poisptr->soil_perc_Grid[lyr][index] = 0.0;
 									Poisptr->soil_water_depth_Grid[lyr][index] = 0.0;
-
+									
 								}
 
 							}
@@ -8410,9 +8408,9 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 			}
 
 			// ----------------------------------------地下水多线程版----------------------------------
-#pragma omp barrier
+			#pragma omp barrier
 			{
-#pragma omp for schedule(static)
+				#pragma omp for schedule(static)
 				//#pragma omp for schedule(static) nowait
 				for (int block_index = 0; block_index < wet_dry_bounds->block_count; block_index++)
 				{
@@ -8434,7 +8432,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 						}
 
 
-
+						
 					}
 				}
 			}
@@ -8453,7 +8451,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 						int infilt_row_end = wet_dry_bounds->dem_data[j].end;
 						int grid_row_index = j * grid_cols_padded;
 						HeadSlopeAspect(Parptr, Solverptr, Arrptr, grid_row_index, j, grid_rows, grid_cols, dem_grid + grid_row_index, infilt_row_start, infilt_row_end, grid_cols_padded, dx_col[j], dy_col[j], wet_dry_bounds);
-
+				
 					}
 				}
 			}
@@ -8475,7 +8473,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 						RouteSubSurface(infilt_row_start, infilt_row_end, Parptr, Solverptr, Arrptr, Statesptr, grid_row_index, j, grid_rows, grid_cols,
 							dem_grid + grid_row_index, cell_area_col[j], grid_cols_padded, volume_grid, dx_col[j], dy_col[j], wet_dry_bounds, Poisptr,
 							sub_grid_layout_rows->cell_info.sg_cell_cell_area, j,
-							sub_grid_layout_rows->cell_row_count[j], sg_row_start, sg_cell_grid_index_lookup, sub_grid_layout_rows->cell_info.sg_cell_SGC_BankFullHeight,
+							sub_grid_layout_rows->cell_row_count[j], sg_row_start, sg_cell_grid_index_lookup, sub_grid_layout_rows->cell_info.sg_cell_SGC_BankFullHeight, 
 							sub_grid_layout_rows->cell_info.sg_cell_SGC_BankFullVolume, sub_grid_layout_rows->cell_info.sg_cell_SGC_c, sub_grid_layout_rows->flow_info.sg_cell_flow_lookup);
 					}
 				}
@@ -8534,35 +8532,35 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	// xiaodw, calculate sumNCells(all valuable dem cells) and sumNSgcCells at first time once
 #pragma omp single nowait 
 	{
-		if (Parptr->sumNSgcCells == 0) {
-			int sumNCells = 0;
-			NUMERIC_TYPE sum_cell_area = 0.f;
-			const int start_y = 0;
-			const int end_y = Parptr->ysz;
-			int count = 0;
-			for (int j = start_y; j < end_y; j++)
-			{
-				int infilt_row_start = wet_dry_bounds->dem_data[j].start;
-				int infilt_row_end = wet_dry_bounds->dem_data[j].end;
-				int grid_row_index = j * grid_cols_padded;
-				sumNCells += (infilt_row_end - infilt_row_start);
-				sum_cell_area += cell_area_col[j] * (infilt_row_end - infilt_row_start);
-			}
-			Parptr->sumNCells = sumNCells;
-			Parptr->avgCellArea = sum_cell_area / sumNCells;
-
-			int sumNSgcCells = 0;
-			if (Parptr->sumNSgcCells == 0) {
-
-				for (int j = start_y; j < end_y; j++)
-				{
-					const int cell_count = sub_grid_layout_rows->cell_row_count[j];
-					sumNSgcCells += cell_count;
-				}
-
-				Parptr->sumNSgcCells = sumNSgcCells;
-			}
+	if (Parptr->sumNSgcCells == 0) {
+		int sumNCells = 0;
+		NUMERIC_TYPE sum_cell_area = 0.f;
+		const int start_y = 0;
+		const int end_y = Parptr->ysz;
+		int count = 0;
+		for (int j = start_y; j < end_y; j++)
+		{
+			int infilt_row_start = wet_dry_bounds->dem_data[j].start;
+			int infilt_row_end = wet_dry_bounds->dem_data[j].end;
+			int grid_row_index = j * grid_cols_padded;
+			sumNCells += (infilt_row_end - infilt_row_start);
+			sum_cell_area += cell_area_col[j] * (infilt_row_end - infilt_row_start);
 		}
+		Parptr->sumNCells = sumNCells;
+		Parptr->avgCellArea = sum_cell_area / sumNCells;
+
+		int sumNSgcCells = 0;
+		if (Parptr->sumNSgcCells == 0) {
+
+		for (int j = start_y; j < end_y; j++)
+		{
+			const int cell_count = sub_grid_layout_rows->cell_row_count[j];
+			sumNSgcCells += cell_count;
+		}
+			
+			Parptr->sumNSgcCells = sumNSgcCells;
+		}
+	}
 	}
 #pragma omp barrier
 #pragma omp single
@@ -8607,7 +8605,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							Parptr->subSurfaceLatFlow2ChTotal += Parptr->satFlow2ChPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 							// 来自洪泛区地表的水
 							Parptr->surfaceFlow2ChTotal += Parptr->surflow2ChPD[index];
-
+							
 							// 来自自身降雨扣除入渗后的水
 							Parptr->surfaceHydro2ChTotal += Parptr->hydro2ChPD[index];
 
@@ -8622,19 +8620,19 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							//}
 
 						}
-
+						
 
 						if (Parptr->satFlow2SurfPD[index] > 0.0) {
 							//volume_grid[index] += Parptr->satFlow2SurfPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 							Parptr->subSurfaceLatFlow2SurfTotal += Parptr->satFlow2SurfPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 						}
-
+						
 						// 渗漏造成的地表溢流
 						if (Parptr->PercExcess2SurfPD[index] > 0.0)
 						{
 							Parptr->subSurfacePerc2SurfTotal += Parptr->PercExcess2SurfPD[index] * Solverptr->SGCtmpTstep / Parptr->gwTstep;
 						}
-
+						
 						for (int lyr = 0; lyr < Parptr->multi_nSoilLyrs; lyr++)
 						{
 							// cm
@@ -8645,7 +8643,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							}
 
 						}
-
+						
 
 
 
@@ -8655,7 +8653,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 
 			}
 
-
+	
 
 
 			if (curr_time - last_gw_time >= Parptr->gwTstep)
@@ -8684,7 +8682,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 							}
 						}
 					}
-
+					
 				}
 				Parptr->PercolationDepth /= Parptr->sumNCells;
 
@@ -8713,7 +8711,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 				//const int * sg_cell_grid_index_lookup = sub_grid_layout_rows->cell_info.sg_cell_grid_index_lookup;
 				Parptr->gwQPerSgcCell = Parptr->sumGndQ2Rch / Parptr->sumNSgcCells;    // m3/s
 
-
+				
 				/*Parptr->subSurfaceLatFlow2Channel_rate = (Parptr->subSurfaceLatFlow2ChTotal - Parptr->subSurfaceLatFlowTotal2Ch_Last) / Parptr->gwTstep;
 				Parptr->subSurfaceLatFlowTotal2Ch_Last = Parptr->subSurfaceLatFlow2ChTotal;
 				Parptr->subSurfaceLatFlow2Surf_rate = (Parptr->subSurfaceLatFlow2SurfTotal - Parptr->subSurfaceLatFlowTotal2Surf_Last) / Parptr->gwTstep;
@@ -8729,7 +8727,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		}
 	}
 
-
+	
 	//cout << "*********************************555*********************************** " << endl;
 
 
@@ -8737,7 +8735,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 	//each thread clears the tmp_row, before using in SGC2_UpdateVolumeHeight_block
 	memset(tmp_row, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
 	//memset(tmp_row_ch, 0, sizeof(NUMERIC_TYPE) * grid_cols_padded);
-
+	
 #if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
 #pragma omp for reduction (+:reduce_evap_loss, reduce_rain_total,reduce_infil_loss,reduce_Qpoint_timestep_pos, reduce_Qpoint_timestep_neg,infil,infilCount) schedule(static)
 	//#pragma omp for reduction (+:reduce_evap_loss, reduce_rain_total,reduce_infil_loss,reduce_Qpoint_timestep_pos, reduce_Qpoint_timestep_neg,infil,infilCount) schedule(static)
@@ -8757,7 +8755,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		block_Hmax = SGC2_UpdateVolumeHeight_block(block_index, grid_cols, grid_rows, grid_cols_padded,
 			curr_time, delta_time, depth_thresh, g,
 			evap_deltaH_step, evap_grid, rain_deltaH_step, snow_deltaH_step, rain_grid, dist_infil_grid,
-			wet_dry_bounds, tmp_row,
+			wet_dry_bounds, tmp_row, 
 			Qx_grid, Qy_grid,
 			cell_area_col, dx_col, dy_col,
 			dem_grid,
@@ -8802,7 +8800,7 @@ void Do_Update(const int grid_cols, const int grid_rows, const int grid_cols_pad
 		{
 			for (int i = 0; i < grid_cols; i++)
 			{
-				int index = i + j * grid_cols_padded;
+				int index = i + j*grid_cols_padded;
 				initHtm_grid[index] = (NULLVAL);
 			}
 		}

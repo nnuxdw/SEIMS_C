@@ -31,7 +31,7 @@ public:
 
     void Set2DData(const char* key, int n, int col, float** data) OVERRIDE;
 
-    
+
     void SetSubbasins(clsSubbasins*) OVERRIDE;
 
     bool CheckInputData() OVERRIDE;
@@ -102,7 +102,7 @@ private:
     float* m_pcp;
     float* m_pNet;
     float** m_soilPerco;
-    //input 
+    //input
     float* wet_mxvol;
     float* wet_nvol;
     float* wet_nsa;
@@ -120,7 +120,7 @@ private:
     float** m_subSurfRf;
     float** m_subSurfRfVol;
     float** m_soildepth;
-    
+
 	float* m_area;
     float* m_landCover;
     float* m_WetVol;
@@ -130,6 +130,8 @@ private:
     float* m_cellfr;
     float** m_flowInIdxD8;
     float* m_flowOutIdxD8;
+    float* mean_lakedepth;
+    float* res_time;
 
     float** m_wetland_wt;
     float** m_wetland_oc;

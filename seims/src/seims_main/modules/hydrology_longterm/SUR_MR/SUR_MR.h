@@ -26,13 +26,7 @@
 #ifndef SEIMS_MODULE_SUR_MR_H
 #define SEIMS_MODULE_SUR_MR_H
 
-
- // true  = 湖泊参与入渗（新逻辑）
- // false = 湖泊不入渗，走原始 SEIMS 逻辑（兼容旧模型）
-#define ENABLE_LAKE_INFILTRATION 0
-
 #include "SimulationModule.h"
-
 
 /** \defgroup SUR_MR
  * \ingroup Hydrology_longterm
@@ -67,6 +61,8 @@ public:
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
 
     void Get2DData(const char* key, int* nrows, int* ncols, float*** data) OVERRIDE;
+
+	void SetReaches(clsReaches* reaches) OVERRIDE;
 
 private:
     /// Hillslope time step (second)
@@ -137,16 +133,21 @@ private:
     float* m_lakesto;
     float* m_pet;
 
+
 	//xdw++
 	/// m_soilPor * m_soilThk
 	float** m_soilPorDepth;
 	/// m_soilFC * m_soilThk
 	float** m_soilFCDepth;
+	/// water depth of each hand, initialized by m_bankSto,m
+	float* m_handWtrDep;
 
 	int m_nSubbsns;
-
-	//lj++
-	///  water depth of each hand, initialized by m_bankSto,mm
-	float* m_handWtrDep;
+	/// subbasin grid (ID of subbasin)
+	float *m_subbsnID;
+	float* m_chSto;		///< reach storage (m^3), rchstor in SWAT
+	int m_outletID;    ///< outlet ID, also can be derived by m_reachLayers.rbegin()->second[0];
+	float* m_handArea;       /// area of each hand
+	int m_nreach;      ///< reach number (= subbasin number)
 };
 #endif /* SEIMS_MODULE_SUR_MR_H */

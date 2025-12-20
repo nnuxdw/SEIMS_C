@@ -171,7 +171,7 @@ bool GLA_DH::normal(const int i) {
 	//  Qs[i] = Min(ss[i], Qs[i]);
 	float Ps = 0.f; //snow
 	float P1 = 0.f; //rain
-	if (m_tMean[i] > m_snowTemp) { 
+	if (m_tMean[i] > m_snowTemp) {
 		P1 = m_prec[i];
 	}
 	else {
@@ -204,7 +204,7 @@ bool GLA_DH::glacier_all(const int i,const int j) {
 
 	//Gao-2020-Stepwise modeling and the importance of internal variables validation to test model realism in a data scarce glacier basin
 	//eq(2)
-	if (m_tMean[i] > m_snowTemp) { 
+	if (m_tMean[i] > m_snowTemp) {
 		P1 = m_prec[i];
 	}
 	else {
@@ -218,7 +218,7 @@ bool GLA_DH::glacier_all(const int i,const int j) {
 		m_snomelt[i][j] = 0.f;
 	}
 	else {
-		//m_snomelt[i,j] = m_dd_Snow * m_tMean[i] + m_srf * (1 - m_albedo[i]) * m_sr[i];  //m_dd_Snow = degree-day factor 
+		//m_snomelt[i,j] = m_dd_Snow * m_tMean[i] + m_srf * (1 - m_albedo[i]) * m_sr[i];  //m_dd_Snow = degree-day factor
 		m_snomelt[i][j] = cmelt * m_tMean[i] * Ca;
 	}
 
@@ -260,14 +260,14 @@ bool GLA_DH::hparameter(const int j) {
 	float a, b, c, y;
     float aice = 850; //aice=850kg/m^3,�Ǳ����ܶ�
     //float Emax = 6099, Emin = 5283;
-	
+
 	dtm[j] = dtv[j+1] * aice;
     float fs, v, area_sum, tt;
     area_sum = 0.0;
 	for (int i = 0; i < n1; i++) {
 		area_sum = area_sum + area[j][i+1];
 	}
-		
+
 	if (area_sum == 0) { return true; }
 	if (area_sum < 5e6) { //5km^2
 		a = -0.3;
@@ -355,7 +355,7 @@ bool GLA_DH::hparameter(const int j) {
 int GLA_DH::Execute() {
 	this->CheckInputData();
 	this->InitialOutputs();
-	
+
 	//�Ǳ�����
 	float non_qsum = 0.0;
 	float glacier_area = 0.0;
@@ -422,6 +422,7 @@ int GLA_DH::Execute() {
 	}
 
 
+	//�Ǳ����������ӱ���������
 	Qall =  (Qave[0] * glacier_area1 + non_qsum) / glacier_area;
 	Q =  (Qave[0] * glacier_area1 + non_qsum)*0.001;
 
@@ -452,7 +453,6 @@ int GLA_DH::Execute() {
 		ascaled_sum[0] = ascaled_sum[0] + ascaled_sum[j];
 		vscaled_sum[0] = vscaled_sum[0] + vscaled_sum[j];
 	}
-
 	for (int i = 0; i < n1; i++)
 	{
 		ascaled[0][i] = 0.f;
@@ -476,7 +476,7 @@ int GLA_DH::Execute() {
 	return 0;
 }
 
-   
+
 
 void GLA_DH::SetValue(const char *key, float data) {
     string s(key);
@@ -497,8 +497,8 @@ void GLA_DH::SetValue(const char *key, float data) {
 		throw ModelException("MID_DEGREEDAYMELT", "SetValue", "Parameter " + s
             + " does not exist in current module. Please contact the module developer.");
     }
-}   
-//parameter and input 
+}
+//parameter and input
 void GLA_DH::Set1DData(const char *key, int n, float *data) {
     string s(key);
 	if (StringMatch(s, VAR_LANDUSE)) m_landUse = data;
@@ -572,7 +572,7 @@ void GLA_DH::Set2DData(const char* key, const int n, const int col, float** data
 		CheckInputSize2D("MID_DEGREEDAYMELT", key, n, col, m_nCells, m_nGlc_sum);
 		this->hlu_glacier_area = data;
 	}
-	
+
 	if (StringMatch(sk, "HLU_ID")) {
 		CheckInputSize2D("MID_DEGREEDAYMELT", key, n, col, m_nCells, m_nGlc);
 		this->m_hluID = data;
@@ -596,7 +596,7 @@ void GLA_DH::Set2DData(const char* key, const int n, const int col, float** data
 	//if (StringMatch(sk, VAR_GL_AREA_h)) { this->area = data; }
 	//if (StringMatch(sk, VAR_GL_THICKNESS)) { this->h = data; }
 	//if (StringMatch(sk, VAR_GL_ELEVATION_AVE)) { this->E = data; }
-	
+
 }
 
 
@@ -609,7 +609,7 @@ void GLA_DH::Get1DData(const char *key, int *n, float **data) {
 		*n = m_nCells;
 		*data = this->Qfg;
 	}
-  
+
 
 	//if (StringMatch(s, "Sw")) { *data = this->sw; }
 	if (StringMatch(s, "Su")) { *data = this->su; *n = m_nCells;}
@@ -620,7 +620,7 @@ void GLA_DH::Get1DData(const char *key, int *n, float **data) {
 	//if (StringMatch(s, "m_snomelt")) { *data = this->m_snomelt; }
 	//if (StringMatch(s, "m_dGlacRunoff")) { *data = this->m_dGlacRunoff; }
 
-	
+
 
 	//*n = m_nGlc_sum;
 	if (StringMatch(s, "GMB")) { *data = this->gmb_ave; *n = m_nGlc_sum;}
@@ -631,18 +631,18 @@ void GLA_DH::Get1DData(const char *key, int *n, float **data) {
 	if (StringMatch(s, "GL_AREA_SUM")) { *data = this->ascaled_sum;  *n = m_nGlc_sum;}
 	if (StringMatch(s, "GL_VOLUMN_SUM")) { *data = this->vscaled_sum;  *n = m_nGlc_sum;}
 
-	
+
 
 	// if (StringMatch(s, "T_times")) { *data = this->m_tMean; }
 	// if (StringMatch(s, "P_times")) { *data = this->m_prec; }
-	 
+
 }
 void GLA_DH::GetValue(const char* key, float* value) {
 	 string s(key);
 	 if (StringMatch(s, "Qnogla")) { *value = this->Qnogla; }
 	 if (StringMatch(s, "Qall")) { *value = this->Qall; }
 	 if (StringMatch(s, "Q")) { *value = this->Q; }
-	
+
 }
 
 //void GLA_DH::InitializeGlacierLookup() {

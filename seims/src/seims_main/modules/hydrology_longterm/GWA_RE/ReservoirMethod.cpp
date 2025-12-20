@@ -86,7 +86,7 @@ int ReservoirMethod::Execute() {
                 fPET += m_pet[index] * (m_area[index] / curBasinArea[subID]);
             }
 			//m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_actPltET[index];  // xiaodw comment, don't need m_actPltET now
-            m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index];
+			m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index];
             m_revap[index] = Max(m_revap[index], 0.f);
             m_revap[index] = m_revap[index] * Min(1.0,m_gwSto[subID] / m_GWMAX);
             //revap += m_revap[index];
@@ -123,7 +123,7 @@ int ReservoirMethod::Execute() {
         float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex); // mm
         groundRunoff = Min(groundRunoff,m_gwSto[subID]);
         //float groundQ = groundRunoff * curCellsNum * QGConvert;     // groundwater discharge (m3/s)
-        float groundQ = groundRunoff * curBasinArea[subID] * QGConvert; 
+        float groundQ = groundRunoff * curBasinArea[subID] * QGConvert;
         float groundStorage = m_gwSto[subID];
         groundStorage += perco - revap - percoDeep - groundRunoff;
         //add the ground water from bank storage, 2011-3-14
@@ -137,7 +137,7 @@ int ReservoirMethod::Execute() {
          if (groundStorage > m_GWMAX) {
              groundRunoff += groundStorage - m_GWMAX;
              //groundQ = groundRunoff * curCellsNum * QGConvert; // groundwater discharge (m3/s)
-             groundQ = groundRunoff * curBasinArea[subID] * QGConvert; 
+             groundQ = groundRunoff * curBasinArea[subID] * QGConvert;
              groundStorage = m_GWMAX;
          }
 

@@ -415,7 +415,7 @@ void clsReaches::GetReachesSingleProperty(const string& key, float** data) {
 
 void clsReaches::Update(map<string, ParamInfo *>& caliparams_map) {
     for (int i = 0; i < REACH_PARAM_NUM; i++) {
-        auto it = caliparams_map.find(REACH_PARAM_NAME[i]);
+        auto it = caliparams_map.find(GetUpper(REACH_PARAM_NAME[i]));
         if (it != caliparams_map.end()) {
             // There is no need to check the CHANGE types, since the `GetAdjustedValue` will cover this!
             //ParamInfo* tmp_param = it->second;
