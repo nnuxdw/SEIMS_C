@@ -893,7 +893,7 @@ if __name__ == '__main__':
 
     #########################  将HAND输出的结果生成为shp  ################################
     shp_path = os.path.join(work_dir,r"workspace\HRU_file\HRU_mollwede.shp")
-    start = datetime(2010, 1, 1, 0, 0, 0)
+    start = datetime(2016, 8, 1, 0, 0, 0)
     end = datetime(2019, 12, 30, 0, 0, 0)
     #########################  将HAND输出的结果生成为tif  ################################
 

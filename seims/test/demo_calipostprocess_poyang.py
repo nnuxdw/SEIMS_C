@@ -27,9 +27,9 @@ import matplotlib.dates as mdates
 from matplotlib.ticker import NullFormatter, FuncFormatter
 
 def main(watershed_num):
-    NN = 1  #可调，需要前多少组参数集
+    NN = 5  #可调，需要前多少组参数集
     # watershed_num = 123
-    plot_mode = 'separate'  # 或combined
+    plot_mode = 'combined'  # combined/separate
     plot_percentile = False
     plot_legent = False
     save_legend_as_png = False
@@ -697,6 +697,6 @@ def main(watershed_num):
 
 if __name__ == "__main__":
     # watershed_nums = [123,141,214,225,322,347,457]
-    watershed_nums = [347]
+    watershed_nums = [1171]
     for watershed_num in watershed_nums:
         main(watershed_num)

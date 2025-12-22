@@ -2,60 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import os
-import re
-from pathlib import Path
-from datetime import datetime
-from collections import defaultdict
-
-import numpy as np
 import glob
-from rasterio.warp import reproject, Resampling
-from rasterio.io import MemoryFile
 from rasterio.mask import mask
-from pathlib import Path
 import numpy as np
-import rasterio
 import rasterio.plot
-import geopandas as gpd
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.patches import Patch
-import imageio
-from PIL import Image
 # ======================
 # 一些通用小工具
 # ======================
-
-def _parse_date_from_obs_name(name: str) -> datetime:
-    """
-    观测 S1A 文件名示例：
-        S1A_2014_10_3.tif
-        S1A_2015_6_29.tif
-    统一解析为 datetime(YYYY, MM, DD)
-    """
-    # 去掉后缀
-    stem = Path(name).stem
-    # 用正则粗略匹配
-    m = re.search(r"S1A_(\d{4})_(\d{1,2})_(\d{1,2})", stem)
-    if not m:
-        raise ValueError(f"无法从观测文件名解析日期: {name}")
-    y, mth, d = map(int, m.groups())
-    return datetime(y, mth, d)
-
-
-def _parse_date_from_sim_name(name: str) -> datetime:
-    """
-    模拟文件名示例（图2）：
-        OL_Hand_WTRDEP_TS_2010_01_01_000000.tif
-    解析为 datetime(YYYY, MM, DD)
-    """
-    stem = Path(name).stem
-    m = re.search(r"TS_(\d{4})_(\d{2})_(\d{2})_", stem)
-    if not m:
-        raise ValueError(f"无法从模拟文件名解析日期: {name}")
-    y, mth, d = map(int, m.groups())
-    return datetime(y, mth, d)
 
 
 # =========================================================
@@ -75,19 +31,23 @@ def select_simulation_files_by_obs_time_monthly(
     sim_dir: str,
     selected_obs_out_dir: str,
     selected_sim_out_dir: str,
+    keep_one_per_month: bool = True,  # 新增参数：是否每月只保留一张
 ):
     """
     参数
     ----
     obs_dir : 观测淹没范围 tif 目录（图1）
     sim_dir : 模拟值沿模范 tif 目录（图2）
-    selected_obs_out_dir : 按月筛选后要保存的观测 tif 目录
-    selected_sim_out_dir : 按月筛选后要保存的模拟 tif 目录
+    selected_obs_out_dir : 按筛选后要保存的观测 tif 目录
+    selected_sim_out_dir : 按筛选后要保存的模拟 tif 目录
+    keep_one_per_month : 是否每月只保留一张（默认 True）
+        - True  : 每月只保留第一张（原逻辑不变）
+        - False : 保留所有时间匹配上的图（按天匹配后的所有 common_dates）
 
     返回
     ----
-    monthly_sim_paths : list[str]
-    monthly_obs_paths : list[str]
+    selected_sim_paths : list[str]
+    selected_obs_paths : list[str]
     """
 
     obs_dir = Path(obs_dir)
@@ -102,7 +62,7 @@ def select_simulation_files_by_obs_time_monthly(
     obs_files = [p for p in obs_dir.glob("*.tif")]
     sim_files = [p for p in sim_dir.glob("*.tif")]
 
-    # 2. 建立日期映射
+    # 2. 建立日期映射（按 date 粒度）
     obs_by_date = defaultdict(list)
     for p in obs_files:
         d = _parse_date_from_obs_name(p.name)
@@ -113,43 +73,52 @@ def select_simulation_files_by_obs_time_monthly(
         d = _parse_date_from_sim_name(p.name)
         sim_by_date[d.date()].append(p)
 
-    # 3. 找出同时存在的日期
+    # 3. 找出同时存在的日期，并做“按天匹配”
     common_dates = sorted(set(obs_by_date.keys()) & set(sim_by_date.keys()))
 
     matched_sim_paths = []
     matched_obs_paths = []
 
     for d in common_dates:
+        # 若同一天有多张，取最小排序的那张（保持你原逻辑）
         sim_p = sorted(sim_by_date[d])[0]
         obs_p = sorted(obs_by_date[d])[0]
-
         matched_sim_paths.append(sim_p)
         matched_obs_paths.append(obs_p)
 
-    # 4. 按月分组
-    monthly_sim_paths = []
-    monthly_obs_paths = []
+    # 4. 根据 keep_one_per_month 决定输出集
+    selected_sim_paths = []
+    selected_obs_paths = []
 
-    ym_to_indices = defaultdict(list)
-    for idx, sim_path in enumerate(matched_sim_paths):
-        d = _parse_date_from_sim_name(sim_path.name)
-        ym_to_indices[(d.year, d.month)].append(idx)
+    if keep_one_per_month:
+        # ---- 原逻辑：按月分组，每月保留第一张 ----
+        ym_to_indices = defaultdict(list)
+        for idx, sim_path in enumerate(matched_sim_paths):
+            d = _parse_date_from_sim_name(sim_path.name)
+            ym_to_indices[(d.year, d.month)].append(idx)
 
-    # 5. 每月保留第一个，并复制到不同输出目录
-    for (year, month) in sorted(ym_to_indices.keys()):
-        first_idx = ym_to_indices[(year, month)][0]
+        for (year, month) in sorted(ym_to_indices.keys()):
+            first_idx = ym_to_indices[(year, month)][0]
 
-        sim_p = matched_sim_paths[first_idx]
-        obs_p = matched_obs_paths[first_idx]
+            sim_p = matched_sim_paths[first_idx]
+            obs_p = matched_obs_paths[first_idx]
 
-        monthly_sim_paths.append(str(sim_p))
-        monthly_obs_paths.append(str(obs_p))
+            selected_sim_paths.append(str(sim_p))
+            selected_obs_paths.append(str(obs_p))
 
-        # 复制到单独的 obs/sim 输出路径
-        shutil.copy(obs_p, selected_obs_out_dir / obs_p.name)
-        shutil.copy(sim_p, selected_sim_out_dir / sim_p.name)
+            shutil.copy(obs_p, selected_obs_out_dir / obs_p.name)
+            shutil.copy(sim_p, selected_sim_out_dir / sim_p.name)
 
-    return monthly_sim_paths, monthly_obs_paths
+    else:
+        # ---- 新逻辑：保留所有按时间匹配上的图（所有 common_dates）----
+        for sim_p, obs_p in zip(matched_sim_paths, matched_obs_paths):
+            selected_sim_paths.append(str(sim_p))
+            selected_obs_paths.append(str(obs_p))
+
+            shutil.copy(obs_p, selected_obs_out_dir / obs_p.name)
+            shutil.copy(sim_p, selected_sim_out_dir / sim_p.name)
+
+    return selected_sim_paths, selected_obs_paths
 
 
 # =========================================================
@@ -305,71 +274,99 @@ def convert_obs_tifs_to_filtered_polygons(
 # 方法三：叠加绘图 + 计算 FI / BI
 # =========================================================
 
-def compute_fi_bi(sim_arr: np.ndarray,
-                  obs_arr: np.ndarray,
-                  sim_nodata: float = None,
-                  obs_nodata: float = None,
-                  sim_thresh: float = 0.0,
-                  obs_thresh: float = 0.0):
+import numpy as np
+
+
+def compute_fi_bi(
+    sim_arr: np.ndarray,
+    obs_arr: np.ndarray,
+    sim_nodata: float = None,
+    obs_nodata: float = None,
+    sim_thresh: float = 0.0,
+    obs_thresh: float = 0.0,
+    *,
+    auto_crop_to_common: bool = True,
+    debug: bool = True
+):
     """
-    计算 FI 和 BI。
+    计算 FI 和 BI（鲁棒版）
 
-    修正版逻辑：
-    - 模拟值为 nodata 的位置，观测值也被屏蔽（不参与比较）
-    - 观测值的 0 表示未淹没，是有效像元，不屏蔽
+    解决点：
+    - 若 sim/obs shape 不一致，默认裁剪到共同最小窗口（避免 boolean index mismatch）
+    - 模拟 nodata 位置 → 同时屏蔽模拟与观测（不参与比较）
+    - 观测值 0 是有效像元；仅当 obs_nodata != 0 才屏蔽 obs_nodata
+
+    返回：
+    - FI, BI
     """
 
-    sim = sim_arr.astype("float32").copy()
-    obs = obs_arr.astype("float32").copy()
+    sim = sim_arr.astype("float32", copy=False)
+    obs = obs_arr.astype("float32", copy=False)
 
-    # 1. 模拟 nodata 位置 → 同时屏蔽模拟与观测
+    if sim.ndim != 2 or obs.ndim != 2:
+        raise ValueError(f"sim/obs 必须是二维数组，当前 sim.ndim={sim.ndim}, obs.ndim={obs.ndim}")
+
+    # 0) shape 不一致：自动裁剪到共同窗口
+    if sim.shape != obs.shape:
+        if not auto_crop_to_common:
+            raise ValueError(f"sim.shape={sim.shape} 与 obs.shape={obs.shape} 不一致，无法比较。")
+
+        min_rows = min(sim.shape[0], obs.shape[0])
+        min_cols = min(sim.shape[1], obs.shape[1])
+
+        if debug:
+            print(f"[WARN] sim/obs shape 不一致：sim={sim.shape}, obs={obs.shape} -> crop 到 ({min_rows}, {min_cols})")
+
+        sim = sim[:min_rows, :min_cols].copy()
+        obs = obs[:min_rows, :min_cols].copy()
+    else:
+        sim = sim.copy()
+        obs = obs.copy()
+
+    # 1) 模拟 nodata 位置 → 同时屏蔽模拟与观测
     if sim_nodata is not None:
         invalid_mask = (sim == sim_nodata)
     else:
-        invalid_mask = np.zeros_like(sim, dtype=bool)
+        invalid_mask = np.zeros(sim.shape, dtype=bool)
 
     sim[invalid_mask] = np.nan
     obs[invalid_mask] = np.nan
 
-    # 2. 观测 nodata（若不为 0）也应该被屏蔽
-    #    例如 obs_nodata = -9999，但 obs=0 是有效的
+    # 2) 观测 nodata（若不为 0）屏蔽
     if obs_nodata is not None and obs_nodata != 0:
         obs[obs == obs_nodata] = np.nan
 
-    # 3. 有效比较区域
+    # 3) 有效比较区域
     valid_mask = (~np.isnan(sim)) & (~np.isnan(obs))
     if not np.any(valid_mask):
+        if debug:
+            print("[WARN] valid_mask 全 False：没有可比较像元（可能全是 nodata/NaN）")
         return np.nan, np.nan
 
     sim_valid = sim[valid_mask]
     obs_valid = obs[valid_mask]
 
-    # 4. 阈值判断
+    # 4) 阈值判断
     sim_bin = sim_valid > sim_thresh
     obs_bin = obs_valid > obs_thresh
 
-    # 5. 分类
-    hit = np.logical_and(sim_bin, obs_bin)
-    miss = np.logical_and(~sim_bin, obs_bin)
-    false_alarm = np.logical_and(sim_bin, ~obs_bin)
+    # 5) 分类
+    hit = sim_bin & obs_bin
+    miss = (~sim_bin) & obs_bin
+    false_alarm = sim_bin & (~obs_bin)
 
     H = int(hit.sum())
     M = int(miss.sum())
     F = int(false_alarm.sum())
 
-    print(f"[DEBUG] H={H}, M={M}, F={F}")
+    if debug:
+        print(f"[DEBUG] shape={sim.shape}, valid_pixels={int(valid_mask.sum())}, H={H}, M={M}, F={F}")
 
     # FI: 交并比
-    if (H + M + F) == 0:
-        FI = np.nan
-    else:
-        FI = H / (H + M + F)
+    FI = np.nan if (H + M + F) == 0 else H / (H + M + F)
 
-    # BI: 模拟淹没面积 / 观测淹没面积
-    if (H + M) == 0:
-        BI = np.nan
-    else:
-        BI = (H + F) / (H + M) - 1
+    # BI: (Sim/Obs) - 1
+    BI = np.nan if (H + M) == 0 else (H + F) / (H + M) - 1
 
     return FI, BI
 
@@ -500,6 +497,23 @@ def batch_plot_overlap_difference(
 
     print("======================================================\n")
 
+def _align_to_common_window(sim_arr: np.ndarray, obs_arr: np.ndarray, *, debug: bool = True):
+    """
+    将 sim/obs 裁到共同最小窗口，保证 shape 一致。
+    返回：sim2, obs2
+    """
+    if sim_arr.shape == obs_arr.shape:
+        return sim_arr, obs_arr
+
+    min_rows = min(sim_arr.shape[0], obs_arr.shape[0])
+    min_cols = min(sim_arr.shape[1], obs_arr.shape[1])
+
+    if debug:
+        print(f"[WARN] sim/obs shape 不一致: sim={sim_arr.shape}, obs={obs_arr.shape} -> crop=({min_rows},{min_cols})")
+
+    return sim_arr[:min_rows, :min_cols], obs_arr[:min_rows, :min_cols]
+
+
 def plot_overlap_difference(
     sim_tif_path: str,
     obs_tif_path: str,
@@ -522,18 +536,21 @@ def plot_overlap_difference(
     out_png_path = Path(out_png_path)
     out_png_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # 1. 读模拟水深
+    # 1) 读模拟水深
     with rasterio.open(sim_tif_path) as sim_src:
         sim_arr = sim_src.read(1)
         sim_nodata = sim_src.nodata
         sim_extent = rasterio.plot.plotting_extent(sim_src)  # (xmin, xmax, ymin, ymax)
 
-    # 2. 读观测栅格
+    # 2) 读观测栅格
     with rasterio.open(obs_tif_path) as obs_src:
         obs_arr = obs_src.read(1)
         obs_nodata = obs_src.nodata
 
-    # 3. 计算 FI / BI
+    # ✅ 2.5) 强制对齐，避免后续广播/boolean index 报错
+    sim_arr, obs_arr = _align_to_common_window(sim_arr, obs_arr, debug=True)
+
+    # 3) 计算 FI / BI（建议你的 compute_fi_bi 内部也做对齐兜底；但这里已经对齐过了）
     FI, BI = compute_fi_bi(
         sim_arr, obs_arr,
         sim_nodata=sim_nodata,
@@ -542,7 +559,7 @@ def plot_overlap_difference(
         obs_thresh=obs_thresh,
     )
 
-    # 4. 阈值掩膜
+    # 4) 阈值掩膜（这里严格使用对齐后的 sim_arr/obs_arr）
     if sim_nodata is None:
         sim_bin = sim_arr > sim_thresh
     else:
@@ -560,39 +577,38 @@ def plot_overlap_difference(
     cat[(sim_bin) & (obs_bin)] = 3
     cat_ma = np.ma.masked_where(cat == 0, cat)
 
-    # 5. 颜色
+    # 5) 颜色
     cmap = ListedColormap([
-        "#4169E1",   # 1 - Sim only (overestimate)
-        "#FF4500",   # 2 - Obs only (underestimate)
-        "#00C853",   # 3 - Overlap
+        "#4169E1",   # 1 - False alarms (Sim only)
+        "#FF4500",   # 2 - Misses (Obs only)
+        "#00C853",   # 3 - Hits (Overlap)
     ])
     norm = BoundaryNorm([0.5, 1.5, 2.5, 3.5], cmap.N)
 
-    # 6. 绘图
-    plt.rcParams["font.family"] = "Times New Roman"  # ← 新罗马字体设置（关键）
+    # 6) 绘图
+    plt.rcParams["font.family"] = "Times New Roman"  # 新罗马字体
 
     fig, ax = plt.subplots(figsize=(6, 8))
 
     im = ax.imshow(
         cat_ma,
-        extent=sim_extent,      # 仍用整幅 extent
+        extent=sim_extent,      # 仍用 sim 的 extent（与你原来一致）
         origin="upper",
         cmap=cmap,
         norm=norm,
     )
 
-    # 如果给了 bbox，则缩放到指定经纬度范围
+    # bbox 缩放
     if bbox is not None:
         xmin, xmax, ymin, ymax = bbox
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
 
-    # 图例
+    # 图例（你原来的顺序）
     legend_patches = [
         Patch(facecolor="#00C853", edgecolor="none", label="Hits"),
         Patch(facecolor="#FF4500", edgecolor="none", label="Misses"),
         Patch(facecolor="#4169E1", edgecolor="none", label="False alarms"),
-
     ]
     ax.legend(
         handles=legend_patches,
@@ -617,12 +633,10 @@ def plot_overlap_difference(
         va="top",
         ha="left",
         fontsize=12,
-        fontweight='bold',
+        fontweight="bold",
         bbox=dict(facecolor="white", alpha=0.8, edgecolor="none"),
     )
 
-    # ax.set_xlabel("Longitude")
-    # ax.set_ylabel("Latitude")
     ax.set_title("Sim vs Obs inundation difference")
 
     plt.tight_layout()
@@ -630,9 +644,8 @@ def plot_overlap_difference(
         out_png_path,
         dpi=500,
         bbox_inches="tight",
-        pad_inches=0.05  # 可以改 0.01–0.1 调整边距大小
+        pad_inches=0.05
     )
-
     plt.close(fig)
 
     print(f"已保存差异图: {out_png_path}")
@@ -1065,22 +1078,46 @@ def resample_obs_to_ref_grid(
 
 
 
+from pathlib import Path
+from typing import List, Optional
+
+import rasterio
+from rasterio.mask import mask
+from rasterio.warp import transform_geom
+import fiona
+
+
 def clip_rasters_by_polygon_batch(
     in_dir: str,
     clip_shp_path: str,
     out_dir: str,
-):
+    *,
+    crop: bool = True,
+    all_touched: bool = False,
+    filled: bool = True,
+    nodata_override: Optional[float] = None,
+    strict_no_crs: bool = True,
+) -> List[str]:
     """
-    方法二：对方法一的输出结果做裁剪
-        读取 in_dir 下已对齐网格的 tif（通常是 *_rs.tif），
-        使用 clip_shp 作为裁剪多边形（crop=True），
-        输出到 out_dir。
+    方法二：对方法一的输出结果做裁剪（鲁棒版：尽量不因坏几何/空几何崩溃）
+
+    读取 in_dir 下已对齐网格的 tif（通常是 *_rs.tif），
+    使用 clip_shp 作为裁剪多边形（mask + crop），
+    输出到 out_dir。
 
     参数
     ----
     in_dir : 已经对齐到 ref_tif 网格的栅格目录（例如方法一的 out_dir）
     clip_shp_path : 用来裁剪的 shp（可以是流域 / 湖区等 polygon）
     out_dir : 输出裁剪后 tif 的目录
+
+    可选参数
+    ----
+    crop : 是否裁剪到最小包围盒（True 表示输出范围会变小）
+    all_touched : rasterio.mask.mask 参数，True 表示只要像元被几何触碰就视为在内（边界更“胖”）
+    filled : rasterio.mask.mask 参数，True 表示 outside 区域用 nodata 填充
+    nodata_override : 如果栅格 src.nodata 为 None，可强制指定 nodata 值（例如 -9999）
+    strict_no_crs : 如果 shp 或 tif 缺 CRS，是否直接报错（默认 True）
 
     返回
     ----
@@ -1091,60 +1128,128 @@ def clip_rasters_by_polygon_batch(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 读取裁剪 shp
-    gdf = gpd.read_file(clip_shp_path)
-    if gdf.crs is None:
-        raise ValueError("clip_shp 没有 CRS，请先为 shp 设置坐标系。")
+    if not clip_shp_path.exists():
+        raise FileNotFoundError(f"clip_shp 不存在: {clip_shp_path}")
+    if not in_dir.exists():
+        raise FileNotFoundError(f"in_dir 不存在: {in_dir}")
 
-    out_paths = []
+    # 用 fiona 只读取一次 shp 的 CRS，真正的几何读取/转换在每个 tif 内进行（更稳）
+    with fiona.open(str(clip_shp_path)) as shp_src:
+        shp_crs = shp_src.crs_wkt or shp_src.crs
+        feat_count = len(shp_src)
 
-    # 遍历对齐后的栅格
-    for tif_path in sorted(in_dir.glob("*.tif")):
-        print(f"[裁剪] 处理 tif: {tif_path.name}")
+    if not shp_crs and strict_no_crs:
+        raise ValueError("clip_shp 没有 CRS（prj 丢失或未定义），请先为 shp 设置坐标系。")
+
+    out_paths: List[str] = []
+
+    tif_list = sorted(in_dir.glob("*.tif"))
+    if not tif_list:
+        print(f"[提示] {in_dir} 下没有 tif 文件。")
+        return out_paths
+
+    print(f"[信息] 开始批量裁剪：tif 数量={len(tif_list)}，shp 要素数={feat_count}")
+
+    for tif_path in tif_list:
+        print(f"\n[裁剪] 处理 tif: {tif_path.name}")
 
         try:
             with rasterio.open(tif_path) as src:
                 raster_crs = src.crs
+                if raster_crs is None and strict_no_crs:
+                    raise ValueError("栅格没有 CRS（src.crs=None），无法进行投影统一裁剪。")
 
-                # 确保 polygon 与栅格在同一坐标系
-                gdf_use = gdf
-                if gdf.crs != raster_crs:
-                    gdf_use = gdf.to_crs(raster_crs)
+                # nodata 处理：优先 src.nodata，其次 nodata_override
+                nodata_value = src.nodata
+                if nodata_value is None and nodata_override is not None:
+                    nodata_value = nodata_override
 
-                shapes = list(gdf_use.geometry)
+                # 收集可用 shapes（每个 tif 单独构建，避免 CRS 不同导致问题）
+                shapes = []
+                bad_feat = 0
+                skipped_empty = 0
+                skipped_nonpoly = 0
+                skipped_transform = 0
+
+                with fiona.open(str(clip_shp_path)) as shp:
+                    for feat in shp:
+                        geom = feat.get("geometry")
+                        if not geom:
+                            skipped_empty += 1
+                            continue
+
+                        # 尝试 CRS 转换到栅格 CRS（比 geopandas.to_crs 更稳）
+                        try:
+                            if shp_crs and raster_crs:
+                                geom2 = transform_geom(
+                                    shp_crs,
+                                    raster_crs.to_string(),
+                                    geom,
+                                    antimeridian_cutting=True,
+                                    precision=7,
+                                )
+                            else:
+                                # shp 或 tif 缺 CRS：只能“原样”使用（可能会错位）
+                                geom2 = geom
+                        except Exception:
+                            skipped_transform += 1
+                            continue
+
+                        # 过滤非面几何（Point/Line/GeometryCollection 等）
+                        gtype = (geom2.get("type") or "").lower()
+                        if gtype not in ("polygon", "multipolygon"):
+                            skipped_nonpoly += 1
+                            continue
+
+                        # 有些坏几何会出现 coordinates 为空
+                        coords = geom2.get("coordinates", None)
+                        if not coords:
+                            skipped_empty += 1
+                            continue
+
+                        shapes.append(geom2)
+
                 if not shapes:
-                    print("  -> 裁剪 shp 中没有几何对象，跳过。")
+                    print("  -> 没有可用的裁剪几何（可能都为空/非面/投影转换失败），跳过该 tif。")
+                    print(f"     统计：empty={skipped_empty} nonpoly={skipped_nonpoly} transform_fail={skipped_transform}")
                     continue
 
-                # 直接对 src 做 mask 裁剪
+                # 执行裁剪
                 out_image, out_transform = mask(
                     src,
                     shapes,
-                    crop=True,
-                    nodata=src.nodata,
+                    crop=crop,
+                    nodata=nodata_value,
+                    all_touched=all_touched,
+                    filled=filled,
                 )
 
+                # 更新元数据
                 out_meta = src.meta.copy()
                 out_meta.update(
                     {
                         "height": out_image.shape[1],
                         "width": out_image.shape[2],
                         "transform": out_transform,
-                        "nodata": src.nodata,
                     }
                 )
+                if nodata_value is not None:
+                    out_meta["nodata"] = nodata_value
 
                 out_tif = out_dir / f"{tif_path.stem}_clip.tif"
                 with rasterio.open(out_tif, "w", **out_meta) as dst:
                     dst.write(out_image)
 
                 print(f"  -> 已保存裁剪结果: {out_tif}")
+                print(f"     shapes_used={len(shapes)} | empty={skipped_empty} nonpoly={skipped_nonpoly} transform_fail={skipped_transform}")
                 out_paths.append(str(out_tif))
 
         except Exception as e:
             print(f"[警告] 裁剪 {tif_path.name} 时出错，已跳过。原因: {e}")
 
+    print(f"\n[完成] 裁剪结束：成功输出 {len(out_paths)} 个 tif。")
     return out_paths
+
 
 
 
@@ -1153,38 +1258,47 @@ def clip_rasters_by_polygon_batch(
 # ============================
 if __name__ == "__main__":
 
-    base_path = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model_1171'
+    if os.name == 'nt':  # Windows
+        base_path = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model_1171'
+        obs_dir = r"J:\G\program\seims\SEIMS_HAND\data\poyang_lake\鄱阳湖全天候面积逐日数据集（2014-2023年)\2014-2023年鄱阳湖水域面积栅格数据"
+        shp_dir = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\sci_figure_study_region\upstream_subbasin_1171.shp"
+        dem_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_raster\dem.tif"
+    else:  # Linux/Unix
+        base_path = '/data/user/xiaodw/software/WISE/data/poyang_lake1/poyang_lake1_longterm_model_1171'
+        obs_dir = '/data/user/xiaodw/software/WISE/data/poyang_lake1/鄱阳湖全天候面积逐日数据集/2014-2023年鄱阳湖水域面积栅格数据'
+        shp_dir = r"/data/user/xiaodw/software/WISE/data/poyang_lake1/sci_figure_study_region/upstream_subbasin_1171.shp"
+        dem_path = r"/data/user/xiaodw/software/WISE/data/poyang_lake1/workspace/spatial_raster/dem.tif"
+    inundation_base_path = os.path.join(base_path,'淹没范围绘图')
     # 1. 根据观测时间筛选模拟文件
-    obs_dir = r"J:\G\program\seims\SEIMS_HAND\data\poyang_lake\鄱阳湖全天候面积逐日数据集（2014-2023年)\2014-2023年鄱阳湖水域面积栅格数据"
     sim_dir = os.path.join(base_path,'OUTPUT0-0')
-    selected_obs_out_dir = os.path.join(base_path,'selected_obs_tif')
-    selected_sim_out_dir = os.path.join(base_path, 'selected_sim_tif')
+    selected_obs_out_dir = os.path.join(inundation_base_path,'selected_obs_tif')
+    selected_sim_out_dir = os.path.join(inundation_base_path, 'selected_sim_tif')
+    ## 这一步处理的图像太多，通常在服务器上做，然后把selected_obs_tif和selected_sim_tif下载到本地
     # monthly_sim, monthly_obs = select_simulation_files_by_obs_time_monthly(
     #     obs_dir=obs_dir,
     #     sim_dir=sim_dir,
     #     selected_obs_out_dir=selected_obs_out_dir,
     #     selected_sim_out_dir=selected_sim_out_dir,
+    #     keep_one_per_month=False
     # )
 
     # 1.1 把观测值tif裁剪到鄱阳湖本身的范围
-    clip_sim_dir = os.path.join(base_path,'cliped_sim_tif')
-    shp_dir =  r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\sci_figure_study_region\upstream_subbasin_1171.shp"
+    clip_sim_dir = os.path.join(inundation_base_path,'cliped_sim_tif')
     # clip_tifs_batch(selected_sim_out_dir,shp_dir,clip_sim_dir)
 
     # 2. 把观测 tif 转成面 shp，并用面积阈值筛
-    obs_shp_dir =os.path.join(base_path,'obs_shp')
+    obs_shp_dir =os.path.join(inundation_base_path,'obs_shp')
     # convert_obs_tifs_to_filtered_polygons(
     #     in_dir=selected_obs_out_dir,
     #     out_dir=obs_shp_dir,
     #     value_threshold=0.0,
     #     area_threshold_km2=1.0,
-    #     n_workers=10
+    #     n_workers=5
     # )
 
     # 2.1 把观测tif重采样到dem，并裁剪到鄱阳湖本身的范围，以确保行列数正确，用于后续计算FI，BI
-    dem_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_raster\dem.tif"
-    rsp_obs_dir = os.path.join(base_path, 'rsp_obs_tif')
-    clip_obs_dir = os.path.join(base_path, 'cliped_obs_tif')
+    rsp_obs_dir = os.path.join(inundation_base_path, 'rsp_obs_tif')
+    clip_obs_dir = os.path.join(inundation_base_path, 'cliped_obs_tif')
 
     # 先做：投影 + 重采样（对齐模拟网格）
     # resampled_paths = resample_obs_to_ref_grid(
@@ -1202,7 +1316,7 @@ if __name__ == "__main__":
 
 
     # 3. 单个时刻绘图 + FI/BI（你可以用循环对 monthly_* 做）
-    plot_dir = os.path.join(base_path,'plot_tif')
+    plot_dir = os.path.join(inundation_base_path,'plot_tif')
 
     # batch_plot_overlay_and_indices(
     #     sim_dir=clip_sim_dir,
@@ -1229,5 +1343,5 @@ if __name__ == "__main__":
     # 4. 多张叠加图合成 GIF
 
     imgs = sorted(Path(plot_dir).glob("*.png"))
-    gif_path = os.path.join(base_path,'plot_gif','poyang.gif')
+    gif_path = os.path.join(inundation_base_path,'plot_gif','poyang.gif')
     make_gif_from_images(imgs, out_gif_path=gif_path, duration=0.5)

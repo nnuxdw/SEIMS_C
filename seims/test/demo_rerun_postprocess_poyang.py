@@ -33,14 +33,14 @@ def main():
     USE_SPECIFIC_PARAMSET = True  # 这里改 True/False 来切换
 
     # 只有在 USE_SPECIFIC_PARAMSET = True 时才有效：
-    SPECIFIC_GENERATION = 93   # 例如第 10 代
-    SPECIFIC_ID = 7            # 例如 id = 5 的个体
+    SPECIFIC_GENERATION = 85   # 例如第 10 代
+    SPECIFIC_ID = 8            # 例如 id = 5 的个体
     # 需要前多少组参数集,只有当USE_SPECIFIC_PARAMSET = False才有效
     NN = 1
     # tar = ['QG','QI','QS','SBGS']
     tar = ['F','Q']
     plot_tar_map = {'F':'Inundation Area(km²)','Q':'Discharge(m³/s)'}
-    subbasin_id = 1171
+    subbasin_id = 347   # 123,141,214,225,322,347,457
     conn = MongoClient('127.0.0.1', 27017)
     db = conn.poyang_lake1_longterm_model_1171   #需要自己修改数据库名字
 
