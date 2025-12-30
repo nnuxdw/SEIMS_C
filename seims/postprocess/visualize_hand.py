@@ -863,7 +863,18 @@ def gen_gif_by_tifs():
     #     output_file = output_file_base + colormap + '.gif'
     #     create_gif_by_tif(image_files, years,output_file,bakgrnd_tif,colormap,-9999)
 
+"""
+    脚本功能：把WISE输出的txt时间序列数据转为tif，例如把流域内所有HAND上的淹没水深输出为txt后，将其转为tif
+    你需要改的：
+    work_dir: 项目目录
+    longter_model_name: 你的项目名称
+    calibration_name: 我用的是某次率定的结果
+    directory：我用的是某次率定的路径拼接的路径，你可以直接写到自己txt时间序列所在的路径
+    max_workers：线程数，支持多线程
+    pairs：txt文件的前缀，用于识别txt
+    start，end：你要可视化哪些时间范围的
 
+"""
 
 
 if __name__ == '__main__':
