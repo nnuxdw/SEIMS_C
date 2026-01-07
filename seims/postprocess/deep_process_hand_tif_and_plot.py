@@ -9,6 +9,13 @@ import rasterio.plot
 import matplotlib.colors as mcolors
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from matplotlib.patches import Patch
+from pathlib import Path
+from typing import List, Optional
+
+import rasterio
+from rasterio.mask import mask
+from rasterio.warp import transform_geom
+import fiona
 # ======================
 # 一些通用小工具
 # ======================
@@ -1076,17 +1083,6 @@ def resample_obs_to_ref_grid(
     return out_paths
 
 
-
-
-from pathlib import Path
-from typing import List, Optional
-
-import rasterio
-from rasterio.mask import mask
-from rasterio.warp import transform_geom
-import fiona
-
-
 def clip_rasters_by_polygon_batch(
     in_dir: str,
     clip_shp_path: str,
@@ -1253,6 +1249,7 @@ def clip_rasters_by_polygon_batch(
 
 
 
+
 # ============================
 # 简单示例（你自己改路径）
 # ============================
@@ -1261,7 +1258,9 @@ if __name__ == "__main__":
     if os.name == 'nt':  # Windows
         base_path = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model_1171'
         obs_dir = r"J:\G\program\seims\SEIMS_HAND\data\poyang_lake\鄱阳湖全天候面积逐日数据集（2014-2023年)\2014-2023年鄱阳湖水域面积栅格数据"
-        shp_dir = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\sci_figure_study_region\upstream_subbasin_1171.shp"
+        # shp_dir = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\sci_figure_study_region\upstream_subbasin_1171.shp"
+        ## 缩小统计范围
+        shp_dir = "G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_shp\subbasin_1171_upstream_only_inundation_disolved.shp"
         dem_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_raster\dem.tif"
     else:  # Linux/Unix
         base_path = '/data/user/xiaodw/software/WISE/data/poyang_lake1/poyang_lake1_longterm_model_1171'
@@ -1288,44 +1287,44 @@ if __name__ == "__main__":
 
     # 2. 把观测 tif 转成面 shp，并用面积阈值筛
     obs_shp_dir =os.path.join(inundation_base_path,'obs_shp')
-    # convert_obs_tifs_to_filtered_polygons(
-    #     in_dir=selected_obs_out_dir,
-    #     out_dir=obs_shp_dir,
-    #     value_threshold=0.0,
-    #     area_threshold_km2=1.0,
-    #     n_workers=5
-    # )
+    convert_obs_tifs_to_filtered_polygons(
+        in_dir=selected_obs_out_dir,
+        out_dir=obs_shp_dir,
+        value_threshold=0.0,
+        area_threshold_km2=0.5,
+        n_workers=5
+    )
 
     # 2.1 把观测tif重采样到dem，并裁剪到鄱阳湖本身的范围，以确保行列数正确，用于后续计算FI，BI
     rsp_obs_dir = os.path.join(inundation_base_path, 'rsp_obs_tif')
     clip_obs_dir = os.path.join(inundation_base_path, 'cliped_obs_tif')
 
     # 先做：投影 + 重采样（对齐模拟网格）
-    # resampled_paths = resample_obs_to_ref_grid(
-    #     obs_dir=selected_obs_out_dir,
-    #     ref_tif_path=dem_path,
-    #     out_dir=rsp_obs_dir,
-    # )
+    resampled_paths = resample_obs_to_ref_grid(
+        obs_dir=selected_obs_out_dir,
+        ref_tif_path=dem_path,
+        out_dir=rsp_obs_dir,
+    )
 
     # 2再做：用 shp 裁剪这些对齐后的 obs
-    # clipped_paths = clip_rasters_by_polygon_batch(
-    #     in_dir=rsp_obs_dir,
-    #     clip_shp_path=shp_dir,
-    #     out_dir=clip_obs_dir,
-    # )
+    clipped_paths = clip_rasters_by_polygon_batch(
+        in_dir=rsp_obs_dir,
+        clip_shp_path=shp_dir,
+        out_dir=clip_obs_dir,
+    )
 
 
     # 3. 单个时刻绘图 + FI/BI（你可以用循环对 monthly_* 做）
     plot_dir = os.path.join(inundation_base_path,'plot_tif')
 
-    # batch_plot_overlay_and_indices(
-    #     sim_dir=clip_sim_dir,
-    #     obs_extent_shp_dir=obs_shp_dir,
-    #     obs_tif_dir=clip_obs_dir,
-    #     out_dir=plot_dir,
-    #     sim_thresh=0.1,
-    #     obs_thresh=0.1,  # 看你 S1A 的有效值阈值
-    # )
+    batch_plot_overlay_and_indices(
+        sim_dir=clip_sim_dir,
+        obs_extent_shp_dir=obs_shp_dir,
+        obs_tif_dir=clip_obs_dir,
+        out_dir=plot_dir,
+        sim_thresh=0.1,
+        obs_thresh=0.1,  # 看你 S1A 的有效值阈值
+    )
     xmin = 115.7
     xmax = 117.0
     ymin = 28.3
@@ -1341,7 +1340,9 @@ if __name__ == "__main__":
     )
 
     # 4. 多张叠加图合成 GIF
-
     imgs = sorted(Path(plot_dir).glob("*.png"))
     gif_path = os.path.join(inundation_base_path,'plot_gif','poyang.gif')
     make_gif_from_images(imgs, out_gif_path=gif_path, duration=0.5)
+
+
+
