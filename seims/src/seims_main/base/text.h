@@ -439,6 +439,10 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_PG_EPIC                          "Calculate plant growth using a simplified version of the EPIC plant growth model as in SWAT"
 #define MID_PG_ORYZA                           "PG_ORYZA"
 #define MDESC_PG_ORYZA                         "Rice crop growth module of ORYZA2000 model"
+#define MCLS_CH4                               "Methane"
+#define MCLSDESC_CH4                           "Methane calculation"
+#define MID_CH4_LPJGUESS                       "CH4_LPJGUESS"
+#define MDESC_CH4_LPJGUESS                     "Calculating methane production, oxidation, and transport from wetlands"
 /// Overland routing related modules
 #define MCLS_OL_ROUTING                        "Overland routing"
 #define MCLSDESC_OL_ROUTING                    "Overland routing module"
