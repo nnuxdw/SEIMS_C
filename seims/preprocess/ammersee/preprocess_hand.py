@@ -1,10 +1,12 @@
+import os.path
+
 import pandas as pd
 import geopandas as gpd
 from pymongo import MongoClient
 from collections import defaultdict
 from collections import defaultdict, deque
 import copy
-
+import os
 # 1. 读取 SHP 文件并返回 {FIELDID: area}
 def load_area_map_from_shapefile(shapefile_path):
     gdf = gpd.read_file(shapefile_path)
@@ -294,12 +296,15 @@ def repair_flood_levels(input_path: str, output_path: str):
 
 
 if __name__ == '__main__':
-    input_shp = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\HRU_file\HRU_mollwede.shp"
-    input_hand_flood_step_old = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepOld.txt"
-    input_hand_flood_step = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStep.txt"
-    output_map = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\InundationMap.csv"
-    repaired_flood_level = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepRepair.txt"
-    modifyed_flood_level = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepModify.txt"
+    # base_path = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
+    base_path = r'G:\program\seims\SEIMS_HAND\data\MLX6'
+    input_shp = os.path.join(base_path,"workspace\HRU_file\HRU_mollwede.shp")
+    input_hand_flood_step_old = os.path.join(base_path, "rundata\FloodStepOld.txt")
+    input_hand_flood_step = os.path.join(base_path, "rundata\FloodStep.txt")
+    output_map = os.path.join(base_path, "rundata\InundationMap.csv")
+    repaired_flood_level = os.path.join(base_path, "rundata\FloodStepRepair.txt")
+    modifyed_flood_level = os.path.join(base_path, "rundata\FloodStepModify.txt")
+
     # 检查缺失层级
     # check_flood_level_gaps(input_hand_flood_step_old)
     # 修复层号从0开始的情况，改为从1开始

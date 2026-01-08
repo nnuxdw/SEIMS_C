@@ -24,9 +24,13 @@ from postprocess.plot_timeseries import get_upstream_subbasins,fetch_upstream_av
 
 
 def main():
+    """Main workflow."""
+    cfg = parse_ini_configuration()
+
+    TimeSeriesPlots(cfg).generate_plots()
     ###--------------------xiaodw, plot Q,QI,QS,QG into one chart
-    # subbasin_id = 173
-    subbasin_id = 1171
+    # subbasin_id = 1171
+    subbasin_id = 2
     file_dict = {
         "Surface Runoff": "QS.txt",
         "Interflow": "QI.txt",
@@ -34,13 +38,15 @@ def main():
         "Total Runoff": "Q.txt"
     }
     # basedir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\-90_124556_38_819347_longterm_model\OUTPUT0_base'
-    basedir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\OUTPUT0'
+    # basedir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\OUTPUT0'
+    basedir = r'G:\program\seims\SEIMS_HAND\data\MLX6\MLX6_longterm_model\OUTPUT0'
     # plot_runoff_components(basedir,file_dict,subbasin_id)
     # plot_runoff_difference(basedir,file_dict,subbasin_id)
 
     ###--------------------xiaodw, plot Q and observation into one chart and calculate nse
     mongo_uri ="mongodb://localhost:27017"
-    db_name = "poyang_lake1_HydroClimate"
+    # db_name = "poyang_lake1_HydroClimate"
+    db_name = "MLX6_longterm_model"
     collection = "MEASUREMENT"
     nse, merged = compute_nse_with_sim_and_obs(
         basedir=basedir,
@@ -88,27 +94,24 @@ def main():
     #     utc_start="2014-01-01T00:00:00Z",  # 可换成需要的时间范围
     #     utc_end="2019-12-31T23:59:59Z",
     # )
-
+    #
     # # 3) 画折线图
     # plot_series(avg_series, title=f"Avg {'P'} of upstream to {subbasin_id}")
 
     ###--------------------xiaodw, plot 2DArray into one chart
-    HRU_IDs = [2562,2563,2564,2565,2566,2567,2568,2569,2570,2571,2572,2573,2574,2575,2576,2577,2578,2579,2580,2581,2582]
-    file_dict = {
-        "Soil Moisture(mm)": "SOLST.txt",
-        # "Porosity Depth(mm)": "PorosityDepth.txt",
-        # "FieldCap Depth(mm)": "FieldCapDepth.txt",
-        "Perco(mm)": "Perco.txt",
-        "Awc(mm)": "Awc.txt",
-        "Ul(mm)":"Ul.txt"
-    }
-    for hru_id in HRU_IDs:
-        plot_multi_source_soil_layers(basedir,file_dict, hru_id)
+    # HRU_IDs = [2562,2563,2564,2565,2566,2567,2568,2569,2570,2571,2572,2573,2574,2575,2576,2577,2578,2579,2580,2581,2582]
+    # file_dict = {
+    #     "Soil Moisture(mm)": "SOLST.txt",
+    #     # "Porosity Depth(mm)": "PorosityDepth.txt",
+    #     # "FieldCap Depth(mm)": "FieldCapDepth.txt",
+    #     "Perco(mm)": "Perco.txt",
+    #     "Awc(mm)": "Awc.txt",
+    #     "Ul(mm)":"Ul.txt"
+    # }
+    # for hru_id in HRU_IDs:
+    #     plot_multi_source_soil_layers(basedir,file_dict, hru_id)
 
-    """Main workflow."""
-    cfg = parse_ini_configuration()
 
-    TimeSeriesPlots(cfg).generate_plots()
 
 
 

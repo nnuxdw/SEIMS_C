@@ -389,7 +389,7 @@ def read_tif_as_array(tif_path, nodata_value=None, to_float=True):
 
     return arr
 
-def create_gif_by_tif_with_shp_and_chwtrdepth(
+def create_gif_by_tif_with_shp_and_chwtrdepth_bak(
     image_files, years, output_file, dem_path, colormap,
     nodata_value=None, shapefile_path=None, river_shapefile_dir=None,
     chwtr_min=0, chwtr_max=1
@@ -509,6 +509,286 @@ def create_gif_by_tif_with_shp_and_chwtrdepth(
         os.makedirs(out_dir, exist_ok=True)
     frames[0].save(output_file, save_all=True, append_images=frames[1:], duration=300, loop=0, optimize=True)
     print("GIF 已保存:", output_file)
+
+def create_gif_by_tif_with_shp_and_chwtrdepth(
+    image_files,
+    years,
+    output_file,
+    dem_path,
+    colormap,
+    nodata_value=None,
+    shapefile_path=None,
+    river_shapefile_dir=None,
+    chwtr_min=0,
+    chwtr_max=1,
+    # ======== 质量/清晰度相关（强烈建议保留默认） ========
+    png_dir=None,                 # 可选：先输出无损 PNG 帧，方便肉眼检查是否“本来就清晰”
+    gif_colors=256,               # GIF 调色板颜色数（GIF 上限 256）
+    gif_dither=True,              # 抖动：能明显改善渐变“发灰/断层”
+    gif_optimize=False,           # optimize=True 往往会更糊（渐变+文字/线条更脏），默认关
+    resize_resample="lanczos",    # 缩放插值：lanczos 最清晰
+    duration=300,                 # 每帧时长 ms
+    dpi=300,
+):
+    """
+    功能：把 HAND(水深 tif) + DEM 底图 + 河道水深 shp(CHWTRDEPTH 字段) + 行政边界 shp 叠加，
+         输出清晰度尽可能高的 GIF（并可选输出 PNG 帧）。
+
+    依赖：你工程里已有的函数（这里直接调用，不重复实现）：
+      - load_and_colorize_dem(dem_path, colormap, debug=False) -> PIL.Image(RGBA)
+      - read_tif_as_array(tif_path, nodata_value=None, to_float=True) -> np.ndarray
+      - linear_stretch(arr, nodata_value=None, ignore_zero=True, fixed_min=None, fixed_max=None)
+          -> (stretched_arr, nodata_mask)
+      - apply_color_map(stretched_arr, nodata_mask=None) -> PIL.Image(RGBA)
+      - render_chwtrdepth_on_image(base_im_rgba, shp_path, field, transform, crs, vmin, vmax)
+          -> PIL.Image(RGBA)
+      - generate_colorbar_legend(width, height, cmap, vmin, vmax, title) -> PIL.Image(RGBA)
+    """
+    from PIL import Image, ImageDraw, ImageFont
+    import numpy as np
+    import rasterio
+    import geopandas as gpd
+    import os
+
+    # -----------------------------
+    # 0) 输入检查
+    # -----------------------------
+    if not image_files or not years or len(image_files) != len(years):
+        raise ValueError("image_files 和 years 不能为空，且长度必须一致。")
+
+    # -----------------------------
+    # 1) Pillow 兼容：缩放插值枚举
+    # -----------------------------
+    if hasattr(Image, "Resampling"):
+        RESAMPLE_MAP = {
+            "nearest": Image.Resampling.NEAREST,
+            "bilinear": Image.Resampling.BILINEAR,
+            "bicubic": Image.Resampling.BICUBIC,
+            "lanczos": Image.Resampling.LANCZOS,
+        }
+    else:  # 老 Pillow
+        RESAMPLE_MAP = {
+            "nearest": Image.NEAREST,
+            "bilinear": Image.BILINEAR,
+            "bicubic": Image.BICUBIC,
+            "lanczos": Image.LANCZOS,
+        }
+    resample = RESAMPLE_MAP.get(str(resize_resample).lower(), RESAMPLE_MAP["lanczos"])
+
+    # -----------------------------
+    # 2) 读取 DEM 底图 + transform/crs
+    # -----------------------------
+    with rasterio.open(dem_path) as dem_src:
+        dem_image = load_and_colorize_dem(dem_path, colormap=colormap, debug=False)
+        transform = dem_src.transform
+        dem_crs = dem_src.crs
+
+    # 保证 DEM 是 RGBA
+    if dem_image.mode != "RGBA":
+        dem_image = dem_image.convert("RGBA")
+
+    # -----------------------------
+    # 3) 读取行政边界（一次性转像素坐标，后面每帧直接画）
+    # -----------------------------
+    boundaries = []
+    if shapefile_path:
+        gdf = gpd.read_file(shapefile_path)
+        if gdf.crs != dem_crs:
+            gdf = gdf.to_crs(dem_crs)
+
+        for geom in gdf.geometry:
+            if geom is None:
+                continue
+
+            if geom.type in ["Polygon", "MultiPolygon"]:
+                parts = geom.geoms if geom.type == "MultiPolygon" else [geom]
+                for part in parts:
+                    coords = list(part.exterior.coords)
+                    pixel_coords = [~transform * (x, y) for x, y in coords]
+                    pixel_coords = [(int(px), int(py)) for px, py in pixel_coords]
+                    boundaries.append(pixel_coords)
+
+    # -----------------------------
+    # 4) 扫描所有 HAND 水深 tif，统一拉伸范围（避免每帧色阶不同导致“闪烁”）
+    # -----------------------------
+    global_min, global_max = np.inf, -np.inf
+    for tif in image_files:
+        arr = read_tif_as_array(tif, nodata_value=nodata_value, to_float=True)
+
+        if nodata_value is not None:
+            arr = np.where(arr == nodata_value, np.nan, arr)
+
+        valid = arr[np.isfinite(arr)]
+        if valid.size > 0:
+            global_min = min(global_min, float(np.nanmin(valid)))
+            global_max = max(global_max, float(np.nanmax(valid)))
+
+    if not np.isfinite(global_min) or not np.isfinite(global_max) or global_min == global_max:
+        # 防止极端情况（全是 nodata 或常数）
+        global_min, global_max = 0.0, 1.0
+
+    # -----------------------------
+    # 5) 字体
+    # -----------------------------
+    try:
+        font = ImageFont.truetype("arial.ttf", 38)
+    except Exception:
+        font = ImageFont.load_default()
+
+    frames_rgba = []
+
+    # -----------------------------
+    # 6) 逐帧渲染
+    # -----------------------------
+    for image_file, year in zip(image_files, years):
+        # 6.1 读 HAND 深度 tif -> 拉伸 -> 颜色
+        arr = read_tif_as_array(image_file, nodata_value=nodata_value, to_float=True)
+        image_array = np.array(arr)
+
+        image_array, nodata_mask = linear_stretch(
+            image_array,
+            nodata_value=nodata_value,
+            ignore_zero=True,
+            fixed_min=global_min,
+            fixed_max=global_max,
+        )
+
+        im_colored = apply_color_map(image_array, nodata_mask=nodata_mask)  # 期望 RGBA
+        if im_colored.mode != "RGBA":
+            im_colored = im_colored.convert("RGBA")
+
+        # 6.2 尺寸对齐（高质量缩放）
+        if im_colored.size != dem_image.size:
+            im_colored = im_colored.resize(dem_image.size, resample=resample)
+
+        # 6.3 DEM + 河道水深 shp（CHWTRDEPTH）
+        base_im = dem_image.copy()
+
+        if river_shapefile_dir:
+            year_str = str(year).replace("-", "_").replace(" ", "_").replace(":", "_")
+            shp_name = f"CHWTRDEPTH_TS_{year_str}_000000.shp"
+            shp_path = os.path.join(river_shapefile_dir, shp_name)
+
+            if os.path.exists(shp_path):
+                base_with_river = render_chwtrdepth_on_image(
+                    base_im,
+                    shp_path,
+                    field="CHWTRDEPTH",
+                    transform=transform,
+                    crs=dem_crs,
+                    vmin=chwtr_min,
+                    vmax=chwtr_max,
+                )
+                if base_with_river.mode != "RGBA":
+                    base_with_river = base_with_river.convert("RGBA")
+            else:
+                base_with_river = base_im
+        else:
+            base_with_river = base_im
+
+        # 6.4 合成：DEM+河道 + HAND 水深
+        combined_im = Image.alpha_composite(base_with_river, im_colored)
+
+        # 6.5 GIF 不支持透明：先铺白底（避免边缘/色标变脏）
+        white_bg = Image.new("RGBA", combined_im.size, (255, 255, 255, 255))
+        final_im = Image.alpha_composite(white_bg, combined_im)
+
+        # 6.6 行政边界
+        if boundaries:
+            draw = ImageDraw.Draw(final_im)
+            for polygon in boundaries:
+                draw.line(polygon, fill="black", width=3)
+
+        # 6.7 时间戳
+        draw = ImageDraw.Draw(final_im)
+        width, height = final_im.size
+        date_text = str(year).split()[0]
+        text_position = (width - 220, height - 50)
+        draw.text((text_position[0] + 1, text_position[1] + 1), date_text, fill="black", font=font)
+        draw.text(text_position, date_text, fill="black", font=font)
+
+        # 6.8 图例（按你原逻辑）
+        dem_legend = generate_colorbar_legend(80, 35, colormap, 0, 1000, "Elevation (m)")
+        depth_legend = generate_colorbar_legend(85, 40, "Blues", global_min, global_max, "HAND Depth (m)")
+        chwtr_legend = generate_colorbar_legend(85, 40, "Blues", chwtr_min, chwtr_max, "River Depth (m)")
+
+        final_im.paste(dem_legend, (20, 20), dem_legend)
+        final_im.paste(depth_legend, (20, 160), depth_legend)
+        final_im.paste(chwtr_legend, (20, 300), chwtr_legend)
+
+        # 例如放大 4 倍
+        scale = 4
+        w, h = final_im.size
+        final_im = final_im.resize((w * scale, h * scale), resample=Image.LANCZOS)
+        frames_rgba.append(final_im)
+
+    if not frames_rgba:
+        raise RuntimeError("没有生成任何帧，检查输入文件路径/数据是否为空。")
+
+    # -----------------------------
+    # 7) 可选：导出无损 PNG 帧（强烈建议先开一次，确认渲染帧本身是清晰的）
+    # -----------------------------
+    if png_dir:
+        os.makedirs(png_dir, exist_ok=True)
+        for idx, (im, year) in enumerate(zip(frames_rgba, years)):
+            safe_year = str(year).replace(" ", "_").replace(":", "-").replace("/", "-")
+            out_png = os.path.join(png_dir, f"frame_{idx:04d}_{safe_year}.png")
+
+            # ✅ 写入 DPI 元数据（对 PNG 有效）
+            if dpi is not None:
+                im.save(out_png, format="PNG", dpi=(dpi, dpi))
+            else:
+                im.save(out_png, format="PNG")
+
+    # -----------------------------
+    # 8) 高质量 GIF 量化：统一调色板 + 逐帧量化（兼容 Python3.7/旧 Pillow）
+    # -----------------------------
+    frames_rgb = [im.convert("RGB") for im in frames_rgba]
+
+    # dither 枚举兼容：新 Pillow 有 Image.Dither，旧 Pillow 用 Image.FLOYDSTEINBERG/Image.NONE
+    if hasattr(Image, "Dither"):
+        dither_flag = Image.Dither.FLOYDSTEINBERG if gif_dither else Image.Dither.NONE
+    else:
+        dither_flag = Image.FLOYDSTEINBERG if gif_dither else Image.NONE
+
+    def _quantize(img, palette_img=None):
+        """不同 Pillow 版本对 quantize 参数支持不一致，这里做多级 fallback。"""
+        try:
+            if palette_img is None:
+                return img.quantize(colors=gif_colors, dither=dither_flag)
+            else:
+                return img.quantize(palette=palette_img, dither=dither_flag)
+        except TypeError:
+            # 老版 Pillow 可能不支持 dither 参数
+            if palette_img is None:
+                return img.quantize(colors=gif_colors)
+            else:
+                return img.quantize(palette=palette_img)
+
+    # 用第一帧生成全局调色板，再让所有帧共用，避免每帧 palette 不一致导致“更脏/更糊”
+    pal_base = _quantize(frames_rgb[0], palette_img=None)
+    frames_p = [_quantize(fr, palette_img=pal_base) for fr in frames_rgb]
+
+    # -----------------------------
+    # 9) 保存 GIF
+    # -----------------------------
+    out_dir = os.path.dirname(os.path.abspath(output_file))
+    if out_dir and not os.path.exists(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
+
+    frames_p[0].save(
+        output_file,
+        save_all=True,
+        append_images=frames_p[1:],
+        duration=duration,
+        loop=0,
+        optimize=gif_optimize,  # ✅ 默认 False：更清晰
+        disposal=2,             # ✅ 避免残影
+    )
+
+    print("GIF 已保存:", output_file)
+    if png_dir:
+        print("PNG 帧已保存:", png_dir)
 
 
 
@@ -960,24 +1240,10 @@ if __name__ == '__main__':
 
     input_tif_path = os.path.join(work_dir,'workspace\HRU_file\ALL_HRU_final.tif')
 
-    # HAND水深 txt 转 tif
-    # txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
-    # for txt_path in txt_paths:
-    #     output_tif_path = replace_txt_with_tif(txt_path)
-    #     gen_hand_tif_by_txt(
-    #         txt_path=txt_path,
-    #         input_tif_path=input_tif_path,
-    #         output_tif_path=output_tif_path
-    #     )
     # 多线程生成tif
     # 设置最大线程数（建议不超过 CPU 核心数的 2~4 倍）
     def run_gen_hand_tif(txt_path, input_tif_path):
         output_tif_path = replace_txt_with_tif(txt_path)
-        # gen_hand_tif_by_txt(
-        #     txt_path=txt_path,
-        #     input_tif_path=input_tif_path,
-        #     output_tif_path=output_tif_path
-        # )
         gen_hand_tif_by_txt_fast(
             txt_path=txt_path,
             input_tif_path=input_tif_path,
@@ -1046,8 +1312,27 @@ if __name__ == '__main__':
         'PuBuGn',  # 紫蓝绿渐变，柔和通透
     ]
     river_shapefile_dir = os.path.join(longterm_model_dir,r'OUTPUT0\CHWTRDEPTH')
-    create_gif_by_tif_with_shp_and_chwtrdepth(image_files, years, output_file, bakgrnd_tif,
-                               'arcgis_elevation', -9999,shapefile_path=extent_shp,river_shapefile_dir=river_shapefile_dir)
+    png_dir = os.path.join(longterm_model_dir,r'OUTPUT0\pngs')
+    create_gif_by_tif_with_shp_and_chwtrdepth(
+        image_files=image_files,
+        years=years,
+        output_file=output_file,
+        dem_path=bakgrnd_tif,
+        colormap="arcgis_elevation",
+        nodata_value=-9999,
+        shapefile_path=extent_shp,
+        river_shapefile_dir=river_shapefile_dir,
+        # ====== 可选：提升清晰度/方便排查 ======
+        png_dir=png_dir,  # 例如 r"G:\tmp\gif_frames_png"；先导出 PNG 看看帧本身是否清晰
+        gif_optimize=False,  # 建议保持 False，更清晰
+        gif_dither=True,  # 建议 True，渐变更不脏
+        gif_colors=256,
+        resize_resample="lanczos",
+        duration=300,
+        chwtr_min=0,
+        chwtr_max=1,
+        dpi=1000
+    )
     # imgs = sorted(Path(plot_dir).glob("*.png"))
     # gif_path = os.path.join(inundation_base_path,'plot_gif','poyang.gif')
     # make_gif_from_images(imgs, out_gif_path=gif_path, duration=0.5)

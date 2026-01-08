@@ -107,12 +107,15 @@ def count_hand_levels(csv_path: str) -> Dict[int, int]:
 
 if __name__ == '__main__':
     mongo_uri = "mongodb://localhost:27017"
-    db_name = "poyang_lake1_longterm_model"
     collection = "REACHES"
     subbasin_field = "SUBBASINID"
     target_field= "Lake_Hand_Level_Ini"
-
-    csv_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\InundationMap.csv"
+    #### poyang lake
+    # db_name = "poyang_lake1_longterm_model"
+    # csv_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\InundationMap.csv"
+    #### malanxi
+    db_name = "MLX6_longterm_model"
+    csv_path = r"G:\program\seims\SEIMS_HAND\data\MLX6\rundata\InundationMap.csv"
     # 从InundationMap.csv中统计每个Subbasin有多少层级HAND
     level_counts_map = count_hand_levels(csv_path)
     level_counts_map_ini = {}

@@ -86,9 +86,6 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_SURU, UNIT_DEPTH_MM, DESC_SURU, Source_Module, DT_Raster1D);
     mdi.AddParameter(VAR_SOL_AWC, UNIT_DEPTH_MM, DESC_SOL_AWC, Source_ParameterDB, DT_Raster2D);   // m_fc
     //mdi.AddParameter(VAR_WASCOB, UNIT_LEN_M, DESC_FLOWOUT_LEN, Source_ParameterDB_Optional, DT_Raster1D);
-	mdi.AddParameter("gw_delay_1d", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Raster1D);
-	mdi.AddParameter("Kg_1d", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Raster1D);
-	mdi.AddParameter("Base_ex_1d", UNIT_NON_DIM, DESC_BASE_EX, Source_ParameterDB, DT_Raster1D);
 
     res = mdi.GetXMLDocument();
 
