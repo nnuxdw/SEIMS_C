@@ -140,102 +140,74 @@ def load_sub_hru_level_map(level_txt_path):
 # =========================
 # 3) HAND index txt（含 elev_min）
 # =========================
-def read_hand_index_txt_with_meta(index_dir):
+from pathlib import Path
+import re
+
+def read_hand_index_txt_with_meta(index_dir, read_elevmin=True):
+    """
+    不再读取 hand_index.txt，改为根据目录中的 HAND_<hid>_cells.txt 文件名构建映射。
+
+    返回：
+      hid_to_file:   {hid: "HAND_<hid>_cells.txt"}
+      hid_to_elevmin:{hid: elev_min}  # 如果 read_elevmin=False，则不填或填 None
+
+    说明：
+      - 文件名解析 hid：HAND_82_cells.txt -> 82
+      - elev_min 从 cells 文件第一条数据行的第 3 列（elevation）读取
+        （你的 cells 文件已按 elevation 升序写，所以第一条数据就是 elev_min）
+    """
     index_dir = Path(index_dir)
-    index_txt = index_dir / "hand_index.txt"
-    if not index_txt.exists():
-        raise FileNotFoundError("hand_index.txt not found: {0}".format(index_txt))
+    if not index_dir.exists():
+        raise FileNotFoundError(f"index_dir not found: {index_dir}")
+
+    pattern = re.compile(r"^HAND_(\d+)_cells\.txt$", re.IGNORECASE)
 
     hid_to_file = {}
     hid_to_elevmin = {}
-    with open(str(index_txt), "r", encoding="utf-8", errors="ignore") as f:
-        for line in f:
-            s = line.strip()
-            if (not s) or s.startswith("#"):
-                continue
-            parts = s.split()
-            if len(parts) < 5:
-                continue
-            hid = int(parts[0])
-            elev_min = float(parts[2])
-            cell_file = parts[4]
-            hid_to_file[hid] = cell_file
+
+    for p in index_dir.iterdir():
+        if not p.is_file():
+            continue
+
+        m = pattern.match(p.name)
+        if not m:
+            continue
+
+        hid = int(m.group(1))
+        hid_to_file[hid] = p.name
+
+        if read_elevmin:
+            elev_min = None
+            try:
+                with open(p, "r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        s = line.strip()
+                        if (not s) or s.startswith("#"):
+                            continue
+                        parts = s.split()
+                        # 0:rank 1:flat_index 2:elevation ...
+                        if len(parts) >= 3:
+                            elev_min = float(parts[2])
+                        break
+            except Exception:
+                elev_min = None
+
             hid_to_elevmin[hid] = elev_min
+        else:
+            hid_to_elevmin[hid] = None
+
+    if not hid_to_file:
+        raise FileNotFoundError(
+            f"No HAND_<hid>_cells.txt files found in: {index_dir}"
+        )
+
+    # 保持可预测顺序（可选）
+    hid_to_file = dict(sorted(hid_to_file.items()))
+    hid_to_elevmin = dict(sorted(hid_to_elevmin.items()))
+
     return hid_to_file, hid_to_elevmin
 
 
-# =========================
-# 4) 等面积 shp -> 面积映射
-# =========================
-def load_hand_area_map(hand_shp_equal_area, field_id, area_field):
-    """
-    稳健读取 HAND 面积映射：
-    - 不因 is_valid 直接丢 HAND（环状/带洞也保留）
-    - geometry 只用于 dissolve
-    - 面积严格来自 area_field（等面积投影 shp 中的字段）
-    """
-    import numpy as np
-    import geopandas as gpd
-
-    gdf = gpd.read_file(hand_shp_equal_area)
-    if gdf.crs is None:
-        raise ValueError("hand_shp_equal_area has no CRS.")
-    if field_id not in gdf.columns:
-        raise ValueError(f"equal-area shp missing field_id={field_id}")
-    if area_field not in gdf.columns:
-        raise ValueError(f"equal-area shp missing area_field={area_field}")
-
-    # 基本清洗
-    gdf = gdf[gdf.geometry.notnull()].copy()
-
-    # FIELDID / HRU_ID → int（兼容 '1171', '1171.0'）
-    def _to_int(x):
-        try:
-            return int(float(x))
-        except Exception:
-            return None
-
-    gdf[field_id] = gdf[field_id].apply(_to_int)
-    gdf = gdf[gdf[field_id].notnull()].copy()
-    gdf[field_id] = gdf[field_id].astype(int)
-
-    # area 字段 → float
-    gdf[area_field] = gdf[area_field].astype(float)
-
-    # ⚠️ 关键变化：
-    # 不再用 gdf.is_valid 过滤
-    # 只在 dissolve 前做最小修复，避免 rasterize / dissolve 崩
-    try:
-        from shapely.validation import make_valid
-        gdf["geometry"] = gdf.geometry.apply(
-            lambda g: make_valid(g) if (g is not None and not g.is_valid) else g
-        )
-    except Exception:
-        # shapely<2.0 兜底
-        gdf["geometry"] = gdf.geometry.apply(
-            lambda g: g.buffer(0) if (g is not None and not g.is_valid) else g
-        )
-
-    # 修复失败（geometry 变 None）的才丢
-    gdf = gdf[gdf.geometry.notnull()].copy()
-
-    # dissolve：一个 HID 可能多 polygon（环状、分块）
-    # 注意：area 不在这里 sum，而是 dissolve 后再从字段取
-    gdf = gdf.dissolve(by=field_id, as_index=False)
-
-    # 构建 area_map（完全信任 area_field）
-    area_map = {}
-    bad = 0
-    for _, row in gdf.iterrows():
-        hid = int(row[field_id])
-        area = float(row[area_field])
-        if np.isfinite(area) and area > 0:
-            area_map[hid] = area
-        else:
-            bad += 1
-
-    print(f"[AREA] area_map size={len(area_map)}, bad_area={bad}")
-    return area_map
 
 
 # =========================
@@ -377,48 +349,84 @@ def align_raster_to_reference(src_tif, ref_tif, src_band=1, resampling="nearest"
     return dst
 
 
-# =========================
-# 7) 健壮读取 HAND cells txt（支持 1 行）
-# =========================
-def load_hand_cells_txt(cell_txt_path):
-    cell_txt_path = Path(cell_txt_path)
-
-    try:
-        arr = np.loadtxt(str(cell_txt_path), comments="#")
-    except Exception:
-        arr = np.loadtxt(str(cell_txt_path), comments="#", delimiter=",")
-
-    if arr.size == 0:
-        raise ValueError("HAND cells file has no numeric rows: {0}".format(str(cell_txt_path)))
-
-    if arr.ndim == 1:
-        if arr.shape[0] < 4:
-            head = []
-            with open(str(cell_txt_path), "r", encoding="utf-8", errors="ignore") as f:
-                for _ in range(10):
-                    line = f.readline()
-                    if not line:
-                        break
-                    head.append(line.rstrip("\n"))
-            raise ValueError(
-                "HAND cells file has <4 columns (need rank,flat_index,elev,prefix...). "
-                "File: {0}\nHead:\n{1}".format(str(cell_txt_path), "\n".join(head))
-            )
-        arr = arr.reshape(1, -1)
-
-    if arr.shape[1] < 4:
-        raise ValueError("HAND cells file has <4 columns: {0}".format(str(cell_txt_path)))
-
-    flat_idx = arr[:, 1].astype(np.int64)
-    elev = arr[:, 2].astype(np.float64)
-    prefix = arr[:, 3].astype(np.float64)
-    return flat_idx, elev, prefix
-
 
 # =========================================================
 # 8) build 预处理：每个 HAND 输出 txt
-#    ✅ prefix_sum 改为“叠加上一层 SumArea 的常数项”，用于体积反演
+#    prefix_sum 改为“叠加上一层 SumArea 的常数项”，用于体积反演
 # =========================================================
+
+import pandas as pd
+import geopandas as gpd
+from rasterio.features import rasterize
+
+
+def load_hand_area_map_attr_only(hand_shp_equal_area, field_id, area_field):
+    """
+    只读等面积 shp 的属性表，得到 {hid: area}。
+    目标：尽最大努力不触发几何解析（避免坏几何导致 'Shell is not a LinearRing'）。
+    """
+    def _to_int(x):
+        try:
+            return int(float(x))
+        except Exception:
+            return None
+
+    def _to_float(x):
+        try:
+            v = float(x)
+            return v if np.isfinite(v) else None
+        except Exception:
+            return None
+
+    # 方案 A：pyogrio（最快，且可 read_geometry=False）
+    df = None
+    try:
+        import pyogrio
+        df = pyogrio.read_dataframe(
+            hand_shp_equal_area,
+            columns=[field_id, area_field],
+            read_geometry=False,
+        )
+    except Exception as e_pyogrio:
+        # 方案 B：fiona 逐条读属性（不构建 shapely geometry，最稳）
+        try:
+            import fiona
+            rows = []
+            with fiona.open(hand_shp_equal_area, "r") as src:
+                for feat in src:
+                    props = feat.get("properties") or {}
+                    rows.append({
+                        field_id: props.get(field_id),
+                        area_field: props.get(area_field),
+                    })
+            df = pd.DataFrame(rows)
+        except Exception as e_fiona:
+            # 方案 C：最后兜底 geopandas（可能会触发坏几何报错）
+            import geopandas as gpd
+            df = gpd.read_file(hand_shp_equal_area)[[field_id, area_field]].copy()
+
+    if df is None or df.empty:
+        raise ValueError(f"Failed to read attribute table from: {hand_shp_equal_area}")
+
+    # 字段转换
+    df[field_id] = df[field_id].apply(_to_int)
+    df[area_field] = df[area_field].apply(_to_float)
+
+    df = df[df[field_id].notnull()].copy()
+    df = df[df[area_field].notnull()].copy()
+    df[field_id] = df[field_id].astype(int)
+    df[area_field] = df[area_field].astype(float)
+
+    # 保留正面积
+    df = df[df[area_field] > 0].copy()
+
+    # 如果同一 hid 出现多行：取最大值（更稳）
+    df = df.sort_values(area_field).drop_duplicates(subset=[field_id], keep="last")
+
+    area_map = dict(zip(df[field_id].tolist(), df[area_field].tolist()))
+    print(f"[AREA] area_map size={len(area_map)}")
+    return area_map
+
 def build_hand_dem_rank_index_all_txt(
     dem_tif_wgs84,
     hand_shp_wgs84,
@@ -430,6 +438,7 @@ def build_hand_dem_rank_index_all_txt(
     level_txt_path,
     all_touched=False,
     dem_band=1,
+    step_eps=1e-6,  # ✅ 台阶量化精度：建议按 DEM 垂直精度调整（例如 1e-3, 1e-2）
 ):
     """
     输出：
@@ -438,25 +447,42 @@ def build_hand_dem_rank_index_all_txt(
 
     cell 文件列：
       # rank flat_index elevation prefix_sum lon lat
+      注：lon/lat 实际为 DEM CRS 下的 x/y（与你原注释一致）
 
-    这里的 prefix_sum 不再是“单纯 elev 的前缀和”，而是：
-      prefix_sum[i] = sum(elev[0..i]) * cell_area + z0 * A_prev
+    ✅ 新定义：prefix_sum[i] 表示 “水位从 z0 抬升到 z[i] 时（第 i 个格子刚开始被淹），累计需要的总水量”
+       - 0..i-1 号格子在该水位下完全淹没
+       - i 号格子刚开始接触水（深度为 0）
 
-    这样对任意水位 h（且淹没格子数 k=i+1）：
-      V(h) = h*(k*cell_area + A_prev) - prefix_sum[i]
-
-    其中：
-      A_prev 来自图1 csv：该 HAND 对应 Flood_Level 的上一层 SumArea（累计面积）
-      HAND -> Flood_Level 通过图2 txt（HRU_ID/FIELDID 与 Flood_Level 的对应）
+    ✅ 同高程（含浮点误差）格子合并为同一个台阶：要淹就一起淹
+       - zq = round(z/eps)*eps
+       - 用 unique(zq) 得到台阶 z_u，台阶计数 cnt，逐栅格台阶索引 inv
+       - 台阶 j 的“受水面积”（用于跨到下一个台阶）：
+           A_u[j] = A_prev + cum_count[j] * cell_area
+         其中 cum_count[j] = cnt[0] + ... + cnt[j]
+       - 台阶体积增量：
+           dV_u[j] = A_u[j] * (z_u[j+1] - z_u[j])
+       - 台阶前缀：
+           prefix_u[0]=0
+           prefix_u[j] = sum_{k=0..j-1} dV_u[k]
+       - 每个格子的 prefix_sum 通过 prefix_u[inv] 映射回去：同台阶相同 prefix
     """
+
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 读分层累计面积表（图1）
+    # 读分层累计面积表（你项目已有）
     sub_level_table = load_subbasin_level_table_csv(level_csv_path)
-    sub_hru_level = load_sub_hru_level_map(level_txt_path)  # ✅ FloodStep.txt 映射
-    # 读等面积 shp 的 HAND 面积（m^2）
-    area_map = load_hand_area_map(hand_shp_equal_area, field_id, area_field)
+    sub_hru_level = load_sub_hru_level_map(level_txt_path)  # FloodStep.txt 映射
+
+    # ✅ 只读等面积 shp 的 HAND 面积（m^2），完全信任 area_field
+    area_map = load_hand_area_map_attr_only(hand_shp_equal_area, field_id, area_field)
+
+    # 预构建 hid -> (sub_id, flood_level) 映射，避免每个 hid 都扫一遍字典
+    hid_to_sub_level = {}
+    for sid, hid_map in sub_hru_level.items():
+        sid_int = int(sid)
+        for hid, lvl in hid_map.items():
+            hid_to_sub_level[int(hid)] = (sid_int, int(lvl))
 
     with rasterio.open(dem_tif_wgs84) as src:
         dem = src.read(dem_band).astype(np.float32)
@@ -475,7 +501,7 @@ def build_hand_dem_rank_index_all_txt(
     if gdf.crs is None:
         raise ValueError("hand_shp_wgs84 has no CRS.")
     if field_id not in gdf.columns:
-        raise ValueError("hand_shp_wgs84 missing field: {0}".format(field_id))
+        raise ValueError(f"hand_shp_wgs84 missing field: {field_id}")
 
     gdf = gdf[gdf.geometry.notnull()].copy()
     gdf[field_id] = gdf[field_id].apply(lambda x: int(float(x)) if pd.notnull(x) else None)
@@ -485,38 +511,37 @@ def build_hand_dem_rank_index_all_txt(
     # 投影到 DEM CRS
     gdf = gdf.to_crs(crs)
 
-    # ✅ 修复 invalid geometry：不要直接 gdf[gdf.is_valid]
+    # 修复 invalid geometry（不要直接 gdf[gdf.is_valid]）
     try:
         from shapely.validation import make_valid
-        fixed = []
-        for geom in gdf.geometry:
+
+        def _fix_geom(geom):
             if geom is None:
-                fixed.append(None)
-            elif geom.is_valid:
-                fixed.append(geom)
-            else:
+                return None
+            if geom.is_valid:
+                return geom
+            try:
+                return make_valid(geom)
+            except Exception:
                 try:
-                    fixed.append(make_valid(geom))
+                    return geom.buffer(0)
                 except Exception:
-                    try:
-                        fixed.append(geom.buffer(0))
-                    except Exception:
-                        fixed.append(None)
-        gdf["geometry"] = fixed
+                    return None
+
+        gdf["geometry"] = gdf.geometry.apply(_fix_geom)
     except Exception:
         # shapely<2.0 兜底
-        fixed = []
-        for geom in gdf.geometry:
+        def _fix_geom(geom):
             if geom is None:
-                fixed.append(None)
-            elif geom.is_valid:
-                fixed.append(geom)
-            else:
-                try:
-                    fixed.append(geom.buffer(0))
-                except Exception:
-                    fixed.append(None)
-        gdf["geometry"] = fixed
+                return None
+            if geom.is_valid:
+                return geom
+            try:
+                return geom.buffer(0)
+            except Exception:
+                return None
+
+        gdf["geometry"] = gdf.geometry.apply(_fix_geom)
 
     gdf = gdf[gdf.geometry.notnull()].copy()
 
@@ -552,139 +577,219 @@ def build_hand_dem_rank_index_all_txt(
 
         for hid in unique_ids:
             hid = int(hid)
-            print("[BUILD] HAND {0} ...".format(hid))
+            print(f"[BUILD] HAND {hid} ...")
 
-            m = (id_flat == hid) & valid_flat
-            if not np.any(m):
+            mask = (id_flat == hid) & valid_flat
+            if not np.any(mask):
                 continue
 
             # 等面积 shp 中必须存在该 hid 的面积
             if hid not in area_map:
-                print("  [SKIP] no area for HAND {0} in equal-area shp".format(hid))
+                print(f"  [SKIP] no area for HAND {hid} in equal-area shp")
                 continue
 
-            flat_idx = np.where(m)[0].astype(np.int64)
+            flat_idx = np.where(mask)[0].astype(np.int64)
             elev = dem_flat[flat_idx].astype(np.float64)
 
             order = np.argsort(elev, kind="mergesort")
             flat_idx_sorted = flat_idx[order]
             elev_sorted = elev[order]
-            n = len(elev_sorted)
+            n = int(len(elev_sorted))
+            if n <= 0:
+                continue
 
             # 查该 HAND 对应的 (sub_id, flood_level) -> A_prev
-            # 注意：同一个 hid 理论上只属于一个 sub_id（你的 FloodStep.txt 提供这种对应关系）
-            sub_id = None
-            flood_level = None
-
-            # 在 level txt 里找 hid 属于哪个 sub_id
-            # （sub_hru_level[sub][hru]=level）
-            for sid in sub_hru_level:
-                if hid in sub_hru_level[sid]:
-                    sub_id = int(sid)
-                    flood_level = int(sub_hru_level[sid][hid])
-                    break
-
-            if sub_id is None or flood_level is None:
-                print("  [SKIP] HAND {0} not found in FloodStep.txt mapping".format(hid))
+            if hid not in hid_to_sub_level:
+                print(f"  [SKIP] HAND {hid} not found in FloodStep.txt mapping")
                 continue
+
+            sub_id, flood_level = hid_to_sub_level[hid]
 
             if sub_id not in sub_level_table:
-                print("  [SKIP] sub {0} not found in InundationMap.csv".format(sub_id))
+                print(f"  [SKIP] sub {sub_id} not found in InundationMap.csv")
                 continue
             if flood_level not in sub_level_table[sub_id]:
-                print("  [SKIP] level {0} not found in InundationMap.csv for sub {1}".format(flood_level, sub_id))
+                print(f"  [SKIP] level {flood_level} not found in InundationMap.csv for sub {sub_id}")
                 continue
 
             A_prev = float(sub_level_table[sub_id][flood_level]["SumAreaPrev"])
 
-            # cell_area
+            # cell_area：用等面积 shp 的总面积 / 像元数 得到平均格子面积
             area_hand = float(area_map[hid])
             cell_area = area_hand / float(n)
 
-            # prefix_sum[i] = sum(elev[0..i]) * cell_area + z0 * A_prev
-            z0 = float(elev_sorted[0])
-            csum = np.cumsum(elev_sorted, dtype=np.float64)
-            prefix = csum * cell_area + z0 * A_prev
+            # =========================
+            # ✅ 台阶法：同高程（含浮点误差）归并为同一台阶
+            # =========================
+            z = elev_sorted.astype(np.float64)
 
-            # lon/lat of cell center (debug only)
+            eps = float(step_eps)
+            if eps <= 0:
+                raise ValueError("step_eps must be > 0")
+
+            zq = np.round(z / eps) * eps  # 量化后的“台阶高程”
+
+            # 一次 unique 拿到：台阶高程 z_u、逐栅格台阶索引 inv、每台阶格子数 cnt
+            z_u, inv, cnt = np.unique(zq, return_inverse=True, return_counts=True)
+            n_steps = int(len(z_u))
+
+            # cum_count：到台阶 j 为止累计格子数
+            cum = np.cumsum(cnt).astype(np.float64)  # len=n_steps
+
+            # 台阶间高差
+            dz_u = z_u[1:] - z_u[:-1]                # len=n_steps-1
+
+            # 台阶受水面积 A_u[j]（用于从 z_u[j] 抬升到 z_u[j+1]）
+            A_u = A_prev + cum * cell_area           # len=n_steps
+
+            # 台阶体积增量
+            dV_u = A_u[:-1] * dz_u                   # len=n_steps-1
+
+            # 台阶前缀
+            prefix_u = np.zeros(n_steps, dtype=np.float64)
+            if n_steps > 1:
+                prefix_u[1:] = np.cumsum(dV_u, dtype=np.float64)
+
+            # 映射回每个格子：同台阶同 prefix
+            prefix = prefix_u[inv]                   # len=n
+
+            # cell center (实际是 DEM CRS 的 x/y)
             rows = flat_idx_sorted // width
             cols = flat_idx_sorted % width
             xs, ys = rasterio.transform.xy(transform, rows, cols, offset="center")
             xs = np.asarray(xs, dtype=np.float64)
             ys = np.asarray(ys, dtype=np.float64)
 
-            cell_file = "HAND_{0}_cells.txt".format(hid)
+            cell_file = f"HAND_{hid}_cells.txt"
             with open(str(out_dir / cell_file), "w", encoding="utf-8") as f:
                 f.write("# rank  flat_index  elevation  prefix_sum  lon  lat\n")
                 for i in range(n):
                     f.write(
-                        "{0} {1} {2:.6f} {3:.6f} {4:.8f} {5:.8f}\n".format(
-                            i, int(flat_idx_sorted[i]), float(elev_sorted[i]), float(prefix[i]),
-                            float(xs[i]), float(ys[i])
-                        )
+                        f"{i} {int(flat_idx_sorted[i])} {float(zq[i]):.6f} {float(prefix[i]):.6f} "
+                        f"{float(xs[i]):.8f} {float(ys[i]):.8f}\n"
                     )
 
+            # elev_min/max：用台阶后的高程更一致（也可改回原 z[0], z[-1]）
             idx_f.write(
-                "{0} {1} {2:.6f} {3:.6f} {4}\n".format(
-                    hid, n, float(elev_sorted[0]), float(elev_sorted[-1]), cell_file
-                )
+                f"{hid} {n} {float(z_u[0]):.6f} {float(z_u[-1]):.6f} {cell_file}\n"
             )
 
-    print("[OK] TXT index written to: {0}".format(str(out_dir)))
+    print(f"[OK] TXT index written to: {str(out_dir)}")
 
 
-# =========================================================
-# 9) ✅ 分层累计面积参与的“边界 HAND 反演”
-# =========================================================
-def invert_water_level_with_prev_area(elev_sorted, cell_area, A_prev, V_target):
-    """
-    解 V(h) = V_target
 
-    V(h)= (sum_{i=1..k} (h - e_i)) * cell_area  + (h - z0) * A_prev
-        = h*(k*cell_area + A_prev) - (sum_e(k)*cell_area + z0*A_prev)
 
-    返回：
-      h (float) 水位
-      k (int) 被淹格子数
-    """
-    n = len(elev_sorted)
-    if n == 0:
-        return None, 0
-
-    z0 = float(elev_sorted[0])
-
-    csum = np.cumsum(elev_sorted, dtype=np.float64)
-
-    def sum_e(k):
-        if k <= 0:
-            return 0.0
-        return float(csum[k - 1])
-
-    # V_at_z(k): 当水位 z=elev[k-1] 时的体积
-    V_at_z = np.empty(n, dtype=np.float64)
-    for k in range(1, n + 1):
-        z = float(elev_sorted[k - 1])
-        V_at_z[k - 1] = (k * z - sum_e(k)) * cell_area + (z - z0) * A_prev
-
-    k_idx = int(np.searchsorted(V_at_z, V_target, side="left"))
-    if k_idx < 0:
-        k = 1
-    elif k_idx >= n:
-        k = n
-    else:
-        k = k_idx + 1
-
-    denom = (k * cell_area + A_prev)
-    if denom <= 0:
-        return None, 0
-
-    h = (V_target + sum_e(k) * cell_area + z0 * A_prev) / denom
-    return float(h), int(k)
 
 
 # =========================================================
 # 10) ✅ 主函数：子流域 + 边界 HAND + SumArea 累计面积体积
 # =========================================================
+from pathlib import Path
+import numpy as np
+import rasterio
+
+
+def load_hand_cells_txt_with_prefix(cell_path):
+    """
+    读取 build_hand_dem_rank_index_all_txt 输出的 HAND_<hid>_cells.txt
+    期望列：rank flat_index elevation prefix_sum lon lat
+    返回：elev_sorted(n,), prefix_sorted(n,)
+    """
+    elev = []
+    prefix = []
+    with open(cell_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if (not line) or line.startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) < 4:
+                continue
+            elev.append(float(parts[2]))
+            prefix.append(float(parts[3]))
+    if len(elev) == 0:
+        return np.array([], dtype=np.float64), np.array([], dtype=np.float64)
+    return np.asarray(elev, dtype=np.float64), np.asarray(prefix, dtype=np.float64)
+
+
+def invert_water_level_with_prefix(
+    elev_sorted,         # (n,) 升序
+    prefix_sorted,       # (n,) 同台阶相同 prefix（累计体积到该台阶）
+    cell_area,           # m^2
+    A_prev,              # m^2
+    V_target,            # m^3
+):
+    """
+    用 cells.txt 里的 prefix_sum 语义直接反演水位 h。
+
+    你的 prefix_sum 定义：
+      prefix_sum 对应“水位抬升到该 elevation（该台阶刚开始接触水）时的累计体积”
+      且构造 prefix 时已经包含了 A_prev 的“顶起”效应
+
+    反演策略（台阶层面）：
+      1) 把 elev_sorted 压缩为台阶 z_u，每台阶格子数 cnt
+      2) prefix_u[j] = 该台阶的累计体积（取该台阶第一条的 prefix）
+      3) A_u[j] = A_prev + cum_count[j]*cell_area
+      4) 找到 j 使 prefix_u[j] <= V < prefix_u[j+1]
+         h = z_u[j] + (V - prefix_u[j]) / A_u[j]
+
+    返回：
+      h, step_id
+    """
+    n = int(len(elev_sorted))
+    if n == 0:
+        return None, None
+
+    if (not np.isfinite(V_target)) or V_target < 0:
+        return None, None
+
+    z = elev_sorted
+    p = prefix_sorted
+
+    # 压缩到台阶（你的 build 已把 elevation 写成量化后的 zq，因此 unique 是稳定的）
+    z_u, first_idx, cnt = np.unique(z, return_index=True, return_counts=True)
+    prefix_u = p[first_idx].astype(np.float64)  # 每台阶的累计体积
+    n_steps = int(len(z_u))
+
+    # cum_count：到台阶 j 为止累计格子数
+    cum = np.cumsum(cnt).astype(np.float64)
+
+    # 台阶受水面积（用于从 z_u[j] 抬升到下一个台阶）
+    A_u = A_prev + cum * cell_area  # len=n_steps
+
+    # V 在第一个台阶之前
+    if V_target <= prefix_u[0]:
+        return float(z_u[0]), 0
+
+    # 找到 j：prefix_u[j] <= V < prefix_u[j+1]
+    j = int(np.searchsorted(prefix_u, V_target, side="right") - 1)
+    if j < 0:
+        j = 0
+
+    # 超过最后一个台阶：允许全淹后继续加深
+    if j >= n_steps - 1:
+        extra = float(V_target - prefix_u[-1])
+        denom = float(A_u[-1])
+        if denom <= 0:
+            return None, None
+        h = float(z_u[-1] + extra / denom)
+        return h, n_steps - 1
+
+    extra = float(V_target - prefix_u[j])
+    denom = float(A_u[j])
+    if denom <= 0:
+        return None, None
+
+    h = float(z_u[j] + extra / denom)
+
+    # 保险：不超过下一台阶太多（浮点误差）
+    z_next = float(z_u[j + 1])
+    if h > z_next:
+        h = z_next
+
+    return h, j
+
+
 def downscale_hand_depth_with_subbasin_layer_area(
     dem_tif_wgs84,
     hand_shp_wgs84,
@@ -709,12 +814,20 @@ def downscale_hand_depth_with_subbasin_layer_area(
     out_nodata=-9999.0,
     align_if_needed=True,
 ):
+    """
+    ✅ 已适配 build_hand_dem_rank_index_all_txt 的 cells.txt 输出含义：
+    - 直接读取 HAND_<hid>_cells.txt 的 elevation + prefix_sum
+    - 用 prefix_sum 反演水位 h（台阶累计体积语义）
+    """
+
     # ---- load tables ----
     sub_level_table = load_subbasin_level_table_csv(level_csv_path)
-    sub_hru_level = load_sub_hru_level_map(level_txt_path)  # ✅ 直接 HRU(FIELDID)->Flood_Level
+    sub_hru_level = load_sub_hru_level_map(level_txt_path)  # sub -> {hid: flood_level}
 
-    area_map = load_hand_area_map(hand_shp_equal_area, field_id, area_field)
-    hid_to_file, hid_to_elevmin = read_hand_index_txt_with_meta(index_dir)
+    # ⚠️ 你之前说面积字段已算好：建议这里用“只读属性表”的版本更快更稳
+    area_map = load_hand_area_map_attr_only(hand_shp_equal_area, field_id, area_field)
+
+    hid_to_file, hid_to_elevmin = read_hand_index_txt_with_meta(index_dir)  # elevmin 可不用，但保留返回
     index_dir = Path(index_dir)
 
     # ---- read DEM ----
@@ -763,15 +876,14 @@ def downscale_hand_depth_with_subbasin_layer_area(
 
     # ---- output ----
     out = np.full(dem.shape, out_nodata, dtype=np.float32)
-    # ✅ 默认：所有 DEM 有效像元都是“未淹=0”
-    out[dem_valid] = 0.0
+    out[dem_valid] = 0.0  # 默认：DEM 有效像元都“未淹=0”
 
-    # unit conversion
+    # ---- unit conversion ----
     if depth_unit not in ("m", "mm"):
         raise ValueError("depth_unit must be 'm' or 'mm'")
-    depth_scale = 1.0 if depth_unit == "m" else 0.001
+    depth_scale = 1.0 if depth_unit == "m" else 0.001  # mm -> m
 
-    # flatten
+    # ---- flatten ----
     dem_flat = dem.ravel()
     dem_valid_flat = dem_valid.ravel()
     dep_flat = coarse.ravel()
@@ -780,7 +892,7 @@ def downscale_hand_depth_with_subbasin_layer_area(
     sub_flat = sub_id_raster.ravel()
     out_flat = out.ravel()
 
-    # subbasin list
+    # ---- subbasin list ----
     sub_ids = np.unique(sub_id_raster)
     sub_ids = sub_ids[sub_ids != 0]
     sub_ids.sort()
@@ -798,7 +910,7 @@ def downscale_hand_depth_with_subbasin_layer_area(
         if not np.any(m_wet):
             continue
 
-        # 候选 HAND：子流域内 depth>0 的 HAND（说明已经“全淹/部分淹”至少在粗图上出现）
+        # 候选 HAND：子流域内 depth>0 的 HAND
         cand_hids = np.unique(hand_flat[m_wet])
         cand_hids = cand_hids[cand_hids != 0]
         if cand_hids.size == 0:
@@ -808,7 +920,7 @@ def downscale_hand_depth_with_subbasin_layer_area(
         valid_cands = []
         for hid in cand_hids:
             hid = int(hid)
-            if hid in hid_to_file and hid in hid_to_elevmin and hid in area_map:
+            if (hid in hid_to_file) and (hid in area_map):
                 valid_cands.append(hid)
         if not valid_cands:
             continue
@@ -818,22 +930,17 @@ def downscale_hand_depth_with_subbasin_layer_area(
             continue
         sub_levels = sub_level_table[sub_id]  # {level: {...}}
 
-        # ✅ 用 FloodStep.txt 的映射：HAND_ID(=HRU_ID) -> Flood_Level
+        # FloodStep.txt：sub -> {hid: flood_level}
+        if sub_id not in sub_hru_level:
+            continue
+        sub_map = sub_hru_level[sub_id]
+
+        # 在 valid_cands 中找 flood_level 最大的 boundary_hid
         max_level = None
         boundary_hid = None
-
-        # valid_cands 里都是“wet”的 HAND（候选）
-        if sub_id in sub_hru_level:
-            sub_map = sub_hru_level[sub_id]  # {hru_id: flood_level}
-        else:
-            sub_map = None
-
-        if sub_map is None:
-            continue
-
         for hid in valid_cands:
             if hid in sub_map:
-                lvl = sub_map[hid]
+                lvl = int(sub_map[hid])
                 if (max_level is None) or (lvl > max_level):
                     max_level = lvl
                     boundary_hid = hid
@@ -843,7 +950,7 @@ def downscale_hand_depth_with_subbasin_layer_area(
 
         flood_level = int(max_level)
 
-        # 防止 Flood_Level 不在 InundationMap.csv 里
+        # Flood_Level 必须在 InundationMap.csv 里
         if flood_level not in sub_levels:
             continue
 
@@ -873,28 +980,33 @@ def downscale_hand_depth_with_subbasin_layer_area(
 
         # -----------------------
         # 3) ✅ 目标体积：用该层累计面积 SumArea 作为“底面积”
-        #    因为每往上淹一点，都必须先把低层的累计面积那部分一起“顶起来”
         # -----------------------
         V_target = depth_hand_m * A_cum  # m^3
 
         # -----------------------
-        # 4) 对 boundary HAND 反演水位 h（体积公式里含 A_prev）
+        # 4) ✅ 用 cells.txt 的 prefix_sum（累计体积）反演水位 h
         # -----------------------
         cell_file = hid_to_file[boundary_hid]
         cell_path = index_dir / cell_file
         if not cell_path.exists():
             continue
 
-        flat_idx_sorted, elev_sorted, _prefix = load_hand_cells_txt(cell_path)
-        n = len(elev_sorted)
+        elev_sorted, prefix_sorted = load_hand_cells_txt_with_prefix(cell_path)
+        n = int(len(elev_sorted))
         if n == 0:
             continue
 
+        # cell_area：boundary HAND 的平均像元面积
         area_hand = float(area_map[boundary_hid])
         cell_area = area_hand / float(n)
 
-        h, kf = invert_water_level_with_prev_area(
+        # 可选 sanity check：prefix[0] 应该是 0
+        # if abs(prefix_sorted[0]) > 1e-6:
+        #     print(f"[WARN] prefix[0]!=0 for hid={boundary_hid}, got {prefix_sorted[0]}")
+
+        h, _step_id = invert_water_level_with_prefix(
             elev_sorted=elev_sorted,
+            prefix_sorted=prefix_sorted,
             cell_area=cell_area,
             A_prev=A_prev,
             V_target=V_target,
@@ -904,22 +1016,19 @@ def downscale_hand_depth_with_subbasin_layer_area(
 
         # -----------------------
         # 5) 写出：子流域内 <= 当前 Flood_Level 的 HAND 都用同一水位 h
-        #    - 低于该层：自然全淹（深度= max(h-dem,0)）
-        #    - 该层：部分淹（同样 max(h-dem,0)，会自动只淹低于 h 的格子）
-        #    - 高于该层：不淹（0）
         # -----------------------
-        # ✅ 这里不要再用 elev_min 排序判断层级，而是用 FloodStep.txt 的 level 映射判断
         idx_sub = np.where(m_sub)[0]
         sub_hand_ids = hand_flat[idx_sub]
 
         low_mask = np.zeros(sub_hand_ids.size, dtype=np.bool_)
+        # 这里 sub_map 已经是 sub_id 对应的 {hid: level}
         for i in range(sub_hand_ids.size):
             hid = int(sub_hand_ids[i])
             if hid == 0:
                 low_mask[i] = False
                 continue
-            if hid in sub_hru_level[sub_id]:
-                lvl = int(sub_hru_level[sub_id][hid])
+            if hid in sub_map:
+                lvl = int(sub_map[hid])
                 low_mask[i] = (lvl <= flood_level)
             else:
                 low_mask[i] = False
@@ -942,8 +1051,9 @@ def downscale_hand_depth_with_subbasin_layer_area(
             )
         )
 
-    # write
+    # ---- write ----
     profile.update(dtype=rasterio.float32, nodata=out_nodata, count=1, compress="lzw")
+    Path(out_depth_tif).parent.mkdir(parents=True, exist_ok=True)
     with rasterio.open(out_depth_tif, "w", **profile) as dst:
         dst.write(out.astype(np.float32), 1)
 

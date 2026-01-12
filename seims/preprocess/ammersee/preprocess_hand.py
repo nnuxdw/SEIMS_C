@@ -303,8 +303,8 @@ def repair_flood_levels(input_path: str, output_path: str):
 
 
 if __name__ == '__main__':
-    # base_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1"
-    base_path = r"G:\program\seims\SEIMS_HAND\data\Cottonwood"
+    base_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1"
+    # base_path = r"G:\program\seims\SEIMS_HAND\data\Cottonwood"
     ### 注意input_shp一定要是按照FIELDID合并之后且投影到等面积的
     input_shp = os.path.join(base_path,"workspace\spatial_shp\subbasin_mollwede_dissolved.shp")
     input_hand_flood_step = os.path.join(base_path,"rundata\FloodStep.txt")

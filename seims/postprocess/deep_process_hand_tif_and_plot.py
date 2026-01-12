@@ -1260,7 +1260,7 @@ if __name__ == "__main__":
         obs_dir = r"J:\G\program\seims\SEIMS_HAND\data\poyang_lake\鄱阳湖全天候面积逐日数据集（2014-2023年)\2014-2023年鄱阳湖水域面积栅格数据"
         # shp_dir = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\sci_figure_study_region\upstream_subbasin_1171.shp"
         ## 缩小统计范围
-        shp_dir = "G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_shp\subbasin_1171_upstream_only_inundation_disolved.shp"
+        shp_dir = "G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_shp\subbasin_1171_upstream_only_inundation_disolved3.shp"
         dem_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_raster\dem.tif"
     else:  # Linux/Unix
         base_path = '/data/user/xiaodw/software/WISE/data/poyang_lake1/poyang_lake1_longterm_model_1171'
@@ -1283,7 +1283,7 @@ if __name__ == "__main__":
 
     # 1.1 把观测值tif裁剪到鄱阳湖本身的范围
     clip_sim_dir = os.path.join(inundation_base_path,'cliped_sim_tif')
-    # clip_tifs_batch(selected_sim_out_dir,shp_dir,clip_sim_dir)
+    clip_tifs_batch(selected_sim_out_dir,shp_dir,clip_sim_dir)
 
     # 2. 把观测 tif 转成面 shp，并用面积阈值筛
     obs_shp_dir =os.path.join(inundation_base_path,'obs_shp')
@@ -1291,7 +1291,7 @@ if __name__ == "__main__":
         in_dir=selected_obs_out_dir,
         out_dir=obs_shp_dir,
         value_threshold=0.0,
-        area_threshold_km2=0.5,
+        area_threshold_km2=0.01,
         n_workers=5
     )
 

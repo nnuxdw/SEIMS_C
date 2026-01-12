@@ -393,6 +393,8 @@ def run_monthly_fi_bi_boxplot(
             print("  Month %02d: FI n=%d, BI n=%d"
                   % (m, len(month_to_fi.get(m, [])), len(month_to_bi.get(m, []))))
 
+
+
     plot_monthly_grouped_boxplot(
         month_to_fi=month_to_fi,
         month_to_bi=month_to_bi,
