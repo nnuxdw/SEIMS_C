@@ -463,6 +463,9 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_IKW_CH                           "Channel routing using 4-point implicit finite difference method for kinematic wave."
 #define MID_MUSK_CH                            "MUSK_CH"
 #define MDESC_MUSK_CH                          "Channel routing using Muskingum-Cunge method of longterm model."
+#define MID_MUSK_CH_HAND                            "MUSK_CH_HAND"
+#define MDESC_MUSK_CH_HAND                          "Channel routing using Muskingum-Cunge method of longterm model for HAND-based method"
+
 /// Sediment routing related modules
 #define MCLS_SED_ROUTING                       "Sediment routing"
 #define MCLSDESC_SED_ROUTING                   "Sediment channel routing modules."
