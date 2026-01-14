@@ -52,6 +52,9 @@ def compute_hand_area_volume(hand_df, ch_map):
         level_indices = []
 
         for idx, (level, level_df) in enumerate(sorted_levels):
+            # ✅ 取 HRU_ID（假设同一 Subbasin + Flood_Level 下唯一；若不唯一也先取第一个）
+            hru_id = level_df["HRU_ID"].iloc[0] if "HRU_ID" in level_df.columns else None
+
             hand_area = level_df["area"].iloc[0]
             hand_volume = level_df["area"].iloc[0] * level_df["Depth"].iloc[0]
 
@@ -77,9 +80,9 @@ def compute_hand_area_volume(hand_df, ch_map):
 
             avg_depth = sum_volume / sum_area if sum_area > 0 else 0.0
 
-
             row = {
                 "Subbasin": sbid,
+                "HRU_ID": hru_id,          # ✅ 新增
                 "Flood_Level": level,
                 "LevelDepth": level_depth,
                 "SumArea": sum_area,
@@ -120,11 +123,7 @@ def compute_hand_area_volume(hand_df, ch_map):
     df_result["AvgDepth"] = df_result["AvgDepth"].round(3)
     df_result["AccVolume"] = df_result["AccVolume"].round(3)
 
-    cols = [
-               col for col in df_result.columns
-               if col not in ("LowerAccDepth")
-           ] + ["LowerAccDepth"]
-
+    cols = [col for col in df_result.columns if col not in ("LowerAccDepth")] + ["LowerAccDepth"]
     df_result = df_result[cols]
     return df_result
 
@@ -306,7 +305,9 @@ if __name__ == '__main__':
     base_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1"
     # base_path = r"G:\program\seims\SEIMS_HAND\data\Cottonwood"
     ### 注意input_shp一定要是按照FIELDID合并之后且投影到等面积的
-    input_shp = os.path.join(base_path,"workspace\spatial_shp\subbasin_mollwede_dissolved.shp")
+
+    # input_shp = os.path.join(base_path,"workspace\spatial_shp\subbasin_mollwede_dissolved.shp") #Cottonwood
+    input_shp = os.path.join(base_path, "workspace\HRU_file\HRU_mollwede_dissolved.shp")
     input_hand_flood_step = os.path.join(base_path,"rundata\FloodStep.txt")
     output_map = os.path.join(base_path,"rundata\InundationMap.csv")
 

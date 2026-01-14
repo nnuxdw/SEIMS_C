@@ -1,5 +1,5 @@
 /*!
- * \file MUSK_CH.h
+ * \file MUSK_CH_HAND.h
  * \brief channel flow routing using Muskingum method
  *        Refers to rtmusk.f of SWAT source.
  *
@@ -19,8 +19,8 @@
  *
  * \author Liangjun Zhu, Junzhi Liu
  */
-#ifndef SEIMS_MODULE_MUSK_CH_H
-#define SEIMS_MODULE_MUSK_CH_H
+#ifndef SEIMS_MODULE_MUSK_CH_HAND_H
+#define SEIMS_MODULE_MUSK_CH_HAND_H
 
 #include "SimulationModule.h"
 #include "Scenario.h"
@@ -59,22 +59,22 @@ struct Hand {
 	// for test
 	float volToAdd;
 };
-/** \defgroup MUSK_CH
+/** \defgroup MUSK_CH_HAND
  * \ingroup Hydrology_longterm
  * \brief channel flow routing using Muskingum method
  */
 
 /*!
- * \class MUSK_CH
- * \ingroup MUSK_CH
+ * \class MUSK_CH_HAND
+ * \ingroup MUSK_CH_HAND
  * \brief channel flow routing using Muskingum method
  *
  */
-class MUSK_CH: public SimulationModule {
+class MUSK_CH_HAND: public SimulationModule {
 public:
-    MUSK_CH();
+    MUSK_CH_HAND();
 
-    virtual ~MUSK_CH();
+    virtual ~MUSK_CH_HAND();
 
     void SetValue(const char* key, float value) OVERRIDE;
 
@@ -119,6 +119,14 @@ private:
     bool LakeBudget(int i);
 
     bool ResBudget(int i);
+
+	void LoadHandLevelsFromArrays(
+		int cellsNum,
+		int flatLen,
+		std::vector<Hand>& m_Hands,
+		float nodata /*= -9999.0f*/,
+		bool buildHandIds /*= false*/
+	);
 
 private:
     int m_dt;            ///< time step (sec)
@@ -301,7 +309,15 @@ private:
 	float* m_subbasinWtrDep;
 	float* m_subbasinInundationArea;  // subbasin inundation area, for lake/resovior/reach;
 
-
+	float* m_HAND_Subbasin;
+	float* m_HAND_Flood_Level;
+	float* m_HAND_LevelDepth;
+	float* m_HAND_SumArea;
+	float* m_HAND_SumVolume;
+	float* m_HAND_AvgDepth;
+	float* m_HAND_AccVolume;
+	float* m_HAND_LowerAccDepthFlat;
+	float* m_HAND_LowerAccDepthLen;
 };
 
-#endif /* SEIMS_MODULE_MUSK_CH_H */
+#endif /* SEIMS_MODULE_MUSK_CH_HAND_H */

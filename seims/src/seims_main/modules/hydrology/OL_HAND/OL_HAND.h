@@ -19,7 +19,7 @@ using namespace std;
 // 表示每一层的 HAND 信息
 struct Level {
 	//vector<float> handHeights;   // index is hand id
-	vector<int> handIds;   // index is layer 0,1,2,3..., value is hand id
+	int* handIds;   // index is layer 0,1,2,3..., value is hand id
 	
 	//float m_chOverHeadVol;      /// represents the physical space between the top of the channel banks and the upper boundary, index represents subbasin id for dim 1, index represents layer for dim 2 cooresponding to each HAND height
 	/*float* m_handArea;					/// area of each hand
@@ -71,6 +71,14 @@ public:
 	void SetValue(const char* key, const float value) OVERRIDE;
 
 	void InitialOutputs() OVERRIDE;
+
+	void LoadHandLevelsFromArrays(
+		int cellsNum,
+		int flatLen,
+		std::vector<Hand>& m_Hands,
+		float nodata /*= -9999.0f*/,
+		bool buildHandIds /*= false*/
+	);
 
 private:
 
@@ -136,7 +144,15 @@ private:
 	int levCounter = 0;           // 计数器，用于控制每两次进入下一层
 
 	
-
+	float* m_HAND_Subbasin;
+	float* m_HAND_Flood_Level;
+	float* m_HAND_LevelDepth;
+	float* m_HAND_SumArea;
+	float* m_HAND_SumVolume;
+	float* m_HAND_AvgDepth;
+	float* m_HAND_AccVolume;
+	float* m_HAND_LowerAccDepthFlat;
+	float* m_HAND_LowerAccDepthLen;
 
 };
 #endif /* SEIMS_MODULE_OL_HAND_H */

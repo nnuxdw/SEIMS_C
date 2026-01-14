@@ -10,7 +10,10 @@
 OL_HAND::OL_HAND() :
 	m_dt(-1), m_inputSubbsnID(-1), m_nCells(-1), m_nSubbsns(-1),
 	m_chWth(nullptr), m_chDepth(nullptr), m_chLen(nullptr), m_islake(nullptr), m_handWtrDep(nullptr), m_chBedMeanElev(nullptr), m_isres(nullptr),
-	curLev(0), levCounter(0), m_isHandFlooded(nullptr), m_subbasinInundationArea(nullptr), m_subbasinWtrDep(nullptr),m_sumInundationArea(0),m_outletID(-1), m_subbasinArea(nullptr)
+	curLev(0), levCounter(0), m_isHandFlooded(nullptr), m_subbasinInundationArea(nullptr), m_subbasinWtrDep(nullptr),m_sumInundationArea(0),m_outletID(-1), m_subbasinArea(nullptr),
+	m_HAND_Subbasin(nullptr), m_HAND_Flood_Level(nullptr), m_HAND_LevelDepth(nullptr),
+	m_HAND_SumArea(nullptr), m_HAND_SumVolume(nullptr), m_HAND_AvgDepth(nullptr),
+	m_HAND_AccVolume(nullptr), m_HAND_LowerAccDepthFlat(nullptr), m_HAND_LowerAccDepthLen(nullptr)
   {
 }
 
@@ -32,6 +35,189 @@ static inline std::string trim(std::string s) {
 		s.end());
 
 	return s;
+}
+
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <vector>
+#include <map>
+#include <set>
+#include <cmath>
+#include <algorithm>
+#include <new>
+
+static inline bool IsNoData(float v, float nodata) {
+	// nodata 约定为 -9999，一般不会出现 NaN，但一起兜底
+	return std::isnan(v) || std::fabs(v - nodata) < 1e-6f;
+}
+
+void OL_HAND::LoadHandLevelsFromArrays(
+	int cellsNum,
+	int flatLen,
+	std::vector<Hand>& m_Hands,
+	float nodata /*= -9999.0f*/,
+	bool buildHandIds /*= false*/
+) {
+	// 1) 指针校验
+	if (!m_HAND_Subbasin || !m_HAND_Flood_Level || !m_HAND_LevelDepth ||
+		!m_HAND_SumArea || !m_HAND_SumVolume || !m_HAND_AvgDepth ||
+		!m_HAND_AccVolume || !m_HAND_LowerAccDepthFlat || !m_HAND_LowerAccDepthLen) {
+		std::cerr << "[ERROR] HAND arrays not loaded (one or more pointers are null)." << std::endl;
+		return;
+	}
+	if (cellsNum <= 0) {
+		std::cerr << "[ERROR] cellsNum <= 0" << std::endl;
+		return;
+	}
+
+	// 2) 第一遍：统计 max_sbid、每个 sbid 有哪些 level（用于 n_levels）
+	int max_sbid = -1;
+	std::map<int, std::set<int>> subbasinLevels; // sbid -> unique levels
+
+	for (int i = 0; i < cellsNum; ++i) {
+		float sbv = m_HAND_Subbasin[i];
+		float levv = m_HAND_Flood_Level[i];
+		if (IsNoData(sbv, nodata) || IsNoData(levv, nodata)) continue;
+
+		int sbid = static_cast<int>(sbv);
+		int lev = static_cast<int>(levv);
+		if (sbid < 0 || lev < 0) continue;
+
+		max_sbid = MAX(max_sbid, sbid);
+		subbasinLevels[sbid].insert(lev);
+	}
+
+	if (max_sbid < 0) {
+		std::cerr << "[WARN] No valid HAND records found in arrays." << std::endl;
+		return;
+	}
+
+	// 3) resize m_Hands
+	if (static_cast<int>(m_Hands.size()) <= max_sbid) {
+		m_Hands.resize(max_sbid + 1);
+	}
+
+	// 4) 初始化每个 subbasin 的 n_levels，并确保 levels vector 至少能装下最大 level
+	for (const auto& kv : subbasinLevels) {
+		int sbid = kv.first;
+		const auto& levSet = kv.second;
+
+		m_Hands[sbid].n_levels = static_cast<int>(levSet.size());
+
+		int maxLevInSb = (levSet.empty() ? -1 : *levSet.rbegin());
+		if (maxLevInSb >= 0 && static_cast<int>(m_Hands[sbid].levels.size()) <= maxLevInSb) {
+			m_Hands[sbid].levels.resize(maxLevInSb + 1);
+		}
+	}
+
+	// 5) 第二遍：逐条写入 level 字段，并还原 LowerAccDepth
+	int flatPos = 0;
+
+	// 如果你要构造 handIds：先收集，再一次性 new
+	std::map<std::pair<int, int>, std::vector<int>> idsTmp;
+
+	for (int i = 0; i < cellsNum; ++i) {
+		float sbv = m_HAND_Subbasin[i];
+		float levv = m_HAND_Flood_Level[i];
+		if (IsNoData(sbv, nodata) || IsNoData(levv, nodata)) continue;
+
+		int sbid = static_cast<int>(sbv);
+		int lev = static_cast<int>(levv);
+		if (sbid < 0 || lev < 0) continue;
+
+		Hand& hand = m_Hands[sbid];
+		if (lev >= static_cast<int>(hand.levels.size())) {
+			hand.levels.resize(lev + 1);
+		}
+		Level& level = hand.levels[lev];
+
+		// ---- 基本字段（按 nodata 保护）----
+		if (!IsNoData(m_HAND_LevelDepth[i], nodata))  level.m_levelDepth = m_HAND_LevelDepth[i];
+		if (!IsNoData(m_HAND_SumArea[i], nodata))     level.m_levelSumArea = m_HAND_SumArea[i];
+		if (!IsNoData(m_HAND_SumVolume[i], nodata))   level.m_levelSumVol = static_cast<double>(m_HAND_SumVolume[i]);
+		if (!IsNoData(m_HAND_AvgDepth[i], nodata))    level.m_levelAvgDepth = m_HAND_AvgDepth[i];
+		if (!IsNoData(m_HAND_AccVolume[i], nodata))   level.m_levelAccVol = static_cast<double>(m_HAND_AccVolume[i]);
+
+		// ---- LowerAccDepth：用 Len + Flat 还原 ----
+		float lenf = m_HAND_LowerAccDepthLen[i];
+		int L = 0;
+		if (!IsNoData(lenf, nodata) && lenf > 0.0f) {
+			L = static_cast<int>(std::round(lenf));
+		}
+
+		if (L > 0) {
+			if (flatPos + L > flatLen) {
+				std::cerr << "[ERROR] LowerAccDepthFlat overflow: flatPos=" << flatPos
+					<< ", need=" << L << ", flatLen=" << flatLen << std::endl;
+				return;
+			}
+
+			// 释放旧内存（避免重复加载时泄漏）
+			if (level.m_levelLowerAccDepth != nullptr) {
+				delete[] level.m_levelLowerAccDepth;
+				level.m_levelLowerAccDepth = nullptr;
+			}
+
+			level.m_levelLowerAccDepth = new(std::nothrow) float[L];
+			if (!level.m_levelLowerAccDepth) {
+				std::cerr << "[ERROR] new failed for m_levelLowerAccDepth, L=" << L << std::endl;
+				return;
+			}
+
+			for (int k = 0; k < L; ++k) {
+				level.m_levelLowerAccDepth[k] = m_HAND_LowerAccDepthFlat[flatPos + k];
+			}
+			flatPos += L;
+
+			// 强烈建议：在 Level 里保存长度（你如果没有这个字段，请加上）
+			// level.m_levelLowerAccDepthLen = L;
+		}
+
+		// ---- (可选) 构造 handIds：这里用 “数组下标 i” 当作 ID ----
+		// 如果你有真实 HRU_ID 数组（例如 m_HAND_HRU_ID[i]），把 i 换成真实值即可。
+		if (buildHandIds) {
+			idsTmp[{sbid, lev}].push_back(i);
+		}
+	}
+
+	// 6) 如果需要 handIds：统一分配、写入
+	if (buildHandIds) {
+		for (auto& kv : idsTmp) {
+			int sbid = kv.first.first;
+			int lev = kv.first.second;
+			auto& ids = kv.second;
+
+			Level& level = m_Hands[sbid].levels[lev];
+
+			// 释放旧 handIds
+			if (level.handIds != nullptr) {
+				delete[] level.handIds;
+				level.handIds = nullptr;
+			}
+
+			level.m_levelHandNum = static_cast<int>(ids.size());
+			if (level.m_levelHandNum > 0) {
+				level.handIds = new(std::nothrow) int[level.m_levelHandNum];
+				if (!level.handIds) {
+					std::cerr << "[ERROR] new failed for level.handIds, n=" << level.m_levelHandNum << std::endl;
+					return;
+				}
+				for (int j = 0; j < level.m_levelHandNum; ++j) {
+					level.handIds[j] = ids[j];
+				}
+			}
+		}
+	}
+
+	// 7) flatPos 校验（可选但很有用）
+	if (flatPos != flatLen) {
+		std::cerr << "[WARN] LowerAccDepthFlat not fully consumed: flatPos="
+			<< flatPos << ", flatLen=" << flatLen << std::endl;
+	}
+
+	std::cout << "[INFO] Finished loading HAND levels from arrays. "
+		<< "cellsNum=" << cellsNum << ", flatLen=" << flatLen << std::endl;
 }
 
 void OL_HAND::SetValue(const char* key, const float value) {
@@ -69,6 +255,41 @@ void OL_HAND::Set1DData(const char* key, const int n, float* data) {
 	else if (StringMatch(sk, VAR_CHWTRWIDTH)) m_chWtrWth = data;
 	else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
 		m_handWtrDep = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_Subbasin)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_Subbasin = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_Flood_Level)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_Flood_Level = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_LevelDepth)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_LevelDepth = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_SumArea)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_SumArea = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_SumVolume)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_SumVolume = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_AvgDepth)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_AvgDepth = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_AccVolume)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_AccVolume = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_LowerAccDepthFlat)) {
+		m_HAND_LowerAccDepthFlat = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_LowerAccDepthLen)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_LowerAccDepthLen = data;
 	}
 	else {
 		throw ModelException(MID_OL_HAND, "Set1DData", "Parameter " + sk + " does not exist.");
@@ -140,18 +361,24 @@ void OL_HAND::InitialOutputs() {
 		{
 			Initialize1DArray(m_nreach + 1, m_subbasinWtrDep, 0.f);
 		}
-		
-#ifdef _WIN32
-		string txt_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/FloodStep.txt";
-		string csv_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/InundationMap.csv";
-#else
-		string txt_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/FloodStep.txt";
-		string csv_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/InundationMap.csv";
-#endif
-		// load floodstep
-		LoadHandIdsToChHandLevels(txt_filename, m_Hands);
-		// load 
-		loadHandFromCSVIntoVector(csv_filename,m_Hands);
+		// XDW， this method, read inundationmap from csv and txt, is deperated. insteadly, read it from database
+//#ifdef _WIN32
+//		string txt_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/FloodStep.txt";
+//		string csv_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/InundationMap.csv";
+//#else
+//		string txt_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/FloodStep.txt";
+//		string csv_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/InundationMap.csv";
+//#endif
+//		// load floodstep
+//		LoadHandIdsToChHandLevels(txt_filename, m_Hands);
+//		// load 
+//		loadHandFromCSVIntoVector(csv_filename,m_Hands);
+		int lower_flat_len = 0;
+		for (int i = 0; i < m_nCells; i++)
+		{
+			lower_flat_len += (int)m_HAND_LowerAccDepthLen[i];
+		}
+		LoadHandLevelsFromArrays(m_nCells, lower_flat_len, m_Hands, NODATA_VALUE, TRUE);
 		
 		// initialize water depth of each level
 		// don't need to initialize water depth if use the new HandInundation function?
@@ -536,7 +763,7 @@ void OL_HAND::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_
 		}
 
 		m_Hands[sbid].levels[level].m_levelHandNum = count;
-		m_Hands[sbid].levels[level].handIds =  vector<int>(count);
+		m_Hands[sbid].levels[level].handIds = new(nothrow) int[count];
 		//m_Hands[sbid].levels[level].m_chOverHeadVol = 0.0f;
 		m_Hands[sbid].levels[level].m_levelAvgDepth = 0.0f;
 	}
@@ -572,6 +799,8 @@ void OL_HAND::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_
 
 	cout << "Finished loading HAND data from file: " << filename << endl;
 }
+
+
 
 
 

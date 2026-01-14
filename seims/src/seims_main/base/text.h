@@ -463,6 +463,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_IKW_CH                           "Channel routing using 4-point implicit finite difference method for kinematic wave."
 #define MID_MUSK_CH                            "MUSK_CH"
 #define MDESC_MUSK_CH                          "Channel routing using Muskingum-Cunge method of longterm model."
+#define MID_MUSK_CH_HAND                            "MUSK_CH_HAND"
+#define MDESC_MUSK_CH_HAND                          "Channel routing using Muskingum-Cunge method of longterm model for HAND method."
 /// Sediment routing related modules
 #define MCLS_SED_ROUTING                       "Sediment routing"
 #define MCLSDESC_SED_ROUTING                   "Sediment channel routing modules."
@@ -959,6 +961,16 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_SOL_MN "sol_mn" /// m_soilManN, manure organic nitrogen in soil, kg/ha
 #define VAR_SOL_MP "sol_mp" /// m_soilManP, manure organic phosphorus in soil, kg/ha
 #define VAR_SOL_N "sol_N" /// m_soilN, soil organic nitrogen, include nitrogen in manure
+
+#define VAR_HAND_Subbasin "HAND_SUBBASIN"
+#define VAR_HAND_Flood_Level "HAND_FLOOD_LEVEL"
+#define VAR_HAND_LevelDepth "HAND_LEVELDEPTH"
+#define VAR_HAND_SumArea "HAND_SUMAREA"
+#define VAR_HAND_SumVolume "HAND_SUMVOLUME"
+#define VAR_HAND_AvgDepth "HAND_AVGDEPTH" 
+#define VAR_HAND_AccVolume "HAND_ACCVOLUME" 
+#define VAR_HAND_LowerAccDepthFlat "HAND_LOWERACCDEPTH_FLAT"
+#define VAR_HAND_LowerAccDepthLen "HAND_LOWERACCDEPTH_LEN"
 
 /// define rice related parameters, used by PG_ORYZA module, by Fang Shen
 #define VAR_CROPSTA "cropsta"
@@ -1822,6 +1834,17 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_ZRT "root length or root depth"
 #define DESC_DVS "Development stage of the crop"
 #define DESC_ANCRF "Amount of N in crop till flowering"
+/// FOR HAND
+
+#define DESC_HAND_Subbasin           "Subbasin ID"
+#define DESC_HAND_Flood_Level        "HAND flood level index (from low to high)"
+#define DESC_HAND_LevelDepth         "Vertical thickness of this HAND level (upper-lower, unit: m)"
+#define DESC_HAND_SumArea            "Cumulative inundated area up to this level (unit: m^2)"
+#define DESC_HAND_SumVolume          "Cumulative storage volume up to this level (channel + deepening of lower levels + current level, unit: m^3)"
+#define DESC_HAND_AvgDepth           "Area-weighted mean water depth at this level (SumVolume/SumArea, unit: m)"
+#define DESC_HAND_AccVolume          "Accumulated volume sequence (cumulative sum of SumVolume by level, unit: m^3)"
+#define DESC_HAND_LowerAccDepthFlat  "Flattened LowerAccDepth array for storage (unit: m)"
+#define DESC_HAND_LowerAccDepthLen   "Segment lengths to reconstruct LowerAccDepth from the flattened array"
 
 /// CENTURY model for C/N cycling
 #define    DESC_SOL_BM        "NEED to figure out"
