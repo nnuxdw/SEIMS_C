@@ -181,8 +181,6 @@ void MUSK_CH::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 	std::cout << "Finished loading Inundation data from file: " << csvPath << std::endl;
 }
 
-
-
 void MUSK_CH::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_Hands) {
 	ifstream infile(filename);
 	if (!infile.is_open()) {

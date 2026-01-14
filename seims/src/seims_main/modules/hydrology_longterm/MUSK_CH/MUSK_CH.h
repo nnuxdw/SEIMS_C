@@ -300,6 +300,8 @@ private:
 
 	float* m_subbasinWtrDep;
 	float* m_subbasinInundationArea;  // subbasin inundation area, for lake/resovior/reach;
+
+
 };
 
 #endif /* SEIMS_MODULE_MUSK_CH_H */

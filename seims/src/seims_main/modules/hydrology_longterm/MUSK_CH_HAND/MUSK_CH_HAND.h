@@ -120,6 +120,14 @@ private:
 
     bool ResBudget(int i);
 
+	void LoadHandLevelsFromArrays(
+		int cellsNum,
+		int flatLen,
+		std::vector<Hand>& m_Hands,
+		float nodata /*= -9999.0f*/,
+		bool buildHandIds /*= false*/
+	);
+
 private:
     int m_dt;            ///< time step (sec)
     int m_inputSubbsnID; ///< current subbasin ID, 0 for the entire watershed
@@ -300,6 +308,16 @@ private:
 
 	float* m_subbasinWtrDep;
 	float* m_subbasinInundationArea;  // subbasin inundation area, for lake/resovior/reach;
+
+	float* m_HAND_Subbasin;
+	float* m_HAND_Flood_Level;
+	float* m_HAND_LevelDepth;
+	float* m_HAND_SumArea;
+	float* m_HAND_SumVolume;
+	float* m_HAND_AvgDepth;
+	float* m_HAND_AccVolume;
+	float* m_HAND_LowerAccDepthFlat;
+	float* m_HAND_LowerAccDepthLen;
 };
 
 #endif /* SEIMS_MODULE_MUSK_CH_HAND_H */

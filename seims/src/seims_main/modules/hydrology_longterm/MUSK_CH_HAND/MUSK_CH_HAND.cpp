@@ -40,7 +40,10 @@ MUSK_CH_HAND::MUSK_CH_HAND() :
     m_lakeperc(nullptr),m_lakepcp(nullptr),m_Epch_1d(nullptr),m_lakeb_1d(nullptr),
 	//m_chBedMeanElev(nullptr), m_chBedStartElev(nullptr), m_chBedEndElev(nullptr),
 	// xiaodw ++
-	m_lakeHandLevelini(nullptr), m_minvol_1d(nullptr)
+	m_lakeHandLevelini(nullptr), m_minvol_1d(nullptr),
+	m_HAND_Subbasin(nullptr), m_HAND_Flood_Level(nullptr), m_HAND_LevelDepth(nullptr),
+	m_HAND_SumArea(nullptr), m_HAND_SumVolume(nullptr), m_HAND_AvgDepth(nullptr),
+	m_HAND_AccVolume(nullptr), m_HAND_LowerAccDepthFlat(nullptr), m_HAND_LowerAccDepthLen(nullptr)
 {
 }
 
@@ -118,6 +121,191 @@ bool MUSK_CH_HAND::CheckInputData() {
     return true;
 }
 
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <vector>
+#include <map>
+#include <set>
+#include <cmath>
+#include <algorithm>
+#include <new>
+
+static inline bool IsNoData(float v, float nodata) {
+	// nodata 约定为 -9999，一般不会出现 NaN，但一起兜底
+	return std::isnan(v) || std::fabs(v - nodata) < 1e-6f;
+}
+
+
+void MUSK_CH_HAND::LoadHandLevelsFromArrays(
+	int cellsNum,
+	int flatLen,
+	std::vector<Hand>& m_Hands,
+	float nodata /*= -9999.0f*/,
+	bool buildHandIds /*= false*/
+) {
+	// 1) 指针校验
+	if (!m_HAND_Subbasin || !m_HAND_Flood_Level || !m_HAND_LevelDepth ||
+		!m_HAND_SumArea || !m_HAND_SumVolume || !m_HAND_AvgDepth ||
+		!m_HAND_AccVolume || !m_HAND_LowerAccDepthFlat || !m_HAND_LowerAccDepthLen) {
+		std::cerr << "[ERROR] HAND arrays not loaded (one or more pointers are null)." << std::endl;
+		return;
+	}
+	if (cellsNum <= 0) {
+		std::cerr << "[ERROR] cellsNum <= 0" << std::endl;
+		return;
+	}
+
+	// 2) 第一遍：统计 max_sbid、每个 sbid 有哪些 level（用于 n_levels）
+	int max_sbid = -1;
+	std::map<int, std::set<int>> subbasinLevels; // sbid -> unique levels
+
+	for (int i = 0; i < cellsNum; ++i) {
+		float sbv = m_HAND_Subbasin[i];
+		float levv = m_HAND_Flood_Level[i];
+		if (IsNoData(sbv, nodata) || IsNoData(levv, nodata)) continue;
+
+		int sbid = static_cast<int>(sbv);
+		int lev = static_cast<int>(levv);
+		if (sbid < 0 || lev < 0) continue;
+
+		max_sbid = MAX(max_sbid, sbid);
+		subbasinLevels[sbid].insert(lev);
+	}
+
+	if (max_sbid < 0) {
+		std::cerr << "[WARN] No valid HAND records found in arrays." << std::endl;
+		return;
+	}
+
+	// 3) resize m_Hands
+	if (static_cast<int>(m_Hands.size()) <= max_sbid) {
+		m_Hands.resize(max_sbid + 1);
+	}
+
+	// 4) 初始化每个 subbasin 的 n_levels，并确保 levels vector 至少能装下最大 level
+	for (const auto& kv : subbasinLevels) {
+		int sbid = kv.first;
+		const auto& levSet = kv.second;
+
+		m_Hands[sbid].n_levels = static_cast<int>(levSet.size());
+
+		int maxLevInSb = (levSet.empty() ? -1 : *levSet.rbegin());
+		if (maxLevInSb >= 0 && static_cast<int>(m_Hands[sbid].levels.size()) <= maxLevInSb) {
+			m_Hands[sbid].levels.resize(maxLevInSb + 1);
+		}
+	}
+
+	// 5) 第二遍：逐条写入 level 字段，并还原 LowerAccDepth
+	int flatPos = 0;
+
+	// 如果你要构造 handIds：先收集，再一次性 new
+	std::map<std::pair<int, int>, std::vector<int>> idsTmp;
+
+	for (int i = 0; i < cellsNum; ++i) {
+		float sbv = m_HAND_Subbasin[i];
+		float levv = m_HAND_Flood_Level[i];
+		if (IsNoData(sbv, nodata) || IsNoData(levv, nodata)) continue;
+
+		int sbid = static_cast<int>(sbv);
+		int lev = static_cast<int>(levv);
+		if (sbid < 0 || lev < 0) continue;
+
+		Hand& hand = m_Hands[sbid];
+		if (lev >= static_cast<int>(hand.levels.size())) {
+			hand.levels.resize(lev + 1);
+		}
+		Level& level = hand.levels[lev];
+
+		// ---- 基本字段（按 nodata 保护）----
+		if (!IsNoData(m_HAND_LevelDepth[i], nodata))  level.m_levelDepth = m_HAND_LevelDepth[i];
+		if (!IsNoData(m_HAND_SumArea[i], nodata))     level.m_levelSumArea = m_HAND_SumArea[i];
+		if (!IsNoData(m_HAND_SumVolume[i], nodata))   level.m_levelSumVol = static_cast<double>(m_HAND_SumVolume[i]);
+		if (!IsNoData(m_HAND_AvgDepth[i], nodata))    level.m_levelAvgDepth = m_HAND_AvgDepth[i];
+		if (!IsNoData(m_HAND_AccVolume[i], nodata))   level.m_levelAccVol = static_cast<double>(m_HAND_AccVolume[i]);
+
+		// ---- LowerAccDepth：用 Len + Flat 还原 ----
+		float lenf = m_HAND_LowerAccDepthLen[i];
+		int L = 0;
+		if (!IsNoData(lenf, nodata) && lenf > 0.0f) {
+			L = static_cast<int>(std::round(lenf));
+		}
+
+		if (L > 0) {
+			if (flatPos + L > flatLen) {
+				std::cerr << "[ERROR] LowerAccDepthFlat overflow: flatPos=" << flatPos
+					<< ", need=" << L << ", flatLen=" << flatLen << std::endl;
+				return;
+			}
+
+			// 释放旧内存（避免重复加载时泄漏）
+			if (level.m_levelLowerAccDepth != nullptr) {
+				delete[] level.m_levelLowerAccDepth;
+				level.m_levelLowerAccDepth = nullptr;
+			}
+
+			level.m_levelLowerAccDepth = new(std::nothrow) float[L];
+			if (!level.m_levelLowerAccDepth) {
+				std::cerr << "[ERROR] new failed for m_levelLowerAccDepth, L=" << L << std::endl;
+				return;
+			}
+
+			for (int k = 0; k < L; ++k) {
+				level.m_levelLowerAccDepth[k] = m_HAND_LowerAccDepthFlat[flatPos + k];
+			}
+			flatPos += L;
+
+			// 强烈建议：在 Level 里保存长度（你如果没有这个字段，请加上）
+			// level.m_levelLowerAccDepthLen = L;
+		}
+
+		// ---- (可选) 构造 handIds：这里用 “数组下标 i” 当作 ID ----
+		// 如果你有真实 HRU_ID 数组（例如 m_HAND_HRU_ID[i]），把 i 换成真实值即可。
+		if (buildHandIds) {
+			idsTmp[{sbid, lev}].push_back(i);
+		}
+	}
+
+	// 6) 如果需要 handIds：统一分配、写入
+	if (buildHandIds) {
+		for (auto& kv : idsTmp) {
+			int sbid = kv.first.first;
+			int lev = kv.first.second;
+			auto& ids = kv.second;
+
+			Level& level = m_Hands[sbid].levels[lev];
+
+			// 释放旧 handIds
+			if (level.handIds != nullptr) {
+				delete[] level.handIds;
+				level.handIds = nullptr;
+			}
+
+			level.m_levelHandNum = static_cast<int>(ids.size());
+			if (level.m_levelHandNum > 0) {
+				level.handIds = new(std::nothrow) int[level.m_levelHandNum];
+				if (!level.handIds) {
+					std::cerr << "[ERROR] new failed for level.handIds, n=" << level.m_levelHandNum << std::endl;
+					return;
+				}
+				for (int j = 0; j < level.m_levelHandNum; ++j) {
+					level.handIds[j] = ids[j];
+				}
+			}
+		}
+	}
+
+	// 7) flatPos 校验（可选但很有用）
+	if (flatPos != flatLen) {
+		std::cerr << "[WARN] LowerAccDepthFlat not fully consumed: flatPos="
+			<< flatPos << ", flatLen=" << flatLen << std::endl;
+	}
+
+	std::cout << "[INFO] Finished loading HAND levels from arrays. "
+		<< "cellsNum=" << cellsNum << ", flatLen=" << flatLen << std::endl;
+}
+
+
 void MUSK_CH_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_Hands) {
 	ifstream file(csvPath);
 	if (!file.is_open()) {
@@ -181,47 +369,8 @@ void MUSK_CH_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>
 	std::cout << "Finished loading Inundation data from file: " << csvPath << std::endl;
 }
 
-#ifdef _WIN32
-#include <windows.h>
-#include <stdlib.h>   // _fullpath
-#else
-#include <limits.h>   // PATH_MAX
-#include <unistd.h>   // getcwd
-#include <stdlib.h>   // realpath
-#endif
-
-static std::string ToAbsPath(const std::string& path) {
-#ifdef _WIN32
-	char buf[MAX_PATH] = { 0 };
-
-	// _fullpath 会把相对路径转成绝对路径（不要求文件一定存在）
-	if (_fullpath(buf, path.c_str(), MAX_PATH) != nullptr) {
-		return std::string(buf);
-	}
-	return path; // 失败就退回原样
-#else
-	// realpath 需要路径存在，否则返回 nullptr
-	char resolved[PATH_MAX] = { 0 };
-	if (realpath(path.c_str(), resolved) != nullptr) {
-		return std::string(resolved);
-	}
-
-	// 如果文件还不存在/realpath失败，则退化为：cwd + "/" + path（尽量给出绝对形式）
-	char cwd[PATH_MAX] = { 0 };
-	if (getcwd(cwd, sizeof(cwd)) != nullptr) {
-		// 如果 path 本身已经是绝对路径（以 / 开头），直接返回
-		if (!path.empty() && path[0] == '/') return path;
-		return std::string(cwd) + "/" + path;
-	}
-
-	return path;
-#endif
-}
-
 void MUSK_CH_HAND::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_Hands) {
 	ifstream infile(filename);
-	std::string abs_filename = ToAbsPath(filename);
-	std::cout << "[HAND] Loading file: " << abs_filename << std::endl;
 	if (!infile.is_open()) {
 		cerr << "Failed to open file: " << filename << endl;
 		return;
@@ -395,19 +544,16 @@ void MUSK_CH_HAND::InitialOutputs() {
 //	string txt_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/FloodStep.txt";
 //	string csv_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/InundationMap.csv";
 //#endif
-
-#ifdef _WIN32
-	std::string txt_filename = "data/poyang_lake1/rundata/FloodStep.txt";
-	std::string csv_filename = "data/poyang_lake1/rundata/InundationMap.csv";
-#else
-	std::string txt_filename = "data/poyang_lake1/rundata/FloodStep.txt";
-	std::string csv_filename = "data/poyang_lake1/rundata/InundationMap.csv";
-#endif
-
-	// load floodstep
-	LoadHandIdsToChHandLevels(txt_filename, m_Hands);
-	// load 
-	loadHandFromCSVIntoVector(csv_filename, m_Hands);
+	//// load floodstep
+	//LoadHandIdsToChHandLevels(txt_filename, m_Hands);
+	//// load 
+	//loadHandFromCSVIntoVector(csv_filename, m_Hands);
+	int lower_flat_len = 0;
+	for (int i = 0; i < m_nCells; i++)
+	{
+		lower_flat_len += (int)m_HAND_LowerAccDepthLen[i];
+	}
+	LoadHandLevelsFromArrays(m_nCells, lower_flat_len, m_Hands,NODATA_VALUE,TRUE);
     for (int i = 1; i <= m_nreach; i++) {
         m_qRchOut[i] = m_olQ2Rch[i];
         m_qsRchOut[i] = m_olQ2Rch[i];
@@ -668,7 +814,7 @@ void MUSK_CH_HAND::Set1DData(const char* key, const int n, float* data) {
     string sk(key);
     //check the input data
     if (StringMatch(sk, VAR_SUBBSN)) {
-        m_subbsnID = data;
+        m_subbsnID = data; 
     } else if (StringMatch(sk, VAR_SBPET)) {
         CheckInputSize(MID_MUSK_CH_HAND, key, n - 1, m_nreach);
         m_petSubbsn = data;
@@ -720,17 +866,55 @@ void MUSK_CH_HAND::Set1DData(const char* key, const int n, float* data) {
 		m_subbasinWtrDep = data;
 	}else if (StringMatch(sk, VAR_SUBBASIN_FLOODED_AREA)) {
 		m_subbasinInundationArea = data;
-	}else {
+	}
+	else if (StringMatch(sk, VAR_HAND_Subbasin)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_Subbasin = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_Flood_Level)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_Flood_Level = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_LevelDepth)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_LevelDepth = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_SumArea)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_SumArea = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_SumVolume)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_SumVolume = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_AvgDepth)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_AvgDepth = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_AccVolume)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_AccVolume = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_LowerAccDepthFlat)) {
+		m_HAND_LowerAccDepthFlat = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_LowerAccDepthLen)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_LowerAccDepthLen = data;
+	}
+	else {
         throw ModelException(MID_MUSK_CH_HAND, "Set1DData", "Parameter " + sk + " does not exist.");
     }
 }
 
 void MUSK_CH_HAND::Set2DData(const char* key, const int nrows, const int ncols, float** data) {
 	string sk(key);
-	CheckInputSize2D(MID_NUTR_TF, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
 	if (StringMatch(sk, VAR_SOILT)) {
+		CheckInputSize2D(MID_NUTR_TF, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
+
         m_soilTempprofile = data;
     }
+
 }
 
 void MUSK_CH_HAND::GetValue(const char* key, float* value) {

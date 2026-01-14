@@ -85,6 +85,16 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_SLOPE, UNIT_PERCENT, DESC_SLOPE, Source_ParameterDB, DT_Raster1D);
 	mdi.AddParameter("ep_ch_1d", UNIT_WTRDLT_MMH, DESC_EP_CH, Source_ParameterDB, DT_Raster1D);
 
+	mdi.AddParameter(VAR_HAND_Subbasin, UNIT_NON_DIM, DESC_HAND_Subbasin, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_Flood_Level, UNIT_NON_DIM, DESC_HAND_Flood_Level, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_LevelDepth, UNIT_LEN_M, DESC_HAND_LevelDepth, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_SumArea, UNIT_AREA_M2, DESC_HAND_SumArea, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_SumVolume, UNIT_VOL_M3, DESC_HAND_SumVolume, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_AvgDepth, UNIT_LEN_M, DESC_HAND_AvgDepth, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_AccVolume, UNIT_VOL_M3, DESC_HAND_AccVolume, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_LowerAccDepthFlat, UNIT_LEN_M, DESC_HAND_LowerAccDepthFlat, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_LowerAccDepthLen, UNIT_NON_DIM, DESC_HAND_LowerAccDepthLen, Source_ParameterDB, DT_Raster1D);
+
     mdi.AddInput(VAR_PCP, UNIT_DEPTH_MM, DESC_PCP, Source_Module, DT_Raster1D); 
     mdi.AddInput(VAR_PET, UNIT_WTRDLT_MMD, DESC_PET, Source_Module, DT_Raster1D);
 	//mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);   // xiaodw comment, don't need soil temperature now
