@@ -115,6 +115,7 @@ private:
     float* m_chBedGravel; ///< Fraction of gravel in channel bed sediment
 
     map<int, vector<int> > m_reachLayers; ///< Reach layers according to \a LayeringMethod
+
     /*!
      * Index of upstream Ids (The value is -1 if there if no upstream reach)
      * m_reachUpStream.size() = N+1

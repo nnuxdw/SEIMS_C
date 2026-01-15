@@ -2239,6 +2239,20 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_SOL_ANOXIC                       "CH4_SOL_ANOXIC"
 #define DESC_SOL_ANOXIC                      "Anoxic degree in each cell"
 #define VAR_GWSUBAREA                        "GWSUBAREA"
+#define VAR_SOILSAT_L1                       "SOILSAT_L1"
+#define DESC_SOILSAT_L1                      "The saturation of soil layer 1"
+#define VAR_SOILSAT_L2                       "SOILSAT_L2"
+#define DESC_SOILSAT_L2                      "The saturation of soil layer 2"
+#define VAR_SOILSAT_L3                       "SOILSAT_L3"
+#define DESC_SOILSAT_L3                      "The saturation of soil layer 3"
+#define VAR_SOILSAT_L4                       "SOILSAT_L4"
+#define DESC_SOILSAT_L4                      "The saturation of soil layer 4"
+#define VAR_SOILSAT_L5                       "SOILSAT_L5"
+#define DESC_SOILSAT_L5                      "The saturation of soil layer 5"
+#define VAR_SOILSAT_L6                       "SOILSAT_L6"
+#define DESC_SOILSAT_L6                      "The saturation of soil layer 6"
+#define VAR_SOILSAT_L7                       "SOILSAT_L7"
+#define DESC_SOILSAT_L7                      "The saturation of soil layer 7"
 
 
 //////////////////////////////////////////////////////////////////////////

@@ -404,6 +404,10 @@ void SUR_MR::Get1DData(const char* key, int* n, float** data) {
 		m_chSto[0] = m_chSto[m_outletID];
 		*data = m_chSto;
 	}
+	else if (StringMatch(sk, VAR_DPST)) {
+		//m_chSto[0] = m_chSto[m_outletID];
+		*data = m_deprSto;
+	}
 	else {
         throw ModelException(MID_SUR_MR, "Get1DData", "Result " + sk + " does not exist.");
     }

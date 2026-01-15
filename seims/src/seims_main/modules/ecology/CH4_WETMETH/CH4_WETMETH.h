@@ -58,7 +58,8 @@ public:
 	void Initialize(int num_layers);
 
 	// Calculate methane production for the current soil column
-	float SoilColMethane(int cell_idx);
+	//float SoilColMethane(int cell_idx);
+	float SoilColMethane(int cell_idx, float &CH4_before);
 
 	// Calculate soil saturation ratio for each layer
 	void calculate_soil_saturation(int cell_idx);
@@ -119,14 +120,27 @@ private:
 
 	// Input data from other modules
 	float *m_area;                  // Area of each cell (m²)
-	float **m_layer_thickness;     // Thickness of each soil layer (mm) - from VAR_SOILTHICK
-	float **m_soil_water_storage; // Water storage in each soil layer (mm H2O) - from VAR_SOL_ST
-	float **m_soil_saturated;    // Saturated water capacity of each layer (mm H2O) - from VAR_SOL_UL
-	float **m_soilWP;           // Water content of soil at -1.5 MPa (wilting point) - from VAR_SOL_WPMM
-	float **m_soilPor;         // porosity mm/mm
-	// float **m_Soc;         // Soil organic matter content (%) - from VAR_SOL_OM (commented out, using VAR_SOL_WOC instead)
-	float **m_Soc_kg_ha;     // Soil organic carbon content (kg/ha) - from VAR_SOL_WOC
-	float **m_Tsoil;        // Temperature of each soil layer (°C) - from VAR_SOTE
+	float **m_layer_thickness;      // Thickness of each soil layer (mm) - from VAR_SOILTHICK
+	float **m_soil_water_storage;   // Water storage in each soil layer (mm H2O) - from VAR_SOL_ST
+	float **m_soil_saturated;       // Saturated water capacity of each layer (mm H2O) - from VAR_SOL_UL
+	float **m_soilWP;               // Water content of soil at -1.5 MPa (wilting point) - from VAR_SOL_WPMM
+	float **m_soilPor;              // porosity mm/mm
+	// float **m_Soc;               // Soil organic matter content (%) - from VAR_SOL_OM (commented out, using VAR_SOL_WOC instead)
+	float **m_Soc_kg_ha;            // Soil organic carbon content (kg/ha) - from VAR_SOL_WOC
+	float **m_Tsoil;                // Temperature of each soil layer (°C) - from VAR_SOTE
+
+	float *m_infil;            // m_infil, Infiltration
+	float *m_netPcp;           // net precipitation of each cell (mm)
+	float *m_sd;               // depression storage
+	float *m_soilET;           // actual soil evaporation
+	float *m_IntcpET;          // Evaporation loss from intercepted rainfall, mm
+	float *m_exsPcp;           // the excess precipitation (mm) of the total nCells, which could be depressed or generated surface runoff
+	float *m_handWtrDep;       // Water depth of each hand(m), initialized by m_bankSto
+	//float *m_ifluQ2Rch;        // subsurface to streams from each subbasin, the first element is the whole watershed, m3/s, VAR_SBIF
+	float **m_soilPerco;       // the amount of water percolated from the soil water reservoir
+	float **m_subSurfRf;       // subsurface runoff (mm), VAR_SSRU
+
+
 
 	// Soil column objects
 	SoilCol *m_SoilCols;         // Array of soil column objects
@@ -135,8 +149,17 @@ private:
 	float *m_P_soilcol;            // CH4 production for each soil column (kg C/s)
 	float *m_P_soilcol_flux;       // CH4 flux for each soil column (kg C/s)
 	float m_total_CH4;             // Total CH4 production for all cells (kg C/s)
-};
 
+	float *m_satL1;		//first
+	float *m_satL2;		//first
+	float *m_satL3;		//first
+	float *m_satL4;		//first
+	float *m_satL5;		//first
+	float *m_satL6;		//first
+	float *m_satL7;		//first
+
+
+};
 
 
 

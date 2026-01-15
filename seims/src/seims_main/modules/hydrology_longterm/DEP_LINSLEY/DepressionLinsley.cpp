@@ -40,6 +40,17 @@ void DepressionFSDaily::InitialOutputs() {
 #pragma omp parallel for
         for (int i = 0; i < m_nCells; i++) {
             m_sd[i] = m_depCo * m_depCap[i];
+
+			/*if (i >= 629 && i <= 644) {
+#pragma omp critical
+				std::cout
+					<< "[DEP_INIT] cell=" << i
+					<< " depCo=" << m_depCo
+					<< " depCap=" << m_depCap[i]
+					<< " sd_init=" << m_sd[i]
+					<< std::endl;
+			}*/
+
         }
     }
 }
@@ -63,11 +74,45 @@ int DepressionFSDaily::Execute() {
 		if (m_depCap[i] < 0.001f) {
 			m_sr[i] = m_pe[i];
 			m_sd[i] = 0.f;
+
+			/*if (i >= 629 && i <= 644) {
+#pragma omp critical
+				{
+					std::cout << std::fixed << std::setprecision(7)
+						<< "[DEP_RUNOFF] cell=" << i
+						<< " depCap=" << m_depCap[i]
+						<< " depCo=" << m_depCo
+						<< " pe=" << m_pe[i]
+						<< " sd(after)=" << m_sd[i]
+						<< " sr(after)=" << m_sr[i]
+						<< " depDeficit(before)=" << depDeficit
+						<< " branch=depCap<0.001"
+						<< std::endl;
+				}
+			}*/
+
 		}
 		// xiaodw, if depDeficit is zero, there will be a false number, thus depDeficit should be larger that 0.001f
 		else if (depDeficit < 0.001f) {
 			m_sd[i] = m_depCap[i];
 			m_sr[i] = m_pe[i];
+
+			/*if (i >= 629 && i <= 644) {
+#pragma omp critical
+				{
+					std::cout << std::fixed << std::setprecision(7)
+						<< "[DEP_RUNOFF] cell=" << i
+						<< " depCap=" << m_depCap[i]
+						<< " depCo=" << m_depCo
+						<< " pe=" << m_pe[i]
+						<< " sd(after)=" << m_sd[i]
+						<< " sr(after)=" << m_sr[i]
+						<< " depDeficit(before)=" << depDeficit
+						<< " branch=deficit<0.001"
+						<< std::endl;
+				}
+			}*/
+
 		}
 		else if (m_pe[i] > 0.f ) {
 			float pc = m_pe[i] - m_depCap[i] * log(1.f - m_sd[i] / m_depCap[i]);
@@ -77,10 +122,46 @@ int DepressionFSDaily::Execute() {
 			}
 			m_sd[i] += deltaSd;
 			m_sr[i] = m_pe[i] - deltaSd;
+
+			/*if (i >= 629 && i <= 644) {
+#pragma omp critical
+				{
+					std::cout << std::fixed << std::setprecision(7)
+						<< "[DEP_RUNOFF] cell=" << i
+						<< " depCap=" << m_depCap[i]
+						<< " depCo=" << m_depCo
+						<< " pe=" << m_pe[i]
+						<< " depDeficit(before)=" << depDeficit
+						<< " pc=" << pc
+						<< " deltaSd=" << deltaSd
+						<< " sd(after)=" << m_sd[i]
+						<< " sr(after)=" << m_sr[i]
+						<< " branch=pe>0"
+						<< std::endl;
+				}
+			}*/
+
 		}
 		else {
 			m_sd[i] += m_pe[i];
 			m_sr[i] = 0.f;
+
+			/*if (i >= 629 && i <= 644) {
+#pragma omp critical
+				{
+					std::cout << std::fixed << std::setprecision(7)
+						<< "[DEP_RUNOFF] cell=" << i
+						<< " depCap=" << m_depCap[i]
+						<< " depCo=" << m_depCo
+						<< " pe=" << m_pe[i]
+						<< " sd(after)=" << m_sd[i]
+						<< " sr(after)=" << m_sr[i]
+						<< " depDeficit(before)=" << depDeficit
+						<< " branch=pe<=0"
+						<< std::endl;
+				}
+			}*/
+
 		}
 
         //////////////////////////////////////////////////////////////////////////
@@ -102,6 +183,21 @@ int DepressionFSDaily::Execute() {
 			m_ed[i] = 0.f;
 			m_sd[i] = 0.f;
 		}
+
+		/*if (i >= 629 && i <= 644) {
+#pragma omp critical
+			{
+				std::cout << std::fixed << std::setprecision(7)
+					<< "[DEP_EVAP]   cell=" << i
+					<< " pet=" << m_pet[i]
+					<< " ei=" << m_ei[i]
+					<< " hand_eavp=" << m_hand_eavp[i]
+					<< " ed=" << m_ed[i]
+					<< " sd(after_evap)=" << m_sd[i]
+					<< std::endl;
+			}
+		}*/
+
         if (m_impoundTriger != nullptr && FloatEqual(m_impoundTriger[i], 0.f)) {
             if (m_potVol != nullptr) {
                 m_potVol[i] += m_sr[i];
@@ -110,6 +206,19 @@ int DepressionFSDaily::Execute() {
                 m_sd[i] = 0.f;
             }
         }
+
+		/*if (i >= 629 && i <= 644) {
+#pragma omp critical
+			{
+				std::cout << std::fixed << std::setprecision(7)
+					<< "[DEP_FINAL]  cell=" << i
+					<< " sd(final)=" << m_sd[i]
+					<< " sr(final)=" << m_sr[i]
+					<< " ed(final)=" << m_ed[i]
+					<< std::endl;
+			}
+		}*/
+
     }
     return true;
 }

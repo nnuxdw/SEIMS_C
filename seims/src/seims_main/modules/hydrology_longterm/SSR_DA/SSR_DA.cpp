@@ -82,10 +82,22 @@ bool SSR_DA::FlowInSoil(const int id) {
             qUp = 0.f;
             qUpVol = 0.f;
         }
+
+//		// ✅ 就放这里：保证后面即使 continue 也能打印
+//		if (id >= 629 && id <= 644) {
+//#pragma omp critical
+//			std::cout << "[SSR_UP] cell=" << id << " lyr=" << j
+//				<< " qUp(mm)=" << qUp << " qUpVol(m3)=" << qUpVol
+//				<< " flowWidth=" << flowWidth
+//				<< " landuse=" << m_landUse[id]
+//				<< std::endl;
+//		}
+
         //if(id<5 && j==0) cout<<m_soilAWC[id][j]<<endl;
         // if the flowWidth is less than 0, the subsurface flow from the upstream cells
         // should be added to stream cell directly, which will be summarized
         // for channel flow routing. By lj, 2018-4-12
+
         if (flowWidth <= 0.f || m_landUse[id] ==LANDUSE_ID_WATR) {
             m_subSurfRf[id][j] = qUp;
             m_subSurfRfVol[id][j] = qUpVol;
@@ -213,6 +225,39 @@ bool SSR_DA::FlowInSoil(const int id) {
             m_subSurfRf[id][j] = sw_excess * (1. - ratio);
         }
 
+//		if (id >= 629 && id <= 644) {
+//#pragma omp critical
+//			{
+//				float perco_from_above = (j > 0) ? m_soilPerco[id][j - 1] : 0.f; // 上一层向本层的渗漏(本步已经算过上一层时会有值)
+//				std::cout << "[SSR_PERCO] cell=" << id
+//					<< " lyr=" << j
+//					<< " qUp(mm)=" << qUp
+//					<< " SW(mm)=" << m_soilWtrSto[id][j]
+//					<< " AWC(mm)=" << m_soilAWC[id][j]
+//					<< " SAT(mm)=" << m_soilSat[id][j]
+//					<< " perco_out(mm)=" << m_soilPerco[id][j]          // ✅ 本层向下一层渗漏
+//					<< " perco_in(mm)=" << perco_from_above             // ✅ 上一层渗进本层
+//					<< " iflu_gen(mm)=" << m_subSurfRf[id][j]           // 本层生成的侧向壤中流(进入滞后库之前的量)
+//					<< std::endl;
+//			}
+//		}
+
+		/*if (id >= 629 && id <= 644) {
+#pragma omp critical
+			{
+				std::cout << "[SSR_K] cell=" << id
+					<< " lyr=" << j
+					<< " Ks_perc=" << m_ks[id][j]          
+					<< " k_iflu=" << k                   
+					<< " SW=" << m_soilWtrSto[id][j]
+					<< " AWC=" << m_soilAWC[id][j]
+					<< " SAT=" << m_soilSat[id][j]
+					<< " subSurfRf=" << m_subSurfRf[id][j]
+					<< " perco=" << m_soilPerco[id][j]
+					<< std::endl;
+			}
+		}*/
+
         m_soilWtrSto[id][j] -= m_soilPerco[id][j];
         m_soilWtrSto[id][j] -= m_subSurfRf[id][j];
 		float soilWtrStoNexLyrOld = 0.0f;
@@ -223,6 +268,18 @@ bool SSR_DA::FlowInSoil(const int id) {
         m_subSurfRf[id][j] = m_cellFlow[id][j] *  m_TTlag[id][j];  //this time step
         m_cellFlow[id][j] -= m_subSurfRf[id][j];
         m_cellFlow[id][j] = Max(m_cellFlow[id][j],0.f);
+
+//		if (id >= 629 && id <= 644) {
+//#pragma omp critical
+//			{
+//				std::cout << "[SSR_OUT] cell=" << id
+//					<< " lyr=" << j
+//					<< " iflu_out(mm)=" << m_subSurfRf[id][j]     // ✅ 本步壤中流实际流出
+//					<< " iflu_store(mm)=" << m_cellFlow[id][j]    // 可选：剩余滞留（下步再出）
+//					<< " TTlag=" << m_TTlag[id][j]
+//					<< std::endl;
+//			}
+//		}
 
        // m_subSurfRfVol[id][j] = m_subSurfRf[id][j] * 0.001f * m_CellWth * flowWidth; //m3
 		m_subSurfRfVol[id][j] = m_subSurfRf[id][j] * 0.001f * m_area[id]; //ljj change for field

@@ -35,11 +35,29 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);
 	mdi.AddInput(VAR_SOL_WOC, UNIT_CONT_KGHA, DESC_SOL_WOC, Source_Module, DT_Raster2D);
 
+	mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Raster1D);        // hand水深(m)
+	mdi.AddInput(VAR_INFIL, UNIT_DEPTH_MM, DESC_INFIL, Source_Module, DT_Raster1D);              // 入渗(mm)
+	mdi.AddInput(VAR_NEPR, UNIT_DEPTH_MM, DESC_NEPR, Source_Module, DT_Raster1D);                 // from interception module,净降水(mm)
+	mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Array2D);              // 渗漏(mm)
+	mdi.AddInput(VAR_SSRU, UNIT_DEPTH_MM, DESC_SSRU, Source_Module_Optional, DT_Raster2D);      // 壤中流(mm)
+	mdi.AddInput(VAR_DPST, UNIT_DEPTH_MM, DESC_DPST, Source_Module, DT_Raster1D);               // depression storage(mm)
+	mdi.AddInput(VAR_INET, UNIT_DEPTH_MM, DESC_INET, Source_Module, DT_Raster1D);               // Evaporation from intercepted storage
+	mdi.AddInput(VAR_EXCP, UNIT_DEPTH_MM, DESC_EXCP, Source_Module, DT_Raster1D);                //Excess precipitation
+	//mdi.AddInput(VAR_SBIF, UNIT_FLOW_CMS, DESC_SBIF, Source_Module, DT_Array1D);
+	mdi.AddInput(VAR_SOET, UNIT_DEPTH_MM, DESC_SOET, Source_Module, DT_Raster1D);               // actual soil evaporation
 
     /// Set output variables of the current module
 	mdi.AddOutput(VAR_CH4_PRODUCTION, UNIT_G_M2_HOUR, DESC_CH4_PRODUCTION, DT_Raster1D);
 	mdi.AddOutput(VAR_CH4_EMISSION_FLUX, UNIT_G_M2_HOUR, DESC_CH4_EMISSION_FLUX, DT_Raster1D);
 	mdi.AddOutput(VAR_CH4_TOTAL, UNIT_G_M2_HOUR, DESC_CH4_TOTAL, DT_Single);
+
+	mdi.AddOutput(VAR_SOILSAT_L1, UNIT_WAT_RATIO, DESC_SOILSAT_L1, DT_Raster1D);
+	mdi.AddOutput(VAR_SOILSAT_L2, UNIT_WAT_RATIO, DESC_SOILSAT_L2, DT_Raster1D);
+	mdi.AddOutput(VAR_SOILSAT_L3, UNIT_WAT_RATIO, DESC_SOILSAT_L3, DT_Raster1D);
+	mdi.AddOutput(VAR_SOILSAT_L4, UNIT_WAT_RATIO, DESC_SOILSAT_L4, DT_Raster1D);
+	mdi.AddOutput(VAR_SOILSAT_L5, UNIT_WAT_RATIO, DESC_SOILSAT_L5, DT_Raster1D);
+	mdi.AddOutput(VAR_SOILSAT_L6, UNIT_WAT_RATIO, DESC_SOILSAT_L6, DT_Raster1D);
+	mdi.AddOutput(VAR_SOILSAT_L7, UNIT_WAT_RATIO, DESC_SOILSAT_L7, DT_Raster1D);
 
 
     /// Write out the XML file.

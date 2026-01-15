@@ -352,8 +352,8 @@ void MUSK_CH::InitialOutputs() {
 	m_lakearea = new(nothrow) float[m_nreach + 1];
 
 #ifdef _WIN32
-	string txt_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/FloodStep.txt";
-	string csv_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/InundationMap.csv";
+	string txt_filename = "D:/SEIMS_C/data/Cottonwood/rundata/FloodStep.txt";
+	string csv_filename = "D:/SEIMS_C/data/Cottonwood/rundata/InundationMap.csv";
 #else
 	string txt_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/FloodStep.txt";
 	string csv_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/InundationMap.csv";
