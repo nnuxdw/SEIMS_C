@@ -88,13 +88,15 @@ elif step == 'TEST':
     multiobj.setdefault('SOTE200_12', [['NSE', 1., -100, '>0'], ['R-square', 1., -100, '>0']])
 #######
 else:
+    multiobj.setdefault('Q_123', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('F_123', [['NSE', 1., -100, '>0']])
     # Customize your own multiobjective here, such as:
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0.'],
     #                           ['RSR', -1., 2., '<2.'],
     #                           ['PBIAS', -1., 50., '<50.']])
     # multiobj.setdefault('Q_322', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
-    multiobj.setdefault('Q_123', [['NSE', 1., -100, '>0']])
+
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_214', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_255', [['NSE', 1., -100, '>0']])
@@ -102,7 +104,7 @@ else:
     # multiobj.setdefault('Q_457', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('F_322', [['FI', 1., -1.], ['BI', -1., 2.]])
     # multiobj.setdefault('F_322', [['NSE', 1., -100, '>0']])
-    # multiobj.setdefault('F_123', [['NSE', 1., -100, '>0']])
+
     # multiobj.setdefault('F_214', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('F_1171', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('F_1171', [['FI', 1., -1.], ['BI', -1., 2.]])

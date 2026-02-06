@@ -8,7 +8,7 @@ SET_LM::SET_LM() :
     m_pet(nullptr), m_IntcpET(nullptr),
     m_deprStoET(nullptr), m_maxPltET(nullptr), m_soilTemp(nullptr),
     m_soilFrozenTemp(NODATA_VALUE),
-    m_soilET(nullptr),m_soilAWC(nullptr), m_handWtrDep(nullptr), m_subbsnID(nullptr), m_chSto(nullptr), m_handArea(nullptr), m_hand_eavp(nullptr) {
+    m_soilET(nullptr),m_soilAWC(nullptr), m_handWtrDep(nullptr), m_subbsnID(nullptr), m_handArea(nullptr), m_hand_eavp(nullptr) {
 }
 
 SET_LM::~SET_LM() {
@@ -85,22 +85,12 @@ void SET_LM::Get1DData(const char* key, int* nRows, float** data) {
 	else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
 		*data = m_handWtrDep;
 	}
-	else if (StringMatch(s, VAR_CHST)) {
-		m_chSto[0] = m_chSto[m_outletID];
-		*data = m_chSto;
-	}
     else {
         throw ModelException(MID_SET_LM, "Get1DData", "Result " + s + " does not exist.");
     }
     *nRows = m_nCells;
 }
 
-void SET_LM::SetReaches(clsReaches* reaches) {
-	if (nullptr == reaches) {
-		throw ModelException(MID_MUSK_CH, "SetReaches", "The reaches input can not to be NULL.");
-	}
-	m_nreach = reaches->GetReachNumber();
-}
 
 void SET_LM::SetValue(const char* key, const float value) {
     string s(key);
@@ -145,11 +135,6 @@ void SET_LM::Set1DData(const char* key, const int n, float* data) {
 	else if (StringMatch(s, VAR_SUBBSN)) {
 		CheckInputSize(MID_SET_LM, key, n, m_nCells);
 		m_subbsnID = data;
-	}
-	else if (StringMatch(s, VAR_CHST)) {
-		// 注意这里按你的要求用的是 n - 1 和 m_nreach
-		CheckInputSize(MID_SET_LM, key, n - 1, m_nreach);
-		m_chSto = data;
 	}
 	else if (StringMatch(s, VAR_AHRU)) {
 		CheckInputSize(MID_SET_LM, key, n, m_nCells);

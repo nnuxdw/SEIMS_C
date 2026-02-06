@@ -1096,6 +1096,206 @@ def run_obs_area_vs_fi_bi_scatter(
         suptitle_fontsize=18,
     )
 
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+from typing import Optional, Union, Tuple
+
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+from typing import Optional, Union, Tuple
+
+def plot_bi_hist_proportion_sci(
+    sim_dir: Union[str, Path],
+    obs_dir: Union[str, Path],
+    out_png: Union[str, Path],
+    out_pdf: Optional[Union[str, Path]] = None,
+    sim_thresh: float = 0.0,
+    obs_thresh: float = 0.0,
+    debug: bool = False,
+    bin_width: float = 0.1,
+    x_range: Optional[Tuple[float, float]] = (-0.5, 0.6),
+    title: str = "Distribution of BI",
+    dpi: int = 600,
+    figsize: Tuple[float, float] = (4.2, 3.2),
+
+    # ---- 配色（Origin/顶刊清爽风）----
+    fill_color: str = "#9ABAF4",
+    edge_color: str = "#3E5FA8",
+    grid_color: str = "#D0D0D0",
+
+    # ---- 你这次要求：去掉灰色线 ----
+    show_zero_line: bool = False,   # 默认不画 0 参考线（避免出现你说的灰线）
+
+    # ---- 统计注释框（顶刊常用）----
+    annotate_share: bool = True,
+    thr1: float = 0.1,
+    thr2: float = 0.2,
+
+    # ---- 字体：Times New Roman（新罗马）----
+    font_family: str = "Times New Roman",
+):
+    """
+    顶刊风格：BI 总体分布柱状图（y=比例），柱子严格对应 [x, x+bin_width) 区间。
+    - 去掉多余灰色竖线：show_zero_line=False
+    - 所有文字统一 Times New Roman
+    - Python 3.7 兼容
+    """
+
+    # ===== 1) 读取 BI 数据 =====
+    _, _, records = collect_fi_bi_by_month(
+        sim_dir=sim_dir,
+        obs_dir=obs_dir,
+        sim_thresh=sim_thresh,
+        obs_thresh=obs_thresh,
+        debug=debug
+    )
+
+    bi_vals = []
+    for r in records:
+        if isinstance(r, (tuple, list)) and len(r) >= 3:
+            bi = r[2]
+        elif isinstance(r, dict) and "BI" in r:
+            bi = r["BI"]
+        else:
+            bi = getattr(r, "BI", None)
+
+        if bi is None:
+            continue
+        if np.isfinite(bi):
+            bi_vals.append(float(bi))
+
+    if not bi_vals:
+        raise ValueError("没有提取到任何有效 BI 值，请检查 records 或阈值设置。")
+
+    bi_vals = np.asarray(bi_vals, dtype=float)
+
+    # ===== 2) bins（严格 0.1 间隔）=====
+    if x_range is None:
+        xmin = np.floor(bi_vals.min() / bin_width) * bin_width
+        xmax = np.ceil(bi_vals.max() / bin_width) * bin_width
+    else:
+        xmin, xmax = x_range
+
+    edges = np.arange(xmin, xmax + bin_width * 1.0001, bin_width)
+    edges = np.round(edges, 10)  # 避免浮点误差
+    counts, _ = np.histogram(bi_vals, bins=edges)
+    total = int(counts.sum())
+    proportions = counts / total
+
+    # ===== 3) 顶刊风格绘图（统一 Times New Roman）=====
+    rc = {
+        "font.family": font_family,
+        "font.size": 11,
+        "axes.titlesize": 13,
+        "axes.labelsize": 12,
+        "axes.linewidth": 1.0,
+        "xtick.labelsize": 11,
+        "ytick.labelsize": 11,
+        "xtick.major.width": 1.0,
+        "ytick.major.width": 1.0,
+        "xtick.major.size": 4,
+        "ytick.major.size": 4,
+        "savefig.transparent": False,
+    }
+
+    out_png = Path(out_png)
+    if out_pdf is not None:
+        out_pdf = Path(out_pdf)
+
+    with plt.rc_context(rc):
+        fig, ax = plt.subplots(figsize=figsize)
+
+        # 柱子严格对应 [edge, edge+0.1)
+        ax.bar(
+            edges[:-1],
+            proportions,
+            width=bin_width,
+            align="edge",
+            color=fill_color,
+            edgecolor=edge_color,
+            linewidth=0.9,
+            alpha=0.92
+        )
+
+        # y 网格：淡、细、只在 y
+        ax.grid(axis="y", linestyle="--", linewidth=0.7, color=grid_color, alpha=0.55)
+        ax.grid(axis="x", visible=False)
+
+        # 去掉上/右边框
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+
+
+        # 你说的灰线：默认不画（需要时再打开）
+        if show_zero_line:
+            ax.axvline(0.0, linewidth=1.0, color="#666666", alpha=0.9, zorder=0)
+
+        # 标题和标签
+        ax.set_title(title, pad=8)
+        ax.set_xlabel("BI")
+        ax.set_ylabel("Proportion")
+
+        # x 轴刻度标在边界上
+        ax.set_xlim(edges[0], edges[-1])
+        ax.set_xticks(edges)
+
+        def fmt_tick(x: float, eps: float = 1e-12) -> str:
+            # 把 -0.0 / 0.0 统一成 0
+            if abs(x) < eps:
+                x = 0.0
+            return "{:.1f}".format(x)
+
+        ax.set_xticklabels([fmt_tick(x) for x in ax.get_xticks()])
+
+        # y 轴范围
+        ymax = float(proportions.max()) if total > 0 else 0.0
+        ax.set_ylim(0.0, max(0.05, ymax * 1.12))
+
+        ax.tick_params(direction="out")
+
+        # 统计注释框（文字也会是 Times New Roman）
+        if annotate_share:
+            p1 = float(np.mean(np.abs(bi_vals) <= thr1))
+            p2 = float(np.mean(np.abs(bi_vals) <= thr2))
+            txt = (
+                "|BI| ≤ {t1:.1f}: {p1:.1f}%\n"
+                "|BI| ≤ {t2:.1f}: {p2:.1f}%"
+            ).format(n=total, t1=thr1, p1=p1 * 100, t2=thr2, p2=p2 * 100)
+
+            ax.text(
+                0.02, 0.95, txt,
+                transform=ax.transAxes,
+                va="top", ha="left",
+                fontsize=11,
+                bbox=dict(boxstyle="round,pad=0.35", facecolor="white",
+                          edgecolor="#BDBDBD", linewidth=1.0, alpha=0.92)
+            )
+
+        fig.tight_layout()
+
+        out_png.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(str(out_png), dpi=dpi, bbox_inches="tight")
+
+        if out_pdf is not None:
+            out_pdf.parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(str(out_pdf), bbox_inches="tight")
+
+        plt.close(fig)
+
+    return {
+        "n": total,
+        "bin_width": float(bin_width),
+        "x_range": (float(edges[0]), float(edges[-1])),
+        "counts": counts,
+        "proportions": proportions,
+    }
+
+
+
+
 if __name__ == '__main__':
     if os.name == 'nt':  # Windows
         base_path = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model_1171'
@@ -1110,28 +1310,41 @@ if __name__ == '__main__':
     inundation_base_path = os.path.join(base_path, '淹没范围绘图')
     clip_sim_dir = os.path.join(inundation_base_path, 'cliped_sim_tif')
     clip_obs_dir = os.path.join(inundation_base_path, 'cliped_obs_tif')
-    # 5. 每个月的FI BI绘制半小提琴图
+    # 5. 每个月的FI BI绘制小提琴图
     violin_png_path = os.path.join(inundation_base_path, 'plot_violin', 'poyang_violin.png')
     violin_pdf_path = os.path.join(inundation_base_path, 'plot_violin', 'poyang_violin.pdf')
-    run_monthly_fi_bi_half_violin(
-        sim_dir=clip_sim_dir,
-        obs_dir=clip_obs_dir,
-        out_png=violin_png_path,
-        out_pdf=violin_pdf_path,
-        sim_thresh=0.1,
-        obs_thresh=0.1,
-        debug=True
-    )
+    # run_monthly_fi_bi_half_violin(
+    #     sim_dir=clip_sim_dir,
+    #     obs_dir=clip_obs_dir,
+    #     out_png=violin_png_path,
+    #     out_pdf=violin_pdf_path,
+    #     sim_thresh=0.1,
+    #     obs_thresh=0.1,
+    #     debug=True
+    # )
     # 6. 画出散点图
     scatter_png_path = os.path.join(inundation_base_path, 'plot_violin', 'poyang_scatter.png')
     scatter_pdf_path = os.path.join(inundation_base_path, 'plot_violin', 'poyang_scatter.pdf')
-    run_obs_area_vs_fi_bi_scatter(
+    # run_obs_area_vs_fi_bi_scatter(
+    #     sim_dir=clip_sim_dir,
+    #     obs_dir=clip_obs_dir,
+    #     out_png=scatter_png_path,
+    #     out_pdf=scatter_pdf_path,
+    #     sim_thresh=0.1,
+    #     obs_thresh=0.1,
+    #     debug=True
+    # )
+    # 7. 画出BI柱状分布图
+    box_png_path = os.path.join(inundation_base_path, 'plot_violin', 'poyang_box.png')
+    box_pdf_path = os.path.join(inundation_base_path, 'plot_violin', 'poyang_box.pdf')
+    plot_bi_hist_proportion_sci(
         sim_dir=clip_sim_dir,
         obs_dir=clip_obs_dir,
-        out_png=scatter_png_path,
-        out_pdf=scatter_pdf_path,
-        sim_thresh=0.1,
-        obs_thresh=0.1,
-        debug=True
+        out_png=box_png_path,
+        out_pdf=box_pdf_path,
+        bin_width=0.1,
+        x_range=(-0.5, 0.5),
+        # title="Distribution of BI",
+        title="",
     )
 

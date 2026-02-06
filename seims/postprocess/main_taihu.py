@@ -16,17 +16,14 @@ if os.path.abspath(os.path.join(sys.path[0], '..')) not in sys.path:
 
 from postprocess.config import parse_ini_configuration
 from postprocess.plot_timeseries import TimeSeriesPlots
-from postprocess.plot_timeseries import plot_runoff_components
-from postprocess.plot_timeseries import plot_runoff_difference
-from postprocess.plot_timeseries import plot_multi_source_soil_layers
-from postprocess.plot_timeseries import compute_nse_with_sim_and_obs,read_runoff_file,plot_obs_vs_sim,plot_obs_vs_sim_scatter_xy
-from postprocess.plot_timeseries import get_upstream_subbasins,fetch_upstream_avg_series,plot_series
+from postprocess.plot_timeseries import read_runoff_file
+from postprocess.plot_timeseries import read_simulation_only,plot_sim_only
 
 
 def main():
     ###--------------------xiaodw, plot Q,QI,QS,QG into one chart
-    # subbasin_id = 1
-    subbasin_id = 1171
+    subbasin_id = 7
+    # subbasin_id = 1171
     file_dict = {
         "Surface Runoff": "QS.txt",
         "Interflow": "QI.txt",
@@ -34,47 +31,29 @@ def main():
         "Total Runoff": "Q.txt"
     }
     # basedir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\-90_124556_38_819347_longterm_model\OUTPUT0_base'
-    basedir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\OUTPUT0'
+    basedir = r'G:\program\seims\SEIMS_HAND\data\TH_4\TH_4_longterm_model\OUTPUT0-0'
     # plot_runoff_components(basedir,file_dict,subbasin_id)
     # plot_runoff_difference(basedir,file_dict,subbasin_id)
 
     ###--------------------xiaodw, plot Q and observation into one chart and calculate nse
-    mongo_uri ="mongodb://localhost:27017"
-    db_name = "poyang_lake1_HydroClimate"
-    collection = "MEASUREMENT"
-    nse, merged = compute_nse_with_sim_and_obs(
+
+    merged = read_simulation_only(
         basedir=basedir,
         file_dict=file_dict,
-        mongo_uri=mongo_uri,
-        db_name=db_name,
-        collection=collection,
-        station_field="STATIONID",
         station_id=subbasin_id,
-        time_field="UTCDATETIME",
-        value_field="VALUE",
-        invalid_values=("NONE", None, "", "NaN"),
-        tz=None,  # 如果你想把观测转为特定时区，填 "Asia/Shanghai" 等
         sim_label_for_nse="Total Runoff",
         read_runoff_file_func=read_runoff_file,
     )
 
-    print("NSE =", nse)
     # 时间分布图
-    plot_obs_vs_sim(
+    plot_sim_only(
         merged_df=merged,
         out_path=os.path.join(basedir, "Q_obs_vs_sim.png"),
         title="Hydrograph",
         ylabel="Discharge",
-        nse=nse,
         show=True
     )
-    # 散点图
-    plot_obs_vs_sim_scatter_xy(
-        merged_df=merged,
-        out_path=os.path.join(basedir, "obs_vs_sim_scatter.png"),
-        nse=nse,
-        show=True
-    )
+
     ###--------------------xiaodw, plot all upstream rainfall of one subbasinid
     # # 1) 找指定 SUBBASINID 的全部上游
     # upstream_ids = get_upstream_subbasins(mongo_uri, target_subbasin_id=subbasin_id)
@@ -102,8 +81,8 @@ def main():
         "Awc(mm)": "Awc.txt",
         "Ul(mm)":"Ul.txt"
     }
-    for hru_id in HRU_IDs:
-        plot_multi_source_soil_layers(basedir,file_dict, hru_id)
+    # for hru_id in HRU_IDs:
+    #     plot_multi_source_soil_layers(basedir,file_dict, hru_id)
 
     """Main workflow."""
     cfg = parse_ini_configuration()

@@ -4,11 +4,11 @@
 #include "utils_time.h"
 
 clsPI_MCS::clsPI_MCS() :
-    m_embnkFr(0.15f), m_pcp2CanalFr(0.5f), m_landUse(nullptr), m_outletID(-1), m_nreach(-1),
+    m_embnkFr(0.15f), m_pcp2CanalFr(0.5f), m_landUse(nullptr), m_outletID(-1),
     m_intcpStoCapExp(-1.f), m_initIntcpSto(0.f), m_maxIntcpStoCap(nullptr),
     m_minIntcpStoCap(nullptr),
     m_pcp(nullptr), m_pet(nullptr), m_canSto(nullptr),
-    m_intcpLoss(nullptr), m_netPcp(nullptr), m_nCells(-1),  m_handWtrDep(nullptr), m_subbsnID(nullptr), m_chSto(nullptr), m_handArea(nullptr) {
+    m_intcpLoss(nullptr), m_netPcp(nullptr), m_nCells(-1),  m_handWtrDep(nullptr), m_subbsnID(nullptr), m_handArea(nullptr) {
 #ifndef STORM_MODE
     m_IntcpET = nullptr;
 #else
@@ -58,10 +58,6 @@ void clsPI_MCS::Set1DData(const char* key, int n, float* data) {
 		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
 		m_subbsnID = data;
 	}
-	else if (StringMatch(s, VAR_CHST)) {
-		CheckInputSize(MID_PI_MCS, key, n - 1, m_nreach);
-		m_chSto = data;
-	}
 	else if (StringMatch(s, VAR_AHRU)) {
 		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
 		m_handArea = data;
@@ -102,10 +98,6 @@ void clsPI_MCS::Get1DData(const char* key, int* nRows, float** data) {
     } else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
 		*data = m_handWtrDep;
 	}
-	else if (StringMatch(s, VAR_CHST)) {
-		m_chSto[0] = m_chSto[m_outletID];
-		*data = m_chSto;
-	}
 	else {
         throw ModelException(MID_PI_MCS, "Get1DData", "Result " + s + " does not exist.");
     }
@@ -133,12 +125,6 @@ void clsPI_MCS::InitialOutputs() {
 	}
 }
 
-void clsPI_MCS::SetReaches(clsReaches* reaches) {
-	if (nullptr == reaches) {
-		throw ModelException(MID_MUSK_CH, "SetReaches", "The reaches input can not to be NULL.");
-	}
-	m_nreach = reaches->GetReachNumber();
-}
 
 int clsPI_MCS::Execute() {
     //check input data

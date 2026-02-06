@@ -646,10 +646,10 @@ def main():
     conn = client.get_conn()
 
     # base_dir = r'/data/user/xiaodw/software/WISE/data/poyang_lake1'
-    base_dir = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
+    base_dir = r'G:\program\seims\SEIMS_HAND\data\US_6'
     csv_path = base_dir + os.sep + 'workspace/csv'
     field_center_file = csv_path + os.sep + 'fields_center.csv'
-    ImportWeightData_field.workflow(seims_cfg, field_center_file, 'poyang_lake1_longterm_model')
+    ImportWeightData_field.workflow(seims_cfg, field_center_file, 'US_6_longterm_model')
 
     client.close()
 

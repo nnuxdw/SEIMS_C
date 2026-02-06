@@ -31,7 +31,6 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(Tag_HillSlopeTimeStep, UNIT_SECOND, DESC_TIMESTEP, File_Input, DT_Single);
 #endif
 	mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Raster1D);   // xiaodw, infundation water depth,m 
-	mdi.AddInput(VAR_CHST, UNIT_VOL_M3, DESC_CHST, Source_Module, DT_Array1D);
     // set the parameters (non-time series)
     mdi.AddParameter(VAR_INTERC_MAX, UNIT_DEPTH_MM, DESC_INTERC_MAX, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_INTERC_MIN, UNIT_DEPTH_MM, DESC_INTERC_MIN, Source_ParameterDB, DT_Raster1D);

@@ -44,7 +44,6 @@ public:
 
     void Get1DData(const char* key, int* nrows, float** data) OVERRIDE;
 
-	void SetReaches(clsReaches* reaches) OVERRIDE;
 
 private:
     int m_nCells; ///< valid cells number

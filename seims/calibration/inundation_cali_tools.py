@@ -1137,7 +1137,6 @@ if __name__ == '__main__':
     hand_subbasinid_map = read_subbasin_mapping(FloodStep_dir)
     flood_status = calculate_hand_flood_status(hand_shp_path, flood_tif_dir, hand_subbasinid_map, hand_initial_flood_csv, threshold)
 
-
     # 计算最终的淹没层级并保存结果
     subbasin_initial_flood = os.path.join(inundation_cali_path, 'subbasin_initial_flood.csv')
     calculate_flood_levels(FloodStep_dir, hand_initial_flood_csv, subbasin_initial_flood)
