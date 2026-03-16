@@ -78,13 +78,28 @@ int DepressionLinsleyHand::Execute() {
 		else if (handWtrDepMM >= depStoDeficit)
 		{
 			m_chSto[subbasinId] -= m_handArea[i] * depStoDeficit  * 0.001;
+
+			if (m_chSto[subbasinId] < 0)
+			{
+				m_chSto[subbasinId] = 0.0;
+			}
+
 			m_sd[i] = m_depCap[i];
 			//m_sr[i] = m_pe[i];
 			handWtrDepMM -= depStoDeficit;
 		}
 		else{
 			m_sd[i] += handWtrDepMM;
+			/*if (m_chSto[subbasinId] < 0)
+			{
+				cout << endl;
+			}*/
 			m_chSto[subbasinId] -= m_handArea[i] * handWtrDepMM  * 0.001;
+
+			if (m_chSto[subbasinId] < 0)
+			{
+				m_chSto[subbasinId] = 0.0;
+			}
 			handWtrDepMM = 0.0;
 		}
 
@@ -99,6 +114,12 @@ int DepressionLinsleyHand::Execute() {
 				m_hand_eavp[i] = handWtrDepMM;
             }
 			m_chSto[subbasinId] -= m_handArea[i] * m_hand_eavp[i] * 0.001;
+
+			if (m_chSto[subbasinId] < 0)
+			{
+				m_chSto[subbasinId] = 0.0;
+			}
+
         } else {
 			m_hand_eavp[i] = 0.f;
         }
@@ -106,6 +127,105 @@ int DepressionLinsleyHand::Execute() {
     }
     return true;
 }
+
+//int DepressionLinsleyHand::Execute() {
+//	CheckInputData();
+//	InitialOutputs();
+//
+//	const int DBG_SB = 36;
+//
+//	// ====== 1) 每天开始前：打印 m_chSto[36] ======
+//	float chsto36_begin = -9999.f;
+//	if (m_chSto != nullptr && DBG_SB >= 0) {
+//		chsto36_begin = m_chSto[DBG_SB];
+//	}
+//	std::cout << "[DepLinsleyHand][BEGIN] date=" << m_date
+//		<< " sb=" << DBG_SB
+//		<< " CHST=" << chsto36_begin
+//		<< std::endl;
+//
+//	// 统计本模块对 sb=36 从 CHST 扣掉的体积（m3）
+//	double delta36 = 0.0;
+//
+//#pragma omp parallel for
+//	for (int i = 0; i < m_nCells; i++) {
+//
+//		float handWtrDepMM = MAX(m_handWtrDep[i] * 1000.0f, 0.0f);
+//		int subbasinId = CVT_INT(m_subbsnID[i]);
+//		float depStoDeficit = MAX(m_depCap[i] - m_sd[i], 0.0f);
+//
+//		// ====== runoff / depression fill ======
+//		if (m_depCap[i] < 0.001f) {
+//			m_sr[i] = m_pe[i];
+//			m_sd[i] = 0.f;
+//		}
+//		else if (handWtrDepMM >= depStoDeficit) {
+//			// 这一步要从 CHST 扣的体积：area(m2)*depth(mm)*0.001 => m3
+//			double dV = (double)m_handArea[i] * (double)depStoDeficit * 0.001;
+//			m_chSto[subbasinId] -= (float)dV;
+//			if (m_chSto[subbasinId] < 0) m_chSto[subbasinId] = 0.0f;
+//
+//			if (subbasinId == DBG_SB) {
+//#pragma omp atomic
+//				delta36 += dV;
+//			}
+//
+//			m_sd[i] = m_depCap[i];
+//			handWtrDepMM -= depStoDeficit;
+//		}
+//		else {
+//			m_sd[i] += handWtrDepMM;
+//
+//			double dV = (double)m_handArea[i] * (double)handWtrDepMM * 0.001;
+//			m_chSto[subbasinId] -= (float)dV;
+//			if (m_chSto[subbasinId] < 0) m_chSto[subbasinId] = 0.0f;
+//
+//			if (subbasinId == DBG_SB) {
+//#pragma omp atomic
+//				delta36 += dV;
+//			}
+//
+//			handWtrDepMM = 0.0f;
+//		}
+//
+//		// ====== evaporation from HAND water (still subtract from CHST) ======
+//		if (handWtrDepMM > 0) {
+//			if (m_pet[i] - m_ei[i] < handWtrDepMM) {
+//				m_hand_eavp[i] = m_pet[i] - m_ei[i];
+//			}
+//			else {
+//				m_hand_eavp[i] = handWtrDepMM;
+//			}
+//
+//			double dV = (double)m_handArea[i] * (double)m_hand_eavp[i] * 0.001;
+//			m_chSto[subbasinId] -= (float)dV;
+//			if (m_chSto[subbasinId] < 0) m_chSto[subbasinId] = 0.0f;
+//
+//			if (subbasinId == DBG_SB) {
+//#pragma omp atomic
+//				delta36 += dV;
+//			}
+//		}
+//		else {
+//			m_hand_eavp[i] = 0.f;
+//		}
+//	}
+//
+//	// ====== 2) 每天结束后：打印 delta[36] 和更新后的 m_chSto[36] ======
+//	float chsto36_end = -9999.f;
+//	if (m_chSto != nullptr && DBG_SB >= 0) {
+//		chsto36_end = m_chSto[DBG_SB];
+//	}
+//
+//	std::cout << "[DepLinsleyHand][END  ] date=" << m_date
+//		<< " sb=" << DBG_SB
+//		<< " delta(m3)=" << delta36
+//		<< " CHST=" << chsto36_end
+//		<< std::endl;
+//
+//	return true;
+//}
+
 
 void DepressionLinsleyHand::SetValue(const char* key, const float value) {
     string sk(key);

@@ -352,11 +352,11 @@ void MUSK_CH::InitialOutputs() {
 	m_lakearea = new(nothrow) float[m_nreach + 1];
 
 #ifdef _WIN32
-	string txt_filename = "D:/SEIMS_C/data/Cottonwood/rundata/FloodStep.txt";
-	string csv_filename = "D:/SEIMS_C/data/Cottonwood/rundata/InundationMap.csv";
+	string txt_filename = "D:/SEIMS_C/data/CW_1/workspace/rundata/FloodStep.txt";
+	string csv_filename = "D:/SEIMS_C/data/CW_1/workspace/rundata/InundationMap.csv";
 #else
-	string txt_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/FloodStep.txt";
-	string csv_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/InundationMap.csv";
+	string txt_filename = "/data/user/lijing/software/SEIMS_C/data/CW_1/workspace/rundata/FloodStep.txt";
+	string csv_filename = "/data/user/lijing/software/SEIMS_C/data/CW_1/workspace/rundata/InundationMap.csv";
 #endif
 	// load floodstep
 	LoadHandIdsToChHandLevels(txt_filename, m_Hands);
@@ -543,6 +543,20 @@ int MUSK_CH::Execute() {
             if (m_inputSubbsnID == 0 || m_inputSubbsnID == reachIndex) {
                 // for OpenMP version, all reaches will be executed,
                 // for MPI version, only the current reach will be executed.
+
+//				if (reachIndex == 36) {   // 换成你要看的 subbasinID；不筛选就删掉这行if
+//#pragma omp critical
+//					std::cout << "[DEBUG_LAKE_FLAG] subbasin=" << reachIndex
+//						<< " islake=" << m_islake[reachIndex]
+//						<< " isres=" << m_isres[reachIndex]
+//						<< " dayOfYear=" << m_dayOfYear
+//						<< " qsurf=" << m_olQ2Rch[reachIndex]
+//						<< " qif=" << (m_ifluQ2Rch ? m_ifluQ2Rch[reachIndex] : -9999.f)
+//						<< " qg=" << (m_gndQ2Rch ? m_gndQ2Rch[reachIndex] : -9999.f)
+//						<< std::endl;
+//				}
+//				// <<< DEBUG
+
                 if(m_islake[reachIndex] == 1){
                     if (!LakeBudget(reachIndex)) {
                         errCount++;
@@ -1282,10 +1296,13 @@ bool MUSK_CH::LakeBudget(const int i) {
      float runoff = 0.f;
      //float max_outflow = Max(0.f, pow((m_lakedp[i] - thwl), m_A_Vb[i])*m_A_Va[i]*1.e9f);
      if(m_lakedp[i] > thwl){
-         runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb);
+         //runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb);
+		 runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb)* m_lakearea[i] / m_dt;
          runoff = Max(runoff,0.f);
      }
-     //if(runoff*m_dt>max_outflow) runoff = max_outflow/ m_dt;
+
+    //if(runoff*m_dt>max_outflow) runoff = max_outflow/ m_dt;
+	//runoff = 0.f;
     rtwtr = runoff + m_gndQ2Rch[i];
     m_chSto[i] =  (SI - rtwtr)*m_dt;
     m_chSto[i] =  Max(m_chSto[i], 0.f);

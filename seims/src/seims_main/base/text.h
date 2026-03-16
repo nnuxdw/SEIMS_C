@@ -135,6 +135,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define Tag_ChannelTimeStep                    "DT_CH"
 #define Tag_CellWidth                          "CELLWIDTH" /// m_cellWth, the size of a single CELL
 #define Tag_LayeringMethod                     "LayeringMethod"
+#define VAR_K1                                 "K1"//whc++
 
 // D8 Flow model
 #define Tag_FLOWIN_INDEX_D8                    "FLOWIN_INDEX_D8" /// m_flowInIdxD8

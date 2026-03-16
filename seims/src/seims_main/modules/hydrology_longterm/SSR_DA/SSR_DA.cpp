@@ -98,7 +98,8 @@ bool SSR_DA::FlowInSoil(const int id) {
         // should be added to stream cell directly, which will be summarized
         // for channel flow routing. By lj, 2018-4-12
 
-        if (flowWidth <= 0.f || m_landUse[id] ==LANDUSE_ID_WATR) {
+
+		if (flowWidth <= 0.f || m_landUse[id] ==LANDUSE_ID_WATR) {
             m_subSurfRf[id][j] = qUp;
             m_subSurfRfVol[id][j] = qUpVol;
             continue;
@@ -205,7 +206,15 @@ bool SSR_DA::FlowInSoil(const int id) {
             if (maxPerc < 0.f) maxPerc = 0.1f;
             float tt = 3600.f * maxPerc / m_ks[id][j];                  // secs
             //if(frez==1) tt = 3600.f * maxPerc / WCND ;  //ljj++
-            m_soilPerco[id][j] = sw_excess * (1.f - exp(-m_dt / tt)); // secs
+			if (j == CVT_INT(m_nSoilLyrs[id]) - 1)
+			{
+				m_soilPerco[id][j] = k1 * sw_excess * (1.f - exp(-m_dt / tt)); // secs
+			}
+			else
+			{
+				m_soilPerco[id][j] = sw_excess * (1.f - exp(-m_dt / tt)); // secs
+			}
+            
             if (m_soilPerco[id][j] > maxPerc) {
                 m_soilPerco[id][j] = maxPerc;
             }
@@ -439,7 +448,10 @@ void SSR_DA::SetValue(const char* key, const float value) {
         m_CellWth = value;
     } else if (StringMatch(s, Tag_TimeStep)) {
         m_dt = CVT_INT(value);
-    } else {
+    } else if (StringMatch(s, VAR_K1)) {
+		k1 = value;
+	}
+	else {
         throw ModelException(MID_SSR_DA, "SetValue", "Parameter " + s + " does not exist.");
     }
 }

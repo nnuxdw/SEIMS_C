@@ -20,6 +20,8 @@
  *
  */
 
+using namespace std;
+
  // LPJGUESS model constants from paper
 const int NACROTELM = 4;                           // Number of total soil layers in the acrotelm
 const int NCATOTELM = 3;                           // Number of total soil layers in the catotelm

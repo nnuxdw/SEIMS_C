@@ -94,7 +94,7 @@ int SUR_MR::Execute() {
     InitialOutputs();
     int frez =0;
     m_maxPcpRf *= m_dt * 1.1574074074074073e-05f; /// 1. / 86400. = 1.1574074074074073e-05;
-#pragma omp parallel for
+//#pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
          //if(m_landUse[i] ==LANDUSE_ID_WATR && m_rchID[i]<=0.f){
          //    //坡面湖泊
@@ -136,7 +136,15 @@ int SUR_MR::Execute() {
 					handWtrDepMM = 0.f;
 				}
 			}
+			/*if (m_chSto[subbasinId] < 0)
+			{
+				cout << endl;
+			}*/
 			m_chSto[subbasinId] -= m_handArea[i] * hand_infil_acc * 0.001;
+			if (m_chSto[subbasinId] < 0)
+			{
+				m_chSto[subbasinId] = 0.0;
+			}
 		}
 		if (hWater > 0.f ) {
             /// update total soil water content
@@ -268,6 +276,296 @@ int SUR_MR::Execute() {
     }
     return 0;
 }
+
+//int SUR_MR::Execute() {
+//	CheckInputData();
+//	InitialOutputs();
+//
+//	const int DBG_SB = 36;
+//
+//	// ===== DEBUG 1) 每天开始前：打印 CHST[36] =====
+//	float chst36_begin = -9999.f;
+//	if (m_chSto != nullptr) chst36_begin = m_chSto[DBG_SB];
+//
+//	std::cout << "[SUR_MR][BEGIN] date=" << m_date
+//		<< " sb=" << DBG_SB
+//		<< " CHST=" << chst36_begin
+//		<< std::endl;
+//
+//	// 统计本模块对 sb=36 扣掉的体积（m3）
+//	double delta36 = 0.0;
+//
+//	int frez = 0;
+//	m_maxPcpRf *= m_dt * 1.1574074074074073e-05f; /// 1. / 86400.
+//
+//	// 注意：你这里现在没有并行（#pragma omp parallel for 被注释了）
+//	for (int i = 0; i < m_nCells; i++) {
+//		float hWater = 0.f;
+//		float netPcp = m_netPcp[i];
+//		float deprSto = m_deprSto[i];
+//		hWater = m_netPcp[i] + m_deprSto[i];
+//
+//		// ===== DEBUG: cells 629-644 BEFORE =====
+//		if (i >= 629 && i <= 644) {
+//			std::cout
+//				<< "[SUR_MR][BEFORE] date=" << m_date
+//				<< " i=" << i
+//				<< " sb=" << (m_subbsnID ? (int)m_subbsnID[i] : -9999)
+//				<< " netPcp(mm)=" << (m_netPcp ? m_netPcp[i] : -9999.f)
+//				<< " deprSto(mm)=" << (m_deprSto ? m_deprSto[i] : -9999.f)
+//				<< " hWater(mm)=" << hWater
+//				<< std::endl;
+//		}
+//
+//		float runoffPercentage;
+//		float surfq;
+//		int subbasinId = CVT_INT(m_subbsnID[i]);
+//		float handWtrDepMM = m_handWtrDep[i] * 1000.0f;
+//
+//
+//		if (handWtrDepMM > 0.f) {
+//			float hand_infil = 0.f;
+//			float hand_infil_acc = 0.f;
+//
+//			for (int ly = CVT_INT(m_nSoilLyrs[i]) - 1; ly >= 0; ly--) {
+//				if (handWtrDepMM >= m_soilPor[i][ly] * m_soilThk[i][ly] - m_soilWtrSto[i][ly]) {
+//					hand_infil = m_soilPor[i][ly] * m_soilThk[i][ly] - m_soilWtrSto[i][ly];
+//					m_soilWtrSto[i][ly] = m_soilPor[i][ly] * m_soilThk[i][ly];
+//					hand_infil_acc += hand_infil;
+//					handWtrDepMM -= hand_infil;
+//				}
+//				else {
+//					hand_infil = handWtrDepMM;
+//					m_soilWtrSto[i][ly] += hand_infil;
+//					hand_infil_acc += hand_infil;
+//					handWtrDepMM = 0.f;
+//				}
+//			}
+//
+//			// 这一步就是 SUR_MR 对 CHST 的扣水（单位：m3）
+//			double dV = (double)m_handArea[i] * (double)hand_infil_acc * 0.001; // m2 * mm * 0.001 = m3
+//			m_chSto[subbasinId] -= (float)dV;
+//			if (m_chSto[subbasinId] < 0) m_chSto[subbasinId] = 0.0f;
+//
+//			// ===== DEBUG 2) 只累计 sb=36 的扣减量 =====
+//			if (subbasinId == DBG_SB) {
+//				delta36 += dV;
+//			}
+//		}
+//
+//		// ===== 下面保持你原来的逻辑不变 =====
+//		if (hWater > 0.f) {
+//			m_soilWtrStoPrfl[i] = 0.f;
+//			for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[i]); ly++) {
+//				m_soilWtrStoPrfl[i] += m_soilWtrSto[i][ly];
+//			}
+//
+//			float smFraction = Min(m_soilWtrStoPrfl[i] / m_soilSumSat[i], 1.f);
+//			float alpha = 3;
+//			float soilIcePrfl = 0.f;
+//			float soilSatPrfl = 0.f;
+//			for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
+//				soilSatPrfl += m_soilPor[i][k] * m_soilThk[i][k];
+//			}
+//
+//			alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
+//			if (hWater >= m_maxPcpRf) alpha = 1.f;
+//
+//			if (m_potRfCoef[i] > 0.99f || (m_landUse[i] == LANDUSE_ID_GLC)) {
+//				runoffPercentage = 1.f;
+//			}
+//			else {
+//				runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+//			}
+//			runoffPercentage = Min(runoffPercentage, 1.f);
+//			surfq = hWater * runoffPercentage;
+//			if (surfq > hWater) surfq = hWater;
+//			m_infil[i] = hWater - surfq;
+//			m_exsPcp[i] = surfq;
+//		}
+//		else {
+//			m_exsPcp[i] = 0.f;
+//			m_infil[i] = 0.f;
+//		}
+//
+//		if (m_infil[i] > 0.f) {
+//			m_soilWtrSto[i][0] += m_infil[i];
+//		}
+//
+//		// ===== DEBUG: cells 629-644 AFTER (infil + surface runoff) =====
+//		if (i >= 629 && i <= 644) {
+//			std::cout
+//				<< "[SUR_MR][AFTER ] date=" << m_date
+//				<< " i=" << i
+//				<< " sb=" << (m_subbsnID ? (int)m_subbsnID[i] : -9999)
+//				<< " infil(mm)=" << m_infil[i]
+//				<< " surfRunoff(mm)=" << m_exsPcp[i]
+//				<< " runoffPct=" << runoffPercentage
+//				<< " alpha=" << alpha
+//				<< std::endl;
+//		}
+//
+//	}
+//
+//	// ===== DEBUG 3) 每天结束后：打印 delta36 和 CHST[36] =====
+//	float chst36_end = -9999.f;
+//	if (m_chSto != nullptr) chst36_end = m_chSto[DBG_SB];
+//
+//	std::cout << "[SUR_MR][END  ] date=" << m_date
+//		<< " sb=" << DBG_SB
+//		<< " delta(m3)=" << delta36
+//		<< " CHST=" << chst36_end
+//		<< std::endl;
+//
+//	return 0;
+//}
+
+//int SUR_MR::Execute() {
+//	CheckInputData();
+//	InitialOutputs();
+//
+//	const int DBG_SB = 36;
+//	const int DBG_I0 = 629;
+//	const int DBG_I1 = 644;
+//
+//	// ===== DEBUG 1) 每天开始前：打印 CHST[36] =====
+//	float chst36_begin = -9999.f;
+//	if (m_chSto != nullptr) chst36_begin = m_chSto[DBG_SB];
+//
+//	std::cout << "[SUR_MR][BEGIN] date=" << m_date
+//		<< " sb=" << DBG_SB
+//		<< " CHST=" << chst36_begin
+//		<< std::endl;
+//
+//	// 统计本模块对 sb=36 扣掉的体积（m3）
+//	double delta36 = 0.0;
+//
+//	int frez = 0;
+//	m_maxPcpRf *= m_dt * 1.1574074074074073e-05f; /// 1. / 86400.
+//
+//	for (int i = 0; i < m_nCells; i++) {
+//		float hWater = 0.f;
+//		float netPcp = m_netPcp[i];
+//		float deprSto = m_deprSto[i];
+//		hWater = m_netPcp[i] + m_deprSto[i];
+//
+//		// ===== DEBUG: cells 629-644 BEFORE =====
+//		if (i >= DBG_I0 && i <= DBG_I1) {
+//			std::cout
+//				<< "[SUR_MR][BEFORE] date=" << m_date
+//				<< " i=" << i
+//				<< " sb=" << (m_subbsnID ? (int)m_subbsnID[i] : -9999)
+//				<< " netPcp(mm)=" << (m_netPcp ? m_netPcp[i] : -9999.f)
+//				<< " deprSto(mm)=" << (m_deprSto ? m_deprSto[i] : -9999.f)
+//				<< " hWater(mm)=" << hWater
+//				<< std::endl;
+//		}
+//
+//		// ✅ 关键：默认值，保证 hWater<=0 时也能安全打印
+//		float runoffPercentage = 0.f;
+//		float surfq = 0.f;
+//		float alpha = -9999.f;
+//
+//		int subbasinId = CVT_INT(m_subbsnID[i]);
+//		float handWtrDepMM = m_handWtrDep[i] * 1000.0f;
+//
+//		// ===== HAND inundation water infiltrates & subtracts from CHST (m3) =====
+//		if (handWtrDepMM > 0.f) {
+//			float hand_infil = 0.f;
+//			float hand_infil_acc = 0.f;
+//
+//			for (int ly = CVT_INT(m_nSoilLyrs[i]) - 1; ly >= 0; ly--) {
+//				float cap = m_soilPor[i][ly] * m_soilThk[i][ly] - m_soilWtrSto[i][ly];
+//				if (handWtrDepMM >= cap) {
+//					hand_infil = cap;
+//					m_soilWtrSto[i][ly] = m_soilPor[i][ly] * m_soilThk[i][ly];
+//					hand_infil_acc += hand_infil;
+//					handWtrDepMM -= hand_infil;
+//				}
+//				else {
+//					hand_infil = handWtrDepMM;
+//					m_soilWtrSto[i][ly] += hand_infil;
+//					hand_infil_acc += hand_infil;
+//					handWtrDepMM = 0.f;
+//				}
+//			}
+//
+//			// m2 * mm * 0.001 = m3
+//			double dV = (double)m_handArea[i] * (double)hand_infil_acc * 0.001;
+//			m_chSto[subbasinId] -= (float)dV;
+//			if (m_chSto[subbasinId] < 0) m_chSto[subbasinId] = 0.0f;
+//
+//			if (subbasinId == DBG_SB) {
+//				delta36 += dV;
+//			}
+//		}
+//
+//		// ===== 原来的 Modified Rational runoff/infiltration 逻辑 =====
+//		if (hWater > 0.f) {
+//			// update soil profile water
+//			m_soilWtrStoPrfl[i] = 0.f;
+//			for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[i]); ly++) {
+//				m_soilWtrStoPrfl[i] += m_soilWtrSto[i][ly];
+//			}
+//
+//			float smFraction = Min(m_soilWtrStoPrfl[i] / m_soilSumSat[i], 1.f);
+//
+//			// alpha
+//			alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
+//			if (hWater >= m_maxPcpRf) alpha = 1.f;
+//
+//			// runoff percentage
+//			if (m_potRfCoef[i] > 0.99f || (m_landUse[i] == LANDUSE_ID_GLC)) {
+//				runoffPercentage = 1.f;
+//			}
+//			else {
+//				runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+//			}
+//			runoffPercentage = Min(runoffPercentage, 1.f);
+//
+//			// surface runoff and infiltration (mm)
+//			surfq = hWater * runoffPercentage;
+//			if (surfq > hWater) surfq = hWater;
+//
+//			m_infil[i] = hWater - surfq;
+//			m_exsPcp[i] = surfq;
+//		}
+//		else {
+//			m_exsPcp[i] = 0.f;
+//			m_infil[i] = 0.f;
+//		}
+//
+//		// add infiltration to the top soil layer
+//		if (m_infil[i] > 0.f) {
+//			m_soilWtrSto[i][0] += m_infil[i];
+//		}
+//
+//		// ===== DEBUG: cells 629-644 AFTER =====
+//		if (i >= DBG_I0 && i <= DBG_I1) {
+//			std::cout
+//				<< "[SUR_MR][AFTER ] date=" << m_date
+//				<< " i=" << i
+//				<< " sb=" << (m_subbsnID ? (int)m_subbsnID[i] : -9999)
+//				<< " infil(mm)=" << m_infil[i]
+//				<< " surfRunoff(mm)=" << m_exsPcp[i]
+//				<< " runoffPct=" << runoffPercentage
+//				<< " alpha=" << alpha
+//				<< std::endl;
+//		}
+//	}
+//
+//	// ===== DEBUG 3) 每天结束后：打印 delta36 和 CHST[36] =====
+//	float chst36_end = -9999.f;
+//	if (m_chSto != nullptr) chst36_end = m_chSto[DBG_SB];
+//
+//	std::cout << "[SUR_MR][END  ] date=" << m_date
+//		<< " sb=" << DBG_SB
+//		<< " delta(m3)=" << delta36
+//		<< " CHST=" << chst36_end
+//		<< std::endl;
+//
+//	return 0;
+//}
 
 void SUR_MR::SetValue(const char* key, const float value) {
     string sk(key);

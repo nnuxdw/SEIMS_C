@@ -142,11 +142,11 @@ void OL_HAND::InitialOutputs() {
 		}
 
 #ifdef _WIN32
-		string txt_filename = "D:/SEIMS_C/data/Cottonwood/rundata/FloodStep.txt";
-		string csv_filename = "D:/SEIMS_C/data/Cottonwood/rundata/InundationMap.csv";
+		string txt_filename = "D:/SEIMS_C/data/CW_1/workspace/rundata/FloodStep.txt";
+		string csv_filename = "D:/SEIMS_C/data/CW_1/workspace/rundata/InundationMap.csv";
 #else
-		string txt_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/FloodStep.txt";
-		string csv_filename = "/data/user/xiaodw/software/WISE/data/poyang_lake1/rundata/InundationMap.csv";
+		string txt_filename = "/data/user/lijing/software/SEIMS_C/data/CW_1/workspace/rundata/FloodStep.txt";
+		string csv_filename = "/data/user/lijing/software/SEIMS_C/data/CW_1/workspace/rundata/InundationMap.csv";
 #endif
 		// load floodstep
 		LoadHandIdsToChHandLevels(txt_filename, m_Hands);
@@ -222,6 +222,72 @@ int OL_HAND::Execute() {
 
     return 0;
 }			
+
+//int OL_HAND::Execute() {
+//	CheckInputData();
+//	InitialOutputs();
+//
+//	float maxSto = 0.0f;
+//	float sumSto = 0.0f;
+//
+//	for (int r = 1; r <= m_nreach; ++r) {
+//		if (m_chSto && m_chSto[r] > maxSto) {
+//			maxSto = m_chSto[r];
+//		}
+//		sumSto += (m_chSto ? m_chSto[r] : 0.0f);
+//	}
+//
+//	std::cout << "[OL_HAND] day=" << m_dayOfYear
+//		<< " CHST(sum)=" << sumSto
+//		<< " CHST(max)=" << maxSto
+//		<< std::endl;
+//
+//
+//	for (auto it = m_reachLayers.begin(); it != m_reachLayers.end(); ++it) {
+//		int nReaches = (int)it->second.size();
+//
+//#pragma omp parallel for
+//		for (int i = 0; i < nReaches; ++i) {
+//			int reachIndex = it->second[i];
+//
+//			if (m_inputSubbsnID != 0 && m_inputSubbsnID != reachIndex) continue;
+//
+//			// ===== 1) 调试：调用前（输入 sto）=====
+//			if (reachIndex == 36) {
+//#pragma omp critical
+//				{
+//					std::cout << "[OL_HAND][BEFORE] day=" << m_dayOfYear
+//						<< " reach=" << reachIndex
+//						<< " isLake=" << (m_islake ? m_islake[reachIndex] : -9)
+//						<< " isRes=" << (m_isres ? m_isres[reachIndex] : -9)
+//						<< " sto(chSto)=" << (m_chSto ? m_chSto[reachIndex] : -9999.f)
+//						<< " subWtrDep(before)=" << (m_subbasinWtrDep ? m_subbasinWtrDep[reachIndex] : -9999.f)
+//						<< " subInunArea(before)=" << (m_subbasinInundationArea ? m_subbasinInundationArea[reachIndex] : -9999.f)
+//						<< std::endl;
+//				}
+//			}
+//
+//			// ===== 2) 核心计算 =====
+//			HandInundation_BinarySearch(reachIndex, m_chSto[reachIndex]);
+//
+//			// ===== 3) 调试：调用后（输出面积/水深）=====
+//			if (reachIndex == 36) {
+//#pragma omp critical
+//				{
+//					std::cout << "[OL_HAND][AFTER ] day=" << m_dayOfYear
+//						<< " reach=" << reachIndex
+//						<< " sto(chSto)=" << (m_chSto ? m_chSto[reachIndex] : -9999.f)
+//						<< " subWtrDep(after)=" << (m_subbasinWtrDep ? m_subbasinWtrDep[reachIndex] : -9999.f)
+//						<< " subInunArea(after)=" << (m_subbasinInundationArea ? m_subbasinInundationArea[reachIndex] : -9999.f)
+//						<< std::endl;
+//				}
+//			}
+//		}
+//	}
+//
+//	return 0;
+//}
+
 
 void OL_HAND::Get1DData(const char* key, int* n, float** data) {
     string sk(key);

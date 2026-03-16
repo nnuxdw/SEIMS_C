@@ -1130,7 +1130,10 @@ bool CH4_LPJGUESS::Calculate_Gas_Ebullition(int i, float& ebull_today) {
 		if (j > bubbleToLayer) {
 
 			// Max CH4 that can be dissolved (Wania et al. (2010), Eqn 15)
-			float CH4_diss_max = 0.05708 - 0.001545 * max(0.0, Tsoil) + 0.00002069 * max(0.0, Tsoil * Tsoil);
+			float CH4_diss_max = 0.05708 - 0.001545 * std::fmax(0.0f, Tsoil) + 0.00002069 * std::fmax(0.0f, Tsoil * Tsoil);
+			//float tpos = 0.0f;
+			//if (Tsoil > 0.0f)   tpos = Tsoil;
+			//float CH4_diss_max = 0.05708f - 0.001545f  * tpos + 0.00002069f * (Tsoil * Tsoil);
 
 			// Water pressure
 			float hydro_press = rho_H2O * gravity * waterheight;
@@ -1148,7 +1151,7 @@ bool CH4_LPJGUESS::Calculate_Gas_Ebullition(int i, float& ebull_today) {
 			if (m_Frac_water[i][j] + m_Frac_water_belowpwp[i][j] > water_min && Tsoil > 0.0) {
 
 				float henry_k_cc_CH4 = TsoilK / (12.2 * henry_k_CH4);
-				m_CH4_diss[i][j] = min(CH4_diss_max_g, henry_k_cc_CH4 *  m_CH4[i][j]);
+				m_CH4_diss[i][j] = std::fmin(CH4_diss_max_g, henry_k_cc_CH4 *  m_CH4[i][j]);
 				//std::cout << "henry_k_cc_CH4=" << henry_k_cc_CH4 << "\n";
 
 				//// Override (a la Wania et al. 2010) with this new, simpler ebullition
@@ -1220,7 +1223,7 @@ bool CH4_LPJGUESS::Calculate_Gas_Ebullition(int i, float& ebull_today) {
 		// O2 is in [mol layer-1]
 		m_O2[i][bubbleToLayer] *= oxid_frac;       // since 25% of O2 used by roots themselves...  
 		m_CH4[i][bubbleToLayer] /= atomiccmass;    // mol layer-1
-		m_CH4_oxid[i][bubbleToLayer] = min(m_CH4[i][bubbleToLayer], 0.5 * m_O2[i][bubbleToLayer]); // usually 75%
+		m_CH4_oxid[i][bubbleToLayer] = std::fmin(m_CH4[i][bubbleToLayer], 0.5f * m_O2[i][bubbleToLayer]); // usually 75%
 		m_CH4[i][bubbleToLayer] = (m_CH4[i][bubbleToLayer] - m_CH4_oxid[i][bubbleToLayer]) * atomiccmass; // gC layer again	
 		m_O2[i][bubbleToLayer] -= 2.0 * m_CH4_oxid[i][bubbleToLayer]; // subtract the moles used in oxidation
 
@@ -1595,7 +1598,7 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 		// O2 is in [mol layer-1]
 		m_O2[i][j] *= oxid_frac;             // since ((1-oxid_frac)*100)% of O2 used by roots themselves... [mol layer-1] 
 		m_CH4[i][j] /= atomiccmass;          // mol layer-1
-		m_CH4_oxid[i][j] = min(m_CH4[i][j], 0.5 * m_O2[i][j]);                // usually 75%
+		m_CH4_oxid[i][j] = std::fmin(m_CH4[i][j], 0.5f * m_O2[i][j]);                // usually 75%
 		m_CH4[i][j] = (m_CH4[i][j] - m_CH4_oxid[i][j]) * atomiccmass;         // gC layer again	
 		m_O2[i][j] -= 2.0 * m_CH4_oxid[i][j];                                 // subtract the moles used in oxidation
 

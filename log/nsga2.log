@@ -1,0 +1,151 @@
+[2026-02-04 16:17:40,763] INFO    SCOOP 0.6.2 release on win32 using Python 3.6.8 |Anaconda, Inc.| (default, Feb 21 2019, 18:30:04) [MSC v.1916 64 bit (AMD64)], API: 1013
+[2026-02-04 16:17:40,763] INFO    Deploying 5 worker(s) over 1 host(s).
+[2026-02-04 16:17:40,763] INFO    Worker distribution: 
+[2026-02-04 16:17:40,763] INFO       127.0.0.1:	4 + origin
+D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\geopandas\_compat.py:110: UserWarning: The Shapely GEOS version (3.4.3-CAPI-1.8.3 r4285) is incompatible with the GEOS version PyGEOS was compiled with (3.10.3-CAPI-1.16.1). Conversions between both will be slow.
+  shapely_geos_version, geos_capi_version_string
+D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\geopandas\_compat.py:110: UserWarning: The Shapely GEOS version (3.4.3-CAPI-1.8.3 r4285) is incompatible with the GEOS version PyGEOS was compiled with (3.10.3-CAPI-1.16.1). Conversions between both will be slow.
+  shapely_geos_version, geos_capi_version_string
+[RUN][pid=20120] gen=0 id=3 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=20120] gen=0 id=7 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=20120] gen=0 id=11 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=20120] gen=0 id=15 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=20120] gen=0 id=19 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=20120] gen=0 id=23 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=20120] gen=0 id=27 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=20120] gen=0 id=31 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=20120] gen=0 id=35 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=20120] gen=0 id=39 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\geopandas\_compat.py:110: UserWarning: The Shapely GEOS version (3.4.3-CAPI-1.8.3 r4285) is incompatible with the GEOS version PyGEOS was compiled with (3.10.3-CAPI-1.16.1). Conversions between both will be slow.
+  shapely_geos_version, geos_capi_version_string
+D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\deap\creator.py:188: RuntimeWarning: A class named 'FitnessMulti' has already been created and it will be overwritten. Consider deleting previous creation of that class or rename it.
+  RuntimeWarning)
+D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\deap\creator.py:188: RuntimeWarning: A class named 'Individual' has already been created and it will be overwritten. Consider deleting previous creation of that class or rename it.
+  RuntimeWarning)
+D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\pymongo\collection.py:1532: UserWarning: use an explicit session with no_cursor_timeout=True otherwise the cursor may still timeout after 30 minutes, for more info see https://docs.mongodb.com/v4.4/reference/method/cursor.noCursorTimeout/#session-idle-timeout-overrides-nocursortimeout
+  return Cursor(self, *args, **kwargs)
+Traceback (most recent call last):
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\runpy.py", line 193, in _run_module_as_main
+    "__main__", mod_spec)
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\runpy.py", line 85, in _run_code
+    exec(code, run_globals)
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\scoop\bootstrap\__main__.py", line 294, in <module>
+    b.main()
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\scoop\bootstrap\__main__.py", line 94, in main
+    self.run()
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\scoop\bootstrap\__main__.py", line 289, in run
+    futures_startup()
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\scoop\bootstrap\__main__.py", line 271, in futures_startup
+    run_name="__main__"
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\scoop\futures.py", line 59, in _startup
+    result = _controller.switch(rootFuture, *args, **kargs)
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\scoop\_control.py", line 233, in runController
+    raise future.exceptionValue
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\scoop\_control.py", line 123, in runFuture
+    future.resultValue = future.callable(*future.args, **future.kargs)
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\runpy.py", line 263, in run_path
+    pkg_name=pkg_name, script_name=fname)
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\runpy.py", line 96, in _run_module_code
+    mod_name, mod_spec, pkg_name, script_name)
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\runpy.py", line 85, in _run_code
+    exec(code, run_globals)
+  File "D:\PythonCode\SEIMS_C\seims\calibration\main_nsga2.py", line 519, in <module>
+    fpop, fstats = main(cali_cfg)
+  File "D:\PythonCode\SEIMS_C\seims\calibration\main_nsga2.py", line 327, in main
+    pop, plotlables = evaluate_parallel(pop)
+  File "D:\PythonCode\SEIMS_C\seims\calibration\main_nsga2.py", line 279, in evaluate_parallel
+    invalid_pops = list(futures.map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\scoop\futures.py", line 123, in map
+    for future in _waitAll(*_mapFuture(func, *iterables, **kargs)):
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\scoop\futures.py", line 314, in _waitAll
+    for f in _waitAny(future):
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\scoop\futures.py", line 295, in _waitAny
+    raise childFuture.exceptionValue
+  File "D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\scoop\_control.py", line 123, in runFuture
+    future.resultValue = future.callable(*future.args, **future.kargs)
+  File "D:\PythonCode\SEIMS_C\seims\calibration\calibrate.py", line 399, in evaluate_blocking
+    res = calibration_objectives(cali_obj, gen, ind)
+  File "D:\PythonCode\SEIMS_C\seims\calibration\calibrate.py", line 435, in calibration_objectives
+    model_obj.run()
+  File "D:\PythonCode\run_seims.py", line 662, in run
+    cpus = os.sched_getaffinity(0)  # 0 表示当前进程
+AttributeError: module 'os' has no attribute 'sched_getaffinity'
+[RUN][pid=19476] gen=0 id=1 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=19476] gen=0 id=5 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=19476] gen=0 id=9 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=19476] gen=0 id=13 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=19476] gen=0 id=17 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=19476] gen=0 id=21 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=19476] gen=0 id=25 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=19476] gen=0 id=29 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=19476] gen=0 id=33 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=19476] gen=0 id=37 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+### START TO CALIBRATION OPTIMIZING ###
+Population: 40, Generation: 100
+Read observation data of F_19 from Fri Jan  1 00:00:00 2010 to Tue Dec 31 23:59:59 2019 done.
+[RUN][pid=33796] gen=0 id=0 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\geopandas\_compat.py:110: UserWarning: The Shapely GEOS version (3.4.3-CAPI-1.8.3 r4285) is incompatible with the GEOS version PyGEOS was compiled with (3.10.3-CAPI-1.16.1). Conversions between both will be slow.
+  shapely_geos_version, geos_capi_version_string
+[RUN][pid=16564] gen=0 id=4 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=16564] gen=0 id=8 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=16564] gen=0 id=12 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=16564] gen=0 id=16 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=16564] gen=0 id=20 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=16564] gen=0 id=24 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=16564] gen=0 id=28 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=16564] gen=0 id=32 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=16564] gen=0 id=36 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+D:\InstallationPath\Anaconda3\envs\seims_py36\lib\site-packages\geopandas\_compat.py:110: UserWarning: The Shapely GEOS version (3.4.3-CAPI-1.8.3 r4285) is incompatible with the GEOS version PyGEOS was compiled with (3.10.3-CAPI-1.16.1). Conversions between both will be slow.
+  shapely_geos_version, geos_capi_version_string
+[RUN][pid=30592] gen=0 id=2 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=30592] gen=0 id=6 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=30592] gen=0 id=10 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=30592] gen=0 id=14 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=30592] gen=0 id=18 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=30592] gen=0 id=22 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=30592] gen=0 id=26 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=30592] gen=0 id=30 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=30592] gen=0 id=34 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[RUN][pid=30592] gen=0 id=38 开始运行。
+D:\SEIMS_C\data\Cottonwood\Cottonwood_longterm_model
+[2026-02-04 16:17:43,874] INFO    Root process is done.
+[2026-02-04 16:17:43,874] INFO    Finished cleaning spawned subprocesses.

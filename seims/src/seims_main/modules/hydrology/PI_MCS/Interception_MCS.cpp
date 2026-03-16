@@ -220,6 +220,115 @@ int clsPI_MCS::Execute() {
     return 0;
 }
 
+//int clsPI_MCS::Execute() {
+//	//check input data
+//	CheckInputData();
+//	/// initialize outputs
+//	InitialOutputs();
+//
+//	const int DBG_I0 = 629;
+//	const int DBG_I1 = 644;
+//
+//#pragma omp parallel for
+//	for (int i = 0; i < m_nCells; i++) {
+//		int subbasinId = CVT_INT(m_subbsnID[i]);
+//
+//		// ===== DEBUG BEFORE: print cell 629-644 pcp / interception / netPcp =====
+//		if (i >= DBG_I0 && i <= DBG_I1) {
+//			std::cout
+//				<< "[PI_MCS][BEFORE] day=" << m_dayOfYear
+//				<< " date=" << m_date
+//				<< " i=" << i
+//				<< " sb=" << (m_subbsnID ? (int)m_subbsnID[i] : -9999)
+//				<< " pcp(mm)=" << (m_pcp ? m_pcp[i] : -9999.f)
+//				<< " intcpLoss(mm)=" << (m_intcpLoss ? m_intcpLoss[i] : -9999.f)
+//				<< " netPcp(mm)=" << (m_netPcp ? m_netPcp[i] : -9999.f)
+//				<< " canSto(mm)=" << (m_canSto ? m_canSto[i] : -9999.f)
+//				<< " pet(mm)=" << (m_pet ? m_pet[i] : -9999.f)
+//#ifndef STORM_MODE
+//				<< " intcpET(mm)=" << (m_IntcpET ? m_IntcpET[i] : -9999.f)
+//#endif
+//				<< std::endl;
+//		}
+//
+//		if (m_pcp[i] > 0.f) {
+//#ifdef STORM_MODE
+//			/// correction for slope gradient, water spreads out over larger area
+//			/// 1. / 3600. = 0.0002777777777777778
+//			m_P[i] = m_P[i] * m_hilldt * 0.0002777777777777778f * cos(atan(m_slope[i]));
+//#endif // STORM_MODE
+//
+//			//interception storage capacity, 1. / 365. = 0.0027397260273972603
+//			float degree = 2.f * PI * (m_dayOfYear - 87.f) * 0.0027397260273972603f;
+//			/// For water, min and max are both 0, then no need for specific handling.
+//			float min = m_minIntcpStoCap[i];
+//			float max = m_maxIntcpStoCap[i];
+//			float capacity = min + (max - min) * pow(0.5f + 0.5f * sin(degree), m_intcpStoCapExp);
+//
+//			//interception, currently, m_canSto[i] is storage of (t-1) time step
+//			float availableSpace = capacity - m_canSto[i];
+//			if (availableSpace < 0) {
+//				availableSpace = 0.f;
+//			}
+//
+//			if (availableSpace < m_pcp[i]) {
+//				m_intcpLoss[i] = availableSpace;
+//				//if the cell is paddy, by default 15% part of pcp will be allocated to embankment area
+//				if (CVT_INT(m_landUse[i]) == LANDUSE_ID_PADDY) {
+//					//water added into ditches from low embankment, should be added to somewhere else.
+//					float pcp2canal = m_pcp[i] * m_pcp2CanalFr * m_embnkFr;
+//					m_netPcp[i] = m_pcp[i] - m_intcpLoss[i] - pcp2canal;
+//				}
+//				else {
+//					//net precipitation
+//					m_netPcp[i] = m_pcp[i] - m_intcpLoss[i];
+//				}
+//			}
+//			else {
+//				m_intcpLoss[i] = m_pcp[i];
+//				m_netPcp[i] = 0.f;
+//			}
+//
+//			m_canSto[i] += m_intcpLoss[i];
+//		}
+//		else {
+//			m_intcpLoss[i] = 0.f;
+//			m_netPcp[i] = 0.f;
+//		}
+//
+//#ifndef STORM_MODE
+//		//evaporation
+//		if (m_canSto[i] > m_pet[i]) {
+//			m_IntcpET[i] = m_pet[i];
+//		}
+//		else {
+//			m_IntcpET[i] = m_canSto[i];
+//		}
+//		m_canSto[i] -= m_IntcpET[i];
+//#endif
+//
+//		// ===== DEBUG AFTER: print cell 629-644 pcp / interception / netPcp =====
+//		if (i >= DBG_I0 && i <= DBG_I1) {
+//			std::cout
+//				<< "[PI_MCS][AFTER ] day=" << m_dayOfYear
+//				<< " date=" << m_date
+//				<< " i=" << i
+//				<< " sb=" << (m_subbsnID ? (int)m_subbsnID[i] : -9999)
+//				<< " pcp(mm)=" << (m_pcp ? m_pcp[i] : -9999.f)
+//				<< " intcpLoss(mm)=" << (m_intcpLoss ? m_intcpLoss[i] : -9999.f)
+//				<< " netPcp(mm)=" << (m_netPcp ? m_netPcp[i] : -9999.f)
+//				<< " canSto(mm)=" << (m_canSto ? m_canSto[i] : -9999.f)
+//				<< " pet(mm)=" << (m_pet ? m_pet[i] : -9999.f)
+//#ifndef STORM_MODE
+//				<< " intcpET(mm)=" << (m_IntcpET ? m_IntcpET[i] : -9999.f)
+//#endif
+//				<< std::endl;
+//		}
+//	}
+//	return 0;
+//}
+
+
 bool clsPI_MCS::CheckInputData() {
     CHECK_POSITIVE(MID_PI_MCS, m_date);
     CHECK_POSITIVE(MID_PI_MCS, m_nCells);

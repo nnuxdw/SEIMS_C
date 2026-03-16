@@ -227,21 +227,21 @@ float SoilCol::SoilColMethane(int cell_idx, float &CH4_before)
 	float factor = std::exp(-z_oxic / CH4_TAU_OXID);
 	float CH4_after = SoilCol_CH4 * factor;  // 通量（氧化后）
 
-	//// ---- DEBUG PRINT (AFTER OXIDATION) ----
-	//std::cout << std::fixed << std::setprecision(7)
-	//	<< "[WETMETH] cell=" << cell_idx
-	//	<< " CH4_after_oxid=" << CH4_after
-	//	<< std::endl;
+	//// ---- DEBUG (single line) ----
+	//if (cell_idx >= 629 && cell_idx <= 644) {
+	//	std::cout.setf(std::ios::fixed);
+	//	std::cout << std::setprecision(12)
+	//		<< "[WETMETH] cell=" << cell_idx
+	//		<< " before=" << SoilCol_CH4
+	//		<< " z_oxic=" << z_oxic
+	//		<< " tau=" << CH4_TAU_OXID
+	//		<< " factor=" << factor
+	//		<< " after=" << CH4_after
+	//		<< std::endl;
+	//}
 
 	return CH4_after;
 
-	//// ---- DEBUG PRINT (AFTER OXIDATION) ----
-	//std::cout << std::fixed << std::setprecision(7)
-	//	<< "[WETMETH] cell=" << cell_idx
-	//	<< " CH4_after_oxid=" << CH4_Soilcol_total
-	//	<< std::endl;
-
-	/*return CH4_Soilcol_total;*/
 }
 
 // Calculate oxic zone depth based on soil saturation
@@ -257,7 +257,7 @@ float SoilCol::calculate_oxic_depth() {
 	for (int i = 0; i < num_layers; i++) {
 
 		// If this layer is saturated, stop here
-		if (soil_saturation[i] >= 0.99999) { // Saturation >= 1.0 is considered saturated
+		if (soil_saturation[i] >= 0.9999) { // Saturation >= 1.0 is considered saturated
 			found_saturated_layer = true;
 			break;
 		}
@@ -572,7 +572,7 @@ int CH4_WETMETH::Execute() {
 		int actual_layers = (int)m_nSoilLyrs[i];
 		m_SoilCols[i].num_layers = actual_layers;
 
-		//// ✅✅✅ 你的打印代码就放在这儿（拷贝 j 循环之前）
+		// ✅✅✅ 你的打印代码就放在这儿（拷贝 j 循环之前）
 		//if (i == 0) { // 或者 (i>=629 && i<=644)
 		//	std::cout << "cell=" << i << " layers=" << actual_layers << "\n";
 		//	for (int j = 0; j < actual_layers; j++) {
@@ -665,15 +665,6 @@ int CH4_WETMETH::Execute() {
 
 		// before (production) -> SoilCol_CH4 在 SoilColMethane() 内已经写好
 		CH4_before = m_SoilCols[i].SoilCol_CH4;
-
-		//// ===== DEBUG: 打印 CH4_before / CH4_after =====
-		//if (i >= 629 && i <= 644) {
-		//	std::cout << std::fixed << std::setprecision(7)
-		//		<< "CH4;" << i
-		//		<< ";before=" << CH4_before
-		//		<< ";after=" << CH4_after
-		//		<< std::endl;
-		//}
 
 		m_satL1[i] = (actual_layers >= 1) ? m_SoilCols[i].soil_saturation[0] : 0.0f;
 		m_satL2[i] = (actual_layers >= 2) ? m_SoilCols[i].soil_saturation[1] : 0.0f;

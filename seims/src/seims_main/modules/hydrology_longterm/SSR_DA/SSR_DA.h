@@ -52,6 +52,7 @@ public:
 private:
     bool FlowInSoil(int id);
 private:
+	float k1;
     /// current subbasin ID, 0 for the entire watershed
     int m_inputSubbsnID;
     /// valid cell numbers
