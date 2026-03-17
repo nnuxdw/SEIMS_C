@@ -1,4 +1,4 @@
-#include "SSR_DA.h"
+﻿#include "SSR_DA.h"
 
 #include "text.h"
 
@@ -19,7 +19,18 @@ SSR_DA::SSR_DA() :
     m_soilIceSto(nullptr),m_clay(nullptr),m_soilPor(nullptr),m_slplen(nullptr),m_TTlag(nullptr),
     m_cellFlow(nullptr),m_surfRf(nullptr),m_potVol(nullptr),m_infil(nullptr),m_impoundTrig(nullptr),
     m_soilPerco(nullptr),m_landUse(nullptr),m_soilAWC(nullptr),m_dis2Stream(nullptr),
-    m_ki_1d(nullptr),m_soilFrozenTemp_1d(nullptr)
+    m_ki_1d(nullptr),m_soilFrozenTemp_1d(nullptr),
+	//xdw++
+	m_soilMoist_1(nullptr), m_soilMoist_5(nullptr), m_soilMoist_15(nullptr), m_soilMoist_30(nullptr),
+	m_soilMoist_60(nullptr), m_soilMoist_100(nullptr), m_soilMoist_200(nullptr), m_soilMoist(nullptr),
+	m_soilSat1(nullptr), m_soilSat5(nullptr), m_soilSat15(nullptr), m_soilSat30(nullptr),
+	m_soilSat60(nullptr), m_soilSat100(nullptr), m_soilSat200(nullptr),
+	m_soilAWC1(nullptr), m_soilAWC5(nullptr), m_soilAWC15(nullptr), m_soilAWC30(nullptr),
+	m_soilAWC60(nullptr), m_soilAWC100(nullptr), m_soilAWC200(nullptr),
+	m_soilMoistBfe(nullptr), m_soilWtrStoBfe(nullptr),
+	m_ks1(nullptr), m_ks5(nullptr), m_ks15(nullptr), m_ks30(nullptr),
+	m_ks60(nullptr), m_ks100(nullptr), m_ks200(nullptr)
+
      {
 }
 
@@ -30,9 +41,45 @@ SSR_DA::~SSR_DA() {
     if (m_slplen != nullptr) Release1DArray(m_slplen);
     if (m_TTlag != nullptr) Release2DArray(m_nCells, m_TTlag);
     if (m_cellFlow != nullptr) Release2DArray(m_nCells, m_cellFlow);
+
+	if (m_soilMoist_1 != nullptr) Release1DArray(m_soilMoist_1);
+	if (m_soilMoist_5 != nullptr) Release1DArray(m_soilMoist_5);
+	if (m_soilMoist_15 != nullptr) Release1DArray(m_soilMoist_15);
+	if (m_soilMoist_30 != nullptr) Release1DArray(m_soilMoist_30);
+	if (m_soilMoist_60 != nullptr) Release1DArray(m_soilMoist_60);
+	if (m_soilMoist_100 != nullptr) Release1DArray(m_soilMoist_100);
+	if (m_soilMoist_200 != nullptr) Release1DArray(m_soilMoist_200);
+	if (m_soilMoist != nullptr) Release2DArray(m_nCells, m_soilMoist);
+	if (m_soilSat1 != nullptr) Release1DArray(m_soilSat1);
+	if (m_soilSat5 != nullptr) Release1DArray(m_soilSat5);
+	if (m_soilSat15 != nullptr) Release1DArray(m_soilSat15);
+	if (m_soilSat30 != nullptr) Release1DArray(m_soilSat30);
+	if (m_soilSat60 != nullptr) Release1DArray(m_soilSat60);
+	if (m_soilSat100 != nullptr) Release1DArray(m_soilSat100);
+	if (m_soilSat200 != nullptr) Release1DArray(m_soilSat200);
+
+	if (m_soilAWC1 != nullptr) Release1DArray(m_soilAWC1);
+	if (m_soilAWC5 != nullptr) Release1DArray(m_soilAWC5);
+	if (m_soilAWC15 != nullptr) Release1DArray(m_soilAWC15);
+	if (m_soilAWC30 != nullptr) Release1DArray(m_soilAWC30);
+	if (m_soilAWC60 != nullptr) Release1DArray(m_soilAWC60);
+	if (m_soilAWC100 != nullptr) Release1DArray(m_soilAWC100);
+	if (m_soilAWC200 != nullptr) Release1DArray(m_soilAWC200);
+	if (m_soilMoistBfe != nullptr) Release2DArray(m_nCells, m_soilMoistBfe);
+	if (m_soilWtrStoBfe != nullptr) Release2DArray(m_nCells, m_soilWtrStoBfe);
+	
+	if (m_ks1 != nullptr) Release1DArray(m_ks1);
+	if (m_ks5 != nullptr) Release1DArray(m_ks5);
+	if (m_ks15 != nullptr) Release1DArray(m_ks15);
+	if (m_ks30 != nullptr) Release1DArray(m_ks30);
+	if (m_ks60 != nullptr) Release1DArray(m_ks60);
+	if (m_ks100 != nullptr) Release1DArray(m_ks100);
+	if (m_ks200 != nullptr) Release1DArray(m_ks200);
+
 }
 
 bool SSR_DA::FlowInSoil(const int id) {
+
 	// xdw++
 	float surFlowOld = m_surfRf[id];
 	int subbasinId = CVT_INT(m_subbsnID[id]);
@@ -53,6 +100,9 @@ bool SSR_DA::FlowInSoil(const int id) {
         m_subSurfRf[id][j] = 0.f;
         m_subSurfRfVol[id][j] = 0.f;
         m_soilPerco[id][j] = 0.f;
+		m_soilMoist[id][j] = m_soilWtrSto[id][j] / m_soilSat[id][j];
+		m_soilMoistBfe[id][j] = m_soilMoist[id][j];
+		m_soilWtrStoBfe[id][j] = m_soilWtrSto[id][j];
     }
     /* Previous code. Update: In my view, if the flowWidth is less than 0, the subsurface flow
      * from the upstream cells should be added to stream cell directly, which will be summarized
@@ -63,6 +113,8 @@ bool SSR_DA::FlowInSoil(const int id) {
     // number of flow-in cells
     int nUpstream = CVT_INT(m_flowInIdxD8[id][0]);
     m_soilWtrStoPrfl[id] = 0.f; // update soil storage on profile
+
+
     for (int j = 0; j < CVT_INT(m_nSoilLyrs[id]); j++) {
         float smOld = m_soilWtrSto[id][j];
         //sum the upstream subsurface flow
@@ -102,6 +154,7 @@ bool SSR_DA::FlowInSoil(const int id) {
 
         // if soil moisture is below the field capacity, no interflow will be generated
         //if (m_soilWtrSto[id][j] <= m_soilFC[id][j]) continue;
+		m_soilMoist[id][j] = m_soilWtrSto[id][j] / m_soilSat[id][j];
         if (m_soilWtrSto[id][j] <= m_soilAWC[id][j]) continue;
         // Otherwise, calculate interflow:
         // for the upper two layers, soil may be frozen
@@ -133,7 +186,7 @@ bool SSR_DA::FlowInSoil(const int id) {
             float alpha = 3;
             float f_frozen=exp(-alpha*(1-Min(m_soilIceSto[id][j]/(m_soilPor[id][j]*m_soilThk[id][j]),1)));
             f_frozen = Max(0.f,f_frozen);
-            f_frozen = f_frozen - exp(-alpha); 
+            f_frozen = f_frozen - exp(-alpha);
             WCND =  (1-f_frozen)*m_ks[id][j]* Min(1.0,pow(FACTR, EXPON));
             WCND = Min(WCND,m_ks[id][j]);
         }
@@ -162,7 +215,7 @@ bool SSR_DA::FlowInSoil(const int id) {
         // if (soilWater - m_subSurfRf[id][j] > maxSoilWater) {
         //     m_subSurfRf[id][j] = soilWater - maxSoilWater;
         // //}
-        // } else 
+        // } else
         if (soilWater - m_subSurfRf[id][j] < fcSoilWater) {
             m_subSurfRf[id][j] = soilWater - fcSoilWater;
         }
@@ -247,70 +300,7 @@ bool SSR_DA::FlowInSoil(const int id) {
         }
         m_soilWtrStoPrfl[id] += m_soilWtrSto[id][j];
 
-#ifdef DEBUG_SSR_DA
-		{
-			if (id == 15012)
-			{
-				float sm_new = m_soilWtrSto[id][j];
-				float dSm = smOld - sm_new;  // 本层土壤水减少量(>0 表示有水流出)
-				float awc_excess_old = smOld - m_soilAWC[id][j]; // 本步开始时相对 AWC 的超量
-				float sat_excess_old = smOld - m_soilSat[id][j]; // 本步开始时相对饱和含水量的超量
-
-				// 下一层前后对比（只为看 perco 的去向）
-				float next_sm_old = soilWtrStoNexLyrOld;
-				float next_sm_new = (j < CVT_INT(m_nSoilLyrs[id]) - 1)
-					? m_soilWtrSto[id][j + 1]
-					: -1.f;
-
-				std::cout << std::fixed << std::setprecision(6);
-
-				// ---- 基本标识 ----
-				std::cout << "[SSR_DA] "
-					<< "id=" << id
-					<< " sb=" << subbasinId
-					<< " lyr=" << j << "/" << (int)m_nSoilLyrs[id]
-					<< " landUse=" << m_landUse[id]
-					<< " rchID=" << m_rchID[id]
-					<< "\n";
-				std::cout.flush();
-				// ---- 本层水量 & 容量 ----
-				std::cout << "  storage_layer: "
-					<< "sm_old=" << smOld
-					<< " sm_new=" << sm_new
-					<< " SatCap=" << m_soilSat[id][j]
-					<< " AWC=" << m_soilAWC[id][j]
-					<< " awc_excess_old=" << awc_excess_old
-					<< " sat_excess_old=" << sat_excess_old
-					<< "\n";
-				std::cout.flush();
-				// ---- 垂向渗漏 & 侧向流（本步）----
-				std::cout << "  fluxes_layer: "
-					<< "perco=" << m_soilPerco[id][j] << "mm"
-					<< " subRf_step=" << m_subSurfRf[id][j] << "mm"   // 本步真正释放出去的侧向流
-					<< " dSm=" << dSm << "mm"  // 本层水量减少量
-					<< "\n";
-				std::cout.flush();
-				// ---- 垂向渗漏在下一层的体现 ----
-				if (j < CVT_INT(m_nSoilLyrs[id]) - 1)
-				{
-					std::cout << "  next_layer_storage: "
-						<< "next_sm_old=" << next_sm_old
-						<< " next_sm_new=" << next_sm_new
-						<< " (delta_next=" << (next_sm_new - next_sm_old) << ")"
-						<< "\n";
-				}
-				std::cout.flush();
-				// ---- 简单水量收支检查：dSm ≈ perco + subRf_step ----
-				float budget_residual = dSm - (m_soilPerco[id][j] + m_subSurfRf[id][j]);
-				std::cout << "  budget_check: "
-					<< "dSm - (perco + subRf_step)=" << budget_residual
-					<< "\n\n";
-				std::cout.flush();
-			}
-		}
-#endif
-
-
+		m_soilMoist[id][j] = m_soilWtrSto[id][j] / m_soilSat[id][j];
 
         if (m_soilWtrSto[id][j] != m_soilWtrSto[id][j] || m_soilWtrSto[id][j] < 0.f) {
             cout << "cell id: " << id << ", layer: " << j << ", moisture is less than zero: "
@@ -318,15 +308,78 @@ bool SSR_DA::FlowInSoil(const int id) {
                     << m_soilThk[id][j] << endl;
             return false;
         }
-        
+
+
     }
+	m_soilMoist_1[id] = m_soilWtrSto[id][0] / (m_soilSat[id][0]);
+	m_soilMoist_5[id] = m_soilWtrSto[id][1] / m_soilSat[id][1];
+	m_soilMoist_15[id] = m_soilWtrSto[id][2] / m_soilSat[id][2];
+	m_soilMoist_30[id] = m_soilWtrSto[id][3] / m_soilSat[id][3];
+	m_soilMoist_60[id] = m_soilWtrSto[id][4] / m_soilSat[id][4];
+	m_soilMoist_100[id] = m_soilWtrSto[id][5] / m_soilSat[id][5];
+	m_soilMoist_200[id] = m_soilWtrSto[id][6] / m_soilSat[id][6];
+
+	m_soilSat1[id] = m_soilSat[id][0];
+	m_soilSat5[id] = m_soilSat[id][1];
+	m_soilSat15[id] = m_soilSat[id][2];
+	m_soilSat30[id] = m_soilSat[id][3];
+	m_soilSat60[id] = m_soilSat[id][4];
+	m_soilSat100[id] = m_soilSat[id][5];
+	m_soilSat200[id] = m_soilSat[id][6];
+
+	m_soilAWC1[id] = m_soilAWC[id][0];
+	m_soilAWC5[id] = m_soilAWC[id][1];
+	m_soilAWC15[id] = m_soilAWC[id][2];
+	m_soilAWC30[id] = m_soilAWC[id][3];
+	m_soilAWC60[id] = m_soilAWC[id][4];
+	m_soilAWC100[id] = m_soilAWC[id][5];
+	m_soilAWC200[id] = m_soilAWC[id][6];
+
+	m_ks1[id] = m_ks[id][0];
+	m_ks5[id] = m_ks[id][1];
+	m_ks15[id] = m_ks[id][2];
+	m_ks30[id] = m_ks[id][3];
+	m_ks60[id] = m_ks[id][4];
+	m_ks100[id] = m_ks[id][5];
+	m_ks200[id] = m_ks[id][6];
+
+
+#ifdef DEBUG_SSR_DA
+		{
+			int SPECIFIED_SBID = 2;
+			if (subbasinId == SPECIFIED_SBID) {
+				cout << "Sbid: " << subbasinId << "   "
+					<< " HandId: " << id << "   " << endl;
+					for (int j = 0; j < CVT_INT(m_nSoilLyrs[id]); j++) {
+						cout 
+							<< "Layer: " << j << "   "
+							<< " MoisBfe=" << m_soilMoistBfe[id][j] << "   "
+							<< " MoisAft=" << m_soilMoist[id][j] << "   "
+							<< " WtrStoBfe=" << m_soilWtrStoBfe[id][j] << "   "
+							<< " WtrStoAft=" << m_soilWtrSto[id][j] << "   "
+							<< " Perco=" << m_soilPerco[id][j] << "   "
+							<< " SubF= " << m_subSurfRf[id][j] << "   "
+							<< " SAT=" << m_soilSat[id][j] << "   "
+							<< " AWC=" << m_soilAWC[id][j] << "   "
+							<< " WP=" << m_soilWP[id][j] << "   "
+							<< " THICK=" << m_soilThk[id][j] << "   "
+							<< endl;
+					}
+				
+			}
+		}
+#endif
     return true;
 }
 
 int SSR_DA::Execute() {
     CheckInputData();
     InitialOutputs();
-
+#ifdef DEBUG_SSR_DA
+	{
+		cout << "[SSR_DA]" << endl;
+	}
+#endif
     for (int ilyr = 0; ilyr < m_nRteLyrs; ilyr++) {
         // There are not any flow relationship within each routing layer.
         // So parallelization can be done here.
@@ -337,6 +390,7 @@ int SSR_DA::Execute() {
         for (int icell = 1; icell <= ncells; icell++) {
             int id = CVT_INT(m_rteLyrs[ilyr][icell]);
             if (!FlowInSoil(id)) errCount++;
+
         }
         if (errCount > 0) {
             throw ModelException(MID_SSR_DA, "Execute:FlowInSoil",
@@ -408,9 +462,7 @@ void SSR_DA::Set1DData(const char* key, const int nrows, float* data) {
     CheckInputSize(MID_SSR_DA, key, nrows, m_nCells);
     if (StringMatch(s, VAR_SLOPE)) {
         m_slope = data;
-    } else if (StringMatch(s, VAR_CHWIDTH)) {
-        m_chWidth = data;
-    } else if (StringMatch(s, VAR_STREAM_LINK)) {
+    }  else if (StringMatch(s, VAR_STREAM_LINK)) {
         m_rchID = data;
     } else if (StringMatch(s, VAR_SOTE)) {
         m_soilTemp = data;
@@ -429,10 +481,10 @@ void SSR_DA::Set1DData(const char* key, const int nrows, float* data) {
     else if (StringMatch(s, VAR_IMPOUND_TRIG)) m_impoundTrig = data;
     else if (StringMatch(s, VAR_INFIL)) m_infil = data;
     else if (StringMatch(s, VAR_LANDUSE)) m_landUse = data;
-    else if (StringMatch(s, VAR_DISTSTREAM)) m_dis2Stream = data; 
-    else if (StringMatch(s, "Ki_1d")) m_ki_1d = data; 
-    else if (StringMatch(s, "t_soil_1d")) m_soilFrozenTemp_1d = data; 
-    
+    else if (StringMatch(s, VAR_DISTSTREAM)) m_dis2Stream = data;
+    else if (StringMatch(s, "Ki_1d")) m_ki_1d = data;
+    else if (StringMatch(s, "t_soil_1d")) m_soilFrozenTemp_1d = data;
+
     else {
         throw ModelException(MID_SSR_DA, "Set1DData", "Parameter " + s + " does not exist.");
     }
@@ -472,7 +524,7 @@ void SSR_DA::Set2DData(const char* key, const int nrows, const int ncols, float*
     } else if (StringMatch(sk, Tag_FLOWIN_INDEX_D8)) {
         CheckInputSize(MID_SSR_DA, key, nrows, m_nCells);
         m_flowInIdxD8 = data;
-    } 
+    }
     //ljj++
     else if (StringMatch(sk, VAR_SOILT)) {
         CheckInputSize2D(MID_SSR_DA, key, nrows, ncols, m_nCells, m_maxSoilLyrs);
@@ -499,11 +551,131 @@ void SSR_DA::Set2DData(const char* key, const int nrows, const int ncols, float*
 void SSR_DA::Get1DData(const char* key, int* n, float** data) {
     InitialOutputs();
     string sk(key);
-    if (StringMatch(sk, VAR_SBIF)) *data = m_ifluQ2Rch;
+	if (StringMatch(sk, VAR_SBIF)) {
+		*data = m_ifluQ2Rch;
+		*n = m_nSubbsns + 1;
+	}
+	else if (StringMatch(sk, VAR_SOL_MOIST1)) {
+		*n = m_nCells;
+		*data = m_soilMoist_1;
+	}
+	else if (StringMatch(sk, VAR_SOL_MOIST5)) {
+		*n = m_nCells;
+		*data = m_soilMoist_5;
+	}
+	else if (StringMatch(sk, VAR_SOL_MOIST15)) {
+		*n = m_nCells;
+		*data = m_soilMoist_15;
+	}
+	else if (StringMatch(sk, VAR_SOL_MOIST30)) {
+		*n = m_nCells;
+		*data = m_soilMoist_30;
+	}
+	else if (StringMatch(sk, VAR_SOL_MOIST60)) {
+		*n = m_nCells;
+		*data = m_soilMoist_60;
+	}
+	else if (StringMatch(sk, VAR_SOL_MOIST100)) {
+		*n = m_nCells;
+		*data = m_soilMoist_100;
+	}
+	else if (StringMatch(sk, VAR_SOL_MOIST200)) {
+		*n = m_nCells;
+		*data = m_soilMoist_200;
+	}
+	///////////////////////
+	else if (StringMatch(sk, VAR_SOL_SAT1)) {
+		*n = m_nCells;
+		*data = m_soilSat1;
+	}
+	else if (StringMatch(sk, VAR_SOL_SAT5)) {
+		*n = m_nCells;
+		*data = m_soilSat5;
+	}
+	else if (StringMatch(sk, VAR_SOL_SAT15)) {
+		*n = m_nCells;
+		*data = m_soilSat15;
+	}
+	else if (StringMatch(sk, VAR_SOL_SAT30)) {
+		*n = m_nCells;
+		*data = m_soilSat30;
+	}
+	else if (StringMatch(sk, VAR_SOL_SAT60)) {
+		*n = m_nCells;
+		*data = m_soilSat60;
+	}
+	else if (StringMatch(sk, VAR_SOL_SAT100)) {
+		*n = m_nCells;
+		*data = m_soilSat100;
+	}
+	else if (StringMatch(sk, VAR_SOL_SAT200)) {
+		*n = m_nCells;
+		*data = m_soilSat200;
+	}
+	//////////////
+	else if (StringMatch(sk, VAR_SOL_AWC1)) {
+		*n = m_nCells;
+		*data = m_soilAWC1;
+	}
+	else if (StringMatch(sk, VAR_SOL_AWC5)) {
+		*n = m_nCells;
+		*data = m_soilAWC5;
+	}
+	else if (StringMatch(sk, VAR_SOL_AWC15)) {
+		*n = m_nCells;
+		*data = m_soilAWC15;
+	}
+	else if (StringMatch(sk, VAR_SOL_AWC30)) {
+		*n = m_nCells;
+		*data = m_soilAWC30;
+	}
+	else if (StringMatch(sk, VAR_SOL_AWC60)) {
+		*n = m_nCells;
+		*data = m_soilAWC60;
+	}
+	else if (StringMatch(sk, VAR_SOL_AWC100)) {
+		*n = m_nCells;
+		*data = m_soilAWC100;
+	}
+	else if (StringMatch(sk, VAR_SOL_AWC200)) {
+		*n = m_nCells;
+		*data = m_soilAWC200;
+	}
+
+	else if (StringMatch(sk, VAR_KS1)) {
+		*n = m_nCells;
+		*data = m_ks1;
+	}
+	else if (StringMatch(sk, VAR_KS5)) {
+		*n = m_nCells;
+		*data = m_ks5;
+	}
+	else if (StringMatch(sk, VAR_KS15)) {
+		*n = m_nCells;
+		*data = m_ks15;
+	}
+	else if (StringMatch(sk, VAR_KS30)) {
+		*n = m_nCells;
+		*data = m_ks30;
+	}
+	else if (StringMatch(sk, VAR_KS60)) {
+		*n = m_nCells;
+		*data = m_ks60;
+	}
+	else if (StringMatch(sk, VAR_KS100)) {
+		*n = m_nCells;
+		*data = m_ks100;
+	}
+	else if (StringMatch(sk, VAR_KS200)) {
+		*n = m_nCells;
+		*data = m_ks200;
+	}
+	
+
     else {
         throw ModelException(MID_SSR_DA, "Get1DData", "Result " + sk + " does not exist.");
     }
-    *n = m_nSubbsns + 1;
+
 }
 
 void SSR_DA::Get2DData(const char* key, int* nrows, int* ncols, float*** data) {
@@ -525,7 +697,14 @@ void SSR_DA::Get2DData(const char* key, int* nrows, int* ncols, float*** data) {
         throw ModelException(MID_SSR_DA, "Get2DData", "Output " + sk + " does not exist.");
     }
 }
+void SSR_DA::SetReaches(clsReaches* reaches) {
+	if (nullptr == reaches) {
+		throw ModelException(MID_MUSK_CH_HAND, "SetReaches", "The reaches input can not to be NULL.");
+	}
+	m_nSubbsns = reaches->GetReachNumber();
 
+	if (nullptr == m_chWidth) reaches->GetReachesSingleProperty(REACH_WIDTH, &m_chWidth);
+}
 bool SSR_DA::CheckInputData() {
     CHECK_NONNEGATIVE(MID_SSR_DA, m_inputSubbsnID);
     CHECK_POSITIVE(MID_SSR_DA, m_nCells);
@@ -547,7 +726,7 @@ bool SSR_DA::CheckInputData() {
     CHECK_POINTER(MID_SSR_DA, m_soilWtrSto);
     CHECK_POINTER(MID_SSR_DA, m_soilWtrStoPrfl);
 	//CHECK_POINTER(MID_SSR_DA, m_soilTemp);     //  xiaodw comment, don't need soil temperature now
-	CHECK_POINTER(MID_SSR_DA, m_chWidth);
+	//CHECK_POINTER(MID_SSR_DA, m_chWidth);
     CHECK_POINTER(MID_SSR_DA, m_rchID);
     CHECK_POINTER(MID_SSR_DA, m_flowInIdxD8);
     CHECK_POINTER(MID_SSR_DA, m_rteLyrs);
@@ -562,16 +741,52 @@ void SSR_DA::InitialOutputs() {
     if (nullptr == m_subSurfRfVol) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_subSurfRfVol, 0.f);
     if (nullptr == m_TTlag) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_TTlag, 0.f);
     if (nullptr == m_cellFlow) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_cellFlow, 0.f);
+	if (nullptr == m_soilMoist_1) Initialize1DArray(m_nCells, m_soilMoist_1, 0.f);
+	if (nullptr == m_soilMoist_5) Initialize1DArray(m_nCells, m_soilMoist_5, 0.f);
+	if (nullptr == m_soilMoist_15) Initialize1DArray(m_nCells, m_soilMoist_15, 0.f);
+	if (nullptr == m_soilMoist_30) Initialize1DArray(m_nCells, m_soilMoist_30, 0.f);
+	if (nullptr == m_soilMoist_60) Initialize1DArray(m_nCells, m_soilMoist_60, 0.f);
+	if (nullptr == m_soilMoist_100) Initialize1DArray(m_nCells, m_soilMoist_100, 0.f);
+	if (nullptr == m_soilMoist_200) Initialize1DArray(m_nCells, m_soilMoist_200, 0.f);
+	if (nullptr == m_soilMoist) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilMoist, 0.f);
+	if (nullptr == m_soilMoistBfe) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilMoistBfe, 0.f);
+	if (nullptr == m_soilWtrStoBfe) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilWtrStoBfe, 0.f);
+
+	if (nullptr == m_soilSat1) Initialize1DArray(m_nCells, m_soilSat1, 0.f);
+	if (nullptr == m_soilSat5) Initialize1DArray(m_nCells, m_soilSat5, 0.f);
+	if (nullptr == m_soilSat15) Initialize1DArray(m_nCells, m_soilSat15, 0.f);
+	if (nullptr == m_soilSat30) Initialize1DArray(m_nCells, m_soilSat30, 0.f);
+	if (nullptr == m_soilSat60) Initialize1DArray(m_nCells, m_soilSat60, 0.f);
+	if (nullptr == m_soilSat100) Initialize1DArray(m_nCells, m_soilSat100, 0.f);
+	if (nullptr == m_soilSat200) Initialize1DArray(m_nCells, m_soilSat200, 0.f);
+
+	if (nullptr == m_soilAWC1) Initialize1DArray(m_nCells, m_soilAWC1, 0.f);
+	if (nullptr == m_soilAWC5) Initialize1DArray(m_nCells, m_soilAWC5, 0.f);
+	if (nullptr == m_soilAWC15) Initialize1DArray(m_nCells, m_soilAWC15, 0.f);
+	if (nullptr == m_soilAWC30) Initialize1DArray(m_nCells, m_soilAWC30, 0.f);
+	if (nullptr == m_soilAWC60) Initialize1DArray(m_nCells, m_soilAWC60, 0.f);
+	if (nullptr == m_soilAWC100) Initialize1DArray(m_nCells, m_soilAWC100, 0.f);
+	if (nullptr == m_soilAWC200) Initialize1DArray(m_nCells, m_soilAWC200, 0.f);
+
+	if (nullptr == m_ks1) Initialize1DArray(m_nCells, m_ks1, 0.f);
+	if (nullptr == m_ks5) Initialize1DArray(m_nCells, m_ks5, 0.f);
+	if (nullptr == m_ks15) Initialize1DArray(m_nCells, m_ks15, 0.f);
+	if (nullptr == m_ks30) Initialize1DArray(m_nCells, m_ks30, 0.f);
+	if (nullptr == m_ks60) Initialize1DArray(m_nCells, m_ks60, 0.f);
+	if (nullptr == m_ks100) Initialize1DArray(m_nCells, m_ks100, 0.f);
+	if (nullptr == m_ks200) Initialize1DArray(m_nCells, m_ks200, 0.f);
+
+
     if (nullptr == m_slplen){
         Initialize1DArray(m_nCells, m_slplen, 30.f);
-        for (int i = 0; i <= m_nCells; i++) {
+        for (int i = 0; i < m_nCells; i++) {
             m_slplen[i] = m_dis2Stream[i];
             m_slplen[i] = Min(m_slplen[i],300.f);
             m_slplen[i] = Max(m_slplen[i],1.f);
             //ljj++ consitent with SERO
-            if(m_slope[i] <= 0.1)   m_slplen[i] = 61; 
-            if(m_slope[i] <= 0.2 && m_slope[i] > 0.1)   m_slplen[i] = 24; 
-            if(m_slope[i] > 0.2)   m_slplen[i] = 9.1; 
+            if(m_slope[i] <= 0.1)   m_slplen[i] = 61;
+            if(m_slope[i] <= 0.2 && m_slope[i] > 0.1)   m_slplen[i] = 24;
+            if(m_slope[i] > 0.2)   m_slplen[i] = 9.1;
         }
     }
 }

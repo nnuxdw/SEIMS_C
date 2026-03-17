@@ -15,7 +15,7 @@ SUR_MR::SUR_MR() :
     m_dem(nullptr),m_landUse(nullptr),m_soilAWC(nullptr),m_rchID(nullptr),m_pcp(nullptr),m_lakesto(nullptr),
     m_pet(nullptr),m_soilFrozenTemp_1d(nullptr),
 	//xdw++
-	m_soilFCDepth(nullptr), m_soilPorDepth(nullptr), m_handWtrDep(nullptr), m_subbsnID(nullptr),  m_chSto(nullptr), m_handArea(nullptr)
+	m_soilFCDepth(nullptr), m_soilPorDepth(nullptr), m_subbsnID(nullptr), m_handArea(nullptr)
     {
 }
 
@@ -54,7 +54,6 @@ void SUR_MR::InitialOutputs() {
         Initialize1DArray(m_nCells, m_infil, 0.f);
         Initialize1DArray(m_nCells, m_soilWtrStoPrfl, 0.f);
         Initialize1DArray(m_nCells, m_soilIceStoPrfl, 0.f);//ljj++
-		Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
         Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilWtrSto, NODATA_VALUE);
         Initialize1DArray(m_nCells, m_lakesto, 0.f);
 		Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilFCDepth, NODATA_VALUE);  //xdw++
@@ -89,10 +88,12 @@ void SUR_MR::InitialOutputs() {
 }
 
 int SUR_MR::Execute() {
+	
     CheckInputData();
     InitialOutputs();
     int frez =0;
     m_maxPcpRf *= m_dt * 1.1574074074074073e-05f; /// 1. / 86400. = 1.1574074074074073e-05;
+
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
          //if(m_landUse[i] ==LANDUSE_ID_WATR && m_rchID[i]<=0.f){
@@ -113,30 +114,9 @@ int SUR_MR::Execute() {
         hWater = m_netPcp[i] + m_deprSto[i];
 		//hWater = m_netPcp[i] + m_deprSto[i] + handWtrDepMM;   //  xiaodw, allow inundation water to infiltrate
 		//runoff percentage
-		float runoffPercentage;
-		float surfq;
-		int subbasinId = CVT_INT(m_subbsnID[i]);
-		float handWtrDepMM = m_handWtrDep[i] * 1000.0;
-		if (handWtrDepMM >.0f)
-		{
-			float hand_infil = 0.f;
-			float hand_infil_acc = 0.f;
-			for (int ly = CVT_INT(m_nSoilLyrs[i]) - 1; ly >= 0; ly--) {
-				if (handWtrDepMM >= m_soilPor[i][ly] * m_soilThk[i][ly] - m_soilWtrSto[i][ly]) {
-					hand_infil = m_soilPor[i][ly] * m_soilThk[i][ly] - m_soilWtrSto[i][ly];
-					m_soilWtrSto[i][ly] = m_soilPor[i][ly] * m_soilThk[i][ly];
-					hand_infil_acc += hand_infil;
-					handWtrDepMM -= hand_infil;
-				}
-				else {
-					hand_infil = handWtrDepMM;
-					m_soilWtrSto[i][ly] += hand_infil;
-					hand_infil_acc += hand_infil;
-					handWtrDepMM = 0.f;
-				}
-			}
-			m_chSto[subbasinId] -= m_handArea[i] * hand_infil_acc * 0.001;
-		}
+		float runoffPercentage = 0.0;
+		float surfq = 0.0;
+
 		if (hWater > 0.f ) {
             /// update total soil water content
             m_soilWtrStoPrfl[i] = 0.f;
@@ -227,35 +207,6 @@ int SUR_MR::Execute() {
 				m_exsPcp[i] = surfq;
             }
 
-#ifdef DEBUG_SUR_MR
-			{
-				// 第一次进来时创建文件并写表头；之后只追加数据
-
-				float firstLayerWtrSto = (m_nSoilLyrs[i] > 0 ? m_soilWtrSto[i][0] : NAN);
-				std::cout << "i=" << i
-					<< " landUse=" << m_landUse[i]
-					<< " rchID=" << m_rchID[i]
-					<< " pcp=" << m_pcp[i]
-					<< " pet=" << m_pet[i]
-					<< " netPcp=" << m_netPcp[i]
-					<< " deprSto=" << m_deprSto[i]
-					<< " hWater=" << hWater
-					<< " smFraction=" << smFraction
-					<< " alpha=" << alpha
-					<< " runoffPct=" << runoffPercentage
-					<< " surfq=" << surfq
-					<< " infil=" << m_infil[i]
-					<< " exsPcp=" << m_exsPcp[i]
-					<< " soilWtrStoPrfl=" << m_soilWtrStoPrfl[i]
-					<< " soilSatPrfl=" << soilSatPrfl
-					<< " nSoilLyrs=" << (int)m_nSoilLyrs[i]
-					<< " firstLayerWtrSto=" << firstLayerWtrSto
-					<< " m_potRfCoef=" << m_potRfCoef[i]
-					<< std::endl;
-				// 单线程可以不每次 flush；如果想实时看，可以打开下面这一行
-				// dbg.flush();
-			}
-#endif
         } else {
             m_exsPcp[i] = 0.f;
             m_infil[i] = 0.f;
@@ -264,6 +215,49 @@ int SUR_MR::Execute() {
         if (m_infil[i] > 0.f) {
             m_soilWtrSto[i][0] += m_infil[i];
         }
+
+
+#ifdef DEBUG_SUR_MR
+		{
+			int SPECIFIED_ID = 342;
+			// 第一次进来时创建文件并写表头；之后只追加数据
+			if (i == SPECIFIED_ID)
+			{
+				cout << "******************************************" << endl;
+				cout << "*[SUR_MR]* " << endl;
+				cout << "netPcp=" << netPcp << "   "
+					<< " deprSto=" << deprSto << "   "
+					<< " hWater=" << hWater << "   "
+					<< " runoffPerc=" << runoffPercentage << "   "
+					<< " surfq=" << surfq << "   "
+					<< " infil=" << m_infil[i] << "   "
+					<< " exsPcp=" << m_exsPcp[i] << std::endl;
+			}
+			//float firstLayerWtrSto = (m_nSoilLyrs[i] > 0 ? m_soilWtrSto[i][0] : NAN);
+			//std::cout << "i=" << i
+			//	<< " landUse=" << m_landUse[i]
+			//	<< " rchID=" << m_rchID[i]
+			//	<< " pcp=" << m_pcp[i]
+			//	<< " pet=" << m_pet[i]
+			//	<< " netPcp=" << m_netPcp[i]
+			//	<< " deprSto=" << m_deprSto[i]
+			//	<< " hWater=" << hWater
+			//	<< " smFraction=" << smFraction
+			//	<< " alpha=" << alpha
+			//	<< " runoffPct=" << runoffPercentage
+			//	<< " surfq=" << surfq
+			//	<< " infil=" << m_infil[i]
+			//	<< " exsPcp=" << m_exsPcp[i]
+			//	<< " soilWtrStoPrfl=" << m_soilWtrStoPrfl[i]
+			//	<< " soilSatPrfl=" << soilSatPrfl
+			//	<< " nSoilLyrs=" << (int)m_nSoilLyrs[i]
+			//	<< " firstLayerWtrSto=" << firstLayerWtrSto
+			//	<< " m_potRfCoef=" << m_potRfCoef[i]
+			//	<< std::endl;
+			// 单线程可以不每次 flush；如果想实时看，可以打开下面这一行
+			// dbg.flush();
+		}
+#endif
     }
     return 0;
 }
@@ -349,15 +343,6 @@ void SUR_MR::Set1DData(const char* key, const int n, float* data) {
 		CheckInputSize(MID_SUR_MR, key, n, m_nCells);
 		m_soilFrozenTemp_1d = data;
 	}
-	else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
-		CheckInputSize(MID_SUR_MR, key, n, m_nCells);
-		m_handWtrDep = data;
-	}
-	else if (StringMatch(sk, VAR_CHST)) {
-		// 特殊：长度是 n - 1，大小是 m_nreach
-		CheckInputSize(MID_SUR_MR, key, n - 1, m_nreach);
-		m_chSto = data;
-	}
 	else if (StringMatch(sk, VAR_SUBBSN)) {
 		CheckInputSize(MID_SUR_MR, key, n, m_nCells);
 		m_subbsnID = data;
@@ -403,10 +388,6 @@ void SUR_MR::Get1DData(const char* key, int* n, float** data) {
     } else if (StringMatch(sk, VAR_SOL_SW)) {
         *data = m_soilWtrStoPrfl;
     }
-	else if (StringMatch(sk, VAR_CHST)) {
-		m_chSto[0] = m_chSto[m_outletID];
-		*data = m_chSto;
-	}
 	else {
         throw ModelException(MID_SUR_MR, "Get1DData", "Result " + sk + " does not exist.");
     }

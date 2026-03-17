@@ -49,6 +49,8 @@ public:
 
     void Get2DData(const char *key, int *nrows, int *ncols, float ***data) OVERRIDE;
 
+	void SetReaches(clsReaches* reaches);
+
 private:
     bool FlowInSoil(int id);
 private:
@@ -161,6 +163,43 @@ private:
     float** m_soilIceSto;
     float** m_clay;
     float** m_soilPor;
+	// xdw++
+	float* m_soilMoist_1;
+	float* m_soilMoist_5;
+	float* m_soilMoist_15;
+	float* m_soilMoist_30;
+	float* m_soilMoist_60;
+	float* m_soilMoist_100;
+	float* m_soilMoist_200;
+	float** m_soilMoistBfe;
+	float** m_soilMoist;
+	float** m_soilWtrStoBfe;
+
+	float* m_soilSat1;
+	float* m_soilSat5;
+	float* m_soilSat15;
+	float* m_soilSat30;
+	float* m_soilSat60;
+	float* m_soilSat100;
+	float* m_soilSat200;
+
+	float* m_soilAWC1;
+	float* m_soilAWC5;
+	float* m_soilAWC15;
+	float* m_soilAWC30;
+	float* m_soilAWC60;
+	float* m_soilAWC100;
+	float* m_soilAWC200;
+
+	float* m_ks1;
+	float* m_ks5;
+	float* m_ks15;
+	float* m_ks30;
+	float* m_ks60;
+	float* m_ks100;
+	float* m_ks200;
+
+
 };
 
 #endif /* SEIMS_MODULE_SSR_DA_H */

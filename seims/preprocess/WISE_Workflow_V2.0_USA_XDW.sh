@@ -13,9 +13,17 @@ xdwcodePath="/data/user/longp/wise_data/script/SEIMS"  #大卫淹没SEIMS代码�
 lp_codePath="/data/user/longp/wise_data/script"  #金帅脚本的流域划分部分被写死了
 port="27017"                             # 数据库端口
 WISE_Path="${codePath}/SEIMS-hulugou"    # WISE模型代码位置
-# 遍历多个流域出口
 csv_file="/data/user/longp/wise_data/sitesfile/outlet_USA_Watersheds.csv"
 
+# 遍历多个流域出口
+# 从参数读取outlet的csv
+if [ $# -eq 0 ]; then
+    echo "csv 默认路径为 $csv_file"
+else
+    # 如果有传入参数，则将 csv_file 路径改为传入的参数
+    csv_file="$1"
+    echo "csv 已变更为 $csv_file"
+fi
 
 mapfile -t lines < "$csv_file"
 unset lines[0]

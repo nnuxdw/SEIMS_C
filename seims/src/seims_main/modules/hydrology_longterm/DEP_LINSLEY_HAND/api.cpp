@@ -34,6 +34,17 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Raster1D);   // xiaodw, infundation water depth,m 
 	mdi.AddInput(VAR_CHST, UNIT_VOL_M3, DESC_CHST, Source_Module, DT_Array1D);
 	mdi.AddInput(VAR_DPST, UNIT_DEPTH_MM, DESC_DPST, Source_Module, DT_Raster1D);
+
+	mdi.AddParameter(VAR_HAND_Subbasin, UNIT_NON_DIM, DESC_HAND_Subbasin, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_Flood_Level, UNIT_NON_DIM, DESC_HAND_Flood_Level, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_LevelDepth, UNIT_LEN_M, DESC_HAND_LevelDepth, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_SumArea, UNIT_AREA_M2, DESC_HAND_SumArea, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_SumVolume, UNIT_VOL_M3, DESC_HAND_SumVolume, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_AvgDepth, UNIT_LEN_M, DESC_HAND_AvgDepth, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_AccVolume, UNIT_VOL_M3, DESC_HAND_AccVolume, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_LowerAccDepthFlat, UNIT_LEN_M, DESC_HAND_LowerAccDepthFlat, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_HAND_LowerAccDepthLen, UNIT_NON_DIM, DESC_HAND_LowerAccDepthLen, Source_ParameterDB, DT_Raster1D);
+
     mdi.AddOutput(VAR_DPST, UNIT_DEPTH_MM, DESC_DPST, DT_Raster1D);
     mdi.AddOutput(VAR_DEET, UNIT_DEPTH_MM, DESC_DEET, DT_Raster1D);
     mdi.AddOutput(VAR_SURU, UNIT_DEPTH_MM, DESC_SURU, DT_Raster1D);

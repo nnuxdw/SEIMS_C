@@ -250,52 +250,66 @@ def center2csv(centers, dem_file_list, output_dir_list):
 
 
 if __name__ == '__main__':
-    csv_from_era5_land_base = r'G:\program\seims\SEIMS_HAND\data\drive-download-20260203T125553Z-3-001'
+    csv_from_era5_land_base = r'G:\program\seims\SEIMS_HAND\data\USA_Small_Watersheds\降雨气象数据\drive-download-20260213T122130Z-1-001'
     csv_wise_data_base = r'G:\program\seims\SEIMS_HAND\data'
     csv_from_era5_lands = [
-        os.path.join(csv_from_era5_land_base,'ERA5Land_Daily_1_LittleRiver.csv'),
-        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_2_MadRiver.csv'),
-        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_3_WilliamsRiver.csv'),
-        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_4_DryBeaver.csv'),
-        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_5_SantaPaula.csv'),
-        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_6_SabinoCreek.csv'),
+        # os.path.join(csv_from_era5_land_base,'ERA5Land_Daily_1_LittleRiver.csv'),
+        # os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_2_MadRiver.csv'),
+        # os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_3_WilliamsRiver.csv'),
+        # os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_4_DryBeaver.csv'),
+        # os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_5_SantaPaula.csv'),
+        # os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_6_SabinoCreek.csv'),
+
+        # os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_7_CATALOOCHEE_CREEK.csv'),
+        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_10_FRENCH_BROAD_RIVER_AT_ROSMAN.csv'),
+        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_11_DAVIDSON_RIVER.csv'),
+        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_12_COVE_CREEK_NEAR_LAKE_LURE.csv'),
+        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_14_CATAWBA_R_NR_PLEASANT_GARDENS.csv'),
+        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_15_LINVILLE_RIVER_NEAR_NEBO.csv'),
+        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_16_JOHNS_RIVER_AT_ARNEYS_STORE.csv'),
+        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_17_YADKIN_RIVER_AT_PATTERSON.csv'),
+        os.path.join(csv_from_era5_land_base, 'ERA5Land_Daily_18_ELK_CREEK_AT_ELKVILLE.csv'),
     ]
-    ### 存入之前建的项目
-    # csv_pcps = [
-    #     os.path.join(csv_wise_data_base, '1_Little_River\data_prepare\climate\pcp_daily_era5.csv'),
-    #     os.path.join(csv_wise_data_base, '2_Mad_River\data_prepare\climate\pcp_daily_era5.csv'),
-    #     os.path.join(csv_wise_data_base, '3_Williams_River\data_prepare\climate\pcp_daily_era5.csv'),
-    #     os.path.join(csv_wise_data_base, '4_Dry_Beaver\data_prepare\climate\pcp_daily_era5.csv'),
-    #     os.path.join(csv_wise_data_base, '5_Santa_Paula\data_prepare\climate\pcp_daily_era5.csv'),
-    #     os.path.join(csv_wise_data_base, '6_Sabino_Creek\data_prepare\climate\pcp_daily_era5.csv'),
-    # ]
-    #
-    # csv_meteos = [
-    #     os.path.join(csv_wise_data_base, '1_Little_River\data_prepare\climate\meteo_daily_era5.csv'),
-    #     os.path.join(csv_wise_data_base, '2_Mad_River\data_prepare\climate\meteo_daily_era5.csv'),
-    #     os.path.join(csv_wise_data_base, '3_Williams_River\data_prepare\climate\meteo_daily_era5.csv'),
-    #     os.path.join(csv_wise_data_base, '4_Dry_Beaver\data_prepare\climate\meteo_daily_era5.csv'),
-    #     os.path.join(csv_wise_data_base, '5_Santa_Paula\data_prepare\climate\meteo_daily_era5.csv'),
-    #     os.path.join(csv_wise_data_base, '6_Sabino_Creek\data_prepare\climate\meteo_daily_era5.csv'),
-    # ]
+
 
     ### 存入之龙平代码建的新项目
     csv_pcps = [
-        os.path.join(csv_wise_data_base, 'US_1\data_prepare\climate\pcp_daily_ERA5.csv'),
-        os.path.join(csv_wise_data_base, 'US_2\data_prepare\climate\pcp_daily_ERA5.csv'),
-        os.path.join(csv_wise_data_base, 'US_3\data_prepare\climate\pcp_daily_ERA5.csv'),
-        os.path.join(csv_wise_data_base, 'US_4\data_prepare\climate\pcp_daily_ERA5.csv'),
-        os.path.join(csv_wise_data_base, 'US_5\data_prepare\climate\pcp_daily_ERA5.csv'),
-        os.path.join(csv_wise_data_base, 'US_6\data_prepare\climate\pcp_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_1\data_prepare\climate\pcp_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_2\data_prepare\climate\pcp_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_3\data_prepare\climate\pcp_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_4\data_prepare\climate\pcp_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_5\data_prepare\climate\pcp_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_6\data_prepare\climate\pcp_daily_ERA5.csv'),
+
+        # os.path.join(csv_wise_data_base, 'US_7\data_prepare\climate\pcp_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_10\data_prepare\climate\pcp_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_11\data_prepare\climate\pcp_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_12\data_prepare\climate\pcp_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_14\data_prepare\climate\pcp_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_15\data_prepare\climate\pcp_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_16\data_prepare\climate\pcp_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_17\data_prepare\climate\pcp_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_18\data_prepare\climate\pcp_daily_ERA5.csv'),
+
     ]
 
     csv_meteos = [
-        os.path.join(csv_wise_data_base, 'US_1\data_prepare\climate\meteo_daily_ERA5.csv'),
-        os.path.join(csv_wise_data_base, 'US_2\data_prepare\climate\meteo_daily_ERA5.csv'),
-        os.path.join(csv_wise_data_base, 'US_3\data_prepare\climate\meteo_daily_ERA5.csv'),
-        os.path.join(csv_wise_data_base, 'US_4\data_prepare\climate\meteo_daily_ERA5.csv'),
-        os.path.join(csv_wise_data_base, 'US_5\data_prepare\climate\meteo_daily_ERA5.csv'),
-        os.path.join(csv_wise_data_base, 'US_6\data_prepare\climate\meteo_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_1\data_prepare\climate\meteo_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_2\data_prepare\climate\meteo_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_3\data_prepare\climate\meteo_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_4\data_prepare\climate\meteo_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_5\data_prepare\climate\meteo_daily_ERA5.csv'),
+        # os.path.join(csv_wise_data_base, 'US_6\data_prepare\climate\meteo_daily_ERA5.csv'),
+
+        # os.path.join(csv_wise_data_base, 'US_7\data_prepare\climate\meteo_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_10\data_prepare\climate\meteo_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_11\data_prepare\climate\meteo_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_12\data_prepare\climate\meteo_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_14\data_prepare\climate\meteo_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_15\data_prepare\climate\meteo_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_16\data_prepare\climate\meteo_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_17\data_prepare\climate\meteo_daily_ERA5.csv'),
+        os.path.join(csv_wise_data_base, 'US_18\data_prepare\climate\meteo_daily_ERA5.csv'),
     ]
 
     ## 1.生成降雨和气象csv数据
@@ -304,31 +318,60 @@ if __name__ == '__main__':
 
     ## 2.生成SITES csv数据
     coords = [
-        [-83.76958333, -83.47208333, 35.56208333, 35.70041667],  # 第一组
-        [-72.93791667, -72.70458333, 44.02791667, 44.29791667],  # 第二组
-        [-80.49458333, -80.12958333, 38.20125, 38.41041667],  # 第三组
-        [-111.8004167, -111.4395833, 34.70458333, 34.92875],  # 第四组
-        [-119.1445833, -119.0054167, 34.39875, 34.51625],  # 第五组
-        [-110.84375, -110.6970833, 32.3020833, 32.45041666]  # 第六组
+        # [-83.76958333, -83.47208333, 35.56208333, 35.70041667],  # 第一组
+        # [-72.93791667, -72.70458333, 44.02791667, 44.29791667],  # 第二组
+        # [-80.49458333, -80.12958333, 38.20125, 38.41041667],  # 第三组
+        # [-111.8004167, -111.4395833, 34.70458333, 34.92875],  # 第四组
+        # [-119.1445833, -119.0054167, 34.39875, 34.51625],  # 第五组
+        # [-110.84375, -110.6970833, 32.3020833, 32.45041666],  # 第六组
+
+        # [-83.20375, -83.04208333, 35.54708333, 35.68875],  # 第七组
+        [-82.9895833333333, -82.822083333, 35.102083333, 35.310416666],  # 第10组
+        [-82.88375, -82.70375, 35.2504166, 35.36041666],  # 第11组
+        [-82.2345833, -82.01208333, 35.42041666, 35.61125],  # 第12组
+        [-82.29625, -82.0520833, 35.535416666, 35.737916666],  # 第14组
+        [-81.96541666, -81.8195833, 35.782083333, 36.130416666],  # 第15组
+        [-80.49458333, -80.12958333, 35.8304166,36.14875],  # 第16组
+        [-81.58625, -81.40875, 35.88208333, 35.999583333],  # 第17组
+        [-81.6070833, -81.39875, 36.0679166, 36.23625],  # 第18组
     ]
 
     # 计算中心点
     centers = calculate_box_centers(coords, decimals=6)
     dem_file_list = [
-        os.path.join(csv_wise_data_base, 'US_1\workspace\spatial_raster\dem.tif'),
-        os.path.join(csv_wise_data_base, 'US_2\workspace\spatial_raster\dem.tif'),
-        os.path.join(csv_wise_data_base, 'US_3\workspace\spatial_raster\dem.tif'),
-        os.path.join(csv_wise_data_base, 'US_4\workspace\spatial_raster\dem.tif'),
-        os.path.join(csv_wise_data_base, 'US_5\workspace\spatial_raster\dem.tif'),
-        os.path.join(csv_wise_data_base, 'US_6\workspace\spatial_raster\dem.tif'),
+        # os.path.join(csv_wise_data_base, 'US_1\workspace\spatial_raster\dem.tif'),
+        # os.path.join(csv_wise_data_base, 'US_2\workspace\spatial_raster\dem.tif'),
+        # os.path.join(csv_wise_data_base, 'US_3\workspace\spatial_raster\dem.tif'),
+        # os.path.join(csv_wise_data_base, 'US_4\workspace\spatial_raster\dem.tif'),
+        # os.path.join(csv_wise_data_base, 'US_5\workspace\spatial_raster\dem.tif'),
+        # os.path.join(csv_wise_data_base, 'US_6\workspace\spatial_raster\dem.tif'),
+
+        # os.path.join(csv_wise_data_base, 'US_7\workspace\spatial_raster\dem.tif'),
+        os.path.join(csv_wise_data_base, 'US_10\workspace\spatial_raster\dem.tif'),
+        os.path.join(csv_wise_data_base, 'US_11\workspace\spatial_raster\dem.tif'),
+        os.path.join(csv_wise_data_base, 'US_12\workspace\spatial_raster\dem.tif'),
+        os.path.join(csv_wise_data_base, 'US_14\workspace\spatial_raster\dem.tif'),
+        os.path.join(csv_wise_data_base, 'US_15\workspace\spatial_raster\dem.tif'),
+        os.path.join(csv_wise_data_base, 'US_16\workspace\spatial_raster\dem.tif'),
+        os.path.join(csv_wise_data_base, 'US_17\workspace\spatial_raster\dem.tif'),
+        os.path.join(csv_wise_data_base, 'US_18\workspace\spatial_raster\dem.tif'),
     ]
     output_dir_list = [
-        os.path.join(csv_wise_data_base, 'US_1\data_prepare\climate'),
-        os.path.join(csv_wise_data_base, 'US_2\data_prepare\climate'),
-        os.path.join(csv_wise_data_base, 'US_3\data_prepare\climate'),
-        os.path.join(csv_wise_data_base, 'US_4\data_prepare\climate'),
-        os.path.join(csv_wise_data_base, 'US_5\data_prepare\climate'),
-        os.path.join(csv_wise_data_base, 'US_6\data_prepare\climate'),
+        # os.path.join(csv_wise_data_base, 'US_1\data_prepare\climate'),
+        # os.path.join(csv_wise_data_base, 'US_2\data_prepare\climate'),
+        # os.path.join(csv_wise_data_base, 'US_3\data_prepare\climate'),
+        # os.path.join(csv_wise_data_base, 'US_4\data_prepare\climate'),
+        # os.path.join(csv_wise_data_base, 'US_5\data_prepare\climate'),
+        # os.path.join(csv_wise_data_base, 'US_6\data_prepare\climate'),
+        # os.path.join(csv_wise_data_base, 'US_7\data_prepare\climate'),
+        os.path.join(csv_wise_data_base, 'US_10\data_prepare\climate'),
+        os.path.join(csv_wise_data_base, 'US_11\data_prepare\climate'),
+        os.path.join(csv_wise_data_base, 'US_12\data_prepare\climate'),
+        os.path.join(csv_wise_data_base, 'US_14\data_prepare\climate'),
+        os.path.join(csv_wise_data_base, 'US_15\data_prepare\climate'),
+        os.path.join(csv_wise_data_base, 'US_16\data_prepare\climate'),
+        os.path.join(csv_wise_data_base, 'US_17\data_prepare\climate'),
+        os.path.join(csv_wise_data_base, 'US_18\data_prepare\climate'),
     ]
     center2csv(centers, dem_file_list, output_dir_list)
 

@@ -883,17 +883,17 @@ if __name__ == '__main__':
     # longter_model_name = '-90_124556_38_819347_longterm_model'
     # 鄱阳湖
     if os.name == 'nt':  # Windows
-        work_dir = r'G:\program\seims\SEIMS_HAND\data\US_2'
+        work_dir = r'G:\program\seims\SEIMS_HAND\data\US_3'
     else:
         work_dir = f'/data/user/xiaodw/software/WISE/data/poyang_lake1'
-    longter_model_name = 'US_2_longterm_model'
+    longter_model_name = 'US_3_longterm_model'
     calibration_name = 'OUTPUT0-0'
     longterm_model_dir = os.path.join(work_dir,longter_model_name)
     directory = os.path.join(longterm_model_dir,calibration_name)
     # start = datetime(2010, 1, 1, 0, 0, 0)
     # end = datetime(2010, 12, 30, 0, 0, 0)
-    start = datetime(2010, 1, 1, 0, 0, 0)
-    end = datetime(2024, 12, 30, 0, 0, 0)
+    start = datetime(2024, 8, 1, 0, 0, 0)
+    end = datetime(2024, 8, 10, 0, 0, 0)
     # prefix = 'SNAC_TS'
     # pattern_prefix = 'SNAC_TS_'
     # prefix = 'SNME_TS'
@@ -905,37 +905,50 @@ if __name__ == '__main__':
     # pairs = [('OL_Hand_WTRDEP_TS_AVG', 'OL_Hand_WTRDEP_TS_AVG_')]
     # pairs = [('OL_Hand_WTRDEP_TS', 'OL_Hand_WTRDEP_TS_')]
 
+    # pairs_arr = [
+    #     [('solmoist1_TS', 'solmoist1_TS_')],
+    #     [('solmoist5_TS', 'solmoist5_TS_')],
+    #     [('solmoist30_TS', 'solmoist30_TS_')],
+    #     [('solmoist60_TS', 'solmoist60_TS_')],
+    #     [('solmoist100_TS', 'solmoist100_TS_')],
+    #     [('solmoist200_TS', 'solmoist200_TS_')]
+    # ]
     pairs_arr = [
+
+        [('Perco200_TS', 'Perco200_TS_')],
+        [('Runoff_co_TS', 'Runoff_co_TS_')],
+        [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
+        [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
+
         [('solmoist1_TS', 'solmoist1_TS_')],
         [('solmoist5_TS', 'solmoist5_TS_')],
         [('solmoist30_TS', 'solmoist30_TS_')],
         [('solmoist60_TS', 'solmoist60_TS_')],
         [('solmoist100_TS', 'solmoist100_TS_')],
-        [('solmoist200_TS', 'solmoist200_TS_')]
+        [('solmoist200_TS', 'solmoist200_TS_')],
+
+        [('solawc1_TS', 'solawc1_TS_')],
+        [('solawc5_TS', 'solawc5_TS_')],
+        [('solawc30_TS', 'solawc30_TS_')],
+        [('solawc60_TS', 'solawc60_TS_')],
+        [('solawc100_TS', 'solawc100_TS_')],
+        [('solawc200_TS', 'solawc200_TS_')],
+
+        [('solsat1_TS', 'solsat1_TS_')],
+        [('solsat5_TS', 'solsat5_TS_')],
+        [('solsat30_TS', 'solsat30_TS_')],
+        [('solsat60_TS', 'solsat60_TS_')],
+        [('solsat100_TS', 'solsat100_TS_')],
+        [('solsat200_TS', 'solsat200_TS_')],
+
+        [('ks1_TS', 'ks1_TS_')],
+        [('ks5_TS', 'ks5_TS_')],
+        [('ks30_TS', 'ks30_TS_')],
+        [('ks60_TS', 'ks60_TS_')],
+        [('ks100_TS', 'ks100_TS_')],
+        [('ks200_TS', 'ks200_TS_')]
     ]
-    # pairs = [('solmoist1_TS', 'solmoist1_TS_')]
-    # pairs = [('solmoist5_TS', 'solmoist5_TS_')]
-    # pairs = [('solmoist15_TS', 'solmoist15_TS_')]
-    # pairs = [('solmoist30_TS', 'solmoist30_TS_')]
-    # pairs = [('solmoist60_TS', 'solmoist60_TS_')]
-    # pairs = [('solmoist100_TS', 'solmoist100_TS_')]
-    # pairs = [('solmoist200_TS', 'solmoist200_TS_')]
     suffix = 'txt'
-
-    #########################  将HAND输出的结果生成为shp  ################################
-    shp_path = os.path.join(work_dir,r"workspace\HRU_file\HRU_mollwede.shp")
-
-
-    """ HAND淹没水深txt转shp """
-    # for prefix, pattern_prefix in pairs:
-    #     txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
-    #     files_in_range = filter_paths_by_time(txt_paths, start, end, pattern_prefix)
-    #     for txt_path in files_in_range:
-    #         output_tif_path = replace_txt_with_shp(txt_path)
-    #         write_value_to_hrushp(shp_path, txt_path, output_tif_path, id_field="FIELDID", value_field="value", fill_missing=None)
-
-    # prefix = 'OL_Hand_WTRDEP_TS'
-    # prefix = 'SNAC_TS_'
 
     #########################  将HAND输出的结果生成为tif  ################################
     input_tif_path = os.path.join(work_dir,r'workspace/HRU_file/ALL_HRU_final.tif')

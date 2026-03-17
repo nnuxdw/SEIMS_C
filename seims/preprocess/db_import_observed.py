@@ -311,6 +311,51 @@ def main():
 
     client.close()
 
+def main_batch():
+    from preprocess.config import ConfigParser,get_config_file,PreprocessConfig
+    from preprocess.db_mongodb import ConnectMongoDB
+    BASINs = [
+        # "US_1",
+        # "US_2",
+        # "US_3",
+        # "US_4",
+        # "US_5",
+        # "US_6",
+        # "US_7",
+        # "US_8",
+        # "US_9",
+        "US_10",
+        "US_11",
+        "US_12",
+        # "US_13",
+        "US_14",
+        "US_15",
+        "US_16",
+        "US_17",
+        "US_18",
+    ]
+    base_path = r'G:\program\seims\SEIMS_HAND\data'
 
+    suffix = r'model_configs\preprocess.ini'
+    # host = '172.21.124.127'
+    host = '127.0.0.1'
+    port = 27017
+
+    for basin in BASINs:
+        ini_file = os.path.join(base_path, basin, suffix)
+        cf = ConfigParser()
+        cf.read(ini_file)
+        seims_cfg = PreprocessConfig(cf)
+        client = ConnectMongoDB(host, port)
+        conn = client.get_conn()
+        main_db = conn[seims_cfg.spatial_db]
+        hydroclim_db = conn[seims_cfg.climate_db]
+        import time
+        st = time.time()
+        ImportObservedData.workflow(seims_cfg, main_db, hydroclim_db)
+        et = time.time()
+        print(et - st)
+        client.close()
 if __name__ == "__main__":
-    main()
+    # main()
+    main_batch()

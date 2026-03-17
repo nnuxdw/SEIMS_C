@@ -185,6 +185,9 @@ private:
 	float*  m_hand_eavp;
 	float* m_handWtrDep;
 	float* m_chSto;		///< reach storage (m^3), rchstor in SWAT
+	float** m_soilWtrStoBfe;
+	float** m_soilMoistBfe;
+	float* perco_200;
 
 };
 

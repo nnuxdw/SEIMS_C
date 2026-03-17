@@ -88,7 +88,7 @@ elif step == 'TEST':
     multiobj.setdefault('SOTE200_12', [['NSE', 1., -100, '>0'], ['R-square', 1., -100, '>0']])
 #######
 else:
-    multiobj.setdefault('Q_2', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('Q_3', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('F_123', [['NSE', 1., -100, '>0']])
     # Customize your own multiobjective here, such as:
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0.'],
@@ -102,13 +102,13 @@ else:
 if os.name == 'nt':  # Windows
     base_path = r'G:\program\seims\SEIMS_HAND\data\US'
 else:  # Linux/Unix
-    base_path = '/data/user/xiaodw/software/WISE/data/US'
+    base_path = '/data/user/xiaodw/software/WISE_V20160219/data/US'
 # # 淹没范围才会用，淹没面积率定不用管
 subbasin_flood_path = base_path + f'/inundation_cali/subbasin_flood'
 subbasin_ids=[1171,1176,1193,1194,1214]
 
 # 不同的实例指定不同的id，避免锁文件相互影响
-RUN_ID = 'US_2_20251026'
+RUN_ID = 'US_3_20251026'
 
 # Check object variables
 if not multiobj:

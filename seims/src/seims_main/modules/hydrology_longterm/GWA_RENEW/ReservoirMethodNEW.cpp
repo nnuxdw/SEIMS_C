@@ -1,7 +1,7 @@
 #include "ReservoirMethodNEW.h"
-
+#include <set>
 #include "text.h"
-
+using namespace std;
 ReservoirMethodNEW::ReservoirMethodNEW() :
     m_dt(-1), m_nCells(-1), m_cellWth(NODATA_VALUE), m_maxSoilLyrs(-1),
     m_nSoilLyrs(nullptr), m_soilThk(nullptr),
@@ -19,7 +19,9 @@ ReservoirMethodNEW::ReservoirMethodNEW() :
     m_nSubbsns(-1), m_inputSubbsnID(-1), m_subbasinsInfo(nullptr),
     m_area(nullptr), curBasinArea(nullptr), gwSub(nullptr), QGSub(nullptr), m_surfRf(nullptr), m_potVol(nullptr), m_infil(nullptr), m_impoundTrig(nullptr),
 	// xiaodw++
-	m_GWMAX_1d(nullptr), m_Base_ex_1d(nullptr), m_Kg_1d(nullptr), gw_delay_1d(nullptr), m_hand_eavp(nullptr), m_handWtrDep(nullptr), m_chSto(nullptr)
+	m_GWMAX_1d(nullptr), m_Base_ex_1d(nullptr), m_Kg_1d(nullptr), gw_delay_1d(nullptr), m_hand_eavp(nullptr), m_handWtrDep(nullptr), m_chSto(nullptr),
+	m_soilWtrStoBfe(nullptr), m_soilMoistBfe(nullptr), perco_200(nullptr)
+
 {
 }
 
@@ -34,6 +36,11 @@ ReservoirMethodNEW::~ReservoirMethodNEW() {
     if (m_gwSto != nullptr) Release1DArray(m_gwSto);
     if (m_T_GWWB != nullptr) Release2DArray(m_nSubbsns + 1, m_T_GWWB);
     if (curBasinArea != nullptr) Release1DArray(curBasinArea);
+	if (m_soilMoistBfe != nullptr) Release2DArray(m_nCells, m_soilMoistBfe);
+	if (m_soilWtrStoBfe != nullptr) Release2DArray(m_nCells, m_soilWtrStoBfe);
+	if (perco_200 != nullptr) Release1DArray(perco_200);
+	
+	
 }
 
 void ReservoirMethodNEW::InitialOutputs() {
@@ -53,6 +60,11 @@ void ReservoirMethodNEW::InitialOutputs() {
     if (gwSub == nullptr) Initialize1DArray(m_nCells, gwSub, m_GW0);
     if (QGSub == nullptr) Initialize1DArray(m_nCells, QGSub, 0);
 
+	if (nullptr == m_soilMoistBfe) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilMoistBfe, 0.f);
+	if (nullptr == m_soilWtrStoBfe) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilWtrStoBfe, 0.f);
+	if (perco_200 == nullptr) Initialize1DArray(m_nCells, perco_200, 0);
+	
+
 }
 
 int ReservoirMethodNEW::Execute() {
@@ -61,6 +73,11 @@ int ReservoirMethodNEW::Execute() {
     //float QGConvert = 1.f * m_cellWth * m_cellWth / m_dt * 0.001f; // mm ==> m3/s
     float QGConvert = 1.f * 0.001f / m_dt;
     float total_area = 0.f;
+#ifdef DEBUG_GWA_RENEW
+	{
+		cout << "[GWA_RENEW]" << endl;
+	}
+#endif
     for (auto it = m_subbasinIDs.begin(); it != m_subbasinIDs.end(); ++it) {
         int subID = *it;
         Subbasin* curSub = m_subbasinsInfo->GetSubbasinByID(subID);
@@ -85,7 +102,11 @@ int ReservoirMethodNEW::Execute() {
             int index = curCells[i];
 			int nly = CVT_INT(m_nSoilLyrs[index]);
 			int last = nly - 1;
-
+			for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[index]); ly++) {
+				m_soilMoistBfe[index][ly] = m_soilWtrSto[index][ly] / m_soilSat[index][ly];
+				m_soilWtrStoBfe[index][ly] = m_soilWtrSto[index][ly];
+			}
+			
 			// 先缓存“更新前”的量（用于算变化量 ）
 			float gw_before = gwSub[index];
 			float soil_before_last = m_soilWtrSto[index][last];
@@ -145,6 +166,8 @@ int ReservoirMethodNEW::Execute() {
                                 m_infil[index] = 0;
                             }
                         }
+
+
                     }
                 }
             }
@@ -167,9 +190,9 @@ int ReservoirMethodNEW::Execute() {
             else
             {*/
                 //m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_actPltET[index];
-				m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_hand_eavp[index];
-                m_revap[index] = Max(m_revap[index], 0.f);
-                m_revap[index] = m_revap[index] * m_gwSto[subID] / m_GWMAX_1d[subID];
+			m_revap[index] = m_pet[index] - m_IntcpET[index] - m_deprStoET[index] - m_soilET[index] - m_hand_eavp[index];
+            m_revap[index] = Max(m_revap[index], 0.f);
+            m_revap[index] = m_revap[index] * m_gwSto[subID] / m_GWMAX_1d[subID];
             //}
             float dGW = tmp_perc - m_revap[index];
             gwSub[index] = gwSub[index] + dGW;
@@ -187,60 +210,7 @@ int ReservoirMethodNEW::Execute() {
             ////revap += m_revap[index];
             revap += m_revap[index] * (m_area[index] / curBasinArea[subID]);
 
-			/// xiaodw++, output for debug
-			#ifdef DEBUG_GWA_RENEW
-			if (index == 15012) {
-				float tmp_perc_last = m_soilPerco[index][last];      // 最下层向地下水渗漏（mm）——注意你前面可能会被改写
-				float revap_mm = m_revap[index];                     // 地下水蒸发回补（mm）
-				float dGW_mm = tmp_perc_last - revap_mm;             // 本步地下水变化量（mm）（按你的更新公式）
-				float gw_after = gwSub[index];
 
-				std::cout << std::fixed << std::setprecision(6);
-				std::cout << "\n[GWA_RENEW] subID=" << subID
-					<< " index=" << index
-					<< " date=" << m_year << "-" << m_month << "-" << m_day
-					<< " dt=" << m_dt
-					<< "\n  nly=" << nly
-					<< " area=" << m_area[index]
-					<< " slopeCoef=" << curSub->GetSlopeCoef()
-					<< "\n  --- Fluxes (mm) ---"
-					<< "\n  perc_last(mm)=" << tmp_perc_last
-					<< "  revap(mm)=" << revap_mm
-					<< "  dGW(mm)=perc_last-revap=" << dGW_mm
-					<< "\n  --- GW Storage (mm) ---"
-					<< "\n  gw_before(mm)=" << gw_before
-					<< "  gw_after(mm)=" << gw_after
-					<< "  GWMAX_1d(mm)=" << m_GWMAX_1d[subID]
-					<< "\n  --- Soil Water (mm) ---";
-
-				// 每层土壤含水量 & 饱和含水量 & 变化量
-				for (int ly = 0; ly < nly; ++ly) {
-					float sw_before = soil_before[ly];
-					float sw_after = m_soilWtrSto[index][ly];
-					float dsw = sw_after - sw_before;
-					float sat = m_soilSat[index][ly];
-
-					std::cout << "\n  ly=" << ly
-						<< "  soil_before=" << sw_before
-						<< "  soil_after=" << sw_after
-						<< "  dSoil=" << dsw
-						<< "  sat=" << sat
-						<< "  (after-sat)=" << (sw_after - sat);
-				}
-
-				// 额外：一些你这段里最容易导致异常的关键量
-				std::cout << "\n  --- Key Vars ---"
-					<< "\n  infiltr(mm)=" << m_infil[index]
-					<< "  surfRf(mm)=" << m_surfRf[index]
-					<< "  handWtrDep(m)=" << m_handWtrDep[index]
-					<< "  hand_eavp(mm)=" << m_hand_eavp[index]
-					<< "\n  pet=" << m_pet[index]
-					<< "  IntcpET=" << m_IntcpET[index]
-					<< "  deprStoET=" << m_deprStoET[index]
-					<< "  soilET=" << m_soilET[index]
-					<< "\n" << std::endl;
-			}
-#endif
         }
         // perco /= curCellsNum; // mean mm
         // fPET /= curCellsNum;
@@ -312,16 +282,42 @@ int ReservoirMethodNEW::Execute() {
             gwBank = m_VgroundwaterFromBankStorage[subID];
         }
         groundStorage += gwBank / curSub->GetArea() * 1000.f;
-        if (isnan(groundStorage))
-        {
-            cout << " m_year: " << m_year << " m_month: " << m_month << " m_day: " << m_day << " subID: " << subID << endl;
-			cout.flush();
-			throw ModelException("ReservoirMethodNEW", "EXECUTE", "地下水为nan");
-        }
+   //     if (isnan(groundStorage))
+   //     {
+   //         cout << " m_year: " << m_year << " m_month: " << m_month << " m_day: " << m_day << " subID: " << subID << endl;
+			//cout.flush();
+			//throw ModelException("ReservoirMethodNEW", "EXECUTE", "地下水为nan");
+   //     }
         groundStorage = Max(groundStorage, 0.f);
         for (int i = 0; i < curCellsNum; i++) {
             int index = curCells[i];
             gwSub[index] = groundStorage;
+			perco_200[index] = m_soilPerco[index][6];
+			/// xiaodw++, output for debug
+#ifdef DEBUG_GWA_RENEW
+			set<int> SPECIFIED_SBID = { 2 };
+			if (SPECIFIED_SBID.find(subID) != SPECIFIED_SBID.end()) {
+				cout << " Sbid: " << subID << "   "
+					<< " HandId: " << index << "   "
+					<< " gwSub: " << gwSub[index] << "   "
+					<< " gwSto: " << m_gwSto[subID] << "   "
+					<< " gwMax: " << m_GWMAX_1d[subID] << "   "
+					<< " revap=" << m_revap[index] << "   "
+					<< " gwQ=" << groundQ << "   "
+					<< endl;
+				for (int j = 0; j < CVT_INT(m_nSoilLyrs[index]); j++) {
+					cout << "Layer: " << j << "   "
+						<< " Perc=" << m_soilPerco[index][j] << "   "
+						<< " MoisBfe=" << m_soilMoistBfe[index][j] << "   "
+						<< " MoisAft=" << m_soilWtrSto[index][j] / m_soilSat[index][j] << "   "
+						<< " WtrStoBfe=" << m_soilWtrStoBfe[index][j] << "   "
+						<< " WtrStoAft=" << m_soilWtrSto[index][j] << "   "
+						<< endl;
+				}
+				// 单线程可以不每次 flush；如果想实时看，可以打开下面这一行
+				// dbg.flush();
+			}
+#endif
         }
         /**** Set values for current subbasin ****/
         curSub->SetPet(fPET);
@@ -338,20 +334,7 @@ int ReservoirMethodNEW::Execute() {
                 << "\t" << m_Kg << "\t" << m_Base_ex << "\t" << slopeCoef << endl;
             throw ModelException("Subbasin", "setInputs", oss.str());
         }
-#ifdef DEBUG_GWA_RENEW
-		if (subID == 1171)
-		{
-			cout << "ID: " << subID <<
-				", pet: " << std::fixed << setprecision(6) << fPET <<
-				", perco: " << std::fixed << setprecision(6) << perco <<
-				", percoDeep: " << std::fixed << setprecision(6) << percoDeep <<
-				", revap: " << std::fixed << setprecision(6) << revap <<
-				", groundRunoff: " << std::fixed << setprecision(6) << groundRunoff <<
-				", groundQ: " << std::fixed << setprecision(6) << groundQ <<
-				", gwStore: " << std::fixed << setprecision(6) << groundStorage << endl;
-		}
 
-#endif
         m_petSubbsn[subID] = curSub->GetPet();
         m_T_Perco[subID] = curSub->GetPerco();
         m_T_PerDep[subID] = curSub->GetPerde();
@@ -676,7 +659,13 @@ void ReservoirMethodNEW::Get1DData(const char* key, int* nrows, float** data) {
     }
 	else if (StringMatch(sk, VAR_CHST)) {
 		*data = m_chSto;
+		*nrows = m_nSubbsns + 1;
 	}
+	else if (StringMatch(sk, VAR_PERCO_200)) {
+		*data = perco_200;
+		*nrows = m_nCells;
+	}
+	
     //else if (StringMatch(sk, VAR_SBQGSUBAREA)) {
     //    *data = QGSub;  
     //}

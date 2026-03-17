@@ -11,7 +11,7 @@
 #include "SimulationModule.h"
 #include "Scenario.h"
 //#include "clsReach.h"
-#define FLOOD_DEPTH_THRESH 0.1f
+
 
 using namespace bmps;
 using namespace std;

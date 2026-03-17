@@ -15,7 +15,11 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from rasterio.enums import Resampling
 from pathlib import Path
-
+import os
+import numpy as np
+from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import rasterio
 
 def build_stats(tif_path):
     with rasterio.open(tif_path, 'r+') as ds:
@@ -31,7 +35,6 @@ def build_stats(tif_path):
                           STATISTICS_MAXIMUM=str(stats['max']),
                           STATISTICS_MEAN=str(stats['mean']),
                           STATISTICS_STDDEV=str(stats['std']))
-    print("成功构建统计信息")
 
 def gen_hand_tif_by_txt_fast(txt_path, input_tif_path, output_tif_path):
     # 1) 读映射
@@ -801,8 +804,12 @@ def filter_paths_by_time(path_list, start_time, end_time, pattern_prefix="", tim
         except ValueError:
             # 文件名不符合规则的跳过
             continue
+    if not matched_files:
+        print(f"\033[31m错误:{start_time}-{end_time} 没有匹配的文件符合时间范围！\033[0m")
 
     matched_files.sort(key=lambda x: x[0])
+    for date,f in matched_files:
+        print(f'{date} 成功匹配到 {f}')
     return [f for _, f in matched_files]
 
 def gen_gif_by_tifs():
@@ -854,6 +861,11 @@ def gen_gif_by_tifs():
     create_gif_by_tif_with_shp_and_chwtrdepth(image_files, years, output_file, bakgrnd_tif,
                                'arcgis_elevation', -9999,shapefile_path=extent_shp,river_shapefile_dir=river_shapefile_dir)
 
+def get_previous_day(date_str):
+    """给定日期字符串，获取前一天的日期"""
+    event_date = datetime.strptime(date_str, "%Y-%m-%d")
+    previous_day = event_date - timedelta(days=1)
+    return previous_day.strftime("%Y-%m-%d")
 
 
     # create_gif_by_tif_with_shp(image_files, years, output_file, bakgrnd_tif,
@@ -878,82 +890,183 @@ def gen_gif_by_tifs():
 
 
 if __name__ == '__main__':
-    # missouri
-    # work_dir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347'
-    # longter_model_name = '-90_124556_38_819347_longterm_model'
-    # 鄱阳湖
-    if os.name == 'nt':  # Windows
-        work_dir = r'G:\program\seims\SEIMS_HAND\data\US_3'
-    else:
-        work_dir = f'/data/user/xiaodw/software/WISE/data/poyang_lake1'
-    longter_model_name = 'US_3_longterm_model'
-    calibration_name = 'OUTPUT0-0'
-    longterm_model_dir = os.path.join(work_dir,longter_model_name)
-    directory = os.path.join(longterm_model_dir,calibration_name)
-    # start = datetime(2010, 1, 1, 0, 0, 0)
-    # end = datetime(2010, 12, 30, 0, 0, 0)
-    start = datetime(2024, 8, 1, 0, 0, 0)
-    end = datetime(2024, 8, 10, 0, 0, 0)
-    # prefix = 'SNAC_TS'
-    # pattern_prefix = 'SNAC_TS_'
-    # prefix = 'SNME_TS'
-    # pattern_prefix = 'SNME_TS_'
-    # prefix = 'TMAX_TS'
-    # pattern_prefix = 'TMAX_TS_'
-    #('SNAC_TS', 'SNAC_TS_'),,('SNME_TS','SNME_TS_'),('TMAX_TS','TMAX_TS_')
-    # pairs = [('SNAC_TS', 'SNAC_TS_'),('SNME_TS', 'SNME_TS_')]
-    # pairs = [('OL_Hand_WTRDEP_TS_AVG', 'OL_Hand_WTRDEP_TS_AVG_')]
-    # pairs = [('OL_Hand_WTRDEP_TS', 'OL_Hand_WTRDEP_TS_')]
 
-    # pairs_arr = [
-    #     [('solmoist1_TS', 'solmoist1_TS_')],
-    #     [('solmoist5_TS', 'solmoist5_TS_')],
-    #     [('solmoist30_TS', 'solmoist30_TS_')],
-    #     [('solmoist60_TS', 'solmoist60_TS_')],
-    #     [('solmoist100_TS', 'solmoist100_TS_')],
-    #     [('solmoist200_TS', 'solmoist200_TS_')]
-    # ]
+    # 美国小流域
+    if os.name == 'nt':  # Windows
+        work_dir = r'G:\program\seims\SEIMS_HAND\data'
+    else:
+        work_dir = f'/data/user/xiaodw/software/WISE/data'
+    longter_model = '_longterm_model'
+    calibration_name = 'OUTPUT0-0'
+
+
+    BASIN_CONFIG = {
+
+        "US_2": {
+            "events": {
+                # "spinup": ("2016-06-28", "2017-06-27"),
+                "2017": ("2017-06-28", "2017-07-07"),
+                "2019": ("2019-10-29", "2019-11-07"),
+                "2023": ("2023-07-07", "2023-07-16"),
+                "2024": ("2024-07-08", "2024-07-17"),
+            },
+        },
+        "US_3": {
+            "events": {
+                # "spinup": ("2015-06-20", "2016-06-19"),
+                "2016": ("2016-06-20", "2016-06-29"),
+                "2017": ("2017-10-21", "2017-10-30"),
+                "2021": ("2021-02-26", "2021-03-07"),
+                "2024": ("2024-01-06", "2024-01-15"),
+            },
+        },
+        "US_4": {
+            "events": {
+                # "spinup": ("2015-01-03", "2016-01-02"),
+                "2016_1": ("2016-01-03", "2016-01-12"),  # Jan event
+                "2016_2": ("2016-12-14", "2016-12-23"),  # Dec event
+                "2018": ("2018-08-15", "2018-08-24"),
+                "2019": ("2019-02-11", "2019-02-20"),
+            },
+        },
+        "US_5": {
+            "events": {
+                # "spinup": ("2018-02-12", "2019-02-11"),
+                "2019": ("2019-02-12", "2019-02-21"),
+                "2021": ("2021-07-22", "2021-07-31"),
+                "2022": ("2022-08-17", "2022-08-26"),
+                "2023": ("2023-01-14", "2023-01-23"),
+            },
+        },
+        "US_6": {
+            "events": {
+                # "spinup": ("2016-02-14", "2017-02-13"),
+                "2017": ("2017-02-14", "2017-02-23"),
+                "2019": ("2019-01-14", "2019-01-23"),
+                "2023": ("2023-01-06", "2023-01-15"),
+                "2024": ("2024-02-01", "2024-02-10"),
+            },
+        },
+
+        "US_10": {
+            "events": {
+                # "spinup": ("2018-04-14", "2018-04-13"),  # spinup 是第一次洪水事件前一年
+                "2019": ("2019-04-14", "2019-04-24"),  # 洪水日期前后各5天
+                "2020": ("2020-04-08", "2020-04-18"),  # 洪水日期前后各5天
+                "2021": ("2021-08-12", "2021-08-22"),  # 洪水日期前后各5天
+                "2022": ("2022-05-22", "2022-06-01"),  # 洪水日期前后各5天
+            },
+        },
+
+        "US_11": {
+            "events": {
+                # "spinup": ["2016-10-23", "2016-10-22"],
+                "2017": ["2017-10-18", "2017-10-28"],
+                "2020": ["2020-04-08", "2020-04-18"],
+                "2021": ["2021-08-12", "2021-08-22"],
+                "2022": ["2022-05-22", "2022-06-01"]
+            }
+        },
+
+        "US_12": {
+            "events": {
+                # "spinup": ["2017-05-30", "2017-05-29"],
+                "2018": ["2018-05-25", "2018-06-04"],
+                "2020": ["2020-05-14", "2020-05-24"],
+                "2021": ["2021-10-02", "2021-10-12"],
+                "2022": ["2022-11-06", "2022-11-16"]
+            }
+        },
+        "US_14": {
+            "events": {
+                # "spinup": ["2017-05-30", "2017-05-29"],
+                "2018": ["2018-05-25", "2018-06-04"],
+                "2020": ["2020-05-15", "2020-05-25"],
+                "2021": ["2021-10-02", "2021-10-12"],
+                "2022": ["2022-11-06", "2022-11-16"]
+            },
+        },
+        "US_15": {
+            "events": {
+                # "spinup": ["2017-09-17", "2017-09-16"],
+                "2018": ["2018-09-12", "2018-09-22"],
+                "2020": ["2020-01-06", "2020-01-16"],
+                "2021": ["2021-08-13", "2021-08-23"],
+                "2022": ["2022-11-06", "2022-11-16"]
+            },
+        },
+        "US_16": {
+            "events": {
+                # "spinup": ["2017-05-19", "2017-05-18"],
+                "2018": ["2018-05-14", "2018-05-24"],
+                "2019": ["2019-06-04", "2019-06-14"],
+                "2020": ["2020-04-08", "2020-04-18"],
+                "2022": ["2022-11-06", "2022-11-16"]
+            },
+        },
+        "US_17": {
+            "events": {
+                # "spinup": ["2016-05-24", "2016-05-23"],
+                "2017": ["2017-05-19", "2017-05-29"],
+                "2018": ["2018-04-10", "2018-04-20"],
+                "2019": ["2019-06-04", "2019-06-14"],
+                "2020": ["2020-04-08", "2020-04-18"]
+            },
+        },
+        "US_18": {
+            "events": {
+                # "spinup": ["2016-05-24", "2016-05-23"],
+                "2017": ["2017-05-19", "2017-05-29"],
+                "2019": ["2019-06-04", "2019-06-14"],
+                "2020": ["2020-04-08", "2020-04-18"],
+                "2023": ["2023-02-27", "2023-03-08"]
+            },
+        },
+    }
+
+
     pairs_arr = [
 
-        [('Perco200_TS', 'Perco200_TS_')],
-        [('Runoff_co_TS', 'Runoff_co_TS_')],
-        [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
-        [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
+        # [('Perco200_TS', 'Perco200_TS_')],
+        # [('Runoff_co_TS', 'Runoff_co_TS_')],
+        # [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
+        # [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
 
         [('solmoist1_TS', 'solmoist1_TS_')],
         [('solmoist5_TS', 'solmoist5_TS_')],
+        [('solmoist15_TS', 'solmoist15_TS_')],
         [('solmoist30_TS', 'solmoist30_TS_')],
         [('solmoist60_TS', 'solmoist60_TS_')],
         [('solmoist100_TS', 'solmoist100_TS_')],
         [('solmoist200_TS', 'solmoist200_TS_')],
 
-        [('solawc1_TS', 'solawc1_TS_')],
-        [('solawc5_TS', 'solawc5_TS_')],
-        [('solawc30_TS', 'solawc30_TS_')],
-        [('solawc60_TS', 'solawc60_TS_')],
-        [('solawc100_TS', 'solawc100_TS_')],
-        [('solawc200_TS', 'solawc200_TS_')],
-
-        [('solsat1_TS', 'solsat1_TS_')],
-        [('solsat5_TS', 'solsat5_TS_')],
-        [('solsat30_TS', 'solsat30_TS_')],
-        [('solsat60_TS', 'solsat60_TS_')],
-        [('solsat100_TS', 'solsat100_TS_')],
-        [('solsat200_TS', 'solsat200_TS_')],
-
-        [('ks1_TS', 'ks1_TS_')],
-        [('ks5_TS', 'ks5_TS_')],
-        [('ks30_TS', 'ks30_TS_')],
-        [('ks60_TS', 'ks60_TS_')],
-        [('ks100_TS', 'ks100_TS_')],
-        [('ks200_TS', 'ks200_TS_')]
+        # [('solawc1_TS', 'solawc1_TS_')],
+        # [('solawc5_TS', 'solawc5_TS_')],
+        # [('solawc30_TS', 'solawc30_TS_')],
+        # [('solawc60_TS', 'solawc60_TS_')],
+        # [('solawc100_TS', 'solawc100_TS_')],
+        # [('solawc200_TS', 'solawc200_TS_')],
+        #
+        # [('solsat1_TS', 'solsat1_TS_')],
+        # [('solsat5_TS', 'solsat5_TS_')],
+        # [('solsat30_TS', 'solsat30_TS_')],
+        # [('solsat60_TS', 'solsat60_TS_')],
+        # [('solsat100_TS', 'solsat100_TS_')],
+        # [('solsat200_TS', 'solsat200_TS_')],
+        #
+        # [('ks1_TS', 'ks1_TS_')],
+        # [('ks5_TS', 'ks5_TS_')],
+        # [('ks30_TS', 'ks30_TS_')],
+        # [('ks60_TS', 'ks60_TS_')],
+        # [('ks100_TS', 'ks100_TS_')],
+        # [('ks200_TS', 'ks200_TS_')]
     ]
     suffix = 'txt'
 
     #########################  将HAND输出的结果生成为tif  ################################
-    input_tif_path = os.path.join(work_dir,r'workspace/HRU_file/ALL_HRU_final.tif')
+
     # 设置最大线程数（建议不超过 CPU 核心数的 2~4 倍）
-    max_workers = 12
+    max_workers = 10
     def run_gen_hand_tif(txt_path, input_tif_path):
         output_tif_path = replace_txt_with_tif(txt_path)
         gen_hand_tif_by_txt_fast(
@@ -961,23 +1074,38 @@ if __name__ == '__main__':
             input_tif_path=input_tif_path,
             output_tif_path=output_tif_path
                                  )
-    files_in_range = []
-    for pairs in pairs_arr:
-        for prefix, pattern_prefix in pairs:
-            txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
-            files_in_range.extend(filter_paths_by_time(txt_paths, start, end, pattern_prefix))
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = [
-                    executor.submit(run_gen_hand_tif, txt_path, input_tif_path)
-                    for txt_path in files_in_range
-                ]
 
-                # 可选：显示进度 & 捕捉错误
-                for future in as_completed(futures):
-                    try:
-                        future.result()
-                    except Exception as e:
-                        print(f"发生错误：{e}")
+
+    for basin_name, cfg in BASIN_CONFIG.items():
+        events = cfg["events"]
+        input_tif_path = os.path.join(work_dir, f'{basin_name}',r'workspace/HRU_file/ALL_HRU_final.tif')
+        for event_name, event_dates in events.items():
+            # 获取事件开始日期
+            event_start = event_dates[0]
+            # 获取前一天的日期
+            previous_day_str = get_previous_day(event_start)
+            previous_day = datetime.strptime(previous_day_str, "%Y-%m-%d")
+            print(f"\n===== {basin_name} - {event_name} 的前一天 {previous_day} 开始处理 =====")
+            longterm_model_dir = os.path.join(work_dir, f'{basin_name}',f'{basin_name}_longterm_model')
+            directory = os.path.join(longterm_model_dir, calibration_name)
+            ## txt转tif
+            files_in_range = []
+            for pairs in pairs_arr:
+                for prefix, pattern_prefix in pairs:
+                    txt_paths = get_files_by_prefix_suffix(directory,prefix,suffix)
+                    files_in_range.extend(filter_paths_by_time(txt_paths, previous_day, previous_day, pattern_prefix))
+                    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                        futures = [
+                            executor.submit(run_gen_hand_tif, txt_path, input_tif_path)
+                            for txt_path in files_in_range
+                        ]
+
+                        # 可选：显示进度 & 捕捉错误
+                        for future in as_completed(futures):
+                            try:
+                                future.result()
+                            except Exception as e:
+                                print(f"发生错误：{e}")
 
     """ HAND淹没水深tif叠加观测范围tif绘图 """
 

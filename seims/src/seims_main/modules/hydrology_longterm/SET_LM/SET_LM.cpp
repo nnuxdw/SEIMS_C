@@ -55,18 +55,29 @@ int SET_LM::Execute() {
 			etDeficiency -= et2d;
 			m_soilET[i] += et2d;
 #ifdef DEBUG_SET_LM
-				if (i == 2562)
-				{
-					std::cout << "------------------ ET Debug Info ------------------" << std::endl;
-					std::cout << "  HRU ID                : " << i << std::endl;
-					std::cout << "  Soil Layer             : " << j << " / " << m_nSoilLyrs[i] << std::endl;
-					std::cout << "  Soil Moisture (before) : " << smBefore << " mm" << std::endl;
-					std::cout << "  Soil Moisture (after)  : " << m_soilWtrSto[i][j] << " mm" << std::endl;
-					std::cout << "  AWC (Field Capacity)   : " << m_soilAWC[i][j] << " mm" << std::endl;
-					std::cout << "  ET Demand (deficiency) : " << etDeficiency << " mm" << std::endl;
-					std::cout << "  ET Extracted (et2d)    : " << et2d << " mm" << std::endl;
-					std::cout << "---------------------------------------------------" << std::endl << std::endl;
-				}
+			int SPECIFIED_SBID = 2;
+			int subbasinId = CVT_INT(m_subbsnID[i]);
+			//if (subbasinId == SPECIFIED_SBID) {
+
+			//	cout << "Sbid: " << subbasinId << "   "
+			//		<< " HandId: " << id << "   " << endl;
+			//	for (int j = 0; j < CVT_INT(m_nSoilLyrs[id]); j++) {
+			//		cout
+			//			<< "Layer: " << j << "   "
+			//			<< " MoisBfe=" << m_soilMoistBfe[id][j] << "   "
+			//			<< " MoisAft=" << m_soilMoist[id][j] << "   "
+			//			<< " WtrStoBfe=" << m_soilWtrStoBfe[id][j] << "   "
+			//			<< " WtrStoAft=" << m_soilWtrSto[id][j] << "   "
+			//			<< " Perco=" << m_soilPerco[id][j] << "   "
+			//			<< " SubF= " << m_subSurfRf[id][j] << "   "
+			//			<< " SAT=" << m_soilSat[id][j] << "   "
+			//			<< " AWC=" << m_soilAWC[id][j] << "   "
+			//			<< " WP=" << m_soilWP[id][j] << "   "
+			//			<< " THICK=" << m_soilThk[id][j] << "   "
+			//			<< endl;
+			//	}
+			//	
+			//}
 
 #endif // DEBUG_SET_LM
 			

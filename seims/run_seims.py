@@ -731,13 +731,13 @@ class MainSEIMS(object):
         os.makedirs(dst, exist_ok=True)
 
         # 逐项复制（子目录用 copytree，文件用 copy2）
-        for name in os.listdir(src):
-            s = os.path.join(src, name)
-            d = os.path.join(dst, name)
-            if os.path.isdir(s):
-                copytree(s, d)  # 若要“合并”而不是覆盖，可改成 dirs_exist_ok=True（Python 3.8+）
-            else:
-                copy2(s, d)
+        # for name in os.listdir(src):
+        #     s = os.path.join(src, name)
+        #     d = os.path.join(dst, name)
+        #     if os.path.isdir(s):
+        #         copytree(s, d)  # 若要“合并”而不是覆盖，可改成 dirs_exist_ok=True（Python 3.8+）
+        #     else:
+        #         copy2(s, d)
 
         return dst
 

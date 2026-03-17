@@ -110,6 +110,26 @@ int DepressionFSDaily::Execute() {
                 m_sd[i] = 0.f;
             }
         }
+#ifdef DEBUG_DEP_LINSLEY
+		{
+			int SPECIFIED_ID = 342;
+			if (i == SPECIFIED_ID)
+			{
+				cout << "*[DEP_LINSLEY]* " << endl;
+				cout
+
+					<< " depCap=" << m_depCap[i] << "   "
+					<< " sd=" << m_sd[i] << "   "
+					<< " pe=" << m_pe[i] << "   "
+					<< " sr=" << m_sr[i] << "   "
+					<< " pet=" << m_pet[i] << "   "
+					<< " ei=" << m_ei[i] << "   "
+					<< " eavp=" << m_hand_eavp[i] << "   "
+					<< endl;
+			}
+			
+		}
+#endif
     }
     return true;
 }

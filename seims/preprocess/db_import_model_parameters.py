@@ -147,11 +147,17 @@ class ImportParam2Mongo(object):
         # print(max_subbasin_id, min_subbasin_id, subbasin_num)
         flowdir_d = RasterUtilClass.read_raster(flowdir_r)
         flowdir_data = flowdir_d.data
+        flowdir_nodata = flowdir_d.noDataValue
         i_row = -1
         i_col = -1
+
         for row in range(nrows):
             for col in range(ncols):
-                if streamlink_data[row][col] != nodata:
+                if streamlink_data[row][col] != nodata and int(flowdir_data[row][col]) != int(flowdir_nodata):
+                    # print(flowdir_data[row][col])
+                    # print(row)
+                    # print(col)
+
                     i_row = row
                     i_col = col
                     # print(row, col)
@@ -171,10 +177,17 @@ class ImportParam2Mongo(object):
             """Find outlet's coordinate"""
             flag = True
             while flag:
+                # print(r)
+                # print(c)
                 fdir = flowdir_data[r][c]
+
+                # add xjs:内流区终点的流向是255
+                if fdir == 255:
+                    return r, c
+
                 newr, newc = flow_down_stream_idx(fdir, r, c)
                 if newr < 0 or newc < 0 or newr >= nrows or newc >= ncols \
-                    or streamlink_data[newr][newc] == nodata:
+                    or streamlink_data[newr][newc] == nodata or int(flowdir_data[newr][newc]) == int(flowdir_nodata):
                     flag = False
                 else:
                     # print(newr, newc, streamlink_data[newr][newc])
@@ -382,10 +395,15 @@ class ImportParam2Mongo(object):
     @staticmethod
     def workflow(cfg, maindb):
         """Workflow"""
+        # import model_param_ini.csv
         ImportParam2Mongo.initial_params_from_txt(cfg, maindb)
+        # import param.cali
         ImportParam2Mongo.calibrated_params_from_txt(cfg, maindb)
+        # import file.in,file.out by AvailableOutputs.csv
         ImportParam2Mongo.model_io_configuration(cfg, maindb)
+        # Import subbasin numbers, outlet ID, etc. to MongoDB.有一个流向编码，需要动态更改
         ImportParam2Mongo.subbasin_statistics(cfg, maindb)
+        # Import lookup tables （database文件夹中的lookuptable）
         ImportParam2Mongo.lookup_tables_as_collection_and_gridfs(cfg, maindb)
 
 

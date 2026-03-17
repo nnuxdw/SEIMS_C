@@ -148,7 +148,7 @@ class PreprocessConfig(object):
             self.port = cf.getint('MONGODB', 'port')
             self.climate_db = cf.get('MONGODB', 'climatedbname')
             self.bmp_scenario_db = cf.get('MONGODB', 'bmpscenariodbname')
-            self.spatial_db = cf.get('MONGODB', 'spatialdbname')
+            self. spatial_db = cf.get('MONGODB', 'spatialdbname')
         else:
             raise ValueError('[MONGODB] section MUST be existed in *.ini file.')
         if not StringClass.is_valid_ip_addr(self.hostname):

@@ -38,7 +38,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_SOILLAYERS, UNIT_NON_DIM, DESC_SOILLAYERS, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_SOILTHICK, UNIT_DEPTH_MM, DESC_SOILTHICK, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_SLOPE, UNIT_PERCENT, DESC_SLOPE, Source_ParameterDB, DT_Raster1D);
-    mdi.AddParameter(VAR_CHWIDTH, UNIT_LEN_M, DESC_CHWIDTH, Source_ParameterDB, DT_Raster1D);
+    //mdi.AddParameter(VAR_CHWIDTH, UNIT_LEN_M, DESC_CHWIDTH, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_STREAM_LINK, UNIT_NON_DIM, DESC_STREAM_LINK, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(Tag_FLOWIN_INDEX_D8, UNIT_NON_DIM, DESC_FLOWIN_INDEX_D8, Source_ParameterDB, DT_Array2D);
     mdi.AddParameter(Tag_ROUTING_LAYERS, UNIT_NON_DIM, DESC_ROUTING_LAYERS, Source_ParameterDB, DT_Array2D);
@@ -72,6 +72,40 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddOutput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, DT_Array2D);
 	mdi.AddOutput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, DT_Array2D);
 
+	mdi.AddOutput(VAR_SOL_MOIST1, UNIT_NON_DIM, DESC_SOL_MOIST, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_MOIST5, UNIT_NON_DIM, DESC_SOL_MOIST, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_MOIST15, UNIT_NON_DIM, DESC_SOL_MOIST, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_MOIST30, UNIT_NON_DIM, DESC_SOL_MOIST, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_MOIST60, UNIT_NON_DIM, DESC_SOL_MOIST, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_MOIST100, UNIT_NON_DIM, DESC_SOL_MOIST, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_MOIST200, UNIT_NON_DIM, DESC_SOL_MOIST, DT_Raster1D);
+
+	mdi.AddOutput(VAR_SOL_SAT1, UNIT_NON_DIM, DESC_SOL_SAT, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_SAT5, UNIT_NON_DIM, DESC_SOL_SAT, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_SAT15, UNIT_NON_DIM, DESC_SOL_SAT, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_SAT30, UNIT_NON_DIM, DESC_SOL_SAT, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_SAT60, UNIT_NON_DIM, DESC_SOL_SAT, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_SAT100, UNIT_NON_DIM, DESC_SOL_SAT, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_SAT200, UNIT_NON_DIM, DESC_SOL_SAT, DT_Raster1D);
+
+	mdi.AddOutput(VAR_SOL_AWC1, UNIT_NON_DIM, DESC_SOL_AWC, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_AWC5, UNIT_NON_DIM, DESC_SOL_AWC, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_AWC15, UNIT_NON_DIM, DESC_SOL_AWC, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_AWC30, UNIT_NON_DIM, DESC_SOL_AWC, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_AWC60, UNIT_NON_DIM, DESC_SOL_AWC, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_AWC100, UNIT_NON_DIM, DESC_SOL_AWC, DT_Raster1D);
+	mdi.AddOutput(VAR_SOL_AWC200, UNIT_NON_DIM, DESC_SOL_AWC, DT_Raster1D);
+
+	mdi.AddOutput(VAR_KS1, UNIT_NON_DIM, VAR_KS1, DT_Raster1D);
+	mdi.AddOutput(VAR_KS5, UNIT_NON_DIM, VAR_KS5, DT_Raster1D);
+	mdi.AddOutput(VAR_KS15, UNIT_NON_DIM, VAR_KS15, DT_Raster1D);
+	mdi.AddOutput(VAR_KS30, UNIT_NON_DIM, VAR_KS30, DT_Raster1D);
+	mdi.AddOutput(VAR_KS60, UNIT_NON_DIM, VAR_KS60, DT_Raster1D);
+	mdi.AddOutput(VAR_KS100, UNIT_NON_DIM, VAR_KS100, DT_Raster1D);
+	mdi.AddOutput(VAR_KS200, UNIT_NON_DIM, VAR_KS200, DT_Raster1D);
+
+	mdi.AddOutput(VAR_RUNOFF_CO, UNIT_NON_DIM, DESC_RUNOFF_CO, DT_Raster1D);
+	
 
     string res = mdi.GetXMLDocument();
 

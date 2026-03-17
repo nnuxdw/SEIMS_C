@@ -88,8 +88,10 @@ def update_fileout_main(spatial_db,hostname,port,query,update):
     client.close()
 
 if __name__ == '__main__':
-    host = '127.0.0.1'
-    port = 27017
+    # host = '127.0.0.1'
+    # port = 27017
+    host = '172.21.124.127'
+    port = 27019
     spatial_dbs = ['US_2_longterm_model', 'US_3_longterm_model','US_4_longterm_model', 'US_5_longterm_model', 'US_6_longterm_model',
                 'US_7_longterm_model', 'US_10_longterm_model', 'US_11_longterm_model',
                 'US_12_longterm_model', 'US_14_longterm_model', 'US_15_longterm_model',
@@ -573,7 +575,7 @@ if __name__ == '__main__':
         #     "RUNOFF_PERCENTAGE", "Runoff_co",
         # ]}},
         {"OUTPUTID": {"$in": [
-            "QRECH",
+            "QRECH","SBGS",
             # "SBGS","GWWB", "QS", "QI", "QG",
             "solmoist1","solmoist5", "solmoist15", "solmoist30", "solmoist60", "solmoist100", "solmoist200",
 

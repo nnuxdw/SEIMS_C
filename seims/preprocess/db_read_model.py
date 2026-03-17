@@ -373,6 +373,10 @@ class ReadModelData(object):
                     data_dict[curt][i] = total
 
             else:
+                # print(f"start_time:{start_time}")
+                # print(f"end_time:{end_time}")
+                # print(f"type:{get_observed_name_new(param_name)}")
+                # print(f"STATIONID:{site_id}")
                 site_items = siteTbl.find_one({StationFields.type: get_observed_name_new(param_name),
                                                StationFields.outlet: is_outlets(param_name,isoutlet),
                                                StationFields.subbsn: float(get_subbasinid(param_name))})
@@ -383,6 +387,7 @@ class ReadModelData(object):
                 site_id = site_items.get(StationFields.id)
                 site_elve = site_items.get(StationFields.elev)
                 # print(f"site_id: {site_id}")
+
 
                 for obs in obsTbl.find({DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
                                         #DataValueFields.type: get_observed_name(param_name),

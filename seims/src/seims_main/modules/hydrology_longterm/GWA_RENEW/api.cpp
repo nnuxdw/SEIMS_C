@@ -91,6 +91,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddParameter("Kg_1d", UNIT_NON_DIM, DESC_KG, Source_ParameterDB, DT_Raster1D);
 	mdi.AddParameter("Base_ex_1d", UNIT_NON_DIM, DESC_BASE_EX, Source_ParameterDB, DT_Raster1D);
 
+	mdi.AddOutput(VAR_PERCO_200, UNIT_DEPTH_MM, DESC_PERCO, DT_Raster1D); //
+
     res = mdi.GetXMLDocument();
 
     char* tmp = new char[res.size() + 1];

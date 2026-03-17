@@ -680,6 +680,7 @@ void MUSK_CH_HAND::PointSourceLoading() {
     }
 }
 
+
 int MUSK_CH_HAND::Execute() {
     InitialOutputs();
     /// load point source water volume from m_ptSrcFactory
@@ -757,6 +758,9 @@ int MUSK_CH_HAND::Execute() {
                       errCount++;
                     }
                 }
+
+				// xdw++, allow re-infiltration
+
             }
         }
         if (errCount > 0) {
@@ -1089,7 +1093,7 @@ void MUSK_CH_HAND::SetReaches(clsReaches* reaches) {
 }
 
 bool MUSK_CH_HAND::ChannelFlow(const int i) {
-
+	float m_chStoTmp = m_chSto[i];
     // 1. first add all the inflow water
     float qIn = 0.f; /// Water entering reach on current day from both current subbasin and upstreams
     // 1.1. water from this subbasin
@@ -1410,48 +1414,57 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
     // todo, compute revap from bank storage. In SWAT, revap coefficient is equal to gw_revap.
 
 #ifdef DEBUG_MUSK_CH_HAND_CH
-	cout << "===== ChannelFlow Debug: Reach " << i << " Day " << m_dayOfYear << " =====" << endl;
+	int SPECIFIED_SBID = 2;
+	if (i == SPECIFIED_SBID)
+	{
+
+	//cout << "===== ChannelFlow Debug: Reach " << i << " Day " << m_dayOfYear << " =====" << endl;
 
 	// 输入部分
-	cout << "[Inputs] "
-		<< "olQ2Rch=" << m_olQ2Rch[i]
-		<< ", qiSub=" << qiSub
-		<< ", qgSub=" << qgSub
-		<< ", ptSub=" << ptSub
-		<< ", qsUp=" << qsUp
-		<< ", qiUp=" << qiUp
-		<< ", qgUp=" << qgUp
-		<< ", bankOut=" << bankOut / m_dt
-		<< ", qIn=" << qIn
-		<< endl;
+	//cout << "[Inputs] "
+	//	<< "olQ2Rch=" << m_olQ2Rch[i]
+	//	<< ", qiSub=" << qiSub
+	//	<< ", qgSub=" << qgSub
+	//	<< ", ptSub=" << ptSub
+	//	<< ", qsUp=" << qsUp
+	//	<< ", qiUp=" << qiUp
+	//	<< ", qgUp=" << qgUp
+	//	<< ", bankOut=" << bankOut / m_dt
+	//	<< ", qIn=" << qIn
+	//	<< endl;
 
-	// Muskingum 参数
-	cout << "[Muskingum] "
-		<< "k_bankfull=" << k_bankfull
-		<< ", k_bankfull2=" << k_bankfull2
-		<< ", detmax=" << detmax
-		<< ", detmin=" << detmin
-		<< ", det=" << det
-		<< ", nn=" << nn
-		<< ", c1=" << c1 << ", c2=" << c2 << ", c3=" << c3
-		<< ",ch_n=" << m_chMan[i]
-		<< endl;
+	//// Muskingum 参数
+	//cout << "[Muskingum] "
+	//	<< "k_bankfull=" << k_bankfull
+	//	<< ", k_bankfull2=" << k_bankfull2
+	//	<< ", detmax=" << detmax
+	//	<< ", detmin=" << detmin
+	//	<< ", det=" << det
+	//	<< ", nn=" << nn
+	//	<< ", c1=" << c1 << ", c2=" << c2 << ", c3=" << c3
+	//	<< ",ch_n=" << m_chMan[i]
+	//	<< endl;
 
 	// 迭代结束后的结果
-	cout << "[Results] "
-		<< "qRchOut=" << m_qRchOut[i]
-		<< ", qsRchOut=" << m_qsRchOut[i]
-		<< ", qiRchOut=" << m_qiRchOut[i]
-		<< ", qgRchOut=" << m_qgRchOut[i]
-		<< ", chSto=" << m_chSto[i]
-		<< ", chWtrDepth=" << m_chWtrDepth[i]
-		<< ", chWtrWth=" << m_chWtrWth[i]
-		<< ", CrossArea=" << m_chCrossArea[i]
-		<< ", rteWtrOut=" << m_rteWtrOut[i]
-		<< ", rrtime=" << m_rrtime[i]
+		cout << "[MUSK_CH_HAND] " << endl;
+		cout
+		<< "Sbid: " << i << "   "
+		<< " chStoBfe=" << m_chStoTmp << "   "
+		<< " chStoAft=" << m_chSto[i] << "   "
+		<< " qRchOut=" << m_qRchOut[i] << "   "
+		<< " qsRchOut=" << m_qsRchOut[i] << "   "
+		<< " qiRchOut=" << m_qiRchOut[i] << "   "
+		<< " qgRchOut=" << m_qgRchOut[i] << "   "
+		
+		<< " chWtrDepth=" << m_chWtrDepth[i] << "   "
+		<< " chWtrWth=" << m_chWtrWth[i] << "   "
+		<< " CrossArea=" << m_chCrossArea[i] << "   "
+		<< " rteWtrOut=" << m_rteWtrOut[i] << "   "
+		<< " rrtime=" << m_rrtime[i] << "   "
 		<< endl;
+	//cout << "=============================================" << endl;
 
-	cout << "=============================================" << endl;
+	}
 #endif
 
     return true;

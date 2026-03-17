@@ -360,6 +360,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MCLSDESC_SUR_RUNOFF                    "Infiltration and surface runoff of excess precipitation."
 #define MID_SUR_MR                             "SUR_MR"
 #define MDESC_SUR_MR                           "Modified rational method to calculate infiltration and excess precipitation."
+#define MID_SUR_MR_HAND                             "SUR_MR_HAND"
+#define MDESC_SUR_MR_HAND                           "Modified rational method to calculate infiltration and excess precipitation."
 #define MID_SUR_CN                             "SUR_CN"
 #define MDESC_SUR_CN                           "SCS curve number method to calculate infiltration and excess precipitation."
 #define MID_SUR_SGA                            "SUR_SGA"
@@ -794,6 +796,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_PERCO_N_GW "perco_n_gw" /// m_percoNGw, amount of nitrate percolating past bottom of soil profile
 #define VAR_PERCO_P_GW "perco_p_gw" /// m_percoPGw, amount of soluble P percolating past bottom of soil profile
 #define VAR_PERCO "Perco" /// m_soilPerco, the amount of water percolated from the soil water reservoir
+#define VAR_PERCO_200 "Perco200" /// m_soilPerco, the amount of water percolated from the soil water reservoir
 #define VAR_PERDE "perde"
 #define VAR_PET "PET" /// m_pet, Potential Evapotranspiration of day
 #define VAR_PET_HCOEF "HCoef_pet"                   /// Coefficient related to radiation used in Hargreaves method
@@ -836,7 +839,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_QCH "QCH"
 #define VAR_OLFLOW "OL_Flow" /// m_surfRf, overland flow in each cell calculated during overland routing
 #define VAR_OL_HAND_WTRDEP "OL_Hand_WTRDEP" /// m_surfRf, overland flow in each cell calculated during overland routing
-#define VAR_IS_HAND_FLOODED "m_isHandFlooded" /// are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water 
+#define VAR_IS_HAND_FLOODED "m_isHandFlooded" /// are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water
+#define VAR_RUNOFF_PERCENTAGE "RUNOFF_PERCENTAGE"
 #define VAR_SUBBASIN_FLOODED_AREA "SUBBASIN_FLOODED_AREA"  // sum of  flooded hand's area in  each subbasin
 #define VAR_SUBBASIN_WTR_DEPTH "SUBBASIN_WTR_DEPTH"  // water depth in  each subbasin
 #define VAR_QG "QG" /// m_qgRchOut, Groundwater discharge at each reach outlet and at each time step
@@ -967,8 +971,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_HAND_LevelDepth "HAND_LEVELDEPTH"
 #define VAR_HAND_SumArea "HAND_SUMAREA"
 #define VAR_HAND_SumVolume "HAND_SUMVOLUME"
-#define VAR_HAND_AvgDepth "HAND_AVGDEPTH" 
-#define VAR_HAND_AccVolume "HAND_ACCVOLUME" 
+#define VAR_HAND_AvgDepth "HAND_AVGDEPTH"
+#define VAR_HAND_AccVolume "HAND_ACCVOLUME"
 #define VAR_HAND_LowerAccDepthFlat "HAND_LOWERACCDEPTH_FLAT"
 #define VAR_HAND_LowerAccDepthLen "HAND_LOWERACCDEPTH_LEN"
 
@@ -1132,6 +1136,37 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_SOL_ZMX "SOL_ZMX" /// m_soilMaxRootD, Maximum rooting depth of soil profile (mm)
 #define VAR_SOL_ST "solst" /// m_soilWtrSto, amount of water stored in the soil layer on current day(mm H2O)
 #define VAR_SOL_SW  "solsw" /// m_soilWtrStoPrfl, amount of water stored in soil profile on current day (mm H2O)
+#define VAR_SOL_MOIST1  "solmoist1" /// m_soilMoist_1, amount of water stored in soil profile on current day (%)
+#define VAR_SOL_MOIST5  "solmoist5" /// m_soilMoist_5, amount of water stored in soil profile on current day (%)
+#define VAR_SOL_MOIST15  "solmoist15" /// m_soilMoist_15, amount of water stored in soil profile on current day (%)
+#define VAR_SOL_MOIST30  "solmoist30" /// m_soilMoist_30, amount of water stored in soil profile on current day (%)
+#define VAR_SOL_MOIST60  "solmoist60" /// m_soilMoist_60, amount of water stored in soil profile on current day (%)
+#define VAR_SOL_MOIST100  "solmoist100" /// m_soilMoist_100, amount of water stored in soil profile on current day (%)
+#define VAR_SOL_MOIST200  "solmoist200" /// m_soilMoist_200, amount of water stored in soil profile on current day (%)
+#define VAR_SOL_SAT1 "solsat1"
+#define VAR_SOL_SAT5 "solsat5"
+#define VAR_SOL_SAT15 "solsat15"
+#define VAR_SOL_SAT30 "solsat30"
+#define VAR_SOL_SAT60 "solsat60"
+#define VAR_SOL_SAT100 "solsat100"
+#define VAR_SOL_SAT200 "solsat200"
+
+#define VAR_SOL_AWC1 "solawc1"
+#define VAR_SOL_AWC5 "solawc5"
+#define VAR_SOL_AWC15 "solawc15"
+#define VAR_SOL_AWC30 "solawc30"
+#define VAR_SOL_AWC60 "solawc60"
+#define VAR_SOL_AWC100 "solawc100"
+#define VAR_SOL_AWC200 "solawc200"
+
+#define VAR_KS1 "ks1"
+#define VAR_KS5 "ks5"
+#define VAR_KS15 "ks15"
+#define VAR_KS30 "ks30"
+#define VAR_KS60 "ks60"
+#define VAR_KS100 "ks100"
+#define VAR_KS200 "ks200"
+
 #define VAR_SW_CAP "sw_cap"  /// amount of water capacity in soil layers such as sol_awc sol_ul and wiltingpoint
 #define VAR_SOTE "SOTE" /// m_soilTemp, Soil Temperature
 #define VAR_SOWB "SOWB" /// m_soilWtrBal, soil water balance
@@ -1615,6 +1650,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_PUPDIS "Phosphorus uptake distribution parameter"
 #define DESC_QCH "Flux in the downslope boundary of cells"
 #define DESC_OLFLOW "overland flow in each cell calculated during overland routing"
+#define DESC_OL_HAND_WTRDEP "overland water depth on HAND"
+#define DESC_RUNOFF_PERCENTAGE "runoff percentage of HAND"
 #define DESC_HAND_EVAP "hand evaporation in each cell "
 #define DESC_IS_HAND_FLOODED "are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water "
 #define DESC_SUBBASIN_FLOODED_AREA "sum of  flooded hand's area in  each subbasin"
@@ -1730,6 +1767,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_SOL_ALB "albedo when soil is moist"
 #define DESC_SOL_AORGN "amount of nitrogen stored in the active organic (humic) nitrogen pool"
 #define DESC_SOL_AWC "amount of water available to plants in soil layer at field capacity (AWC=FC-WP)"
+#define DESC_SOL_SAT "amount of water at saturation in soil layer(SAT=POR-WP)"
 #define DESC_SOL_BD "bulk density of the soil"
 #define DESC_SOL_CBN "soil carbon content"
 #define DESC_SOL_COV "amount of residue on soil surface"
@@ -1903,6 +1941,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_SOL_ZMX "Maximum rooting depth of soil profile (mm)"
 #define DESC_SOL_ST "amount of water stored in the soil layer on current day(mm H2O)"
 #define DESC_SOL_SW "amount of water stored in soil profile on current day (mm H2O)"
+#define DESC_SOL_MOIST "amount of water stored in soil profile on current day (%)"
 #define DESC_SW_CAP "amount of water capacity in soil layers such as sol_awc sol_ul and wiltingpoint"
 #define DESC_SOTE "soil Temperature"
 #define DESC_SOWB "soil water balance"
@@ -2031,14 +2070,14 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 
 #define VAR_GWH                             "GW_HEIGHT"
 #define VAR_GW_SH                           "GW_SH"
-#define VAR_GWMIN                           "GWMIN" 
-#define VAR_CHSEEPAGE                       "CHSEEPAGE" 
+#define VAR_GWMIN                           "GWMIN"
+#define VAR_CHSEEPAGE                       "CHSEEPAGE"
 #define VAR_CHK                             "CHK"
 #define VAR_ALPHABF                         "ALPHABF"
 #define VAR_DELAY                           "DELAY"
-#define VAR_QGS                             "QGS" /// m_qgsRchOut, 
-#define VAR_AHRU                            "CELLAREA" /// m_qgsRchOut, 
-#define VAR_FLOWOUT_LEN                     "flowout_length" /// m_qgsRchOut, 
+#define VAR_QGS                             "QGS" /// m_qgsRchOut,
+#define VAR_AHRU                            "CELLAREA" /// m_qgsRchOut,
+#define VAR_FLOWOUT_LEN                     "flowout_length" /// m_qgsRchOut,
 #define VAR_BM_DIEOFF                       "BM_DIEOFF"
 #define VAR_BIOMS                           "BIOMS"
 #define VAR_LMC                             "LMC"
@@ -2139,7 +2178,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define REACH_SPYLD                         "GW_SPYLD"
 #define REACH_ISLAKE                        "Is_Lake"
 #define REACH_LAKEAREA                      "Lake_Area"
-#define REACH_LAKEVOL                       "Lake_Vol" 
+#define REACH_LAKEVOL                       "Lake_Vol"
 #define REACH_LAKEDPINI                     "Lake_Depini"
 #define REACH_LAKEALPHA                     "LAKE_ALPHA"
 #define REACH_LAKEB_1D                    "LAKEB_1D"
@@ -2164,7 +2203,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define REACH_BED_START_ELEV                       "Bed_Start_Elev"
 #define REACH_BED_END_ELEV                       "Bed_End_Elev"
 // xiaodw add, this is not water level, it's HAND's level, eg. 1,2,3,4,5...
-#define REACH_LAKE_HAND_LEVEL_INI                      "Lake_Hand_Level_Ini" 
+#define REACH_LAKE_HAND_LEVEL_INI                      "Lake_Hand_Level_Ini"
+#define FLOOD_DEPTH_THRESH 0.1f
 
 #define DESC_GWH                             "groundwater height"
 #define DESC_GW_SH                           "shallow groundwater stroage"
@@ -2257,7 +2297,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MapWindowRasterExtension ".asc"
 #define File_HydroClimateDB "HydroClimate.db3"
 #define Table_LapseRate "lapse_rate"
-#define DataType_WindDirection "WD"	
+#define DataType_WindDirection "WD"
 const string TagParameterDescription = "description";
 const string TagParameterSource = "source";
 const string TagParameterDimension = "dimension";

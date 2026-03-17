@@ -31,7 +31,7 @@ def main():
         "Total Runoff": "Q.txt"
     }
     # basedir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\-90_124556_38_819347_longterm_model\OUTPUT0_base'
-    basedir = r'G:\program\seims\SEIMS_HAND\data\US_2\US_2_longterm_model\OUTPUT0-0'
+    basedir = r'G:\program\seims\SEIMS_HAND\data\US_2\US_2_longterm_model\OUTPUT0'
     # plot_runoff_components(basedir,file_dict,subbasin_id)
     # plot_runoff_difference(basedir,file_dict,subbasin_id)
 

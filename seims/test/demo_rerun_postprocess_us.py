@@ -26,15 +26,15 @@ import matplotlib as mpl
 import re
 
 
-def main():
+def main(wtsd_name,subbasin_id):
     # ========= 新增：选择参数集的方式 =========
     # 方式1：False -> 使用原来的“加权排序 + 取前 NN 组”
     # 方式2：True  -> 直接指定某一代、某个 ID 的个体
     USE_SPECIFIC_PARAMSET = False  # 这里改 True/False 来切换
 
     # 只有在 USE_SPECIFIC_PARAMSET = True 时才有效：
-    SPECIFIC_GENERATION = 85   # 例如第 10 代
-    SPECIFIC_ID = 8            # 例如 id = 5 的个体
+    SPECIFIC_GENERATION = None   # 例如第 10 代
+    SPECIFIC_ID = None            # 例如 id = 5 的个体
     # 需要前多少组参数集,只有当USE_SPECIFIC_PARAMSET = False才有效
     NN = 1
     # tar = ['QG','QI','QS','SBGS']
@@ -44,9 +44,9 @@ def main():
         base_path = r'G:\program\seims\SEIMS_HAND\data'
     else:  # Linux/Unix
         base_path = '/data/user/xiaodw/software/WISE_V20160219/data'
-    subbasin_id = 2
-    wtsd_name = "US_2"
-    conn = MongoClient('127.0.0.1', 27017)
+    # subbasin_id = 2
+    # wtsd_name = "US_2"
+    conn = MongoClient('127.0.0.1', 27019)
     longterm_modelDB = wtsd_name + '_longterm_model'
     db = conn[longterm_modelDB]   #需要自己修改数据库名字
     calibration_ini_file = os.path.join(base_path,wtsd_name,'model_configs','calibration.ini')
@@ -208,7 +208,7 @@ def main():
 
     # Execute model
     model_obj.SetMongoClient()
-    # model_obj.run()
+    model_obj.run()
 
     # 获取模拟数据
     path = model_paths.model_dir + os.path.sep + f'OUTPUT0-{int(id2row[SPECIFIC_ID])}'
@@ -702,8 +702,80 @@ def main():
                 + r'CALI_NSGA2_Gen_%s_Pop_%s/%s.png' % (ngens, npop, f'{name}_{subbasin_id}')
             )
             print("///////查看结果///////")
+from concurrent.futures import ThreadPoolExecutor
+def parallel_main(basin_outlet_subbasin_map,n_workers):
+    # 创建线程池，最多使用4个线程（可以根据需求调整）
+    with ThreadPoolExecutor(max_workers=n_workers) as executor:
+        # 使用 executor 提交任务
+        futures = [executor.submit(main, basin_outlet_item.get("basin_name"), basin_outlet_item.get("subbasin_id"))
+                   for basin_outlet_item in basin_outlet_subbasin_map]
 
-
+        # 等待所有任务完成
+        for future in futures:
+            future.result()  # 阻塞直到该任务完成
 
 if __name__ == "__main__":
-    main()
+    Basin_outlet_subbasin_map = [
+        {
+            "basin_name": 'US_2',
+            "subbasin_id":2
+        },
+        {
+            "basin_name": 'US_3',
+            "subbasin_id": 3
+        },
+        {
+            "basin_name": 'US_4',
+            "subbasin_id": 9
+        },
+        {
+            "basin_name": 'US_5',
+            "subbasin_id": 3
+        },
+        {
+            "basin_name": 'US_6',
+            "subbasin_id": 3
+        },
+
+        {
+            "basin_name": 'US_10',
+            "subbasin_id": 3
+        },
+        {
+            "basin_name": 'US_11',
+            "subbasin_id": 2
+        },
+        {
+            "basin_name": 'US_12',
+            "subbasin_id": 3
+        },
+        {
+            "basin_name": 'US_14',
+            "subbasin_id": 3
+        },
+        {
+            "basin_name": 'US_15',
+            "subbasin_id": 1
+        },
+        {
+            "basin_name": 'US_16',
+            "subbasin_id": 13
+        },
+        {
+            "basin_name": 'US_17',
+            "subbasin_id": 5
+        },
+        {
+            "basin_name": 'US_18',
+            "subbasin_id": 4
+        },
+    ]
+    # 串行调用
+    for basin_outlet_item in Basin_outlet_subbasin_map:
+        basin_value = basin_outlet_item.get("basin_name")  # 取"basin"键对应的值
+        subbasin_id = basin_outlet_item.get("subbasin_id")  # 取"subbasin_id"键对应的值
+        main(basin_value,subbasin_id)
+
+    n_workers = 6
+    # 并行调用
+    # parallel_main(Basin_outlet_subbasin_map,n_workers)

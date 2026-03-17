@@ -35,17 +35,7 @@ import numpy
 from pathlib import Path
 import time, random
 
-# 会话ID，避免跨实例互相影响（强烈推荐）
-if os.name == 'nt':  # Windows
-    base_path = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
-else:  # Linux/Unix
-    base_path = '/data/user/xiaodw/software/WISE/data/poyang_lake1'
-# # 淹没范围才会用，淹没面积率定不用管
-subbasin_flood_path = base_path + f'/inundation_cali/subbasin_flood'
-subbasin_ids=[1171,1176,1193,1194,1214]
 
-# 不同的实例指定不同的id，避免锁文件相互影响
-RUN_ID = 'poyanglake_1_20251026'
 cali_inundation_extent = False
 cali_inundation_area = True
 copy_output = True
@@ -350,13 +340,13 @@ def _fi_bi_from_binary(sim_bin, obs_bin):
         bi = sim_area / obs_area
     return fi, bi
 
-def _lock_path_for(ind, cali_obj):
+def _lock_path_for(ind, cali_obj,base_path,RUN_ID):
     gen = getattr(ind, "gen", 0)
     # lock = Path(base_path + "/lock/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
     lock_path = Path(base_path + "/" + cali_obj.model.db_name + "/lock/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
     return lock_path
 
-def _done_path_for(ind, cali_obj):
+def _done_path_for(ind, cali_obj,base_path,RUN_ID):
     gen = getattr(ind, "gen", 0)
     # lock_path = Path(base_path + "/lock/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.done"
     lock_path = Path(base_path + "/" + cali_obj.model.db_name + "/lock/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
@@ -366,9 +356,9 @@ def _mark_done(done_path):
     done_path.parent.mkdir(parents=True, exist_ok=True)
     open(done_path, "w").close()  # 空文件即表示 DONE
 
-def evaluate_blocking(cali_obj, ind, timeout_s=2400):
-    lock_path = str(_lock_path_for(ind, cali_obj))
-    done_path = _done_path_for(ind, cali_obj)
+def evaluate_blocking(cali_obj, ind,base_path,RUN_ID, timeout_s=2400):
+    lock_path = str(_lock_path_for(ind, cali_obj,base_path,RUN_ID))
+    done_path = _done_path_for(ind, cali_obj,base_path,RUN_ID)
 
     owner = f"pid={os.getpid()}"
     start = time.time()
@@ -533,7 +523,7 @@ def calibration_objectives(cali_obj, gen, ind):
     print(f"delete output directory: {ind.id}")
     if copy_output:
         model_obj.copy_dir(calibration_id=ind.id,gen = gen)
-    # model_obj.clean(calibration_id=ind.id)
+    model_obj.clean(calibration_id=ind.id)
     model_obj.UnsetMongoClient()
 
     return ind

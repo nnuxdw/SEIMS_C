@@ -1,6 +1,6 @@
 
 from preprocess.text import DBTableNames, DataValueFields, DataType,ModelCfgFields
-from pymongo import UpdateOne
+from pymongo import UpdateOne,UpdateMany
 import os
 import sys
 if os.path.abspath(os.path.join(sys.path[0], '..')) not in sys.path:
@@ -30,31 +30,73 @@ class ImportFileOut(object):
         print(f"Modified {result.modified_count} documents")
         return result
     @staticmethod
-    def workflow(cfg, maindb,documents):
+    def batch_upsert_fileout_workflow( maindb, documents):
         """Workflow"""
         print('Import Daily File Out Data... ')
         ImportFileOut.batch_upsert_documents(maindb,documents)
 
-def main(documents):
+    @staticmethod
+    def batch_update_documents(maindb, filter_queries, update_data):
+        # 选择数据库集合
+        collection = maindb[DBTableNames.main_fileout]
+
+        # 创建更新操作的列表
+        operations = []
+
+        for filter_query, update_query in zip(filter_queries, update_data):
+            operations.append(UpdateMany(filter_query, update_query))
+
+        # 执行批量更新操作
+        result = collection.bulk_write(operations)
+
+        # 输出已修改的文档数
+        print(f"修改了 {result.modified_count} 个文档")
+        return result
+    @staticmethod
+    def batch_update_fileout_workflow( maindb,query,update):
+        """执行批量更新的工作流"""
+        print('执行批量更新：文件输出数据... ')
+        ImportFileOut.batch_update_documents(maindb, query, update)
+
+
+def upsert_fileout_main(spatial_db,hostname,port,documents):
     """TEST CODE"""
-    from preprocess.config import parse_ini_configuration
     from preprocess.db_mongodb import ConnectMongoDB
-    seims_cfg = parse_ini_configuration()
-    client = ConnectMongoDB(seims_cfg.hostname, seims_cfg.port)
+
+    client = ConnectMongoDB(hostname, port)
     conn = client.get_conn()
-    main_db = conn[seims_cfg.spatial_db]
+    main_db = conn[spatial_db]
     import time
     st = time.time()
-    ImportFileOut.workflow(seims_cfg, main_db,documents)
+    ImportFileOut.batch_upsert_fileout_workflow( main_db, documents)
     et = time.time()
     print(et - st)
+    client.close()
 
+def update_fileout_main(spatial_db,hostname,port,query,update):
+    """TEST CODE"""
+    from preprocess.db_mongodb import ConnectMongoDB
+
+    client = ConnectMongoDB(hostname, port)
+    conn = client.get_conn()
+    main_db = conn[spatial_db]
+    import time
+    st = time.time()
+    ImportFileOut.batch_update_fileout_workflow(main_db,query,update)
+    et = time.time()
+    print(et - st)
     client.close()
 
 if __name__ == '__main__':
-    STARTTIME = "2014-08-01 00:00:00"
-    ENDTIME= "2014-08-10 00:00:00"
-    # Example usage
+    host = '127.0.0.1'
+    port = 27017
+    spatial_dbs = ['US_2_longterm_model', 'US_3_longterm_model','US_4_longterm_model', 'US_5_longterm_model', 'US_6_longterm_model',
+                'US_7_longterm_model', 'US_10_longterm_model', 'US_11_longterm_model',
+                'US_12_longterm_model', 'US_14_longterm_model', 'US_15_longterm_model',
+                'US_16_longterm_model', 'US_17_longterm_model', 'US_18_longterm_model']
+    STARTTIME = "2010-01-01 00:00:00"
+    ENDTIME= "2024-12-31 00:00:00"
+    # 插入File.out
     documents_solmoist = [
         {
             "MODULE_CLASS": "Subsurface runoff",
@@ -510,12 +552,53 @@ if __name__ == '__main__':
         },
     ]
 
-    main(documents_solmoist)
-    main(documents_solsat)
-    main(documents_solawc)
-    main(documents_runoff_percentage)
-    main(documents_runoff_co)
-    main(documents_ks)
-    main(documents_Perco200)
+    # 把所有USE为1的先设为0
+    filter_queries1 = [
+        {"USE": {"$in": [1, "1"]}}
+    ]
 
-    # Call the batch insert method
+    update_data1 = [
+        {
+            "$set": {
+                "USE": 0
+            }
+        }
+    ]
+
+    filter_queries2 = [
+        # {"OUTPUTID": {"$in": [
+        #     "QRECH", "SBGS", "GWWB", "QS", "QI", "QG", "CHWTRDEPTH", "CHWTRWIDTH",
+        #     "solst", "FieldCapDepth", "PorosityDepth", "Perco", "sol_awc", "solmoist1",
+        #     "solmoist5", "solmoist15", "solmoist30", "solmoist60", "solmoist100", "solmoist200",
+        #     "RUNOFF_PERCENTAGE", "Runoff_co",
+        # ]}},
+        {"OUTPUTID": {"$in": [
+            "QRECH",
+            # "SBGS","GWWB", "QS", "QI", "QG",
+            # "solmoist1","solmoist5", "solmoist15", "solmoist30", "solmoist60", "solmoist100", "solmoist200",
+
+        ]}},
+    ]
+
+    update_data2 = [
+        {
+            "$set": {
+                "USE": "1",
+                "STARTTIME": STARTTIME,
+                "ENDTIME": ENDTIME
+            }
+        },
+    ]
+
+    for spatial_db in spatial_dbs:
+        upsert_fileout_main(spatial_db,host,port,documents_solmoist)
+        upsert_fileout_main(spatial_db,host,port,documents_solsat)
+        upsert_fileout_main(spatial_db,host,port,documents_solawc)
+        upsert_fileout_main(spatial_db,host,port,documents_runoff_percentage)
+        upsert_fileout_main(spatial_db,host,port,documents_runoff_co)
+        upsert_fileout_main(spatial_db,host,port,documents_ks)
+        upsert_fileout_main(spatial_db,host,port,documents_Perco200)
+
+        # 更新File.out
+        update_fileout_main(spatial_db,host,port,filter_queries1,update_data1)
+        update_fileout_main(spatial_db,host,port,filter_queries2,update_data2)

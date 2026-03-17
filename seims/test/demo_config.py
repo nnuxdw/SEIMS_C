@@ -35,7 +35,23 @@ from calibration.config import CaliConfig
 
 DEMO_MODELS = {
     'poyang_lake1':'poyang_lake1_longterm_model_1171',
-
+    'US_2':'US_2_longterm_model',
+    'US_3': 'US_3_longterm_model',
+    'US_4': 'US_4_longterm_model',
+    'US_5': 'US_5_longterm_model',
+    'US_6': 'US_6_longterm_model',
+    'US_7': 'US_7_longterm_model',
+    'US_8': 'US_8_longterm_model',
+    'US_9': 'US_9_longterm_model',
+    'US_10': 'US_10_longterm_model',
+    'US_11': 'US_11_longterm_model',
+    'US_12': 'US_12_longterm_model',
+    'US_13': 'US_13_longterm_model',
+    'US_14': 'US_14_longterm_model',
+    'US_15': 'US_15_longterm_model',
+    'US_16': 'US_16_longterm_model',
+    'US_17': 'US_17_longterm_model',
+    'US_18': 'US_18_longterm_model'
    #  'youwuzhen': 'demo_youwuzhen30m_longterm_model',
    # 'hlg_hband': 'hlg_hband_longterm_model',
    # 'hulugou': 'hulugou_longterm_model',

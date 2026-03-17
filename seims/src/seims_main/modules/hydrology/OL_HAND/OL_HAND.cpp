@@ -533,7 +533,45 @@ void OL_HAND::updateSbExcessWater(const int reachId,  float* vol) {
 
 
 bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
-	if (sto <= 0.0f) return false;
+	if (sto <= 0.000001f)
+	{
+		for (int ll = 1; ll <= m_Hands[reachId].n_levels; ll++)
+		{
+			for (int idx = 0; idx < m_Hands[reachId].levels[ll].m_levelHandNum; idx++)
+			{
+				int handId = m_Hands[reachId].levels[ll].handIds[idx];
+				m_handWtrDep[handId] = 0.f;
+				
+			}
+			m_chSto[reachId] = 0.f;
+
+		}
+#ifdef DEBUG_OL_HAND
+		int SPECIFIED_SBID = 2;
+		if (reachId == SPECIFIED_SBID)
+		{
+			cout << "[OL_HAND]" << endl;
+			cout
+				<< "Sbid: " << reachId << "   " << endl;
+			for (int ll = 1; ll <= m_Hands[reachId].n_levels; ll++)
+			{
+				for (int idx = 0; idx < m_Hands[reachId].levels[ll].m_levelHandNum; idx++)
+				{
+					int handId = m_Hands[reachId].levels[ll].handIds[idx];
+					cout
+						<< "handId: " << handId << "   "
+						<< "m_handWtrDepAft=" << m_handWtrDep[handId] << "   "
+						<< endl;
+				}
+			}
+
+			cout << "====================================\n\n";
+			cout.flush();
+		}
+
+#endif
+		return true;
+	}
 
 	Hand& hand = m_Hands[reachId];
 	const int n = hand.n_levels;
@@ -588,29 +626,22 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 	updateAllHandsWtrDep(reachId);
 	
 #ifdef DEBUG_OL_HAND
-	if (reachId == 1171)
+	int SPECIFIED_SBID = 2;
+	if (reachId == SPECIFIED_SBID)
 	{
-		cout << "===== HAND Debug: reachId = " << reachId << " =====\n";
-		cout << "Input water volume (sto) = " << sto << " m3\n";
-		cout << "Located in level = " << target_level << " / " << n << "\n";
-
-		if (target_level > 1) {
-			cout << "Volume below this level = " << levels[target_level - 1].m_levelAccVol << " m3\n";
-		}
-		cout << "Remaining volume in this level = " << remaining << " m3\n";
-		cout << "Partial depth added = " << partial_depth << " m\n\n";
-
-		cout << "---- Level Water Depths ----\n";
-		for (int i = 1; i <= n; ++i) {
-			cout << "Level " << i
-				<< ": WaterDepth = " << levels[i].m_levelWtrDep
-				<< " m"
-				<< (i == target_level ? "  <-- active level" : "")
-				<< "\n";
-		}
-
-		if (sto > maxVolume) {
-			cout << "Excess Water = " << hand.excessWtrVol << " m3 (exceeds HAND max storage)\n";
+		cout << "[OL_HAND]" << endl;
+		cout
+			<< "Sbid: " << reachId << "   " << endl;
+		for (int ll = 1; ll <= m_Hands[reachId].n_levels; ll++)
+		{
+			for (int idx = 0; idx < m_Hands[reachId].levels[ll].m_levelHandNum; idx++)
+			{
+				int handId = m_Hands[reachId].levels[ll].handIds[idx];
+				cout
+					<< "handId: " << handId << "   "
+					<< "m_handWtrDepAft=" << m_handWtrDep[handId] << "   "
+					<< endl;
+			}
 		}
 
 		cout << "====================================\n\n";
