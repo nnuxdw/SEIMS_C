@@ -344,16 +344,18 @@ def update_reaches_from_csv(conn, db_name: str, collection: str, csv_file: str):
 
 if __name__ == "__main__":
     from config import parse_ini_configuration
-
+    base_path = r'G:\program\seims\SEIMS_HAND\data'
+    # basin = "poyang_lake1"
+    basin = 'MSL_1'
     seims_cfg = parse_ini_configuration()
     client = ConnectMongoDB(seims_cfg.hostname, seims_cfg.port)
-    db_name = 'poyang_lake1_longterm_model_1171'
+    db_name = f'{basin}_longterm_model'
     conn = client.get_conn()
     db_model_field = conn[db_name]
     spatial_gfs = GridFS(db_model_field, DBTableNames.gridfs_spatial)
 
-    caliparam_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\caliparam.csv"
-    param_group1_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\param_group1.csv"
+    caliparam_csv_file = os.path.join(base_path,basin,f'{basin}_longterm_model','caliparam.csv')
+    param_group1_csv_file = os.path.join(base_path, basin, f'{basin}_longterm_model', 'param_group1.csv')
     prefix = 0
     ############# 根据PARAMETER表中的VALUE生成param_group1.csv,并导入spatial.file ############
     mapper1 = {
@@ -365,7 +367,8 @@ if __name__ == "__main__":
         "T0_1d": "T0_1d",
         "T_snow": "T_snow_1d",
         "Ki": "Ki_1d",
-        "SURLAG": "SURLAG_1D"
+        "SURLAG": "SURLAG_1D",
+
     }
 
     # gen_param_group_csv(
@@ -379,21 +382,23 @@ if __name__ == "__main__":
     # )
 
 
-    # param_arrays = read_field_arrays_from_csv(param_group1_csv_file)
-    # for key, value in list(param_arrays.items()):
-    #     pondVal = value
-    #     import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
+    param_arrays = read_field_arrays_from_csv(param_group1_csv_file)
+    for key, value in list(param_arrays.items()):
+        pondVal = value
+        import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
 
     ############# 根据PARAMETER表中的VALUE生成param_group2.csv,并导入spatial.file ############
-    caliparam_sub_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\caliparam_sub.csv"
-    param_group2_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\param_group2.csv"
 
+    caliparam_sub_csv_file = os.path.join(base_path,basin,f'{basin}_longterm_model','caliparam_sub.csv')
+    param_group2_csv_file = os.path.join(base_path, basin, f'{basin}_longterm_model', 'param_group2.csv')
     mapper2 = {
         "Base_ex": "BASE_EX_1D",
         "Kg": "KG_1D",
         "gw_delay": "GW_DELAY_1D",
         "ep_ch":"EP_CH_1D",
-        "GWMAX_1D":"GWMAX_1D"
+        "GWMAX_1D":"GWMAX_1D",
+        "LAKE_EVP":"LAKE_EVP",
+        "LAKE_SEEP":"LAKE_SEEP"
     }
 
 
@@ -413,8 +418,9 @@ if __name__ == "__main__":
         import_array_to_mongodb(spatial_gfs, pondVal, '%d_%s' % (prefix, key))
 
     ############# 根据PARAMETER表中的VALUE生成param_group2_ch.csv,并导入REACHES ############
-    caliparam_sub_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\caliparam_sub.csv"
-    param_group2_ch_csv_file = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\param_group2_ch.csv"
+
+    caliparam_sub_csv_file = os.path.join(base_path,basin,f'{basin}_longterm_model','caliparam_sub.csv')
+    param_group2_ch_csv_file = os.path.join(base_path, basin, f'{basin}_longterm_model', 'param_group2_ch.csv')
     mapper3 = {
         "LAKEB": "LAKEB_1D",
         "LAKE_ALPHA": "LAKE_ALPHA",
@@ -439,7 +445,7 @@ if __name__ == "__main__":
 
     update_reaches_from_csv(
         conn=conn,
-        db_name='poyang_lake1_longterm_model_457',
+        db_name=db_name,
         collection='REACHES',
         csv_file=param_group2_ch_csv_file
     )

@@ -33,18 +33,19 @@ def main():
     USE_SPECIFIC_PARAMSET = True  # 这里改 True/False 来切换
 
     # 只有在 USE_SPECIFIC_PARAMSET = True 时才有效：
-    SPECIFIC_GENERATION = 85   # 例如第 10 代
-    SPECIFIC_ID = 8            # 例如 id = 5 的个体
+    SPECIFIC_GENERATION = 89   # 例如第 10 代
+    SPECIFIC_ID = 13            # 例如 id = 5 的个体
     # 需要前多少组参数集,只有当USE_SPECIFIC_PARAMSET = False才有效
     NN = 1
     # tar = ['QG','QI','QS','SBGS']
-    tar = ['F','Q']
-    plot_tar_map = {'F':'Inundation Area(km²)','Q':'Discharge(m³/s)'}
-    subbasin_id = 347   # 123,141,214,225,322,347,457
+    tar = ['Q']
+    # plot_tar_map = {'F':'Inundation Area(km²)','Q':'Discharge(m³/s)'}
+    plot_tar_map = {'Q': 'Discharge(m³/s)'}
+    subbasin_id = 156   # 123,141,214,225,322,347,457
     conn = MongoClient('127.0.0.1', 27017)
     db = conn.poyang_lake1_longterm_model_1171   #需要自己修改数据库名字
 
-    wtsd_name = "poyang_lake1"
+    wtsd_name = "MSL_1"
     plot_legent = False
     label_font_size = 24
     title_font_size = 28
@@ -59,7 +60,7 @@ def main():
     SEIMS_path = os.path.abspath(cur_path + '../../..')
     model_paths = ModelPaths(SEIMS_path, wtsd_name, DEMO_MODELS[wtsd_name])
     cf = ConfigParser()
-    cali_cfg_file = model_paths.cfg_dir + os.path.sep + f'calibration_{subbasin_id}.ini'
+    cali_cfg_file = model_paths.cfg_dir + os.path.sep + f'calibration.ini'
     cf.read(cali_cfg_file)
 
     # 读取率定结果
@@ -197,7 +198,7 @@ def main():
 
     # Execute model
     model_obj.SetMongoClient()
-    # model_obj.run()
+    model_obj.run()
 
     # 获取模拟数据
     path = model_paths.model_dir + os.path.sep + f'OUTPUT0-{int(id2row[SPECIFIC_ID])}'

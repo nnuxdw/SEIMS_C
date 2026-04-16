@@ -27,16 +27,14 @@ import matplotlib.dates as mdates
 from matplotlib.ticker import NullFormatter, FuncFormatter
 
 def main(watershed_num):
-    NN = 5  #可调，需要前多少组参数集
-    # watershed_num = 123
+    NN = 1  #可调，需要前多少组参数集
     plot_mode = 'combined'  # combined/separate
     plot_percentile = False
     plot_legent = False
     save_legend_as_png = False
-    model_name = f'poyang_lake1_longterm_model_{watershed_num}'
+    model_name = f'MSL_1_longterm_model'
     y_label_map={
-        "Q_123":"Discharge(m³/s)","Q_141":"Discharge(m³/s)","Q_214":"Discharge(m³/s)","Q_225":"Discharge(m³/s)",
-        "Q_322": "Discharge(m³/s)","Q_347":"Discharge(m³/s)","Q_457":"Discharge(m³/s)"
+        "Q_156":"Discharge(m³/s)","Q_143":"Discharge(m³/s)"
     }
     label_font_size = 24
     title_font_size = 28
@@ -52,7 +50,7 @@ def main(watershed_num):
     # model_paths = ModelPaths(SEIMS_path, wtsd_name, DEMO_MODELS[wtsd_name])
     model_paths = ModelPaths(SEIMS_path, wtsd_name, model_name)
     cf = ConfigParser()
-    cali_cfg_file = model_paths.cfg_dir + os.path.sep + f'calibration_{watershed_num}.ini'
+    cali_cfg_file = model_paths.cfg_dir + os.path.sep + f'calibration.ini'
     cf.read(cali_cfg_file)
 
     #读取率定结果
@@ -80,10 +78,8 @@ def main(watershed_num):
     new = [0] *len(df)
     temp = []
     weights = {
-        "Cali-F_1171-NSE": 0.5,  # 重要性更高
-        "Vali-F_1171-NSE": 0.000001,  # 不太重要
-        "Cali-Q_1171-NSE": 0.5,  # 默认
-        "Vali-Q_1171-NSE": 0.000001  # 不太重要
+        "Cali-Q_156-NSE": 0.5,  # 默认
+        "Vali-Q_143-NSE": 0.5  # 默认
     }
     for param, values in result.items():
         w = weights.get(param, 1.0)  # 没设置的默认1.0
@@ -697,6 +693,6 @@ def main(watershed_num):
 
 if __name__ == "__main__":
     # watershed_nums = [123,141,214,225,322,347,457]
-    watershed_nums = [1171]
+    watershed_nums = [156,143]
     for watershed_num in watershed_nums:
         main(watershed_num)

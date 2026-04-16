@@ -43,7 +43,9 @@ MUSK_CH_HAND::MUSK_CH_HAND() :
 	m_lakeHandLevelini(nullptr), m_minvol_1d(nullptr),
 	m_HAND_Subbasin(nullptr), m_HAND_Flood_Level(nullptr), m_HAND_LevelDepth(nullptr),
 	m_HAND_SumArea(nullptr), m_HAND_SumVolume(nullptr), m_HAND_AvgDepth(nullptr),
-	m_HAND_AccVolume(nullptr), m_HAND_LowerAccDepthFlat(nullptr), m_HAND_LowerAccDepthLen(nullptr)
+	m_HAND_AccVolume(nullptr), m_HAND_LowerAccDepthFlat(nullptr), m_HAND_LowerAccDepthLen(nullptr),
+	m_HAND_Infil(nullptr),m_hand_eavp(nullptr),m_hand_dep(nullptr), m_HAND_BackFromGW(nullptr)
+
 {
 }
 
@@ -95,6 +97,10 @@ MUSK_CH_HAND::~MUSK_CH_HAND() {
 	//if (nullptr != m_chBedStartElev) Release1DArray(m_chBedStartElev);
 	//if (nullptr != m_chBedEndElev) Release1DArray(m_chBedEndElev);
 	if (nullptr != m_lakeHandLevelini) Release1DArray(m_lakeHandLevelini);
+	if (nullptr != m_HAND_Infil) Release1DArray(m_HAND_Infil);
+	if (nullptr != m_hand_eavp) Release1DArray(m_hand_eavp);
+	if (nullptr != m_hand_dep) Release1DArray(m_hand_dep);
+
 
 }
 
@@ -507,7 +513,6 @@ void MUSK_CH_HAND::InitialOutputs() {
     m_qgRchOut = new(nothrow) float[m_nreach + 1];
 
     m_chSto = new(nothrow) float[m_nreach + 1];
-	m_chStoLastStep = new(nothrow) float[m_nreach + 1];
     m_rteWtrIn = new(nothrow) float[m_nreach + 1];
     m_rteWtrOut = new(nothrow) float[m_nreach + 1];
     m_bankSto = new(nothrow) float[m_nreach + 1];
@@ -724,6 +729,28 @@ int MUSK_CH_HAND::Execute() {
         m_temp2[*id] = m_temp2[*id] / total_area;
         curBasinDem[*id] = curBasinDem[*id] / total_area;
     }
+	//xdw++,update ch_sto by each HAND's water depth
+	for (auto id = m_subbasinIDs.begin(); id != m_subbasinIDs.end(); ++id) {
+		Subbasin* sub = m_subbasinsInfo->GetSubbasinByID(*id);
+		int curCellsNum = sub->GetCellCount();
+		int* curCells = sub->GetCells();
+		float substractVol = 0.0;
+		// add each HAND's water vol
+		for (int i = 0; i < curCellsNum; i++) {
+			int index = curCells[i];
+			substractVol += (m_HAND_Infil[index] + m_hand_eavp[index] + m_hand_dep[index] - m_HAND_BackFromGW[index]) * 0.001f * m_area[index];
+		}
+		if (m_chSto[*id] >= substractVol)
+		{
+			m_chSto[*id] -= substractVol;
+		}
+		else {
+			cout << "MUSK_CH_HAND: m_chSto < substractVol, subbasinid:" << *id << ", m_chSto: " << m_chSto[*id] << ", substractVol: " << substractVol << endl;
+			m_chSto[*id] = 0.0;
+		}
+		
+		
+	}
     for (auto it = m_rteLyrs.begin(); it != m_rteLyrs.end(); ++it) {
         // There are not any flow relationship within each routing layer.
         // So parallelization can be done here. 
@@ -906,6 +933,23 @@ void MUSK_CH_HAND::Set1DData(const char* key, const int n, float* data) {
 		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
 		m_HAND_LowerAccDepthLen = data;
 	}
+	else if (StringMatch(sk, VAR_OL_HAND_INFIL)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_Infil = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_EVAP)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_hand_eavp = data;
+	}
+	else if (StringMatch(sk, VAR_HAND_DEP)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_hand_dep = data;
+	}
+
+	else if (StringMatch(sk, VAR_OL_HAND_BACK_FROM_GW)) {
+		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
+		m_HAND_BackFromGW = data;
+	}
 	else {
         throw ModelException(MID_MUSK_CH_HAND, "Set1DData", "Parameter " + sk + " does not exist.");
     }
@@ -953,10 +997,7 @@ void MUSK_CH_HAND::Get1DData(const char* key, int* n, float** data) {
     } else if (StringMatch(sk, VAR_CHST)) {
         m_chSto[0] = m_chSto[m_outletID];
         *data = m_chSto;
-    }else if (StringMatch(sk, VAR_CHST_LAST_STEP)) {
-		m_chStoLastStep[0] = m_chStoLastStep[m_outletID];
-		*data = m_chStoLastStep;
-	}
+    }
 	else if (StringMatch(sk, VAR_RTE_WTRIN)) {
         m_rteWtrIn[0] = m_rteWtrIn[m_outletID];
         *data = m_rteWtrIn;
@@ -1520,7 +1561,6 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
         if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
     }
     qIn += qsUp + qiUp + qgUp;   
-	m_chStoLastStep[i] = m_chSto[i];
     float pre_Sto = m_chSto[i];
     //add precipitation
     qIn += m_prec[i];   

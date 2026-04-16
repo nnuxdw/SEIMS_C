@@ -199,7 +199,7 @@ private:
 
 	// debug
 	float* m_HAND_Infil;
-	float* handWtrDepBfe;
+	float* handWtrDepAftInfil;
 	float** m_soilWtrStoBfe;
 	float* m_HAND_Runoff_Perc;
 	float* m_alpha;

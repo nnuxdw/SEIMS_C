@@ -143,7 +143,7 @@ private:
 	int m_outletID;    ///< outlet ID, also can be derived by m_reachLayers.rbegin()->second[0];
 	float* m_handArea;       /// area of each hand
 	int m_nreach;      ///< reach number (= subbasin number)
-
+	float*  m_hand_dep;
 	float*  m_hand_eavp;
 	// xiaodw add
 		// xiaodw add
@@ -158,7 +158,6 @@ private:
 	float* m_HAND_LowerAccDepthLen;
 	vector<Hand> m_Hands;  ///  subbasin (or reach)-- layers -- hands,  index represents subbasin id for dim 1, index represents layer for dim 2
 	// debug
-	float* handWtrDepBfe;
-	float* m_chStoBfe;
+	float* handWtrDepAftDep;
 };
 #endif /* SEIMS_MODULE_DEP_LINSLEY_H */

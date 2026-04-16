@@ -88,16 +88,20 @@ def update_fileout_main(spatial_db,hostname,port,query,update):
     client.close()
 
 if __name__ == '__main__':
-    # host = '127.0.0.1'
-    # port = 27017
-    host = '172.21.124.127'
-    port = 27019
-    spatial_dbs = ['US_2_longterm_model', 'US_3_longterm_model','US_4_longterm_model', 'US_5_longterm_model', 'US_6_longterm_model',
-                'US_7_longterm_model', 'US_10_longterm_model', 'US_11_longterm_model',
-                'US_12_longterm_model', 'US_14_longterm_model', 'US_15_longterm_model',
-                'US_16_longterm_model', 'US_17_longterm_model', 'US_18_longterm_model']
+    host = '127.0.0.1'
+    port = 27017
+    # host = '172.21.124.127'
+    # port = 27019
+    # spatial_dbs = ['US_2_longterm_model', 'US_3_longterm_model','US_4_longterm_model', 'US_5_longterm_model', 'US_6_longterm_model',
+    #             'US_7_longterm_model', 'US_10_longterm_model', 'US_11_longterm_model',
+    #             'US_12_longterm_model', 'US_14_longterm_model', 'US_15_longterm_model',
+    #             'US_16_longterm_model', 'US_17_longterm_model', 'US_18_longterm_model']
+    spatial_dbs = ['MSL_1_longterm_model']
     STARTTIME = "2010-01-01 00:00:00"
-    ENDTIME= "2024-12-31 00:00:00"
+    ENDTIME= "2019-12-30 00:00:00"
+
+    STARTTIME_soilmois = "2019-03-05 00:00:00"
+    ENDTIME_soilmois= "2019-30-11 00:00:00"
     # 插入File.out
     documents_solmoist = [
         {
@@ -106,8 +110,8 @@ if __name__ == '__main__':
             "DESCRIPTION": "m_soilMoist_1, amount of water stored in soil profile on current day (%)",
             "UNIT": "%",
             "TYPE": "TS",
-            "STARTTIME": STARTTIME,
-            "ENDTIME": ENDTIME,
+            "STARTTIME": STARTTIME_soilmois,
+            "ENDTIME": ENDTIME_soilmois,
             "INTERVAL": 1,
             "INTERVAL_UNIT": "DAY",
             "SUBBASIN": "ALL",
@@ -120,8 +124,8 @@ if __name__ == '__main__':
             "DESCRIPTION": "m_soilMoist_5, amount of water stored in soil profile on current day (%)",
             "UNIT": "%",
             "TYPE": "TS",
-            "STARTTIME": STARTTIME,
-            "ENDTIME": ENDTIME,
+            "STARTTIME": STARTTIME_soilmois,
+            "ENDTIME": ENDTIME_soilmois,
             "INTERVAL": 1,
             "INTERVAL_UNIT": "DAY",
             "SUBBASIN": "ALL",
@@ -134,8 +138,8 @@ if __name__ == '__main__':
             "DESCRIPTION": "m_soilMoist_15, amount of water stored in soil profile on current day (%)",
             "UNIT": "%",
             "TYPE": "TS",
-            "STARTTIME": STARTTIME,
-            "ENDTIME": ENDTIME,
+            "STARTTIME": STARTTIME_soilmois,
+            "ENDTIME": ENDTIME_soilmois,
             "INTERVAL": 1,
             "INTERVAL_UNIT": "DAY",
             "SUBBASIN": "ALL",
@@ -148,8 +152,8 @@ if __name__ == '__main__':
             "DESCRIPTION": "m_soilMoist_30, amount of water stored in soil profile on current day (%)",
             "UNIT": "%",
             "TYPE": "TS",
-            "STARTTIME": STARTTIME,
-            "ENDTIME": ENDTIME,
+            "STARTTIME": STARTTIME_soilmois,
+            "ENDTIME": ENDTIME_soilmois,
             "INTERVAL": 1,
             "INTERVAL_UNIT": "DAY",
             "SUBBASIN": "ALL",
@@ -162,8 +166,8 @@ if __name__ == '__main__':
             "DESCRIPTION": "m_soilMoist_60, amount of water stored in soil profile on current day (%)",
             "UNIT": "%",
             "TYPE": "TS",
-            "STARTTIME": STARTTIME,
-            "ENDTIME": ENDTIME,
+            "STARTTIME": STARTTIME_soilmois,
+            "ENDTIME": ENDTIME_soilmois,
             "INTERVAL": 1,
             "INTERVAL_UNIT": "DAY",
             "SUBBASIN": "ALL",
@@ -176,8 +180,8 @@ if __name__ == '__main__':
             "DESCRIPTION": "m_soilMoist_100, amount of water stored in soil profile on current day (%)",
             "UNIT": "%",
             "TYPE": "TS",
-            "STARTTIME": STARTTIME,
-            "ENDTIME": ENDTIME,
+            "STARTTIME": STARTTIME_soilmois,
+            "ENDTIME": ENDTIME_soilmois,
             "INTERVAL": 1,
             "INTERVAL_UNIT": "DAY",
             "SUBBASIN": "ALL",
@@ -190,8 +194,8 @@ if __name__ == '__main__':
             "DESCRIPTION": "m_soilMoist_200, amount of water stored in soil profile on current day (%)",
             "UNIT": "%",
             "TYPE": "TS",
-            "STARTTIME": STARTTIME,
-            "ENDTIME": ENDTIME,
+            "STARTTIME": STARTTIME_soilmois,
+            "ENDTIME": ENDTIME_soilmois,
             "INTERVAL": 1,
             "INTERVAL_UNIT": "DAY",
             "SUBBASIN": "ALL",
@@ -576,7 +580,7 @@ if __name__ == '__main__':
         # ]}},
         {"OUTPUTID": {"$in": [
             "QRECH","SBGS",
-            # "SBGS","GWWB", "QS", "QI", "QG",
+            "SBGS","GWWB", "QS", "QI", "QG",
             "solmoist1","solmoist5", "solmoist15", "solmoist30", "solmoist60", "solmoist100", "solmoist200",
 
         ]}},
@@ -594,12 +598,12 @@ if __name__ == '__main__':
 
     for spatial_db in spatial_dbs:
         upsert_fileout_main(spatial_db,host,port,documents_solmoist)
-        upsert_fileout_main(spatial_db,host,port,documents_solsat)
-        upsert_fileout_main(spatial_db,host,port,documents_solawc)
-        upsert_fileout_main(spatial_db,host,port,documents_runoff_percentage)
-        upsert_fileout_main(spatial_db,host,port,documents_runoff_co)
-        upsert_fileout_main(spatial_db,host,port,documents_ks)
-        upsert_fileout_main(spatial_db,host,port,documents_Perco200)
+        # upsert_fileout_main(spatial_db,host,port,documents_solsat)
+        # upsert_fileout_main(spatial_db,host,port,documents_solawc)
+        # upsert_fileout_main(spatial_db,host,port,documents_runoff_percentage)
+        # upsert_fileout_main(spatial_db,host,port,documents_runoff_co)
+        # upsert_fileout_main(spatial_db,host,port,documents_ks)
+        # upsert_fileout_main(spatial_db,host,port,documents_Perco200)
 
         # 更新File.out
         update_fileout_main(spatial_db,host,port,filter_queries1,update_data1)

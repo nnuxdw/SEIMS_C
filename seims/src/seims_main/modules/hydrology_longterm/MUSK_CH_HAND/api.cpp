@@ -47,6 +47,11 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_SBIF, UNIT_FLOW_CMS, DESC_SBIF, Source_Module, DT_Array1D);
     mdi.AddInput(VAR_SBQG, UNIT_FLOW_CMS, DESC_SBQG, Source_Module, DT_Array1D);
 
+	mdi.AddInput(VAR_OL_HAND_INFIL, UNIT_DEPTH_MM, DESC_OL_HAND_INFIL, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_HAND_EVAP, UNIT_DEPTH_MM, DESC_HAND_EVAP, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_HAND_DEP, UNIT_DEPTH_MM, DESC_HAND_DEP, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_OL_HAND_BACK_FROM_GW, UNIT_DEPTH_MM, VAR_OL_HAND_BACK_FROM_GW, Source_Module, DT_Raster1D);
+
     // Outputs
     mdi.AddInOutput(VAR_QRECH, UNIT_FLOW_CMS, DESC_QRECH, DT_Array1D, TF_SingleValue);
     mdi.AddInOutput(VAR_QS, UNIT_NON_DIM, DESC_QS, DT_Array1D, TF_SingleValue);
@@ -62,8 +67,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_CHWTRWIDTH, UNIT_LEN_M, DESC_CHWTWIDTH, DT_Array1D);
     mdi.AddOutput(VAR_CHBTMWIDTH, UNIT_LEN_M, DESC_CHBTMWIDTH, DT_Array1D);
     mdi.AddOutput(VAR_CHCROSSAREA, UNIT_AREA_M2, DESC_CHCROSSAREA, DT_Array1D);
-	mdi.AddOutput(VAR_CHST_LAST_STEP, UNIT_VOL_M3, DESC_CHST_LAST_STEP, DT_Array1D);   // xiaodw add, output for OL_HAND module
-	mdi.AddOutput(VAR_BKST_LAST_STEP, UNIT_VOL_M3, DESC_BKST_LAST_STEP, DT_Array1D);   // xiaodw add, output for OL_HAND module
+	
 
 
     //ljj++

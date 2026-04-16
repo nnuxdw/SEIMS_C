@@ -915,10 +915,10 @@ if __name__ == '__main__':
     # ]
     pairs_arr = [
 
-        [('Perco200_TS', 'Perco200_TS_')],
-        [('Runoff_co_TS', 'Runoff_co_TS_')],
-        [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
-        [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
+        # [('Perco200_TS', 'Perco200_TS_')],
+        # [('Runoff_co_TS', 'Runoff_co_TS_')],
+        # [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
+        # [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
 
         [('solmoist1_TS', 'solmoist1_TS_')],
         [('solmoist5_TS', 'solmoist5_TS_')],
@@ -927,26 +927,26 @@ if __name__ == '__main__':
         [('solmoist100_TS', 'solmoist100_TS_')],
         [('solmoist200_TS', 'solmoist200_TS_')],
 
-        [('solawc1_TS', 'solawc1_TS_')],
-        [('solawc5_TS', 'solawc5_TS_')],
-        [('solawc30_TS', 'solawc30_TS_')],
-        [('solawc60_TS', 'solawc60_TS_')],
-        [('solawc100_TS', 'solawc100_TS_')],
-        [('solawc200_TS', 'solawc200_TS_')],
-
-        [('solsat1_TS', 'solsat1_TS_')],
-        [('solsat5_TS', 'solsat5_TS_')],
-        [('solsat30_TS', 'solsat30_TS_')],
-        [('solsat60_TS', 'solsat60_TS_')],
-        [('solsat100_TS', 'solsat100_TS_')],
-        [('solsat200_TS', 'solsat200_TS_')],
-
-        [('ks1_TS', 'ks1_TS_')],
-        [('ks5_TS', 'ks5_TS_')],
-        [('ks30_TS', 'ks30_TS_')],
-        [('ks60_TS', 'ks60_TS_')],
-        [('ks100_TS', 'ks100_TS_')],
-        [('ks200_TS', 'ks200_TS_')]
+        # [('solawc1_TS', 'solawc1_TS_')],
+        # [('solawc5_TS', 'solawc5_TS_')],
+        # [('solawc30_TS', 'solawc30_TS_')],
+        # [('solawc60_TS', 'solawc60_TS_')],
+        # [('solawc100_TS', 'solawc100_TS_')],
+        # [('solawc200_TS', 'solawc200_TS_')],
+        #
+        # [('solsat1_TS', 'solsat1_TS_')],
+        # [('solsat5_TS', 'solsat5_TS_')],
+        # [('solsat30_TS', 'solsat30_TS_')],
+        # [('solsat60_TS', 'solsat60_TS_')],
+        # [('solsat100_TS', 'solsat100_TS_')],
+        # [('solsat200_TS', 'solsat200_TS_')],
+        #
+        # [('ks1_TS', 'ks1_TS_')],
+        # [('ks5_TS', 'ks5_TS_')],
+        # [('ks30_TS', 'ks30_TS_')],
+        # [('ks60_TS', 'ks60_TS_')],
+        # [('ks100_TS', 'ks100_TS_')],
+        # [('ks200_TS', 'ks200_TS_')]
     ]
     suffix = 'txt'
 

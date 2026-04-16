@@ -625,6 +625,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_DEEPST "deepst"
 #define VAR_DEET "DEET" /// m_deprStoET, evaporation from the depression storage
 #define VAR_HAND_EVAP "HAND_EVAP" /// m_hand_evap, evaporation from inundated area
+#define VAR_HAND_DEP "HAND_DEP" /// m_hand_dep, depression from inundated area
 #define VAR_DEM "DEM" /// m_dem, Digital Elevation Model
 #define VAR_DEPREIN "Depre_in"                        /// initial depression storage coefficient
 #define VAR_DEPRESSION "Depression"                   /// Depression storage capacity
@@ -838,7 +839,13 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_PUPDIS "p_updis" /// m_upTkDistP, Phosphorus uptake distribution parameter
 #define VAR_QCH "QCH"
 #define VAR_OLFLOW "OL_Flow" /// m_surfRf, overland flow in each cell calculated during overland routing
+#define VAR_OL_HAND_INFIL "OL_Hand_INFIL" /// m_surfRf, overland flow in each cell calculated during overland routing
 #define VAR_OL_HAND_WTRDEP "OL_Hand_WTRDEP" /// m_surfRf, overland flow in each cell calculated during overland routing
+#define VAR_OL_HAND_WTRDEP_AFT_INFIL "OL_Hand_WTRDEP_After_Infil" /// m_surfRf, overland flow in each cell calculated during overland routing
+#define VAR_OL_HAND_WTRDEP_AFT_DEP "OL_Hand_WTRDEP_After_Dep" /// m_surfRf, overland flow in each cell calculated during overland routing
+#define VAR_OL_HAND_BACK_FROM_GW "OL_Hand_WTRDEP_Back_From_GW" /// m_surfRf, overland flow in each cell calculated during overland routing
+
+
 #define VAR_IS_HAND_FLOODED "m_isHandFlooded" /// are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water
 #define VAR_RUNOFF_PERCENTAGE "RUNOFF_PERCENTAGE"
 #define VAR_SUBBASIN_FLOODED_AREA "SUBBASIN_FLOODED_AREA"  // sum of  flooded hand's area in  each subbasin
@@ -1651,8 +1658,10 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_QCH "Flux in the downslope boundary of cells"
 #define DESC_OLFLOW "overland flow in each cell calculated during overland routing"
 #define DESC_OL_HAND_WTRDEP "overland water depth on HAND"
+#define DESC_OL_HAND_INFIL "HAND'S infiltration"
 #define DESC_RUNOFF_PERCENTAGE "runoff percentage of HAND"
 #define DESC_HAND_EVAP "hand evaporation in each cell "
+#define DESC_HAND_DEP "hand depression in each cell "
 #define DESC_IS_HAND_FLOODED "are HANDs flooded? true means surface water depth > 0.000001, while false means no surface water "
 #define DESC_SUBBASIN_FLOODED_AREA "sum of  flooded hand's area in  each subbasin"
 #define DESC_SUBBASIN_WTR_DEPTH "water depth in  each subbasin"

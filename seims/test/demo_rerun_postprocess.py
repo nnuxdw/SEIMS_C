@@ -28,7 +28,7 @@ def main():
     # tar = ['QG','QI','QS','SBGS']
     tar = ['F']
     watershed_num = 1171
-    conn = MongoClient('172.21.124.127', 2709)
+    conn = MongoClient('172.21.124.127', 27019)
     db = conn.poyang_lake1_longterm_model   #需要自己修改数据库名字
 
     wtsd_name = get_watershed_name('Specify watershed name to run postprocess.')

@@ -22,7 +22,7 @@ from postprocess.plot_timeseries import read_simulation_only,plot_sim_only,compu
 
 def main():
     ###--------------------xiaodw, plot Q,QI,QS,QG into one chart
-    subbasin_id = 3
+    subbasin_id = 156
     # subbasin_id = 1171
     file_dict = {
         # "Surface Runoff": "QS.txt",
@@ -31,38 +31,39 @@ def main():
         "Total Runoff": "Q.txt"
     }
     # basedir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\-90_124556_38_819347_longterm_model\OUTPUT0_base'
-    basedir = rf'G:\program\seims\SEIMS_HAND\data\US_{subbasin_id}\US_{subbasin_id}_longterm_model\OUTPUT0-0'
-
+    # basedir = rf'G:\program\seims\SEIMS_HAND\data\US_{subbasin_id}\US_{subbasin_id}_longterm_model\OUTPUT0-0'
+    # basedir = r'G:\program\seims\SEIMS_HAND\data\MSL_1\MSL_1_longterm_model\OUTPUT0-0'
+    basedir = r'G:\program\seims\SEIMS_HAND\data\MSL_1\MSL_1_longterm_model\cali_copy\gen_0_cali_0'
     ###--------------------xiaodw, plot Q and observation into one chart and calculate nse
     ## 只画模拟值
-    merged = read_simulation_only(
-        basedir=basedir,
-        file_dict=file_dict,
-        station_id=subbasin_id,
-        sim_label_for_nse="Total Runoff",
-        read_runoff_file_func=read_runoff_file,
-    )
-    ## 模拟与观测值都画
-    # mongo_uri ="mongodb://localhost:27017"
-    # db_name = f"US_{subbasin_id}_HydroClimate"
-    # collection = "MEASUREMENT"
-    # nse, merged = compute_nse_with_sim_and_obs(
+    # merged = read_simulation_only(
     #     basedir=basedir,
     #     file_dict=file_dict,
-    #     mongo_uri=mongo_uri,
-    #     db_name=db_name,
-    #     collection=collection,
-    #     station_field="STATIONID",
     #     station_id=subbasin_id,
-    #     time_field="UTCDATETIME",
-    #     value_field="VALUE",
-    #     invalid_values=("NONE", None, "", "NaN"),
-    #     tz=None,  # 如果你想把观测转为特定时区，填 "Asia/Shanghai" 等
     #     sim_label_for_nse="Total Runoff",
     #     read_runoff_file_func=read_runoff_file,
     # )
-    #
-    # print("NSE =", nse)
+    ## 模拟与观测值都画
+    mongo_uri ="mongodb://localhost:27017"
+    db_name = f"MSL_1_HydroClimate"
+    collection = "MEASUREMENT"
+    nse, merged = compute_nse_with_sim_and_obs(
+        basedir=basedir,
+        file_dict=file_dict,
+        mongo_uri=mongo_uri,
+        db_name=db_name,
+        collection=collection,
+        station_field="STATIONID",
+        station_id=subbasin_id,
+        time_field="UTCDATETIME",
+        value_field="VALUE",
+        invalid_values=("NONE", None, "", "NaN"),
+        tz=None,  # 如果你想把观测转为特定时区，填 "Asia/Shanghai" 等
+        sim_label_for_nse="Total Runoff",
+        read_runoff_file_func=read_runoff_file,
+    )
+
+    print("NSE =", nse)
     # 时间分布图
     plot_sim_only(
         merged_df=merged,
@@ -72,51 +73,51 @@ def main():
         show=True
     )
 
-    merged = read_simulation_only(
-        basedir=basedir,
-        file_dict=file_dict,
-        station_id=subbasin_id,
-        sim_label_for_nse="Interflow",
-        read_runoff_file_func=read_runoff_file,
-    )
-    # 时间分布图
-    plot_sim_only(
-        merged_df=merged,
-        out_path=os.path.join(basedir, "Interflow.png"),
-        title="Hydrograph",
-        ylabel="Interflow",
-        show=True
-    )
-    # 时间分布图
-
-    merged = read_simulation_only(
-        basedir=basedir,
-        file_dict=file_dict,
-        station_id=subbasin_id,
-        sim_label_for_nse="Groundwater",
-        read_runoff_file_func=read_runoff_file,
-    )
-    plot_sim_only(
-        merged_df=merged,
-        out_path=os.path.join(basedir, "Groundwater.png"),
-        title="Hydrograph",
-        ylabel="Groundwater",
-        show=True
-    )
-    merged = read_simulation_only(
-        basedir=basedir,
-        file_dict=file_dict,
-        station_id=subbasin_id,
-        sim_label_for_nse="Surface Runoff",
-        read_runoff_file_func=read_runoff_file,
-    )
-    plot_sim_only(
-        merged_df=merged,
-        out_path=os.path.join(basedir, "Surface Runoff.png"),
-        title="Hydrograph",
-        ylabel="Surface Runoff",
-        show=True
-    )
+    # merged = read_simulation_only(
+    #     basedir=basedir,
+    #     file_dict=file_dict,
+    #     station_id=subbasin_id,
+    #     sim_label_for_nse="Interflow",
+    #     read_runoff_file_func=read_runoff_file,
+    # )
+    # # 时间分布图
+    # plot_sim_only(
+    #     merged_df=merged,
+    #     out_path=os.path.join(basedir, "Interflow.png"),
+    #     title="Hydrograph",
+    #     ylabel="Interflow",
+    #     show=True
+    # )
+    # # 时间分布图
+    #
+    # merged = read_simulation_only(
+    #     basedir=basedir,
+    #     file_dict=file_dict,
+    #     station_id=subbasin_id,
+    #     sim_label_for_nse="Groundwater",
+    #     read_runoff_file_func=read_runoff_file,
+    # )
+    # plot_sim_only(
+    #     merged_df=merged,
+    #     out_path=os.path.join(basedir, "Groundwater.png"),
+    #     title="Hydrograph",
+    #     ylabel="Groundwater",
+    #     show=True
+    # )
+    # merged = read_simulation_only(
+    #     basedir=basedir,
+    #     file_dict=file_dict,
+    #     station_id=subbasin_id,
+    #     sim_label_for_nse="Surface Runoff",
+    #     read_runoff_file_func=read_runoff_file,
+    # )
+    # plot_sim_only(
+    #     merged_df=merged,
+    #     out_path=os.path.join(basedir, "Surface Runoff.png"),
+    #     title="Hydrograph",
+    #     ylabel="Surface Runoff",
+    #     show=True
+    # )
 
 
     ###--------------------xiaodw, plot all upstream rainfall of one subbasinid

@@ -32,9 +32,9 @@ def main(watershed_num):
     plot_percentile = False
     plot_legent = False
     save_legend_as_png = False
-    model_name = f'MSL_1_longterm_model'
+    model_name = f'US_15_longterm_model'
     y_label_map={
-        "Q_156":"Discharge(m³/s)","Q_143":"Discharge(m³/s)"
+        "Q_1":"Discharge(m³/s)"
     }
     label_font_size = 24
     title_font_size = 28
@@ -78,8 +78,8 @@ def main(watershed_num):
     new = [0] *len(df)
     temp = []
     weights = {
-        "Cali-Q_156-NSE": 0.5,  # 默认
-        "Vali-Q_143-NSE": 0.5  # 默认
+        "Cali-Q_1-NSE": 0.5,  # 默认
+        "Vali-Q_1-NSE": 0.5  # 默认
     }
     for param, values in result.items():
         w = weights.get(param, 1.0)  # 没设置的默认1.0
@@ -693,6 +693,6 @@ def main(watershed_num):
 
 if __name__ == "__main__":
     # watershed_nums = [123,141,214,225,322,347,457]
-    watershed_nums = [156,143]
+    watershed_nums = [1]
     for watershed_num in watershed_nums:
         main(watershed_num)

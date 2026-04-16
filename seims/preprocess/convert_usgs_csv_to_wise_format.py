@@ -96,6 +96,13 @@ def convert_flow_data_to_csv(input_csv_path, output_csv_path):
     site_y = None
     site_id = None
 
+    # 统计信息
+    total_rows = 0
+    valid_rows = 0
+    skipped_rows = 0
+
+    print(f"开始处理文件: {input_csv_path}")
+
     with open(input_csv_path, 'r', newline='', encoding='utf-8') as infile, \
         open(output_csv_path, 'w', newline='', encoding='utf-8') as outfile:
         reader = csv.DictReader(infile)
@@ -106,79 +113,116 @@ def convert_flow_data_to_csv(input_csv_path, output_csv_path):
         writer.writerow(["StationID", "DATETIME", "Type", "VALUE"])
 
         for row in reader:
+            total_rows += 1
+
             # 提取站点基础信息（仅提取一次）
-            if site_x is None and 'x' in row and row['x'].strip():
-                site_x = row['x'].strip()
-            if site_y is None and 'y' in row and row['y'].strip():
-                site_y = row['y'].strip()
-            if site_id is None and 'monitoring_location_id' in row and row['monitoring_location_id'].strip():
-                site_id = row['monitoring_location_id'].strip()
+            if site_x is None and 'x' in row and row['x'] and str(row['x']).strip():
+                site_x = str(row['x']).strip()
+                print(f"提取到站点经度(x): {site_x}")
+            if site_y is None and 'y' in row and row['y'] and str(row['y']).strip():
+                site_y = str(row['y']).strip()
+                print(f"提取到站点纬度(y): {site_y}")
+            if site_id is None and 'monitoring_location_id' in row and row['monitoring_location_id'] and str(row['monitoring_location_id']).strip():
+                site_id = str(row['monitoring_location_id']).strip()
+                print(f"提取到站点ID: {site_id}")
 
             # 读取时间和流量值
-            value_str = row['value'].strip() if row['value'] else ''
+            # 支持多种可能的字段名（大小写不敏感）
+            time_str = None
+            value_str = None
 
-            # 判断value是否为空，为空则跳过当前行
-            if not value_str:
+            # 查找时间字段
+            for key in ['time', 'Time', 'TIME', 'datetime', 'DateTime', 'DATETIME', 'date', 'Date', 'DATE']:
+                if key in row and row[key] and str(row[key]).strip():
+                    time_str = str(row[key]).strip()
+                    break
+
+            # 查找流量值字段
+            for key in ['value', 'Value', 'VALUE', 'discharge', 'Discharge', 'DISCHARGE']:
+                if key in row and row[key] and str(row[key]).strip():
+                    value_str = str(row[key]).strip()
+                    break
+
+            # 判断time和value是否都存在
+            if not time_str or not value_str:
+                skipped_rows += 1
                 continue
-            time_str = row['time']
 
             try:
                 value_ft3s = float(value_str)
             except ValueError:
                 # 如果value不是数字，也跳过当前行
-                print(f"警告：文件 {input_csv_path} 行 {reader.line_num} 的value值 '{value_str}' 不是有效数字，已跳过")
+                print(f"警告：行 {total_rows} 的value值 '{value_str}' 不是有效数字，已跳过")
+                skipped_rows += 1
                 continue
 
             # 转换单位
             value_m3s = value_ft3s * CONVERSION_FACTOR
 
-            # 解析日期并添加时间（适配YYYY-MM-DD格式）
-            date_obj = datetime.strptime(time_str, "%Y-%m-%d")
+            # 解析日期并添加时间（支持多种格式）
+            date_obj = None
+            for fmt in ["%Y-%m-%d", "%Y/%m/%d", "%m/%d/%Y", "%d-%m-%Y"]:
+                try:
+                    date_obj = datetime.strptime(time_str, fmt)
+                    break
+                except ValueError:
+                    continue
+
+            if date_obj is None:
+                print(f"警告：行 {total_rows} 的时间格式 '{time_str}' 无法识别，已跳过")
+                skipped_rows += 1
+                continue
+
             datetime_str = date_obj.strftime("%Y/%m/%d 0:00")
 
             # 写入一行数据
             writer.writerow(["1", datetime_str, "Q", f"{value_m3s:.1f}"])
+            valid_rows += 1
+
+    # 输出统计信息
+    print(f"处理完成: 总行数={total_rows}, 有效行数={valid_rows}, 跳过行数={skipped_rows}")
 
     # 生成SiteInfo.csv（仅当站点信息完整时）
     output_dir = os.path.dirname(output_csv_path)
     if all([site_x, site_y, site_id]):
         create_site_info(output_dir, site_x, site_y, site_id)
     else:
-        print(f"警告：文件 {input_csv_path} 中未找到完整的站点信息（x/y/monitoring_location_id），跳过SiteInfo.csv生成")
+        print(f"警告：文件 {input_csv_path} 中未找到完整的站点信息")
+        if not site_x:
+            print("  - 缺少 x (经度)")
+        if not site_y:
+            print("  - 缺少 y (纬度)")
+        if not site_id:
+            print("  - 缺少 monitoring_location_id (站点ID)")
 
 
 if __name__ == '__main__':
     # 示例使用
     BASINs = [
-        "US_1",
-        "US_2",
-        "US_3",
-        "US_4",
-        "US_5",
-        "US_6",
-        "US_7",
-        # "US_8",
-        # "US_9",
-        "US_10",
-        "US_11",
-        "US_12",
-        # "US_13",
-        "US_14",
-        "US_15",
-        "US_16",
-        "US_17",
-        "US_18",
+        "US_MSL_06601200",
+        "US_MSL_06607500",
+
     ]
-    input_base_path = r'G:\program\seims\SEIMS_HAND\data\USA_Small_Watersheds\流量'
-    input_suffix = r'discharge\20150101-20241231\daily.csv'
+    input_base_path = r'G:\program\seims\SEIMS_HAND\data\MSL_1\流量'
+    input_suffix = r'discharge\20100101-20191231\daily.csv'
     output_base_path = r'G:\program\seims\SEIMS_HAND\data'
     output_suffix = r'data_prepare\observed'
 
+    print("="*60)
+    print("USGS CSV 转 SEIMS 格式工具")
+    print("="*60)
+
+    success_count = 0
+    fail_count = 0
+
     for basin in BASINs:
+        print(f"\n处理流域: {basin}")
         input_file = os.path.join(input_base_path, basin, input_suffix)
+
         # 检查输入文件是否存在，避免报错
         if not os.path.exists(input_file):
             print(f"错误：输入文件不存在，跳过 {basin} -> {input_file}")
+            fail_count += 1
             continue
 
         output_parent = os.path.join(output_base_path, basin, output_suffix)
@@ -187,6 +231,16 @@ if __name__ == '__main__':
         output_file = os.path.join(output_parent, 'observed_1.csv')
 
         # 执行转换并生成SiteInfo.csv
-        convert_flow_data_to_csv(input_file, output_file)
-        print(f"转换完成，结果已保存到 {output_file}")
-        print("-" * 50)  # 分隔线，方便查看日志
+        try:
+            convert_flow_data_to_csv(input_file, output_file)
+            print(f"✓ 转换完成，结果已保存到 {output_file}")
+            success_count += 1
+        except Exception as e:
+            print(f"✗ 转换失败: {e}")
+            fail_count += 1
+
+        print("-" * 60)  # 分隔线，方便查看日志
+
+    print("\n" + "="*60)
+    print(f"处理完成: 成功 {success_count} 个，失败 {fail_count} 个")
+    print("="*60)

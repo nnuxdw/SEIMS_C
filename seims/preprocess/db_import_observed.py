@@ -314,25 +314,28 @@ def main():
 def main_batch():
     from preprocess.config import ConfigParser,get_config_file,PreprocessConfig
     from preprocess.db_mongodb import ConnectMongoDB
+    # BASINs = [
+    #     # "US_1",
+    #     # "US_2",
+    #     # "US_3",
+    #     # "US_4",
+    #     # "US_5",
+    #     # "US_6",
+    #     # "US_7",
+    #     # "US_8",
+    #     # "US_9",
+    #     "US_10",
+    #     "US_11",
+    #     "US_12",
+    #     # "US_13",
+    #     "US_14",
+    #     "US_15",
+    #     "US_16",
+    #     "US_17",
+    #     "US_18",
+    # ]
     BASINs = [
-        # "US_1",
-        # "US_2",
-        # "US_3",
-        # "US_4",
-        # "US_5",
-        # "US_6",
-        # "US_7",
-        # "US_8",
-        # "US_9",
-        "US_10",
-        "US_11",
-        "US_12",
-        # "US_13",
-        "US_14",
-        "US_15",
-        "US_16",
-        "US_17",
-        "US_18",
+        "MSL_1",
     ]
     base_path = r'G:\program\seims\SEIMS_HAND\data'
 

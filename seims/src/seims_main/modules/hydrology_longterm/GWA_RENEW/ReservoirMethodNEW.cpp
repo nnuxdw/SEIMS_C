@@ -19,8 +19,8 @@ ReservoirMethodNEW::ReservoirMethodNEW() :
     m_nSubbsns(-1), m_inputSubbsnID(-1), m_subbasinsInfo(nullptr),
     m_area(nullptr), curBasinArea(nullptr), gwSub(nullptr), QGSub(nullptr), m_surfRf(nullptr), m_potVol(nullptr), m_infil(nullptr), m_impoundTrig(nullptr),
 	// xiaodw++
-	m_GWMAX_1d(nullptr), m_Base_ex_1d(nullptr), m_Kg_1d(nullptr), gw_delay_1d(nullptr), m_hand_eavp(nullptr), m_handWtrDep(nullptr), m_chSto(nullptr),
-	m_soilWtrStoBfe(nullptr), m_soilMoistBfe(nullptr), perco_200(nullptr)
+	m_GWMAX_1d(nullptr), m_Base_ex_1d(nullptr), m_Kg_1d(nullptr), gw_delay_1d(nullptr), m_hand_eavp(nullptr), 
+	m_soilWtrStoBfe(nullptr), m_soilMoistBfe(nullptr), perco_200(nullptr), m_HAND_BackFromGW(nullptr)
 
 {
 }
@@ -62,7 +62,8 @@ void ReservoirMethodNEW::InitialOutputs() {
 
 	if (nullptr == m_soilMoistBfe) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilMoistBfe, 0.f);
 	if (nullptr == m_soilWtrStoBfe) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilWtrStoBfe, 0.f);
-	if (perco_200 == nullptr) Initialize1DArray(m_nCells, perco_200, 0);
+	if (perco_200 == nullptr) Initialize1DArray(m_nCells, perco_200, 0.f);
+	if (m_HAND_BackFromGW == nullptr) Initialize1DArray(m_nCells, m_HAND_BackFromGW, 0.f);
 	
 
 }
@@ -100,6 +101,7 @@ int ReservoirMethodNEW::Execute() {
         //#pragma omp parallel for reduction(+:perco, fPET, revap)
         for (int i = 0; i < curCellsNum; i++) {
             int index = curCells[i];
+			m_HAND_BackFromGW[index] = 0.f;
 			int nly = CVT_INT(m_nSoilLyrs[index]);
 			int last = nly - 1;
 			for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[index]); ly++) {
@@ -139,14 +141,18 @@ int ReservoirMethodNEW::Execute() {
                             break;
                         }
                         if (ly == 0 && ul_excess > 0.f) {
+							// xdw, just record the ul_excess and give it back to ch_sto at the MUSK_CH_HAND module
+							m_HAND_BackFromGW[index] = ul_excess;
                             // add ul_excess to depressional storage and then to surfq
-                            if (m_potVol != nullptr && FloatEqual(m_impoundTrig[index], 0.f)) {
-                                m_potVol[index] += ul_excess;
-                            }
-							// xiaodw, add ul_excess to hand's inundation depth
-							else if (m_handWtrDep[index] > 0.f) {
-								m_chSto[subID] += ul_excess * m_area[index] * 0.001f;
-							}
+                            //if (m_potVol != nullptr && FloatEqual(m_impoundTrig[index], 0.f)) {
+                            //    m_potVol[index] += ul_excess;
+                            //}
+							//else
+							//{
+							//    m_surfRf[index] += ul_excess;
+
+							//}
+
                            /* else if (!wascobSubarea[index].empty())
                             {
                                 for (auto b : wascobSubarea[index])
@@ -155,11 +161,7 @@ int ReservoirMethodNEW::Execute() {
                                     b->addWaterStorage(water_m3);
                                 }
                             }*/
-                            else
-                            {
-                                m_surfRf[index] += ul_excess;
 
-                            }
                             m_infil[index] -= ul_excess;
                             if (m_infil[index] < 0)
                             {
@@ -484,6 +486,7 @@ void ReservoirMethodNEW::Set1DData(const char* key, const int n, float* data) {
 		CheckInputSize(MID_GWA_RE, key, n, m_nCells);
         m_impoundTrig = data;
     }
+
     else if (StringMatch(sk, VAR_INFIL)) {
 		CheckInputSize(MID_GWA_RE, key, n, m_nCells);
         m_infil = data;
@@ -500,17 +503,9 @@ void ReservoirMethodNEW::Set1DData(const char* key, const int n, float* data) {
 	else if (StringMatch(sk, "gw_delay_1d")) {
 		gw_delay_1d = data;
 	}
-	else if (StringMatch(sk, VAR_CHST)) {
-		// 注意这里按你的要求用的是 n - 1 和 m_nreach
-		m_chSto = data;
-	}
 	else if (StringMatch(sk, VAR_HAND_EVAP)) {
 		CheckInputSize(MID_SET_LM, key, n, m_nCells);
 		m_hand_eavp = data;
-	}
-	else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
-		CheckInputSize(MID_SET_LM, key, n, m_nCells);
-		m_handWtrDep = data;
 	}
     //else if (StringMatch(sk, VAR_WASCOB))//WHC++
     //{
@@ -657,12 +652,12 @@ void ReservoirMethodNEW::Get1DData(const char* key, int* nrows, float** data) {
         *data = gwSub;
         *nrows = m_nCells;
     }
-	else if (StringMatch(sk, VAR_CHST)) {
-		*data = m_chSto;
-		*nrows = m_nSubbsns + 1;
-	}
 	else if (StringMatch(sk, VAR_PERCO_200)) {
 		*data = perco_200;
+		*nrows = m_nCells;
+	}
+	else if (StringMatch(sk, VAR_OL_HAND_BACK_FROM_GW)) {
+		*data = m_HAND_BackFromGW;
 		*nrows = m_nCells;
 	}
 	

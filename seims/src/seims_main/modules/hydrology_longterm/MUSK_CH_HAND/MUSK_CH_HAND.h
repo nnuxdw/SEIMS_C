@@ -308,6 +308,12 @@ private:
 	float* m_petFactor_1d;
 
 	float* m_subbasinWtrDep;
+	/// water depth of each hand, initialized by m_bankSto,m
+	float* m_handWtrDep;
+	float* m_HAND_Infil;
+	float* m_hand_eavp;
+	float* m_hand_dep;
+	float* m_HAND_BackFromGW;
 	float* m_subbasinInundationArea;  // subbasin inundation area, for lake/resovior/reach;
 
 	float* m_HAND_Subbasin;
@@ -319,6 +325,8 @@ private:
 	float* m_HAND_AccVolume;
 	float* m_HAND_LowerAccDepthFlat;
 	float* m_HAND_LowerAccDepthLen;
+
+
 };
 
 #endif /* SEIMS_MODULE_MUSK_CH_HAND_H */

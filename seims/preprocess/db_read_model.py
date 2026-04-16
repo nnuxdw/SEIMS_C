@@ -194,15 +194,19 @@ class ReadModelData(object):
 
         pcp_dict = OrderedDict()
 
+        # 不在MongoDB中排序，而是在Python中排序，避免32MB内存限制
         for pdata in self.climatedb[DBTableNames.data_values].find(
             {DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
              DataValueFields.type: DataType.p,
-             DataValueFields.id: {"$in": site_list}}).sort([(DataValueFields.utc, 1)]):
+             DataValueFields.id: {"$in": site_list}}):
             curt = pdata[DataValueFields.utc]
             curv = pdata[DataValueFields.value]
             if curt not in pcp_dict:
-                pcp_dict[curt] = 0.
+                pcp_dict[curt] = 0.0
             pcp_dict[curt] += curv
+        
+        # 在Python中按时间排序
+        pcp_dict = OrderedDict(sorted(pcp_dict.items()))
         # average
         if len(site_list) > 1:
             for t in pcp_dict:
@@ -261,10 +265,16 @@ class ReadModelData(object):
                 continue
             site_id = site_items.get(StationFields.id)
             site_elve = site_items.get(StationFields.elev)
-            for obs in obsTbl.find({DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
+            
+            # 不在MongoDB中排序，而是在Python中排序，避免32MB内存限制
+            obs_list = list(obsTbl.find({DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
                                     DataValueFields.type: get_observed_name(param_name),
-                                    DataValueFields.id: site_id}).sort([(DataValueFields.utc, 1)]):
-
+                                    DataValueFields.id: site_id}))
+            
+            # 在Python中按时间排序
+            obs_list.sort(key=lambda x: x[DataValueFields.utc])
+            
+            for obs in obs_list:
                 if param_name not in vars_existed:
                     vars_existed.append(param_name)
                 curt = obs[DataValueFields.utc]
@@ -340,17 +350,22 @@ class ReadModelData(object):
             subbasin_id = int(get_subbasinid(param_name))
             type = get_observed_name_new(param_name)
             if type == 'F':
-                sites = siteTbl.find({StationFields.type: get_observed_name_new(param_name),
+                sites = list(siteTbl.find({StationFields.type: get_observed_name_new(param_name),
                                            StationFields.outlet: float(is_outlets(param_name,isoutlet)),
                                            StationFields.base_subbasin: subbasin_id
-                                       }).sort([(StationFields.id, 1)]) # 根据其所属下游subabsinid查
+                                       }).sort([(StationFields.id, 1)])) # 根据其所属下游subabsinid查
                 site_ids = []
                 for site in sites:
                     site_ids.append(site[StationFields.id])
-                obs_list = obsTbl.find({DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
+                
+                # 不在MongoDB中排序，而是在Python中排序，避免32MB内存限制
+                obs_list = list(obsTbl.find({DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
                                         # DataValueFields.type: get_observed_name(param_name),
                                         DataValueFields.type: get_observed_name_new(param_name),
-                                        DataValueFields.id:  {"$in": site_ids}}).sort([(DataValueFields.utc, 1)])
+                                        DataValueFields.id:  {"$in": site_ids}}))
+                
+                # 在Python中按时间排序
+                obs_list.sort(key=lambda x: x[DataValueFields.utc])
                 if param_name not in vars_existed:
                     vars_existed.append(param_name)
                 obs_details = []
@@ -388,13 +403,16 @@ class ReadModelData(object):
                 site_elve = site_items.get(StationFields.elev)
                 # print(f"site_id: {site_id}")
 
-
-                for obs in obsTbl.find({DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
+                # 不在MongoDB中排序，而是在Python中排序，避免32MB内存限制
+                obs_list = list(obsTbl.find({DataValueFields.utc: {"$gte": start_time, '$lte': end_time},
                                         #DataValueFields.type: get_observed_name(param_name),
                                         DataValueFields.type: get_observed_name_new(param_name),
-                                        DataValueFields.id: site_id}).sort([(DataValueFields.utc, 1)]):
-                    # print(f"for:site_items {site_items} is None, id: {StationFields.id}, param_name:{param_name},is_outlets:{is_outlets(param_name,isoutlet)},subbsn:{get_subbasinid(param_name)}")
-
+                                        DataValueFields.id: site_id}))
+                
+                # 在Python中按时间排序
+                obs_list.sort(key=lambda x: x[DataValueFields.utc])
+                
+                for obs in obs_list:
                     if param_name not in vars_existed:
                         vars_existed.append(param_name)
                     curt = obs[DataValueFields.utc]

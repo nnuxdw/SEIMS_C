@@ -883,17 +883,18 @@ if __name__ == '__main__':
     # longter_model_name = '-90_124556_38_819347_longterm_model'
     # 鄱阳湖
     if os.name == 'nt':  # Windows
-        work_dir = r'G:\program\seims\SEIMS_HAND\data\US_3'
+        work_dir = r'G:\program\seims\SEIMS_HAND\data\MSL_1'
     else:
-        work_dir = f'/data/user/xiaodw/software/WISE/data/poyang_lake1'
-    longter_model_name = 'US_3_longterm_model'
-    calibration_name = 'OUTPUT0-0'
+        work_dir = f'/data/user/xiaodw/software/WISE/data/MSL_1'
+    longter_model_name = 'MSL_1_longterm_model'
+    # calibration_name = 'OUTPUT0-0'
+    calibration_name = 'cali_copy\gen_89_cali_12'
     longterm_model_dir = os.path.join(work_dir,longter_model_name)
     directory = os.path.join(longterm_model_dir,calibration_name)
     # start = datetime(2010, 1, 1, 0, 0, 0)
     # end = datetime(2010, 12, 30, 0, 0, 0)
-    start = datetime(2024, 8, 1, 0, 0, 0)
-    end = datetime(2024, 8, 10, 0, 0, 0)
+    start = datetime(2019, 3, 5, 0, 0, 0)
+    end = datetime(2019, 3, 6, 0, 0, 0)
     # prefix = 'SNAC_TS'
     # pattern_prefix = 'SNAC_TS_'
     # prefix = 'SNME_TS'
@@ -920,8 +921,9 @@ if __name__ == '__main__':
         # [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
         # [('RUNOFF_PERCENTAGE_TS', 'RUNOFF_PERCENTAGE_TS_')],
 
-        [('solmoist1_TS', 'solmoist1_TS_')],
-        [('solmoist5_TS', 'solmoist5_TS_')],
+        # [('solmoist1_TS', 'solmoist1_TS_')],
+        # [('solmoist5_TS', 'solmoist5_TS_')],
+        [('solmoist15_TS', 'solmoist15_TS_')],
         [('solmoist30_TS', 'solmoist30_TS_')],
         [('solmoist60_TS', 'solmoist60_TS_')],
         [('solmoist100_TS', 'solmoist100_TS_')],
@@ -953,7 +955,7 @@ if __name__ == '__main__':
     #########################  将HAND输出的结果生成为tif  ################################
     input_tif_path = os.path.join(work_dir,r'workspace/HRU_file/ALL_HRU_final.tif')
     # 设置最大线程数（建议不超过 CPU 核心数的 2~4 倍）
-    max_workers = 12
+    max_workers = 1
     def run_gen_hand_tif(txt_path, input_tif_path):
         output_tif_path = replace_txt_with_tif(txt_path)
         gen_hand_tif_by_txt_fast(

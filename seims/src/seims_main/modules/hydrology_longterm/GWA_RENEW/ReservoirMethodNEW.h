@@ -188,6 +188,7 @@ private:
 	float** m_soilWtrStoBfe;
 	float** m_soilMoistBfe;
 	float* perco_200;
+	float* m_HAND_BackFromGW;
 
 };
 

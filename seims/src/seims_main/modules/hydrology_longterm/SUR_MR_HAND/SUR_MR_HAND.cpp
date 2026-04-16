@@ -16,12 +16,12 @@ SUR_MR_HAND::SUR_MR_HAND() :
     m_dem(nullptr),m_landUse(nullptr),m_soilAWC(nullptr),m_rchID(nullptr),m_pcp(nullptr),m_lakesto(nullptr),
     m_pet(nullptr),m_soilFrozenTemp_1d(nullptr),
 	//xdw++
-	m_soilFCDepth(nullptr), m_soilPorDepth(nullptr), m_handWtrDep(nullptr), m_subbsnID(nullptr),  m_chSto(nullptr), m_handArea(nullptr),
+	m_soilFCDepth(nullptr), m_soilPorDepth(nullptr), m_handWtrDep(nullptr), m_subbsnID(nullptr),  m_handArea(nullptr),
 	// xiaodw ++
 	m_HAND_Subbasin(nullptr), m_HAND_Flood_Level(nullptr), m_HAND_LevelDepth(nullptr),
 	m_HAND_SumArea(nullptr), m_HAND_SumVolume(nullptr), m_HAND_AvgDepth(nullptr),
 	m_HAND_AccVolume(nullptr), m_HAND_LowerAccDepthFlat(nullptr), m_HAND_LowerAccDepthLen(nullptr),
-	m_HAND_Infil(nullptr), handWtrDepBfe(nullptr), m_soilWtrStoBfe(nullptr), m_HAND_Runoff_Perc(nullptr),
+	m_HAND_Infil(nullptr), handWtrDepAftInfil(nullptr), m_soilWtrStoBfe(nullptr), m_HAND_Runoff_Perc(nullptr),
 	m_alpha(nullptr)
     {
 }
@@ -34,7 +34,7 @@ SUR_MR_HAND::~SUR_MR_HAND() {
 	//if (m_soilIceStoPrfl != nullptr) Release1DArray(m_soilIceStoPrfl);   // xiaodw comment, don't need soil temperature now
 	if (m_lakesto != nullptr) Release1DArray(m_lakesto);
 	if (m_HAND_Infil != nullptr) Release1DArray(m_HAND_Infil);
-	if (handWtrDepBfe != nullptr) Release1DArray(handWtrDepBfe);
+	if (handWtrDepAftInfil != nullptr) Release1DArray(handWtrDepAftInfil);
 	if (m_soilWtrStoBfe != nullptr) Release2DArray(m_nCells, m_soilWtrStoBfe);
 	if (m_HAND_Runoff_Perc != nullptr) Release1DArray(m_HAND_Runoff_Perc);
 	if (m_alpha != nullptr) Release1DArray(m_alpha);
@@ -252,7 +252,7 @@ void SUR_MR_HAND::InitialOutputs() {
         Initialize1DArray(m_nCells, m_soilIceStoPrfl, 0.f);//ljj++
 		Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
 		Initialize1DArray(m_nCells, m_HAND_Infil, 0.f);//xdw++
-		Initialize1DArray(m_nCells, handWtrDepBfe, 0.f);//xdw++
+		Initialize1DArray(m_nCells, handWtrDepAftInfil, 0.f);//xdw++
 		Initialize1DArray(m_nCells, m_alpha, 0.f);//xdw++
 		
 		
@@ -300,92 +300,7 @@ void SUR_MR_HAND::InitialOutputs() {
     }
 }
 
-bool SUR_MR_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
-	if (sto <= 0.000001f)
-	{
-		for (int ll = 1; ll <= m_Hands[reachId].n_levels; ll++)
-		{
-			for (int idx = 0; idx < m_Hands[reachId].levels[ll].m_levelHandNum; idx++)
-			{
-				int handId = m_Hands[reachId].levels[ll].handIds[idx];
-				m_handWtrDep[handId] = 0.f;
 
-			}
-			m_chSto[reachId] = 0.f;
-		}
-		return true;
-	}
-
-	Hand& hand = m_Hands[reachId];
-	const int n = hand.n_levels;
-	vector<Level>& levels = hand.levels;
-
-	// 二分查找：找到 sto 落在哪一层（第一个 AccVol >= sto）
-	int left = 1, right = n, target_level = n;
-
-	while (left <= right) {
-		int mid = (left + right) / 2;
-		if (sto <= levels[mid].m_levelAccVol) {
-			target_level = mid;
-			right = mid - 1;
-		}
-		else {
-			left = mid + 1;
-		}
-	}
-
-	hand.m_CurInundationLevel = target_level;  // 层编号从 1 开始
-	float remaining = 0.0;
-	if (target_level == 1)
-	{
-		remaining = sto;
-	}
-	else {
-		remaining = sto - levels[target_level - 1].m_levelAccVol;
-	}
-	if (remaining < 0.0)
-	{
-		cout << "reachId: " << reachId << " target_level-1: " << target_level - 1 << " sto: " << sto << " AccVol: " << levels[target_level - 1].m_levelAccVol << " remaining: " << remaining << endl;
-		exit(0);
-	}
-
-	//  target_level 层之下的水深  加上 target_level 层中当前未填满的那一小截水深
-	float partial_depth = (levels[target_level].m_levelSumArea > 0.0f) ? remaining / levels[target_level].m_levelSumArea : 0.0f;
-	for (int i = 1; i <= target_level; ++i) {
-		levels[i].m_levelWtrDep = levels[i].m_levelLowerAccDepth[target_level] + partial_depth;
-	}
-
-	// 后面所有层水深为 0
-	for (int i = target_level + 1; i <= n; ++i) {
-		levels[i].m_levelWtrDep = 0.0f;
-	}
-
-	// 若超出最大体积，则剩余部分作为超额水
-	float maxVolume = levels[n].m_levelAccVol;
-	if (sto > maxVolume) {
-		hand.excessWtrVol = sto - maxVolume;
-	}
-
-	updateAllHandsWtrDep(reachId);
-
-
-	return true;
-}
-
-
-void SUR_MR_HAND::updateAllHandsWtrDep(const int reachId) {
-	//m_Hands[reachId].levels[lev].m_levelWtrDep = 0.0;
-	for (int ll = 1; ll <= m_Hands[reachId].n_levels; ll++)
-	{
-		for (int idx = 0; idx < m_Hands[reachId].levels[ll].m_levelHandNum; idx++)
-		{
-			int handId = m_Hands[reachId].levels[ll].handIds[idx];
-			m_handWtrDep[handId] = m_Hands[reachId].levels[ll].m_levelWtrDep;
-		}
-	}
-	//m_chWtrDepth[reachId] = m_Hands[reachId].levels[1].m_levelWtrDep;
-	return;
-}
 
 int SUR_MR_HAND::Execute() {
 	//int SPECIFIED_ID = 342;
@@ -404,7 +319,6 @@ int SUR_MR_HAND::Execute() {
 	}
 #endif
 	for (int sbid = 1; sbid <= m_nreach; ++sbid) {
-		float m_chStoTmp = m_chSto[sbid];
 		for (int ll = 1; ll <= m_Hands[sbid].n_levels; ll++)
 		{
 			for (int idx = 0; idx < m_Hands[sbid].levels[ll].m_levelHandNum; idx++)
@@ -412,7 +326,7 @@ int SUR_MR_HAND::Execute() {
 				int i = m_Hands[sbid].levels[ll].handIds[idx];
 				float hand_infil_acc = 0.f;
 				float handWtrDepMM = m_handWtrDep[i] * 1000.0;
-				handWtrDepBfe[i] = handWtrDepMM;
+				
 				for (int ly = CVT_INT(m_nSoilLyrs[i]) - 1; ly >= 0; ly--) {
 					//cout << "handId: " << handId << "  area: " << m_handArea[handId] * 0.000001 << endl;
 					m_soilWtrStoBfe[i][ly] = m_soilWtrSto[i][ly];
@@ -436,20 +350,19 @@ int SUR_MR_HAND::Execute() {
 						hand_infil_acc += hand_infil;
 						handWtrDepMM = 0.f;
 					}
-					m_chSto[sbid] -= m_handArea[i] * hand_infil * 0.001;
-					if (m_chSto[sbid] < 0.f)
+					handWtrDepAftInfil[i] = handWtrDepMM * 0.001;   // m
+					if (m_handWtrDep[i] < 0.f)
 					{
-						cout << "Error: In SUR_MR_HAND module, m_chSto is " << m_chSto[sbid] << ", m_handWtrDep is " << m_handWtrDep[i] << " at subbasinId=" << sbid << ", i =" << i << endl;
-						m_chSto[sbid] = 0.f;
+						cout << "Error: In SUR_MR_HAND module, m_handWtrDep is "  << m_handWtrDep[i] << " at subbasinId=" << sbid << ", i =" << i << endl;
 						//exit(-1);
 					}
 				}
-				m_HAND_Infil[i] = hand_infil_acc;
+				m_HAND_Infil[i] = hand_infil_acc; // mm
 				
 			}
 		}
 
-		HandInundation_BinarySearch(sbid, m_chSto[sbid]);
+		
 #ifdef DEBUG_SUR_MR_HAND
 		for (int ll = 1; ll <= m_Hands[sbid].n_levels; ll++)
 		{
@@ -462,10 +375,8 @@ int SUR_MR_HAND::Execute() {
 					//cout << "*[SUR_MR_HAND_INUNDATION]* " << endl;
 					cout << " Sbid: " << sbid << "   "
 						<< " HandId: " << i << "   "
-						<< " handWtrDepBfe=" << handWtrDepBfe[i] << "   "
-						<< " handWtrDepAft=" << m_handWtrDep[i] * 1000.0 << "   "
-						<< " chStoBfe=" << m_chStoTmp << "   "
-						<< " chStoAft=" << m_chSto[sbid] << "   "
+						<< " handWtrDep=" << m_handWtrDep[i] * 1000.0 << "   "
+						<< " handWtrDepAftInfil=" << handWtrDepAftInfil[i] << "   "
 						<< " hand_infil=" << m_HAND_Infil[i] << "   "
 						<< " handArea=" << m_handArea[i] << "   "
 						<< endl;
@@ -726,11 +637,6 @@ void SUR_MR_HAND::Set1DData(const char* key, const int n, float* data) {
 		CheckInputSize(MID_SUR_MR_HAND, key, n, m_nCells);
 		m_handWtrDep = data;
 	}
-	else if (StringMatch(sk, VAR_CHST)) {
-		// 特殊：长度是 n - 1，大小是 m_nreach
-		CheckInputSize(MID_SUR_MR_HAND, key, n - 1, m_nreach);
-		m_chSto = data;
-	}
 	else if (StringMatch(sk, VAR_SUBBSN)) {
 		CheckInputSize(MID_SUR_MR_HAND, key, n, m_nCells);
 		m_subbsnID = data;
@@ -811,15 +717,17 @@ void SUR_MR_HAND::Get1DData(const char* key, int* n, float** data) {
     } else if (StringMatch(sk, VAR_SOL_SW)) {
         *data = m_soilWtrStoPrfl;
     }
-	else if (StringMatch(sk, VAR_CHST)) {
-		m_chSto[0] = m_chSto[m_outletID];
-		*data = m_chSto;
-	}
 	else if (StringMatch(sk, VAR_RUNOFF_PERCENTAGE)) {
 		*data = m_HAND_Runoff_Perc;
 	}
 	else if (StringMatch(sk, VAR_RUNOFF_CO)) {
 		*data = m_potRfCoef;
+	}
+	else if (StringMatch(sk, VAR_OL_HAND_WTRDEP_AFT_INFIL)) {
+		*data = handWtrDepAftInfil;
+	}
+	else if (StringMatch(sk, VAR_OL_HAND_INFIL)) {
+		*data = m_HAND_Infil;
 	}
 
 	else {

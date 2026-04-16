@@ -429,7 +429,7 @@ def calibration_objectives(cali_obj, gen, ind):
         return ind
 
     # Calculate NSE, R2, RMSE, PBIAS, and RSR, etc. of calibration period
-    print(f"cali_stime: {cali_obj.cfg.cali_stime}/n, cali_etime: {cali_obj.cfg.cali_etime}/n")
+    # print(f"cali_stime: {cali_obj.cfg.cali_stime}/n, cali_etime: {cali_obj.cfg.cali_etime}/n")
     ind.cali.vars, ind.cali.data = model_obj.ExtractSimData(cali_obj.cfg.cali_stime,
                                                             cali_obj.cfg.cali_etime)
     # print(f"ind.cali.vars: {ind.cali.vars}/n, ind.cali.data: {ind.cali.data}/n")
@@ -443,7 +443,7 @@ def calibration_objectives(cali_obj, gen, ind):
                                                             cali_obj.cfg.cali_etime)
     # 输出校准期指标
     cali_metrics = ", ".join(f"{name}:{value:.4f}" for name, value in zip(ind.cali.objnames, ind.cali.objvalues))
-    print(f"cali: {cali_metrics}")
+    # print(f"cali: {cali_metrics}")
     if ind.cali.objnames and ind.cali.objvalues:
         ind.cali.valid = True
     # Calculate NSE, R2, RMSE, PBIAS, and RSR, etc. of validation period
@@ -462,7 +462,7 @@ def calibration_objectives(cali_obj, gen, ind):
 
         # 输出验证期指标
         vali_metrics = ", ".join(f"{name}:{value:.4f}" for name, value in zip(ind.vali.objnames, ind.vali.objvalues))
-        print(f"vali: {vali_metrics}")
+        # print(f"vali: {vali_metrics}")
     # Get timespan
     ind.io_time, ind.comp_time, ind.simu_time, ind.runtime = model_obj.GetTimespan()
     ##-----------------------xiaodw add, calibrate Fi,Bi for inundation extent-----------------------------

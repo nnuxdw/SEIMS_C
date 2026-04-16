@@ -247,15 +247,10 @@ void OL_HAND::Set1DData(const char* key, const int n, float* data) {
 		m_handArea = data;
 	}
 	else if (StringMatch(sk, VAR_BKST)) m_bankSto = data;
-	else if (StringMatch(sk, VAR_BKST_LAST_STEP)) m_bankStoLastStep = data;
 	else if (StringMatch(sk, VAR_CHST)) m_chSto = data;
-	else if (StringMatch(sk, VAR_CHST_LAST_STEP)) m_chStoLastStep = data;
 	else if (StringMatch(sk, VAR_SUBBSN)) m_subbsnID = data;
 	else if (StringMatch(sk, VAR_CHWTRDEPTH)) m_chWtrDepth = data;
 	else if (StringMatch(sk, VAR_CHWTRWIDTH)) m_chWtrWth = data;
-	else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
-		m_handWtrDep = data;
-	}
 	else if (StringMatch(sk, VAR_HAND_Subbasin)) {
 		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
 		m_HAND_Subbasin = data;

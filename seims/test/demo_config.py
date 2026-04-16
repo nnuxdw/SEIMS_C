@@ -51,13 +51,14 @@ DEMO_MODELS = {
     'US_15': 'US_15_longterm_model',
     'US_16': 'US_16_longterm_model',
     'US_17': 'US_17_longterm_model',
-    'US_18': 'US_18_longterm_model'
+    'US_18': 'US_18_longterm_model',
+    'MSL_1': 'MSL_1_longterm_model'
    #  'youwuzhen': 'demo_youwuzhen30m_longterm_model',
    # 'hlg_hband': 'hlg_hband_longterm_model',
    # 'hulugou': 'hulugou_longterm_model',
    #  'gongba': 'gongba_longterm_model',
    # 'gongba_subbasin':'gongba_subbasin_longterm_model'
-               }
+    }
 
 
 def get_watershed_name(desc='Specify watershed name to run this script.'):
