@@ -153,10 +153,10 @@ def read_simulation_from_txt_new(ws,  # type: AnyStr
             #                       StationFields.base_subbasin: subbasin_id
             #                       }).sort([(StationFields.id, 1)])  # 根据其所属下游subabsinid查
             if os.name == 'nt':  # Windows
-                client = MongoClient("mongodb://172.21.124.127:27019/")
+                client = MongoClient("mongodb://localhost:27017/")
             else:
                 client = MongoClient("mongodb://localhost:27019/")
-            db = client["poyang_lake1_HydroClimate"]
+            db = client["CW_2_HydroClimate"]
             sites_collection = db[DBTableNames.sites]
             subbasin_id = int(get_subbasinid(v))
             query = {

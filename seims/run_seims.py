@@ -289,7 +289,7 @@ class MainSEIMS(object):
             self.cmd += ['-n', str(self.nprocess)]
         self.cmd += [self.seims_exec,
                      '-wp', self.model_dir, '-thread', str(self.nthread),
-                     '-lyr', str(self.lyrmtd), '-host', self.host, '-port', self.port]
+                     '-lyr', str(self.lyrmtd), '-host', self.host, '-port', str(self.port)]
         if self.scenario_id >= 0:
             self.cmd += ['-sce', str(self.scenario_id)]
         if self.calibration_id >= 0:
@@ -644,7 +644,7 @@ class MainSEIMS(object):
                                                               {'$set': {'STARTTIME': cur_stime_str,
                                                                         'ENDTIME': cur_etime_str}})
 
-    def run(self):
+    def run(self, timeout=60, max_retries=1):
         """Run SEIMS model
 
         Examples:
@@ -662,22 +662,53 @@ class MainSEIMS(object):
         # If the output time period is specified, reset the time period of all output IDs
         if self.out_stime and self.out_etime:
             self.ResetOutputsPeriod(self.OutputIDs, self.out_stime, self.out_etime)
-        try:
-            print(self.Command, flush=True)
-            self.runlogs = UtilClass.run_command(self.Command)
-            # xiaodw add, to avoid other thread use the same folder and delete it
-            if not os.path.exists(self.OutputDirectory):
-                os.makedirs(self.OutputDirectory)
-            with open(self.OutputDirectory + os.sep + 'runlogs.txt', 'w', encoding='utf-8') as f:
-                f.write('\n'.join(self.runlogs))
-            self.ParseTimespan(self.runlogs)
-            self.run_success = True
-        except CalledProcessError or IOError or Exception as err:
-            # 1. SEIMS-based model running failed
-            # 2. The OUTPUT directory was not been created successfully by SEIMS-based model
-            # 3. Other unpredictable errors
-            print('Run SEIMS model failed! %s' % str(err))
-            self.run_success = False
+        
+        retries = 0
+        while retries <= max_retries:
+            try:
+                print(self.Command, flush=True)
+                # 添加超时机制
+                import subprocess
+                process = subprocess.Popen(self.Command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                try:
+                    stdout, stderr = process.communicate(timeout=timeout)
+                    self.runlogs = stdout.split('\n')
+                    # xiaodw add, to avoid other thread use the same folder and delete it
+                    if not os.path.exists(self.OutputDirectory):
+                        os.makedirs(self.OutputDirectory)
+                    with open(self.OutputDirectory + os.sep + 'runlogs.txt', 'w', encoding='utf-8') as f:
+                        f.write(stdout)
+                    self.ParseTimespan(self.runlogs)
+                    self.run_success = True
+                    break  # 成功执行，退出循环
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    stdout, stderr = process.communicate()
+                    retries += 1
+                    timeout_msg = f'Run SEIMS model timeout (calibration_id={self.calibration_id})! Process killed.'
+                    if retries <= max_retries:
+                        print(f'{timeout_msg} Retrying ({retries}/{max_retries})...')
+                        self.runlogs = [f'{timeout_msg} Retrying ({retries}/{max_retries})...']
+                    else:
+                        print(f'{timeout_msg} Max retries reached.')
+                        self.runlogs = [f'{timeout_msg} Max retries reached.']
+                        if not os.path.exists(self.OutputDirectory):
+                            os.makedirs(self.OutputDirectory)
+                        with open(self.OutputDirectory + os.sep + 'runlogs.txt', 'w', encoding='utf-8') as f:
+                            f.write(f'{timeout_msg} Max retries reached.')
+                        self.run_success = False
+            except CalledProcessError or IOError or Exception as err:
+                # 1. SEIMS-based model running failed
+                # 2. The OUTPUT directory was not been created successfully by SEIMS-based model
+                # 3. Other unpredictable errors
+                retries += 1
+                error_msg = f'Run SEIMS model failed (calibration_id={self.calibration_id})! {str(err)}'
+                if retries <= max_retries:
+                    print(f'{error_msg}. Retrying ({retries}/{max_retries})...')
+                else:
+                    print(f'{error_msg}. Max retries reached.')
+                    self.run_success = False
+        
         self.runtime = time.time() - stime
         return self.run_success
 

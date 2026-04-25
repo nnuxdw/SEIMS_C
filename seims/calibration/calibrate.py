@@ -415,17 +415,21 @@ def calibration_objectives(cali_obj, gen, ind):
 
     # Execute model
     model_obj.SetMongoClient()
-    model_obj.run()
+    run_success = model_obj.run(timeout=240)
     time.sleep(0.1)  # Wait a moment in case of unpredictable file system error
 
     # read simulation data of the entire simulation period (include calibration and validation)
     #if model_obj.ReadTimeseriesSimulations():
-    if model_obj.ReadTimeseriesSimulations_new():   #ljj++
+    if run_success and model_obj.ReadTimeseriesSimulations_new():   #ljj++
         ind.sim.vars = model_obj.sim_vars[:]
         ind.sim.data = deepcopy(model_obj.sim_value)
     else:
         model_obj.clean(calibration_id=ind.id)
         model_obj.UnsetMongoClient()
+        # 模型运行失败，设置 NSE 为 -9999
+        ind.cali.objnames = [f"{var}-NSE" for var in ind.obs.vars]
+        ind.cali.objvalues = [-9999.0] * len(ind.cali.objnames)
+        ind.cali.valid = False
         return ind
 
     # Calculate NSE, R2, RMSE, PBIAS, and RSR, etc. of calibration period
@@ -446,6 +450,11 @@ def calibration_objectives(cali_obj, gen, ind):
     # print(f"cali: {cali_metrics}")
     if ind.cali.objnames and ind.cali.objvalues:
         ind.cali.valid = True
+    else:
+        # 计算指标失败，设置 NSE 为 -9999
+        ind.cali.objnames = [f"{var}-NSE" for var in ind.obs.vars]
+        ind.cali.objvalues = [-9999.0] * len(ind.cali.objnames)
+        ind.cali.valid = False
     # Calculate NSE, R2, RMSE, PBIAS, and RSR, etc. of validation period
     if cali_obj.cfg.calc_validation:
         ind.vali.vars, ind.vali.data = model_obj.ExtractSimData(cali_obj.cfg.vali_stime,
@@ -459,6 +468,11 @@ def calibration_objectives(cali_obj, gen, ind):
                                                                 cali_obj.cfg.vali_etime)
         if ind.vali.objnames and ind.vali.objvalues:
             ind.vali.valid = True
+        else:
+            # 计算指标失败，设置 NSE 为 -9999
+            ind.vali.objnames = [f"{var}-NSE" for var in ind.obs.vars]
+            ind.vali.objvalues = [-9999.0] * len(ind.vali.objnames)
+            ind.vali.valid = False
 
         # 输出验证期指标
         vali_metrics = ", ".join(f"{name}:{value:.4f}" for name, value in zip(ind.vali.objnames, ind.vali.objvalues))
