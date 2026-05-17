@@ -241,6 +241,7 @@ int ReservoirMethodNEW::Execute() {
         float slopeCoef = curSub->GetSlopeCoef();
         float kg = m_Kg_1d[subID] * slopeCoef;
         float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex_1d[subID]); // mm
+		groundRunoff = min(m_gwSto[subID], groundRunoff);
         //float groundQ = groundRunoff * curCellsNum * QGConvert;     // groundwater discharge (m3/s)
         float groundQ = groundRunoff * curBasinArea[subID] * QGConvert;
         //if (m_gwSto[subID] > m_GWMAX) {
@@ -329,7 +330,6 @@ int ReservoirMethodNEW::Execute() {
         curSub->SetRg(groundRunoff);
         curSub->SetQg(groundQ);
         curSub->SetGw(groundStorage);
-
         if (groundStorage != groundStorage) {
             std::ostringstream oss;
             oss << perco << "\t" << revap << "\t" << percoDeep << "\t" << groundRunoff << "\t" << m_gwSto[subID]

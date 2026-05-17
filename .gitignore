@@ -72,8 +72,9 @@ seims/nogit
 seims/nogit/*
 
 # temp folders when running demo data
-data/*
-data/*/workspace
+# data/*
+# data/*/workspace
+data/
 **OUTPUT
 OUTPUT/*
 OUTPUT*/
@@ -100,3 +101,9 @@ node_modules
 #
 ##xiaodw add, ingore c++ code for pycharm
 #seims/src/*
+
+*.log
+*.zip
+*_debug_*.csv
+*.bak
+seims_cali/

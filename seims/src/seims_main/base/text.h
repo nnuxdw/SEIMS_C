@@ -36,8 +36,8 @@
 #define DataType_Meteorology                   "M"             // Suffix of meteorology data
 #define DataType_Prefix_TS                     "T"             // m_stationData, Prefix of time series data
 #define DataType_Prefix_DIS                    "D"             // Prefix of distributed data
-#define DataType_MaximumMonthlyTemperature            "MAXMONT"          //9
-#define DataType_MinimumMonthlyTemperature            "MINMONT"          //10
+#define DataType_MaximumMonthlyTemperature     "MAXMONT"       //9
+#define DataType_MinimumMonthlyTemperature     "MINMONT"       //10
 /// Tags of climate related data.
 ///     MacroName                              StringNameInDatabase      // VariableNameInModules
 #define Tag_DEM                                "DEM"                     // m_dem
@@ -49,7 +49,7 @@
 #define Tag_Latitude_Meteorology               "Latitude_M"
 #define Tag_StationElevation                   "StationElevation"        // m_hStations
 #define Tag_VerticalInterpolation              "VERTICALINTERPOLATION"   // m_itpVertical
-//#define Tag_Weight                             "WEIGHT"                  // m_itpWeights
+//#define Tag_Weight                           "WEIGHT"                  // m_itpWeights
 #define Tag_DataType                           "DATATYPE"                // m_dataType
 //#define Tag_Weight                             "WEIGHT"                  // m_itpWeights
 CONST_CHARS_LIST Tag_Weight[] = { "WEIGHT", "Weight used for interpolation" };
@@ -112,8 +112,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define Tag_Minimum                            "MIN"
 #define Tag_Maximum                            "MAX"
 #define Tag_SpecificCells                      "SPECIFIC"
-#define Tag_TimeSeries							"TS"
-#define Tag_TimeSeriesAvg							"TS_AVG"
+#define Tag_TimeSeries						   "TS"
+#define Tag_TimeSeriesAvg					   "TS_AVG"
 
 #define TAG_OUT_QOUTLET                        "QOUTLET"
 #define TAG_OUT_QTOTAL                         "QTotal"
@@ -360,8 +360,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MCLSDESC_SUR_RUNOFF                    "Infiltration and surface runoff of excess precipitation."
 #define MID_SUR_MR                             "SUR_MR"
 #define MDESC_SUR_MR                           "Modified rational method to calculate infiltration and excess precipitation."
-#define MID_SUR_MR_HAND                             "SUR_MR_HAND"
-#define MDESC_SUR_MR_HAND                           "Modified rational method to calculate infiltration and excess precipitation."
+#define MID_SUR_MR_HAND                        "SUR_MR_HAND"
+#define MDESC_SUR_MR_HAND                      "Modified rational method to calculate infiltration and excess precipitation."
 #define MID_SUR_CN                             "SUR_CN"
 #define MDESC_SUR_CN                           "SCS curve number method to calculate infiltration and excess precipitation."
 #define MID_SUR_SGA                            "SUR_SGA"
@@ -441,6 +441,10 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_PG_EPIC                          "Calculate plant growth using a simplified version of the EPIC plant growth model as in SWAT"
 #define MID_PG_ORYZA                           "PG_ORYZA"
 #define MDESC_PG_ORYZA                         "Rice crop growth module of ORYZA2000 model"
+#define MCLS_CH4                               "Methane"
+#define MCLSDESC_CH4                           "Methane calculation"
+#define MID_CH4_LPJGUESS                       "CH4_LPJGUESS"
+#define MDESC_CH4_LPJGUESS                     "Calculating methane production, oxidation, and transport from wetlands"
 /// Overland routing related modules
 #define MCLS_OL_ROUTING                        "Overland routing"
 #define MCLSDESC_OL_ROUTING                    "Overland routing module"
@@ -448,12 +452,12 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_IKW_OL                           "Overland routing using 4-point implicit finite difference method."
 #define MID_IUH_OL                             "IUH_OL"
 #define MDESC_IUH_OL                           "IUH overland method to calculate overland flow routing."
-#define MID_OL_HAND                             "OL_HAND"
-#define MDESC_OL_HAND                           "Use HAND to calculate floodplain inundation."
-#define MID_LISFLOODFP                             "LISFLOODFP"
-#define MDESC_LISFLOODFP                           "Use LISFLOODFP to calculate floodplain inundation."
-#define MID_LISFLOODFP_MUSK                             "LISFLOODFP_MUSK"
-#define MDESC_LISFLOODFP_MUSK                       "Use LISFLOODFP_MUSK to calculate floodplain inundation."
+#define MID_OL_HAND                            "OL_HAND"
+#define MDESC_OL_HAND                          "Use HAND to calculate floodplain inundation."
+#define MID_LISFLOODFP                         "LISFLOODFP"
+#define MDESC_LISFLOODFP                       "Use LISFLOODFP to calculate floodplain inundation."
+#define MID_LISFLOODFP_MUSK                    "LISFLOODFP_MUSK"
+#define MDESC_LISFLOODFP_MUSK                  "Use LISFLOODFP_MUSK to calculate floodplain inundation."
 /// Channel routing related modules
 #define MCLS_CH_ROUTING                        "Channel routing"
 #define MCLSDESC_CH_ROUTING                    "Channel routing modules"
@@ -465,8 +469,10 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_IKW_CH                           "Channel routing using 4-point implicit finite difference method for kinematic wave."
 #define MID_MUSK_CH                            "MUSK_CH"
 #define MDESC_MUSK_CH                          "Channel routing using Muskingum-Cunge method of longterm model."
-#define MID_MUSK_CH_HAND                            "MUSK_CH_HAND"
-#define MDESC_MUSK_CH_HAND                          "Channel routing using Muskingum-Cunge method of longterm model for HAND method."
+#define MID_MUSK_CH_HAND                       "MUSK_CH_HAND"
+#define MDESC_MUSK_CH_HAND                     "Channel routing using Muskingum-Cunge method of longterm model for HAND method."
+#define MID_DW_CH_HAND                            "DW_CH_HAND"
+#define MDESC_DW_CH_HAND                          "Channel routing using DW method of longterm model for HAND method."
 /// Sediment routing related modules
 #define MCLS_SED_ROUTING                       "Sediment routing"
 #define MCLSDESC_SED_ROUTING                   "Sediment channel routing modules."
@@ -1331,6 +1337,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define UNIT_PHENOLOGY "deg C d"
 #define UNIT_NUMBERHA "no/ha"
 
+#define UNIT_G_M2_HOUR "g/m2/h"                      /// flux g/m2/h
+
 //////////////////////////////////////////////////////////////////////////
 /// Define description of units common used in SEIMS            //////////
 /// By LiangJun Zhu, HuiRan Gao //////////////////////////
@@ -2117,7 +2125,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_LAKE_EVP                        "LAKE_EVP"
 #define VAR_LAKE_SEEP                       "LAKE_SEEP"
 #define VAR_LAKE_MNVOL                      "LAKE_MNLWL"
-#define VAR_LAKE_MNVOL_1D                      "LAKE_MNLWL_1D"
+#define VAR_LAKE_MNVOL_1D                   "LAKE_MNLWL_1D"
 #define VAR_ENRPOC                          "enr_poc"
 #define VAR_KDOC                            "kd_oc"
 #define VAR_PERCO_DOC                       "perco_doc"
@@ -2190,7 +2198,7 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define REACH_LAKEVOL                       "Lake_Vol"
 #define REACH_LAKEDPINI                     "Lake_Depini"
 #define REACH_LAKEALPHA                     "LAKE_ALPHA"
-#define REACH_LAKEB_1D                    "LAKEB_1D"
+#define REACH_LAKEB_1D                      "LAKEB_1D"
 #define REACH_ISRES                         "Is_Res"
 #define REACH_NATURAL_FLOW                  "Nature_Flow"
 #define REACH_RES_LC                        "RES_LC"
@@ -2211,6 +2219,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define REACH_BED_MIN_ELEV                       "Bed_Min_Elev"
 #define REACH_BED_START_ELEV                       "Bed_Start_Elev"
 #define REACH_BED_END_ELEV                       "Bed_End_Elev"
+#define REACH_CH_BED_ELEV                           "CH_BED_ELEV"
+#define REACH_CH_OUTLET_HANDID                       "CH_OUTLET_HANDID"
 // xiaodw add, this is not water level, it's HAND's level, eg. 1,2,3,4,5...
 #define REACH_LAKE_HAND_LEVEL_INI                      "Lake_Hand_Level_Ini"
 #define FLOOD_DEPTH_THRESH 0.1f
@@ -2288,6 +2298,57 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_KRP                             "RPOC dissolution rate (/day) RPOC->LDOC"
 #define DESC_KDRP                            "RPOC decay rate to DIC (/day) RPOC->DIC"
 #define DESC_NPOC                            "equilibrium concentration for POC"
+
+/// Methane module variables   lj++
+#define VAR_CH4_R                            "CH4_R"
+#define VAR_CH4_TREF                         "CH4_TREF"
+#define VAR_CH4_TAU_PROD                     "CH4_TAU_PROD"
+#define VAR_CH4_Z_OATZ                       "CH4_Z_OATZ"
+#define VAR_CH4_TAU_OXID                     "CH4_TAU_OXID"
+
+#define DESC_CH4_R                           "Specific CH4 production rate (kg kg^-1 s^-1)"
+#define DESC_CH4_TREF                        "Reference temperature for temperature-dependent Q10 of CH4 production (K)"
+#define DESC_CH4_TAU_PROD                    "Scaling parameter for CH4 production"
+#define DESC_CH4_Z_OATZ                      "Thickness of oxic-anoxic transition zone (m)"
+#define DESC_CH4_TAU_OXID                    "Scaling parameter for CH4 oxidation (m)"
+
+#define VAR_CH4_PRODUCTION                   "CH4_PRODUCTION"
+#define VAR_CH4_EMISSION_FLUX                "CH4_EMISSION_FLUX"
+#define VAR_CH4_TOTAL                        "CH4_TOTAL"
+#define DESC_CH4_PRODUCTION                  "Methane production rate in each cell"
+#define DESC_CH4_EMISSION_FLUX               "Methane emission flux in each cell"
+#define DESC_CH4_TOTAL                       "Total methane production in the watershed"
+#define VAR_CH4_DIFF                         "CH4_diffusion"
+#define DESC_CH4_DIFF                        "CH4 diffusion(gC/m2/hour)"
+#define VAR_CH4_PLANT                        "CH4 plant transport"
+#define DESC_CH4_PLANT                       "CH4 plant transport(gC/m2/hour)"
+#define VAR_CH4_EBUL                         "CH4_ebullition"
+#define DESC_CH4_EBUL                        "CH4 ebullition(gC/m2/hour)"
+#define VAR_CH4_OXID                         "CH4_oxidation"
+#define DESC_CH4_OXID                        "CH4 oxidation(gC/m2/hour)"
+#define VAR_CH4_PROD                         "CH4_production"
+#define DESC_CH4_PROD                        "CH4 production(gC/m2/hour)"
+#define VAR_CH4_FLUX                         "CH4_flux"
+#define DESC_CH4_FLUX                        "CH4 flux(gC/m2/hour)"
+#define VAR_SOL_ANOXIC                       "CH4_SOL_ANOXIC"
+#define VAR_TILLER_AREA                      "TILLER_AREA"
+#define DESC_SOL_ANOXIC                      "Anoxic degree in each cell"
+#define VAR_GWSUBAREA                        "GWSUBAREA"
+#define VAR_SOILSAT_L1                       "SOILSAT_L1"
+#define DESC_SOILSAT_L1                      "The saturation of soil layer 1"
+#define VAR_SOILSAT_L2                       "SOILSAT_L2"
+#define DESC_SOILSAT_L2                      "The saturation of soil layer 2"
+#define VAR_SOILSAT_L3                       "SOILSAT_L3"
+#define DESC_SOILSAT_L3                      "The saturation of soil layer 3"
+#define VAR_SOILSAT_L4                       "SOILSAT_L4"
+#define DESC_SOILSAT_L4                      "The saturation of soil layer 4"
+#define VAR_SOILSAT_L5                       "SOILSAT_L5"
+#define DESC_SOILSAT_L5                      "The saturation of soil layer 5"
+#define VAR_SOILSAT_L6                       "SOILSAT_L6"
+#define DESC_SOILSAT_L6                      "The saturation of soil layer 6"
+#define VAR_SOILSAT_L7                       "SOILSAT_L7"
+#define DESC_SOILSAT_L7                      "The saturation of soil layer 7"
+#define VAR_ICNUM                            "ICNUM"
 
 //////////////////////////////////////////////////////////////////////////
 /// Define Raster/ related constant strings used in SEIMS and preprocess//

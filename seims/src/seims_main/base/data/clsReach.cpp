@@ -11,7 +11,7 @@ using namespace utils_array;
 using namespace utils_string;
 using namespace utils_math;
 
-const int REACH_PARAM_NUM = 85; /// Numerical parameters, except GROUP related
+const int REACH_PARAM_NUM = 87; /// Numerical parameters, except GROUP related
 const char* REACH_PARAM_NAME[] = {
     REACH_SUBBASIN, REACH_NUMCELLS,                           // 0-1
     REACH_DOWNSTREAM, REACH_UPDOWN_ORDER, REACH_DOWNUP_ORDER, // 2-4
@@ -35,7 +35,7 @@ const char* REACH_PARAM_NAME[] = {
     "RES_minq","RES_normq","RES_ndq","RES_normMult",
     REACH_DIC, REACH_LDOC, REACH_RDOC, REACH_LPOC, REACH_RPOC,
     REACH_SURFRDOC,REACH_LATRDOC,REACH_GWDRDOC,REACH_BED_MEAN_ELEV,REACH_BED_START_ELEV,REACH_BED_END_ELEV,REACH_LAKE_HAND_LEVEL_INI,
-	REACH_LAKEB_1D,VAR_LAKE_MNVOL_1D
+	REACH_LAKEB_1D,VAR_LAKE_MNVOL_1D,REACH_CH_OUTLET_HANDID,REACH_CH_BED_ELEV
 };
 const int REACH_GROUP_METHOD_NUM = 2; /// Group methods
 const char* REACH_GROUP_NAME[] = {REACH_KMETIS, REACH_PMETIS};
@@ -45,15 +45,26 @@ clsReach::clsReach(const bson_t*& bson_table) {
     // Read numerical parameters and set default values if not exists.
     // Note: The check of maximum and minimum values will be done in `clsReaches::Update`.
     for (int i = 0; i < REACH_PARAM_NUM; i++) {
-        float tmp_param;
-        if (bson_iter_init_find(&iterator, bson_table, REACH_PARAM_NAME[i]) &&
-            GetNumericFromBsonIterator(&iterator, tmp_param)) {
+        float tmp_param = NODATA_VALUE;
+        bool has_numeric_value = bson_iter_init_find(&iterator, bson_table, REACH_PARAM_NAME[i]) &&
+                                 GetNumericFromBsonIterator(&iterator, tmp_param);
+        // Backward compatibility: some databases store channel bed elevation as CH_BED_ELEV.
+        //if (!has_numeric_value && StringMatch(REACH_PARAM_NAME[i], REACH_BED_ELEV)) {
+        //    has_numeric_value = bson_iter_init_find(&iterator, bson_table, "CH_BED_ELEV") &&
+        //                        GetNumericFromBsonIterator(&iterator, tmp_param);
+        //}
+        //// Some databases store the outlet HAND index as CH_OUTLET_HANDID.
+        //if (!has_numeric_value && StringMatch(REACH_PARAM_NAME[i], REACH_OUTLET_HANDID)) {
+        //    has_numeric_value = bson_iter_init_find(&iterator, bson_table, "CH_OUTLET_HANDID") &&
+        //                        GetNumericFromBsonIterator(&iterator, tmp_param);
+        //}
+        if (has_numeric_value) {
             // Existed in database and is numerical value
-            if (REACH_PARAM_NAME[i] == REACH_BOD && tmp_param < 1.e-6f) tmp_param = 1.e-6f;
+            if (StringMatch(REACH_PARAM_NAME[i], REACH_BOD) && tmp_param < 1.e-6f) tmp_param = 1.e-6f;
         } else {
-            // Not existed in database, the set default values
-            if (REACH_PARAM_NAME[i] == REACH_BEDTC) tmp_param = 0.f;
-            if (REACH_PARAM_NAME[i] == REACH_BNKTC) tmp_param = 0.f;
+            // Not existed in database, set default values when needed.
+            if (StringMatch(REACH_PARAM_NAME[i], REACH_BEDTC)) tmp_param = 0.f;
+            if (StringMatch(REACH_PARAM_NAME[i], REACH_BNKTC)) tmp_param = 0.f;
         }
 #ifdef HAS_VARIADIC_TEMPLATES
         param_map_.emplace(REACH_PARAM_NAME[i], tmp_param);

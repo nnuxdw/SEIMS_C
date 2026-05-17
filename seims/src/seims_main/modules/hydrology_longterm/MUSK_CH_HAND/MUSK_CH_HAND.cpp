@@ -3,10 +3,83 @@
 #include "utils_math.h"
 #include "text.h"
 #include "ChannelRoutingCommon.h"
+#include <fstream>
+#include <iomanip>
+#include <limits>
 #include <map>
 #include <set> 
+#include <sstream>
 #include "text.h"
 using namespace utils_math;
+
+namespace {
+const bool MUSK_ENABLE_DEBUG_LOG = true;
+const int MUSK_DEBUG_REACH = 81;
+const char* MUSK_DEBUG_LOG_FILE = "MUSK_CH_HAND_debug_reach81_main_water_daily.csv";
+
+struct MuskDebugPreRouteState {
+    double handInfilM3;
+    double handEvapM3;
+    double handDepM3;
+    double handBackFromGwM3;
+    double handNetSubtractM3;
+    double subbasinNetPcpM3;
+    double subbasinNetPcpCms;
+    double subbasinAreaM2;
+
+    MuskDebugPreRouteState()
+        : handInfilM3(0.0), handEvapM3(0.0), handDepM3(0.0), handBackFromGwM3(0.0),
+          handNetSubtractM3(0.0), subbasinNetPcpM3(0.0), subbasinNetPcpCms(0.0),
+          subbasinAreaM2(0.0) {}
+};
+
+std::ofstream g_muskDebugLog;
+bool g_muskDebugLogHeaderWritten = false;
+MuskDebugPreRouteState g_muskDebugPreRouteState;
+
+bool ShouldWriteMuskDebugLog(const int reachId) {
+    return MUSK_ENABLE_DEBUG_LOG && reachId == MUSK_DEBUG_REACH;
+}
+
+void ResetMuskDebugPreRouteState() {
+    g_muskDebugPreRouteState = MuskDebugPreRouteState();
+}
+
+const char* MuskBranchLabel(const bool isLake, const bool isRes, const bool routeAsChannel) {
+    if (isLake) return "lake";
+    if (isRes && !routeAsChannel) return "reservoir";
+    return "channel";
+}
+
+void WriteMuskDebugLogHeader(std::ofstream& dbg) {
+    dbg << "date,year,month,day,doy,reach_id,branch,is_lake,is_res,downstream_id,has_downstream,"
+        << "sto_begin_m3,sto_after_inflow_m3,sto_end_m3,storage_delta_m3,sto_min_substep_m3,sto_max_substep_m3,"
+        << "qIn_total_cms,local_total_cms,upstream_total_cms,"
+        << "qs_local_cms,qi_local_cms,qg_local_cms,pt_local_cms,qs_up_cms,qi_up_cms,qg_up_cms,"
+        << "diag_net_pcp_cms,diag_net_pcp_m3,used_prec_cms,used_prec_m3,"
+        << "hand_infil_m3,hand_evap_m3,hand_dep_m3,hand_back_from_gw_m3,hand_net_subtract_m3,"
+        << "bank_release_m3,bank_to_gw_m3,transmission_loss_m3,water_evap_m3,deep_seep_m3,total_loss_m3,"
+        << "rteWtrIn_m3,rteWtrOut_m3,net_rte_exchange_m3,"
+        << "signed_q_cms,qout_cms,qs_out_cms,qi_out_cms,qg_out_cms,qout_min_substep_cms,qout_max_substep_cms,"
+        << "ch_wtr_depth_m,ch_wtr_width_m,ch_cross_area_m2,subbasin_depth_m,inundation_area_km2,lake_area_m2,"
+        << "rrtime_h,routing_substeps,routing_det_h"
+        << '\n';
+}
+
+void AppendMuskDebugLogRow(const std::string& row) {
+    if (!MUSK_ENABLE_DEBUG_LOG) return;
+    if (!g_muskDebugLog.is_open()) {
+        g_muskDebugLog.open(MUSK_DEBUG_LOG_FILE,
+            g_muskDebugLogHeaderWritten ? std::ios::app : std::ios::out);
+        if (!g_muskDebugLog.is_open()) return;
+    }
+    if (!g_muskDebugLogHeaderWritten) {
+        WriteMuskDebugLogHeader(g_muskDebugLog);
+        g_muskDebugLogHeaderWritten = true;
+    }
+    g_muskDebugLog << row;
+}
+}
 
 MUSK_CH_HAND::MUSK_CH_HAND() :
     m_dt(-1), m_inputSubbsnID(-1), m_nreach(-1), m_outletID(-1),
@@ -687,6 +760,7 @@ void MUSK_CH_HAND::PointSourceLoading() {
 
 
 int MUSK_CH_HAND::Execute() {
+    ResetMuskDebugPreRouteState();
     InitialOutputs();
     /// load point source water volume from m_ptSrcFactory
     PointSourceLoading();
@@ -724,10 +798,19 @@ int MUSK_CH_HAND::Execute() {
                 m_temp2[*id]+= m_slope[index]* m_area[index];
                 curBasinDem[*id] += m_dem[index]* m_area[index];
                 curBasinArea[*id] += m_area[index];
+                if (*id == MUSK_DEBUG_REACH) {
+                    g_muskDebugPreRouteState.subbasinAreaM2 += static_cast<double>(m_area[index]);
+                    g_muskDebugPreRouteState.subbasinNetPcpM3 +=
+                        static_cast<double>(m_netPcp[index]) * 0.001 * static_cast<double>(m_area[index]);
+                }
         }
         m_temp1[*id] = m_temp1[*id] / total_area;
         m_temp2[*id] = m_temp2[*id] / total_area;
         curBasinDem[*id] = curBasinDem[*id] / total_area;
+        if (*id == MUSK_DEBUG_REACH && m_dt > 0) {
+            g_muskDebugPreRouteState.subbasinNetPcpCms =
+                g_muskDebugPreRouteState.subbasinNetPcpM3 / static_cast<double>(m_dt);
+        }
     }
 	//xdw++,update ch_sto by each HAND's water depth
 	for (auto id = m_subbasinIDs.begin(); id != m_subbasinIDs.end(); ++id) {
@@ -735,17 +818,38 @@ int MUSK_CH_HAND::Execute() {
 		int curCellsNum = sub->GetCellCount();
 		int* curCells = sub->GetCells();
 		float substractVol = 0.0;
+        double handInfilM3 = 0.0;
+        double handEvapM3 = 0.0;
+        double handDepM3 = 0.0;
+        double handBackFromGwM3 = 0.0;
 		// add each HAND's water vol
 		for (int i = 0; i < curCellsNum; i++) {
 			int index = curCells[i];
-			substractVol += (m_HAND_Infil[index] + m_hand_eavp[index] + m_hand_dep[index] - m_HAND_BackFromGW[index]) * 0.001f * m_area[index];
+            const double cellArea = static_cast<double>(m_area[index]);
+            const double handInfil = static_cast<double>(m_HAND_Infil[index]) * 0.001 * cellArea;
+            const double handEvap = static_cast<double>(m_hand_eavp[index]) * 0.001 * cellArea;
+            const double handDep = static_cast<double>(m_hand_dep[index]) * 0.001 * cellArea;
+            const double handBackFromGw = static_cast<double>(m_HAND_BackFromGW[index]) * 0.001 * cellArea;
+			substractVol += static_cast<float>(handInfil + handEvap + handDep - handBackFromGw);
+            handInfilM3 += handInfil;
+            handEvapM3 += handEvap;
+            handDepM3 += handDep;
+            handBackFromGwM3 += handBackFromGw;
 		}
+        if (*id == MUSK_DEBUG_REACH) {
+            g_muskDebugPreRouteState.handInfilM3 = handInfilM3;
+            g_muskDebugPreRouteState.handEvapM3 = handEvapM3;
+            g_muskDebugPreRouteState.handDepM3 = handDepM3;
+            g_muskDebugPreRouteState.handBackFromGwM3 = handBackFromGwM3;
+            g_muskDebugPreRouteState.handNetSubtractM3 =
+                handInfilM3 + handEvapM3 + handDepM3 - handBackFromGwM3;
+        }
 		if (m_chSto[*id] >= substractVol)
 		{
 			m_chSto[*id] -= substractVol;
 		}
 		else {
-			cout << "MUSK_CH_HAND: m_chSto < substractVol, subbasinid:" << *id << ", m_chSto: " << m_chSto[*id] << ", substractVol: " << substractVol << endl;
+			/*cout << "MUSK_CH_HAND: m_chSto < substractVol, subbasinid:" << *id << ", m_chSto: " << m_chSto[*id] << ", substractVol: " << substractVol << endl;*/
 			m_chSto[*id] = 0.0;
 		}
 		
@@ -1134,6 +1238,7 @@ void MUSK_CH_HAND::SetReaches(clsReaches* reaches) {
 }
 
 bool MUSK_CH_HAND::ChannelFlow(const int i) {
+
 	float m_chStoTmp = m_chSto[i];
     // 1. first add all the inflow water
     float qIn = 0.f; /// Water entering reach on current day from both current subbasin and upstreams
@@ -1184,6 +1289,10 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
         if (m_qsRchOut[*upRchID] > 0.f) qsUp += m_qsRchOut[*upRchID];
         if (m_qiRchOut[*upRchID] > 0.f) qiUp += m_qiRchOut[*upRchID];
         if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
+		if (isinf(qsUp))
+		{
+			cout << endl;
+		}
         //cout<<i<<"   "<<*upRchID<<"   "<< m_Ch2GW[*upRchID]<<endl;
     }
     qIn += qsUp + qiUp + qgUp;
@@ -1200,6 +1309,7 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
     if (nullptr != m_gwSto) {
         m_gwSto[i] += bankOutGw / m_chArea[i] * 1000.f; // updated groundwater storage
     }
+    const float stoAfterInflow = m_chStoTmp + qIn * m_dt;
 
     // Compute storage time constant (ratio of storage to discharge) for reach
     // Wetting perimeter at bankfull
@@ -1271,14 +1381,22 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
     float rttlc = 0.f;             // transmission losses from reach on day, m^3
     float qinday = 0.f;            // m^3
     float qoutday = 0.f;           // m^3
+    float rttlcDay = 0.f;          // total transmission losses for current day, m^3
+    float rtevpDay = 0.f;          // total evaporation losses for current day, m^3
+    float stoMinSub = m_chStoTmp;
+    float stoMaxSub = m_chStoTmp;
+    float qoutMinSubCms = (std::numeric_limits<float>::max)();
+    float qoutMaxSubCms = 0.f;
 
     m_rteWtrOut[i] = qIn * m_dt;
     wtrin = qIn * m_dt / nn;
     // Iterate for the day
     m_rrtime[i] =0.f;
     for (int ii = 0; ii < nn; ii++) {
+        const float stoBeginSub = m_chSto[i];
         // Calculate volume of water in reach
         vol = m_chSto[i] + wtrin; // m^3
+        const float stoAfterInflowSub = vol;
         // Find average flowrate in a sub time interval, m^3/s
         volrt = vol / (86400.f / nn);
         // Find maximum flow capacity of the channel at bank full, m^3/s
@@ -1364,6 +1482,7 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
                 rtwtr -= rttlc1;
                 rttlc = rttlc1 + rttlc2; // Total water loss by transmission
             }
+            rttlcDay += rttlc;
             // Calculate evaporation
             float rtevp = 0.f;
             float rtevp1 = 0.f;
@@ -1397,6 +1516,7 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
                 rtwtr -= rtevp1;
                 rtevp = rtevp1 + rtevp2; // Total water loss by evaporation
             }
+            rtevpDay += rtevp;
 
             // Define flow parameters for current iteration
             m_flowIn[i] = wtrin;
@@ -1413,6 +1533,13 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
             m_flowIn[i] = 0.f;
             m_flowOut[i] = 0.f;
         }
+        stoMinSub = Min(stoMinSub, Min(stoBeginSub, Min(stoAfterInflowSub, m_chSto[i])));
+        stoMaxSub = Max(stoMaxSub, Max(stoBeginSub, Max(stoAfterInflowSub, m_chSto[i])));
+        const double elapsedDtSec = nn > 0 ? static_cast<double>(ii + 1) * static_cast<double>(m_dt) / static_cast<double>(nn)
+                                           : static_cast<double>(m_dt);
+        const float subStepOutCms = elapsedDtSec > 0.0 ? qoutday / static_cast<float>(elapsedDtSec) : 0.f;
+        qoutMinSubCms = Min(qoutMinSubCms, subStepOutCms);
+        qoutMaxSubCms = Max(qoutMaxSubCms, subStepOutCms);
     } /* Iterate for the day */
     if (rtwtr < 0.f) rtwtr = 0.f;
     if (m_chSto[i] < 0.f) m_chSto[i] = 0.f;
@@ -1450,6 +1577,44 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
         if (nullptr != m_gwSto) {
             m_gwSto[i] += rttlc * trnsrch / m_chArea[i] * 1000.f; // mm
         }
+    }
+
+    if (ShouldWriteMuskDebugLog(i)) {
+        if (qoutMinSubCms == (std::numeric_limits<float>::max)()) qoutMinSubCms = 0.f;
+        const int downstreamId = static_cast<int>(m_reachDownStream[i]);
+        const float usedPrecCms = 0.f;
+        const float usedPrecM3 = 0.f;
+        const float localTotalCms = m_olQ2Rch[i] + qiSub + qgSub + ptSub + usedPrecCms;
+        const float upstreamTotalCms = qsUp + qiUp + qgUp;
+        const float totalLossM3 = bankOutGw + rttlcDay + rtevpDay;
+        const float rteWtrInM3 = qIn * m_dt;
+        std::ostringstream dbg;
+        dbg << std::fixed << std::setprecision(6)
+            << m_date << ',' << m_year << ',' << m_month << ',' << m_day << ',' << m_dayOfYear << ','
+            << i << ',' << MuskBranchLabel(false, m_isres[i] == 1.f, true) << ','
+            << 0 << ',' << (m_isres[i] == 1.f ? 1 : 0) << ','
+            << downstreamId << ',' << (downstreamId > 0 ? 1 : 0) << ','
+            << m_chStoTmp << ',' << stoAfterInflow << ',' << m_chSto[i] << ',' << (m_chSto[i] - m_chStoTmp) << ','
+            << stoMinSub << ',' << stoMaxSub << ','
+            << qIn << ',' << localTotalCms << ',' << upstreamTotalCms << ','
+            << m_olQ2Rch[i] << ',' << qiSub << ',' << qgSub << ',' << ptSub << ','
+            << qsUp << ',' << qiUp << ',' << qgUp << ','
+            << g_muskDebugPreRouteState.subbasinNetPcpCms << ',' << g_muskDebugPreRouteState.subbasinNetPcpM3 << ','
+            << usedPrecCms << ',' << usedPrecM3 << ','
+            << g_muskDebugPreRouteState.handInfilM3 << ',' << g_muskDebugPreRouteState.handEvapM3 << ','
+            << g_muskDebugPreRouteState.handDepM3 << ',' << g_muskDebugPreRouteState.handBackFromGwM3 << ','
+            << g_muskDebugPreRouteState.handNetSubtractM3 << ','
+            << bankOut << ',' << bankOutGw << ',' << rttlcDay << ',' << rtevpDay << ',' << 0.0 << ',' << totalLossM3 << ','
+            << rteWtrInM3 << ',' << m_rteWtrOut[i] << ',' << (rteWtrInM3 - m_rteWtrOut[i]) << ','
+            << m_qRchOut[i] << ',' << m_qRchOut[i] << ',' << m_qsRchOut[i] << ',' << m_qiRchOut[i] << ',' << m_qgRchOut[i] << ','
+            << qoutMinSubCms << ',' << qoutMaxSubCms << ','
+            << m_chWtrDepth[i] << ',' << m_chWtrWth[i] << ',' << m_chCrossArea[i] << ','
+            << (nullptr != m_subbasinWtrDep ? m_subbasinWtrDep[i] : 0.f) << ','
+            << (nullptr != m_subbasinInundationArea ? m_subbasinInundationArea[i] : 0.f) << ','
+            << (nullptr != m_lakearea ? m_lakearea[i] : 0.f) << ','
+            << m_rrtime[i] << ',' << nn << ',' << det
+            << '\n';
+        AppendMuskDebugLogRow(dbg.str());
     }
 
     // todo, compute revap from bank storage. In SWAT, revap coefficient is equal to gw_revap.
@@ -1615,14 +1780,22 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
     // }
      //float thwl = m_lakedpini[i] * m_minvol;
 	 float thwl = m_lakedpini[i] * m_minvol_1d[i];
-	 
+
      float runoff = 0.f;
      //float max_outflow = Max(0.f, pow((m_lakedp[i] - thwl), m_A_Vb[i])*m_A_Va[i]*1.e9f);
+
+	 // 
+	 float max_outflow = m_chSto[i] / m_dt;  // 
+
      if(m_lakedp[i] > thwl){
          //runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb);
 		 runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb_1d[i])*m_lakearea[i] / m_dt;
          runoff = Max(runoff,0.f);
      }
+
+	 // 
+	 runoff = Min(runoff, max_outflow);
+
      //if(runoff*m_dt>max_outflow) runoff = max_outflow/ m_dt;
     rtwtr = runoff + m_gndQ2Rch[i];
     m_chSto[i] =  (SI - rtwtr)*m_dt;
@@ -1664,6 +1837,46 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
     m_T_LKWB[i][4] = LakeOutGw;
     m_T_LKWB[i][5] = m_qRchOut[i] * m_dt;
     m_T_LKWB[i][6] = m_chSto[i];
+
+    if (ShouldWriteMuskDebugLog(i)) {
+        const int downstreamId = static_cast<int>(m_reachDownStream[i]);
+        const float usedPrecCms = m_prec[i];
+        const float usedPrecM3 = m_lakepcp[i];
+        const float localTotalCms = m_olQ2Rch[i] + qiSub + qgSub + usedPrecCms;
+        const float upstreamTotalCms = qsUp + qiUp + qgUp;
+        const float stoAfterInflow = pre_Sto + qIn * m_dt;
+        const float stoMinSub = Min(pre_Sto, Min(stoAfterInflow, m_chSto[i]));
+        const float stoMaxSub = Max(pre_Sto, Max(stoAfterInflow, m_chSto[i]));
+        const float rteWtrInM3 = qIn * m_dt;
+        const float totalLossM3 = rtevp + LakeOutGw;
+        std::ostringstream dbg;
+        dbg << std::fixed << std::setprecision(6)
+            << m_date << ',' << m_year << ',' << m_month << ',' << m_day << ',' << m_dayOfYear << ','
+            << i << ',' << MuskBranchLabel(true, false, false) << ','
+            << 1 << ',' << 0 << ','
+            << downstreamId << ',' << (downstreamId > 0 ? 1 : 0) << ','
+            << pre_Sto << ',' << stoAfterInflow << ',' << m_chSto[i] << ',' << (m_chSto[i] - pre_Sto) << ','
+            << stoMinSub << ',' << stoMaxSub << ','
+            << qIn << ',' << localTotalCms << ',' << upstreamTotalCms << ','
+            << m_olQ2Rch[i] << ',' << qiSub << ',' << qgSub << ',' << 0.0 << ','
+            << qsUp << ',' << qiUp << ',' << qgUp << ','
+            << g_muskDebugPreRouteState.subbasinNetPcpCms << ',' << g_muskDebugPreRouteState.subbasinNetPcpM3 << ','
+            << usedPrecCms << ',' << usedPrecM3 << ','
+            << g_muskDebugPreRouteState.handInfilM3 << ',' << g_muskDebugPreRouteState.handEvapM3 << ','
+            << g_muskDebugPreRouteState.handDepM3 << ',' << g_muskDebugPreRouteState.handBackFromGwM3 << ','
+            << g_muskDebugPreRouteState.handNetSubtractM3 << ','
+            << 0.0 << ',' << 0.0 << ',' << 0.0 << ',' << rtevp << ',' << LakeOutGw << ',' << totalLossM3 << ','
+            << rteWtrInM3 << ',' << m_rteWtrOut[i] << ',' << (rteWtrInM3 - m_rteWtrOut[i]) << ','
+            << m_qRchOut[i] << ',' << m_qRchOut[i] << ',' << m_qsRchOut[i] << ',' << m_qiRchOut[i] << ',' << m_qgRchOut[i] << ','
+            << m_qRchOut[i] << ',' << m_qRchOut[i] << ','
+            << m_chWtrDepth[i] << ',' << m_chWtrWth[i] << ',' << m_chCrossArea[i] << ','
+            << (nullptr != m_subbasinWtrDep ? m_subbasinWtrDep[i] : 0.f) << ','
+            << (nullptr != m_subbasinInundationArea ? m_subbasinInundationArea[i] : 0.f) << ','
+            << (nullptr != m_lakearea ? m_lakearea[i] : 0.f) << ','
+            << m_rrtime[i] << ',' << 1 << ',' << (static_cast<double>(m_dt) / 3600.0)
+            << '\n';
+        AppendMuskDebugLogRow(dbg.str());
+    }
 
 #ifdef DEBUG_MUSK_CH_HAND_LAKE
 	// 只调试鄱阳湖这个湖单元（比如 1171），你可以视情况改成别的 ID 或去掉条件
@@ -1910,6 +2123,46 @@ bool MUSK_CH_HAND::ResBudget(const int i) {
         m_qsRchOut[i] = m_qRchOut[i];
         m_qiRchOut[i] = 0.f;
         m_qgRchOut[i] = 0.f;
+    }
+
+    if (ShouldWriteMuskDebugLog(i)) {
+        const int downstreamId = static_cast<int>(m_reachDownStream[i]);
+        const float usedPrecCms = m_prec[i];
+        const float usedPrecM3 = m_prec[i] * m_dt;
+        const float localTotalCms = m_olQ2Rch[i] + qiSub + qgSub + usedPrecCms;
+        const float upstreamTotalCms = qsUp + qiUp + qgUp;
+        const float stoAfterInflow = pre_Sto + qIn * m_dt;
+        const float stoMinSub = Min(pre_Sto, Min(stoAfterInflow, m_chSto[i]));
+        const float stoMaxSub = Max(pre_Sto, Max(stoAfterInflow, m_chSto[i]));
+        const float rteWtrInM3 = qIn * m_dt;
+        const float totalLossM3 = rtevp;
+        std::ostringstream dbg;
+        dbg << std::fixed << std::setprecision(6)
+            << m_date << ',' << m_year << ',' << m_month << ',' << m_day << ',' << m_dayOfYear << ','
+            << i << ',' << MuskBranchLabel(false, true, false) << ','
+            << 0 << ',' << 1 << ','
+            << downstreamId << ',' << (downstreamId > 0 ? 1 : 0) << ','
+            << pre_Sto << ',' << stoAfterInflow << ',' << m_chSto[i] << ',' << (m_chSto[i] - pre_Sto) << ','
+            << stoMinSub << ',' << stoMaxSub << ','
+            << qIn << ',' << localTotalCms << ',' << upstreamTotalCms << ','
+            << m_olQ2Rch[i] << ',' << qiSub << ',' << qgSub << ',' << 0.0 << ','
+            << qsUp << ',' << qiUp << ',' << qgUp << ','
+            << g_muskDebugPreRouteState.subbasinNetPcpCms << ',' << g_muskDebugPreRouteState.subbasinNetPcpM3 << ','
+            << usedPrecCms << ',' << usedPrecM3 << ','
+            << g_muskDebugPreRouteState.handInfilM3 << ',' << g_muskDebugPreRouteState.handEvapM3 << ','
+            << g_muskDebugPreRouteState.handDepM3 << ',' << g_muskDebugPreRouteState.handBackFromGwM3 << ','
+            << g_muskDebugPreRouteState.handNetSubtractM3 << ','
+            << 0.0 << ',' << 0.0 << ',' << 0.0 << ',' << rtevp << ',' << 0.0 << ',' << totalLossM3 << ','
+            << rteWtrInM3 << ',' << m_rteWtrOut[i] << ',' << (rteWtrInM3 - m_rteWtrOut[i]) << ','
+            << m_qRchOut[i] << ',' << m_qRchOut[i] << ',' << m_qsRchOut[i] << ',' << m_qiRchOut[i] << ',' << m_qgRchOut[i] << ','
+            << m_qRchOut[i] << ',' << m_qRchOut[i] << ','
+            << m_chWtrDepth[i] << ',' << m_chWtrWth[i] << ',' << m_chCrossArea[i] << ','
+            << (nullptr != m_subbasinWtrDep ? m_subbasinWtrDep[i] : 0.f) << ','
+            << (nullptr != m_subbasinInundationArea ? m_subbasinInundationArea[i] : 0.f) << ','
+            << (nullptr != m_lakearea ? m_lakearea[i] : 0.f) << ','
+            << m_rrtime[i] << ',' << 1 << ',' << (static_cast<double>(m_dt) / 3600.0)
+            << '\n';
+        AppendMuskDebugLogRow(dbg.str());
     }
 
 #ifdef DEBUG_MUSK_CH_HAND_RSV

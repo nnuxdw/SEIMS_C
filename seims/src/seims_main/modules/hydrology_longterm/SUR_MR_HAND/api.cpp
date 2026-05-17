@@ -21,7 +21,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.SetName(MID_SUR_MR_HAND);
     mdi.SetVersion("1.5");
     mdi.SetWebsite(SEIMS_SITE);
-
+	mdi.AddParameter(VAR_REACH_PARAM, UNIT_NON_DIM, DESC_REACH_PARAM, Source_ParameterDB, DT_Reach);
     mdi.AddParameter(Tag_HillSlopeTimeStep, UNIT_SECOND, DESC_DT_HS, File_Input, DT_Single);
     mdi.AddParameter(VAR_T_SOIL, UNIT_TEMP_DEG, DESC_T_SOIL, Source_ParameterDB, DT_Single);
     mdi.AddParameter("t_soil_1d", UNIT_TEMP_DEG, DESC_T_SOIL, Source_ParameterDB, DT_Raster1D);

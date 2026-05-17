@@ -1,4 +1,5 @@
 ﻿#include "SUR_MR_HAND.h"
+//#define DEBUG_SUR_MR_HAND
 #include <set>
 #include "text.h"
 using namespace std;
@@ -255,7 +256,6 @@ void SUR_MR_HAND::InitialOutputs() {
 		Initialize1DArray(m_nCells, handWtrDepAftInfil, 0.f);//xdw++
 		Initialize1DArray(m_nCells, m_alpha, 0.f);//xdw++
 		
-		
         Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilWtrSto, NODATA_VALUE);
         Initialize1DArray(m_nCells, m_lakesto, 0.f);
 		Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilFCDepth, NODATA_VALUE);  //xdw++
@@ -306,7 +306,7 @@ int SUR_MR_HAND::Execute() {
 	//int SPECIFIED_ID = 342;
 	int SPECIFIED_ID = -1;
 	//set<int> SPECIFIED_SBID = { 1,2, 3,4, 5,6, 7 };
-	set<int> SPECIFIED_SBID = { 2 };
+	set<int> SPECIFIED_SBID = { 19 };
     CheckInputData();
     InitialOutputs();
     int frez =0;
@@ -527,27 +527,27 @@ int SUR_MR_HAND::Execute() {
         }
 
 
-#ifdef DEBUG_SUR_MR_HAND
-		{
-			int sbid = CVT_INT(m_subbsnID[i]);
-			if (SPECIFIED_SBID.find(sbid) != SPECIFIED_SBID.end()) {
-				cout << " Sbid: " << sbid << "   "
-					<< " HandId: " << i << "   "
-					<< " hWater=" << hWater << "   "
-					<< " infil=" << m_infil[i] << "   "
-					<< " exsPcp=" << m_exsPcp[i] << "   "
-					<< " surfq=" << surfq << "   "
-					<< " WtrStoBfe_0=" << m_soilWtrStoBfe[i][0] << "   "
-					<< " WtrStoAft_0=" << m_soilWtrSto[i][0] << "   "
-					<< " runPerc=" << runoffPercentage << "   "
-					<< " runoffCo=" << m_potRfCoef[i] << "   "
-					<< " alpha=" << m_alpha[i] << "   "
-					<< endl;
-				// 单线程可以不每次 flush；如果想实时看，可以打开下面这一行
-				// dbg.flush();
-			}
-		}
-#endif
+//#ifdef DEBUG_SUR_MR_HAND
+//		{
+//			int sbid = CVT_INT(m_subbsnID[i]);
+//			if (SPECIFIED_SBID.find(sbid) != SPECIFIED_SBID.end()) {
+//				cout << " Sbid: " << sbid << "   "
+//					<< " HandId: " << i << "   "
+//					<< " hWater=" << hWater << "   "
+//					<< " infil=" << m_infil[i] << "   "
+//					<< " exsPcp=" << m_exsPcp[i] << "   "
+//					<< " surfq=" << surfq << "   "
+//					<< " WtrStoBfe_0=" << m_soilWtrStoBfe[i][0] << "   "
+//					<< " WtrStoAft_0=" << m_soilWtrSto[i][0] << "   "
+//					<< " runPerc=" << runoffPercentage << "   "
+//					<< " runoffCo=" << m_potRfCoef[i] << "   "
+//					<< " alpha=" << m_alpha[i] << "   "
+//					<< endl;
+//				// 单线程可以不每次 flush；如果想实时看，可以打开下面这一行
+//				// dbg.flush();
+//			}
+//		}
+//#endif
     }
     return 0;
 }
@@ -688,7 +688,7 @@ void SUR_MR_HAND::Set1DData(const char* key, const int n, float* data) {
 
 void SUR_MR_HAND::SetReaches(clsReaches* reaches) {
 	if (nullptr == reaches) {
-		throw ModelException(MID_MUSK_CH, "SetReaches", "The reaches input can not to be NULL.");
+		throw ModelException(MID_SUR_MR_HAND, "SetReaches", "The reaches input can not to be NULL.");
 	}
 	m_nreach = reaches->GetReachNumber();
 }
@@ -729,7 +729,10 @@ void SUR_MR_HAND::Get1DData(const char* key, int* n, float** data) {
 	else if (StringMatch(sk, VAR_OL_HAND_INFIL)) {
 		*data = m_HAND_Infil;
 	}
-
+	else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
+		*data = m_handWtrDep;
+		*n = m_nCells;
+	}
 	else {
         throw ModelException(MID_SUR_MR_HAND, "Get1DData", "Result " + sk + " does not exist.");
     }
