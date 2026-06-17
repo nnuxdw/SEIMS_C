@@ -134,6 +134,21 @@ def calculate_statistics(sim_obs_dict,  # type: Optional[Dict[AnyStr, Dict[AnySt
         obsl = values['Obs'][sidx:eidx]
         siml = values['Sim'][sidx:eidx]
 
+        # 添加空数据检查
+        # if len(obsl) == 0 or len(siml) == 0:
+        #     print(f"[WARN] No data available for {param} in the specified time range")
+        #     values['NSE'] = None
+        #     values['R-square'] = None
+        #     values['RMSE'] = None
+        #     values['PBIAS'] = None
+        #     values['RSR'] = None
+        #     values['lnNSE'] = None
+        #     values['NSE1'] = None
+        #     values['NSE3'] = None
+        #     continue
+
+        print(f'obsl:{obsl}')
+        print(f'siml:{siml}')
         nse_value = MathClass.nashcoef(obsl, siml)
         r2_value = MathClass.rsquare(obsl, siml)
         rmse_value = MathClass.rmse(obsl, siml)

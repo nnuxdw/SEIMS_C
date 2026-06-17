@@ -88,8 +88,10 @@ elif step == 'TEST':
     multiobj.setdefault('SOTE200_12', [['NSE', 1., -100, '>0'], ['R-square', 1., -100, '>0']])
 #######
 else:
-    multiobj.setdefault('Q_123', [['NSE', 1., -100, '>0']])
-    multiobj.setdefault('F_123', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_156', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_143', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('F_19', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('F_123', [['NSE', 1., -100, '>0']])
     # Customize your own multiobjective here, such as:
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0.'],
     #                           ['RSR', -1., 2., '<2.'],
@@ -97,19 +99,19 @@ else:
     # multiobj.setdefault('Q_322', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
 
-    # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
-    # multiobj.setdefault('Q_214', [['NSE', 1., -100, '>0']])
-    # multiobj.setdefault('Q_255', [['NSE', 1., -100, '>0']])
-    # multiobj.setdefault('Q_347', [['NSE', 1., -100, '>0']])
-    # multiobj.setdefault('Q_457', [['NSE', 1., -100, '>0']])
-    # multiobj.setdefault('F_322', [['FI', 1., -1.], ['BI', -1., 2.]])
-    # multiobj.setdefault('F_322', [['NSE', 1., -100, '>0']])
 
-    # multiobj.setdefault('F_214', [['NSE', 1., -100, '>0']])
-    # multiobj.setdefault('F_1171', [['NSE', 1., -100, '>0']])
-    # multiobj.setdefault('F_1171', [['FI', 1., -1.], ['BI', -1., 2.]])
+# 会话ID，避免跨实例互相影响（强烈推荐）
+if os.name == 'nt':  # Windows
+    # base_path = r'G:\program\seims\SEIMS_HAND\data\MSL_1'
+    base_path = r'G:\program\seims\SEIMS_C\data\CW_2'
+else:  # Linux/Unix
+    base_path = '/data/user/xiaodw/software/SEIMS_C/data/CW_2'
+# # 淹没范围才会用，淹没面积率定不用管
+subbasin_flood_path = base_path + f'/inundation_cali/subbasin_flood'
+subbasin_ids=[1171,1176,1193,1194,1214]
 
-
+# 不同的实例指定不同的id，避免锁文件相互影响
+RUN_ID = 'CW_1_20251026'
 
 # Check object variables
 if not multiobj:
@@ -264,14 +266,14 @@ def main(cfg):
         popnum = len(invalid_pops)
         labels = list()
         # ---------------------test for no scoop----------------------
-        invalid_pops = [toolbox.evaluate(cali_obj, ind) for ind in invalid_pops]
+        # invalid_pops = [toolbox.evaluate(cali_obj, ind,base_path,RUN_ID) for ind in invalid_pops]
         # ---------------------end for no scoop----------------------
 
-        # try:  # parallel on multi-processors or clusters using SCOOP
-        #     from scoop import futures
-        #     invalid_pops = list(futures.map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
-        # except ImportError or ImportWarning:  # Python build-in map (serial)
-        #     invalid_pops = list(map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
+        try:  # parallel on multi-processors or clusters using SCOOP
+            from scoop import futures
+            invalid_pops = list(futures.map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops,[base_path]* popnum,[RUN_ID]* popnum))
+        except ImportError or ImportWarning:  # Python build-in map (serial)
+            invalid_pops = list(map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops,[base_path]* popnum,[RUN_ID]* popnum))
 
         scoop_log(f"过滤之前pops长度为:{len(invalid_pops)}")
         # 关键：把 None（被跳过的个体）过滤掉

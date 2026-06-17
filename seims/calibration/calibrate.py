@@ -415,9 +415,16 @@ def calibration_objectives(cali_obj, gen, ind):
 
     # Execute model
     model_obj.SetMongoClient()
-    model_obj.run()
-    time.sleep(0.1)  # Wait a moment in case of unpredictable file system error
+    # 添加运行前日志
+    import time
+    start_time = time.time()
+    print(f"[MODEL RUN]: {gen}, Individual ID: {ind.id}")
 
+    model_obj.run()
+    end_time = time.time()
+    time.sleep(0.1)  # Wait a moment in case of unpredictable file system error
+    # 添加函数开始日志
+    print(f"[MODEL END]: {gen}, Individual ID: {ind.id}, completed in {end_time - start_time:.2f} seconds")
     # read simulation data of the entire simulation period (include calibration and validation)
     #if model_obj.ReadTimeseriesSimulations():
     if model_obj.ReadTimeseriesSimulations_new():   #ljj++
@@ -426,6 +433,8 @@ def calibration_objectives(cali_obj, gen, ind):
     else:
         model_obj.clean(calibration_id=ind.id)
         model_obj.UnsetMongoClient()
+        # 添加失败日志
+        print(f"[FAILED] Model run failed for Generation: {getattr(ind, 'gen', 0)}, Individual ID: {ind.id}")
         return ind
 
     # Calculate NSE, R2, RMSE, PBIAS, and RSR, etc. of calibration period
@@ -525,6 +534,8 @@ def calibration_objectives(cali_obj, gen, ind):
         model_obj.copy_dir(calibration_id=ind.id,gen = gen)
     model_obj.clean(calibration_id=ind.id)
     model_obj.UnsetMongoClient()
+    # 添加函数结束日志
+    print(f"[END] Calibration objectives evaluation completed for Generation: {getattr(ind, 'gen', 0)}, Individual ID: {ind.id}")
 
     return ind
 
