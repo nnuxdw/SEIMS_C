@@ -1,4 +1,5 @@
 ﻿#include "SUR_MR_HAND.h"
+//#define DEBUG_SUR_MR_HAND
 #include <set>
 #include "text.h"
 using namespace std;
@@ -250,11 +251,10 @@ void SUR_MR_HAND::InitialOutputs() {
         Initialize1DArray(m_nCells, m_infil, 0.f);
         Initialize1DArray(m_nCells, m_soilWtrStoPrfl, 0.f);
         Initialize1DArray(m_nCells, m_soilIceStoPrfl, 0.f);//ljj++
-		Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
+		//Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
 		Initialize1DArray(m_nCells, m_HAND_Infil, 0.f);//xdw++
 		Initialize1DArray(m_nCells, handWtrDepAftInfil, 0.f);//xdw++
 		Initialize1DArray(m_nCells, m_alpha, 0.f);//xdw++
-		
 		
         Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilWtrSto, NODATA_VALUE);
         Initialize1DArray(m_nCells, m_lakesto, 0.f);
@@ -304,9 +304,9 @@ void SUR_MR_HAND::InitialOutputs() {
 
 int SUR_MR_HAND::Execute() {
 	//int SPECIFIED_ID = 342;
-	int SPECIFIED_ID = -1;
+	//int SPECIFIED_ID = 19;
 	//set<int> SPECIFIED_SBID = { 1,2, 3,4, 5,6, 7 };
-	set<int> SPECIFIED_SBID = { 2 };
+	set<int> SPECIFIED_SBID = { 19 };
     CheckInputData();
     InitialOutputs();
     int frez =0;
@@ -371,22 +371,26 @@ int SUR_MR_HAND::Execute() {
 				int i = m_Hands[sbid].levels[ll].handIds[idx];
 				if (SPECIFIED_SBID.find(sbid) != SPECIFIED_SBID.end())
 				{
-					//cout << "******************************************" << endl;
-					//cout << "*[SUR_MR_HAND_INUNDATION]* " << endl;
-					cout << " Sbid: " << sbid << "   "
-						<< " HandId: " << i << "   "
-						<< " handWtrDep=" << m_handWtrDep[i] * 1000.0 << "   "
-						<< " handWtrDepAftInfil=" << handWtrDepAftInfil[i] << "   "
-						<< " hand_infil=" << m_HAND_Infil[i] << "   "
-						<< " handArea=" << m_handArea[i] << "   "
-						<< endl;
-					for (int ly = 0; ly <= CVT_INT(m_nSoilLyrs[i]) - 1; ly++) {
-						cout
-							<< "Layer: " << ly << "   "
-							<< " WtrStoBfe=" << m_soilWtrStoBfe[i][ly] << "   "
-							<< " WtrStoAft=" << m_soilWtrSto[i][ly] << "   "
+					if (m_handWtrDep[i] > 0.0f) {
+						cout << "******************************************" << endl;
+						cout << "*[SUR_MR_HAND_INUNDATION]* " << endl;
+						cout << " Sbid: " << sbid << "   "
+							<< " HandId: " << i << "   "
+							<< " handWtrDep=" << m_handWtrDep[i] * 1000.0 << "   "
+							<< " handWtrDepAftInfil=" << handWtrDepAftInfil[i] << "   "
+							<< " hand_infil=" << m_HAND_Infil[i] << "   "
+							<< " handArea=" << m_handArea[i] << "   "
 							<< endl;
+						for (int ly = 0; ly <= CVT_INT(m_nSoilLyrs[i]) - 1; ly++) {
+							cout
+								<< "Layer: " << ly << "   "
+								<< " WtrStoBfe=" << m_soilWtrStoBfe[i][ly] << "   "
+								<< " WtrStoAft=" << m_soilWtrSto[i][ly] << "   "
+								<< " Sat=" << m_soilPor[i][ly] * m_soilThk[i][ly] <<  "   "
+								<< endl;
+						}
 					}
+					
 						
 
 				}
@@ -397,11 +401,6 @@ int SUR_MR_HAND::Execute() {
 #endif
 	}
 
-#ifdef DEBUG_SUR_MR_HAND
-	{
-		cout << "[SUR_MR_HAND_2]" << endl;
-	}
-#endif
 
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
@@ -527,27 +526,27 @@ int SUR_MR_HAND::Execute() {
         }
 
 
-#ifdef DEBUG_SUR_MR_HAND
-		{
-			int sbid = CVT_INT(m_subbsnID[i]);
-			if (SPECIFIED_SBID.find(sbid) != SPECIFIED_SBID.end()) {
-				cout << " Sbid: " << sbid << "   "
-					<< " HandId: " << i << "   "
-					<< " hWater=" << hWater << "   "
-					<< " infil=" << m_infil[i] << "   "
-					<< " exsPcp=" << m_exsPcp[i] << "   "
-					<< " surfq=" << surfq << "   "
-					<< " WtrStoBfe_0=" << m_soilWtrStoBfe[i][0] << "   "
-					<< " WtrStoAft_0=" << m_soilWtrSto[i][0] << "   "
-					<< " runPerc=" << runoffPercentage << "   "
-					<< " runoffCo=" << m_potRfCoef[i] << "   "
-					<< " alpha=" << m_alpha[i] << "   "
-					<< endl;
-				// 单线程可以不每次 flush；如果想实时看，可以打开下面这一行
-				// dbg.flush();
-			}
-		}
-#endif
+//#ifdef DEBUG_SUR_MR_HAND
+//		{
+//			int sbid = CVT_INT(m_subbsnID[i]);
+//			if (SPECIFIED_SBID.find(sbid) != SPECIFIED_SBID.end()) {
+//				cout << " Sbid: " << sbid << "   "
+//					<< " HandId: " << i << "   "
+//					<< " hWater=" << hWater << "   "
+//					<< " infil=" << m_infil[i] << "   "
+//					<< " exsPcp=" << m_exsPcp[i] << "   "
+//					<< " surfq=" << surfq << "   "
+//					<< " WtrStoBfe_0=" << m_soilWtrStoBfe[i][0] << "   "
+//					<< " WtrStoAft_0=" << m_soilWtrSto[i][0] << "   "
+//					<< " runPerc=" << runoffPercentage << "   "
+//					<< " runoffCo=" << m_potRfCoef[i] << "   "
+//					<< " alpha=" << m_alpha[i] << "   "
+//					<< endl;
+//				// 单线程可以不每次 flush；如果想实时看，可以打开下面这一行
+//				// dbg.flush();
+//			}
+//		}
+//#endif
     }
     return 0;
 }
@@ -688,7 +687,7 @@ void SUR_MR_HAND::Set1DData(const char* key, const int n, float* data) {
 
 void SUR_MR_HAND::SetReaches(clsReaches* reaches) {
 	if (nullptr == reaches) {
-		throw ModelException(MID_MUSK_CH, "SetReaches", "The reaches input can not to be NULL.");
+		throw ModelException(MID_SUR_MR_HAND, "SetReaches", "The reaches input can not to be NULL.");
 	}
 	m_nreach = reaches->GetReachNumber();
 }
@@ -708,7 +707,7 @@ void SUR_MR_HAND::Set2DData(const char* key, const int nrows, const int ncols, f
 }
 
 void SUR_MR_HAND::Get1DData(const char* key, int* n, float** data) {
-    InitialOutputs();
+    //InitialOutputs();
     string sk(key);
     if (StringMatch(sk, VAR_INFIL)) {
         *data = m_infil; //infiltration
@@ -729,7 +728,10 @@ void SUR_MR_HAND::Get1DData(const char* key, int* n, float** data) {
 	else if (StringMatch(sk, VAR_OL_HAND_INFIL)) {
 		*data = m_HAND_Infil;
 	}
-
+	//else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
+	//	*data = m_handWtrDep;
+	//	*n = m_nCells;
+	//}
 	else {
         throw ModelException(MID_SUR_MR_HAND, "Get1DData", "Result " + sk + " does not exist.");
     }

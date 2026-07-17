@@ -4,9 +4,20 @@ import geopandas as gpd
 from pathlib import Path
 
 # === 1. 读取 def 文件，提取有效参数名 ===
+# def read_def_vars(def_file):
+#     vars = []
+#     with open(def_file, 'r') as f:
+#         for line in f:
+#             line = line.strip()
+#             if line.startswith("#") or not line:
+#                 continue
+#             var = line.split(",")[0].strip()
+#             vars.append(var)
+#     return vars
+
 def read_def_vars(def_file):
     vars = []
-    with open(def_file, 'r') as f:
+    with open(def_file, 'r', encoding='utf-8-sig') as f:
         for line in f:
             line = line.strip()
             if line.startswith("#") or not line:
@@ -34,9 +45,15 @@ def get_row_count(csv_file):
     return len(df)
 
 # === 4. 生成 DataFrame ===
+# def generate_parameter_df(param_values, num):
+#     data = {f"{k}_1d": [v]*num for k, v in param_values.items()}
+#     df =pd.DataFrame(data)
+#     df.insert(0, 'FID', range(num))
+#     return df
+
 def generate_parameter_df(param_values, num):
-    data = {f"{k}_1d": [v]*num for k, v in param_values.items()}
-    df =pd.DataFrame(data)
+    data = {k: [v] * num for k, v in param_values.items()}
+    df = pd.DataFrame(data)
     df.insert(0, 'FID', range(num))
     return df
 
@@ -116,18 +133,18 @@ def csv_to_subbasin_shp(
 def workflow(target_subbasin):
     # === 5. 主逻辑 ===
     # target_subbasin = 123  # 替换为你的目标值
-    def_file = "G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model\cali_param_rng-Q_为了生成csv.def"
-    base_path = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model'
+    def_file = r"D:\SEIMS_C\data\CW_2\CW_2_longterm_model\cali_param_rng-Q.def"
+    base_path = r"D:\SEIMS_C\data\CW_2\CW_2_longterm_model"
     param_file = os.path.join(base_path,"model_param_initi.csv")
-    subbasin_file = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\csv\subbasin.csv'
+    subbasin_file = r"D:\SEIMS_C\data\CW_2\workspace\csv\subbasin.csv"
     another_file = os.path.join(base_path,"REACHES.csv")  # 用于生成 num1
     # 新增：定义掩码文件的路径
     cali_mask_file = os.path.join(base_path,f"TNH_caliparam_{target_subbasin}.csv")
     cali_sub_mask_file = os.path.join(base_path,f"TNH_caliparam_sub_{target_subbasin}.csv")
     caliparam_path = os.path.join(base_path,f"caliparam_{target_subbasin}.csv")
     caliparam_sub_path = os.path.join(base_path,f"caliparam_sub_{target_subbasin}.csv")
-    subbasin_shp_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_shp\subbasin.shp"
-    hru_shp_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\HRU_file\HRU_dissolved.shp"
+    subbasin_shp_path = r"D:\SEIMS_C\data\CW_2\workspace\spatial_shp\subbasin.shp"
+    hru_shp_path = r"D:\SEIMS_C\data\CW_2\workspace\HRU_file\HRU_mollwede_dissolved.shp"
     check_shp_path = os.path.join(base_path + f"\check_sub_{target_subbasin}",f"check_hru_{target_subbasin}.shp")
     check_sub_shp_path = os.path.join(base_path + f"\check_sub_{target_subbasin}",f"check_sub_{target_subbasin}.shp")
     # Step 1: 读取所有参数名
@@ -135,14 +152,15 @@ def workflow(target_subbasin):
 
     # Step 2: 设置你想放到 group2 的变量名(子流域层级)，剩下的自动归入 group1(hru层级)
     # vars_group2 = ['Base_ex', 'Kg','gw_delay','ch_n','ep_ch','hlife_docgw','krp','kd_rp','sv_rp','krd']  # <<< 请在此处填入你要走 another_file 的变量名
-    vars_group2 = ['Base_ex', 'Kg','gw_delay','ch_n','ep_ch','LAKEB','LAKE_ALPHA']  # <<< 请在此处填入你要走 another_file 的变量名
+    # vars_group2 = ['Base_ex', 'Kg','gw_delay','ch_n','ep_ch','LAKEB','LAKE_ALPHA']  # <<< 请在此处填入你要走 another_file 的变量名
+    vars_group2 = ['Base_ex_1d', 'Kg_1d', 'gw_delay_1d', 'ch_n', 'ep_ch_1d', 'LAKE_ALPHA', 'LAKEB_1D']
     vars_group1 = [var for var in vars_all if var not in vars_group2]
 
     # Step 3: 获取两个子集的 count
     num = get_row_count(subbasin_file)
     num1 = get_row_count(another_file)
 
-    fixed_vars = ['Conductivity', 'ch_n', 'Runoff_co', 'sw_cap','LAKE_ALPHA']
+    fixed_vars = ['Conductivity', 'ch_n', 'Runoff_co','LAKE_ALPHA']
 
     param_values_all = {}
     for var in vars_all:
@@ -238,6 +256,6 @@ def workflow(target_subbasin):
     # )
 
 if __name__ == '__main__':
-    tar_subbasin_ids = [123,141,214,225,322,347,457,1171]
+    tar_subbasin_ids = [19]
     for tar_id in tar_subbasin_ids:
         workflow(tar_id)

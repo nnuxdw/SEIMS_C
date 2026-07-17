@@ -8,7 +8,7 @@ clsPI_MCS::clsPI_MCS() :
     m_intcpStoCapExp(-1.f), m_initIntcpSto(0.f), m_maxIntcpStoCap(nullptr),
     m_minIntcpStoCap(nullptr),
     m_pcp(nullptr), m_pet(nullptr), m_canSto(nullptr),
-    m_intcpLoss(nullptr), m_netPcp(nullptr), m_nCells(-1),  m_handWtrDep(nullptr), m_subbsnID(nullptr), m_handArea(nullptr) {
+    m_intcpLoss(nullptr), m_netPcp(nullptr), m_nCells(-1), m_subbsnID(nullptr) {
 #ifndef STORM_MODE
     m_IntcpET = nullptr;
 #else
@@ -50,17 +50,9 @@ void clsPI_MCS::Set1DData(const char* key, int n, float* data) {
 		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
 		m_landUse = data;
 	}
-	else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
-		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
-		m_handWtrDep = data;
-	}
 	else if (StringMatch(s, VAR_SUBBSN)) {
 		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
 		m_subbsnID = data;
-	}
-	else if (StringMatch(s, VAR_AHRU)) {
-		CheckInputSize(MID_PI_MCS, key, n, m_nCells);
-		m_handArea = data;
 	}
     else {
         throw ModelException(MID_PI_MCS, "Set1DData", "Parameter " + s + " does not exist.");
@@ -95,9 +87,7 @@ void clsPI_MCS::Get1DData(const char* key, int* nRows, float** data) {
         *data = m_canSto;
     } else if (StringMatch(s, VAR_NEPR)) {
         *data = m_netPcp;
-    } else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
-		*data = m_handWtrDep;
-	}
+    } 
 	else {
         throw ModelException(MID_PI_MCS, "Get1DData", "Result " + s + " does not exist.");
     }
@@ -119,10 +109,6 @@ void clsPI_MCS::InitialOutputs() {
     if (m_intcpLoss == nullptr) {
         Initialize1DArray(m_nCells, m_intcpLoss, 0.f);
     }
-	if (m_handWtrDep == nullptr)
-	{
-		Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
-	}
 }
 
 
@@ -141,20 +127,7 @@ int clsPI_MCS::Execute() {
             /// 1. / 3600. = 0.0002777777777777778
             m_P[i] = m_P[i] * m_hilldt * 0.0002777777777777778f * cos(atan(m_slope[i]));
 #endif // STORM_MODE
-			// xiaodw++, when inundation occours at a HAND, interception is now allowed, thus interception alse not allowed
-			//float handWtrDepMM = m_handWtrDep[i] * 1000.0;
-			//if (handWtrDepMM > 0.0)
-			//{
-			//	m_netPcp[i] = m_pcp[i];
-			//	if (m_canSto[i] > 0.0)
-			//	{
-			//		m_chSto[subbasinId] += m_handArea[i] * m_canSto[i] * 0.001;
-			//		m_canSto[i] = 0.0;
-			//	}
-			//	m_intcpLoss[i] = 0.f;
-			//	m_IntcpET[i] = 0.f;
-			//	continue;
-			//}
+
             //interception storage capacity, 1. / 365. = 0.0027397260273972603
             float degree = 2.f * PI * (m_dayOfYear - 87.f) * 0.0027397260273972603f;
             /// For water, min and max are both 0, then no need for specific handling.

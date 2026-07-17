@@ -745,7 +745,7 @@ int MUSK_CH_HAND::Execute() {
 			m_chSto[*id] -= substractVol;
 		}
 		else {
-			cout << "MUSK_CH_HAND: m_chSto < substractVol, subbasinid:" << *id << ", m_chSto: " << m_chSto[*id] << ", substractVol: " << substractVol << endl;
+			/*cout << "MUSK_CH_HAND: m_chSto < substractVol, subbasinid:" << *id << ", m_chSto: " << m_chSto[*id] << ", substractVol: " << substractVol << endl;*/
 			m_chSto[*id] = 0.0;
 		}
 		
@@ -1134,6 +1134,7 @@ void MUSK_CH_HAND::SetReaches(clsReaches* reaches) {
 }
 
 bool MUSK_CH_HAND::ChannelFlow(const int i) {
+
 	float m_chStoTmp = m_chSto[i];
     // 1. first add all the inflow water
     float qIn = 0.f; /// Water entering reach on current day from both current subbasin and upstreams
@@ -1184,6 +1185,10 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
         if (m_qsRchOut[*upRchID] > 0.f) qsUp += m_qsRchOut[*upRchID];
         if (m_qiRchOut[*upRchID] > 0.f) qiUp += m_qiRchOut[*upRchID];
         if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
+		if (isinf(qsUp))
+		{
+			cout << endl;
+		}
         //cout<<i<<"   "<<*upRchID<<"   "<< m_Ch2GW[*upRchID]<<endl;
     }
     qIn += qsUp + qiUp + qgUp;
@@ -1615,14 +1620,22 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
     // }
      //float thwl = m_lakedpini[i] * m_minvol;
 	 float thwl = m_lakedpini[i] * m_minvol_1d[i];
-	 
+
      float runoff = 0.f;
      //float max_outflow = Max(0.f, pow((m_lakedp[i] - thwl), m_A_Vb[i])*m_A_Va[i]*1.e9f);
+
+	 // 
+	 float max_outflow = m_chSto[i] / m_dt;  // 
+
      if(m_lakedp[i] > thwl){
          //runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb);
 		 runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb_1d[i])*m_lakearea[i] / m_dt;
          runoff = Max(runoff,0.f);
      }
+
+	 // 
+	 runoff = Min(runoff, max_outflow);
+
      //if(runoff*m_dt>max_outflow) runoff = max_outflow/ m_dt;
     rtwtr = runoff + m_gndQ2Rch[i];
     m_chSto[i] =  (SI - rtwtr)*m_dt;

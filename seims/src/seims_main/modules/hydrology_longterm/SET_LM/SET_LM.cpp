@@ -8,7 +8,7 @@ SET_LM::SET_LM() :
     m_pet(nullptr), m_IntcpET(nullptr),
     m_deprStoET(nullptr), m_maxPltET(nullptr), m_soilTemp(nullptr),
     m_soilFrozenTemp(NODATA_VALUE),
-    m_soilET(nullptr),m_soilAWC(nullptr), m_handWtrDep(nullptr), m_subbsnID(nullptr), m_handArea(nullptr), m_hand_eavp(nullptr) {
+    m_soilET(nullptr),m_soilAWC(nullptr),  m_subbsnID(nullptr), m_handArea(nullptr), m_hand_eavp(nullptr) {
 }
 
 SET_LM::~SET_LM() {
@@ -93,9 +93,7 @@ void SET_LM::Get1DData(const char* key, int* nRows, float** data) {
     InitialOutputs();
     string s(key);
     if (StringMatch(s, VAR_SOET)) *data = m_soilET;
-	else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
-		*data = m_handWtrDep;
-	}
+
     else {
         throw ModelException(MID_SET_LM, "Get1DData", "Result " + s + " does not exist.");
     }
@@ -138,10 +136,6 @@ void SET_LM::Set1DData(const char* key, const int n, float* data) {
 	else if (StringMatch(s, VAR_SOTE)) {
 		CheckInputSize(MID_SET_LM, key, n, m_nCells);
 		m_soilTemp = data;
-	}
-	else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
-		CheckInputSize(MID_SET_LM, key, n, m_nCells);
-		m_handWtrDep = data;
 	}
 	else if (StringMatch(s, VAR_SUBBSN)) {
 		CheckInputSize(MID_SET_LM, key, n, m_nCells);
@@ -188,10 +182,6 @@ bool SET_LM::CheckInputData() {
 void SET_LM::InitialOutputs() {
     CHECK_POSITIVE(MID_SET_LM, m_nCells);
     if (nullptr == m_soilET) Initialize1DArray(m_nCells, m_soilET, 0.f);
-	if (m_handWtrDep == nullptr)
-	{
-		Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
-	}
 	if (m_hand_eavp == nullptr)
 	{
 		Initialize1DArray(m_nCells, m_hand_eavp, 0.f);//xdw++

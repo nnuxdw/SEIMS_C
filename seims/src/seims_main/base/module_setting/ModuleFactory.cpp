@@ -692,7 +692,7 @@ void ModuleFactory::GetValueFromDependencyModule(int iModule, vector<SimulationM
                 break;
             }
         }
-        //cout<<iModule<<", "<<k<<", "<<dependParam->ModuleID<<", "<<dependParam->Name<<endl;
+        cout<<iModule << ", " << id <<" , 第"<<k<<"个依赖参数, 来自于模块："<<dependParam->ModuleID<<", "<<dependParam->Name<<endl;
         if (!modules[k]->IsInputsSetDone()) {
             GetValueFromDependencyModule(k, modules);
         }

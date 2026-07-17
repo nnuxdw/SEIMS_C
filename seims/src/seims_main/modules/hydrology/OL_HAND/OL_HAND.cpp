@@ -286,6 +286,10 @@ void OL_HAND::Set1DData(const char* key, const int n, float* data) {
 		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
 		m_HAND_LowerAccDepthLen = data;
 	}
+	//else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
+	//	CheckInputSize(MID_SUR_MR_HAND, key, n, m_nCells);
+	//	m_handWtrDep = data;
+	//}
 	else {
 		throw ModelException(MID_OL_HAND, "Set1DData", "Parameter " + sk + " does not exist.");
 	}
@@ -447,6 +451,7 @@ int OL_HAND::Execute() {
 
 void OL_HAND::Get1DData(const char* key, int* n, float** data) {
     string sk(key);
+	InitialOutputs();
 	if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
 		*data = m_handWtrDep;
 		*n = m_nCells;

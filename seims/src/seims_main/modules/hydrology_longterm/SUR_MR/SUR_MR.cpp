@@ -15,7 +15,7 @@ SUR_MR::SUR_MR() :
     m_dem(nullptr),m_landUse(nullptr),m_soilAWC(nullptr),m_rchID(nullptr),m_pcp(nullptr),m_lakesto(nullptr),
     m_pet(nullptr),m_soilFrozenTemp_1d(nullptr),
 	//xdw++
-	m_soilFCDepth(nullptr), m_soilPorDepth(nullptr), m_subbsnID(nullptr), m_handArea(nullptr)
+	m_soilFCDepth(nullptr), m_soilPorDepth(nullptr), m_subbsnID(nullptr)
     {
 }
 
@@ -112,7 +112,6 @@ int SUR_MR::Execute() {
 		float netPcp = m_netPcp[i];
 		float deprSto = m_deprSto[i];
         hWater = m_netPcp[i] + m_deprSto[i];
-		//hWater = m_netPcp[i] + m_deprSto[i] + handWtrDepMM;   //  xiaodw, allow inundation water to infiltrate
 		//runoff percentage
 		float runoffPercentage = 0.0;
 		float surfq = 0.0;
@@ -346,10 +345,6 @@ void SUR_MR::Set1DData(const char* key, const int n, float* data) {
 	else if (StringMatch(sk, VAR_SUBBSN)) {
 		CheckInputSize(MID_SUR_MR, key, n, m_nCells);
 		m_subbsnID = data;
-	}
-	else if (StringMatch(sk, VAR_AHRU)) {
-		CheckInputSize(MID_SUR_MR, key, n, m_nCells);
-		m_handArea = data;
 	}
 	else {
 		throw ModelException(MID_SUR_MR, "Set1DData", "Parameter " + sk + " does not exist.");

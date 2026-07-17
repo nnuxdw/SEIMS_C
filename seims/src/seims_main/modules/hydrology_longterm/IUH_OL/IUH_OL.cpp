@@ -147,7 +147,7 @@ int IUH_OL::Execute() {
     //SURLAG method ljj++
     for (int i = 0; i < m_nCells; i++) {
         m_cellFlow[i][0] =0.f;
-        if (m_surfRf[i] <= 0.f) continue;
+        /*if (m_surfRf[i] <= 0.f) continue;*/
 
         m_cellFlow[i][1] += m_surfRf[i];
         m_cellFlow[i][0] = m_cellFlow[i][1] * m_brt[i];  //this time step

@@ -40,6 +40,7 @@ public:
 	float *m_soilWP;       // water content of soil at -1.5 MPa (wilting point)
 	float *m_soilPor;     // porosity mm/mm
 	float *q10_eff_layer;
+	float *m_soilFC;       // field capacity m3/m3
 
 	// Output variables
 	float SoilCol_CH4;        // Total CH4 production for this soil column (kg C/s)
@@ -143,7 +144,7 @@ private:
 	//float *m_ifluQ2Rch;        // subsurface to streams from each subbasin, the first element is the whole watershed, m3/s, VAR_SBIF
 	float **m_soilPerco;       // the amount of water percolated from the soil water reservoir
 	float **m_subSurfRf;       // subsurface runoff (mm), VAR_SSRU
-
+	float **m_soilFC;
 
 
 	// Soil column objects

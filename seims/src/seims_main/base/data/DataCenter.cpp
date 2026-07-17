@@ -180,6 +180,33 @@ bool DataCenter::CheckAdjustment(const string& para_name) {
         }
         csv2_loaded = true;
     }
+
+	/*if (!csv1_loaded) {
+		std::cout << "[DEBUG] Start loading caliparam.csv: "
+			<< model_path_ + SEP + "caliparam.csv" << std::endl;
+		for (auto& kv : init_params_) {
+			const std::string& name = kv.first;
+			if (csv2_params_set.find(name) == csv2_params_set.end()) {
+				std::cout << "[DEBUG] Load from caliparam.csv -> " << name << std::endl;
+				kv.second->LoadCaliCSV(name, model_path_ + SEP + "caliparam.csv");
+			}
+		}
+		csv1_loaded = true;
+	}
+
+	if (!csv2_loaded) {
+		std::cout << "[DEBUG] Start loading caliparam_sub.csv: "
+			<< model_path_ + SEP + "caliparam_sub.csv" << std::endl;
+		for (auto& kv : init_params_) {
+			const std::string& name = kv.first;
+			if (csv2_params_set.find(name) != csv2_params_set.end()) {
+				std::cout << "[DEBUG] Load from caliparam_sub.csv -> " << name << std::endl;
+				kv.second->LoadCaliCSV(name, model_path_ + SEP + "caliparam_sub.csv");
+			}
+		}
+		csv2_loaded = true;
+	}*/
+
     string upper_name = GetUpper(para_name);
     auto find_iter = init_params_.find(upper_name);
     bool adjust_data = false;

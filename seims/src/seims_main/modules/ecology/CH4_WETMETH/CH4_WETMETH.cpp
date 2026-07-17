@@ -22,7 +22,8 @@ SoilCol::SoilCol() :
 	T_soil(nullptr),
 	Soc(nullptr),
 	m_soilPor(nullptr),
-	m_soilWP(nullptr)
+	m_soilWP(nullptr),
+	m_soilFC(nullptr)
 {
 }
 
@@ -38,6 +39,7 @@ SoilCol::~SoilCol() {
 	if (m_soilWP != nullptr) Release1DArray(m_soilWP);
 	if (m_soilPor != nullptr) Release1DArray(m_soilPor);
 	if (q10_eff_layer != nullptr) Release1DArray(q10_eff_layer);
+	if (m_soilFC != nullptr) Release1DArray(m_soilFC);
 }
 
 // Initialize soil column with given number of layers
@@ -54,6 +56,7 @@ void SoilCol::Initialize(int num_layers) {
 		Initialize1DArray(num_layers, m_soilWP, 0.0f);
 		Initialize1DArray(num_layers, m_soilPor, 0.0f);
 		Initialize1DArray(num_layers, q10_eff_layer, 0.0f);
+		Initialize1DArray(num_layers, m_soilFC, 0.0f);
 	}
 }
 
@@ -67,8 +70,8 @@ void SoilCol::calculate_soil_saturation(int cell_idx) {
 			float ratio = (soil_water_storage[i] + m_soilWP[i]) /
 				(layer_thickness[i] * m_soilPor[i]);
 
-			// ratio > 1 时截断到 0.99
-			if (ratio > 0.99f) ratio = 0.99f;
+			// ratio > 1 时截断到 1
+			if (ratio > 1.0f) ratio = 1.0f;
 			else if (ratio < 0.0f) ratio = 0.0f;
 
 			soil_saturation[i] = ratio;
@@ -80,6 +83,31 @@ void SoilCol::calculate_soil_saturation(int cell_idx) {
 	}
 }
 
+//void SoilCol::calculate_soil_saturation(int cell_idx) {
+//	for (int i = 0; i < num_layers; i++) {
+//
+//		if (layer_thickness[i] <= 0.0f || m_soilPor[i] <= 0.0f) {
+//			soil_saturation[i] = 0.0f;
+//			continue;
+//		}
+//
+//		if (((soil_water_storage[i] + m_soilWP[i]) / layer_thickness[i]) <= m_soilFC[i]) {
+//			soil_saturation[i] = 0.0f;
+//		}
+//		else if (((soil_water_storage[i] + m_soilWP[i]) / layer_thickness[i]) >= m_soilPor[i]) {
+//			soil_saturation[i] = 1.0f;
+//		}
+//		else {
+//			float ratio = (((soil_water_storage[i] + m_soilWP[i]) / layer_thickness[i]) - m_soilFC[i]) /
+//				(m_soilPor[i] - m_soilFC[i]);
+//
+//			if (ratio > 1.0f) ratio = 1.0f;
+//			else if (ratio < 0.0f) ratio = 0.0f;
+//
+//			soil_saturation[i] = ratio;
+//		}
+//	}
+//}
 
 
 float SoilCol::SoilColMethane(int cell_idx, float &CH4_before, float handWtrDep,
@@ -110,25 +138,6 @@ float SoilCol::SoilColMethane(int cell_idx, float &CH4_before, float handWtrDep,
 
 		float Pi = 0.0f;            // 默认该层甲烷生产为 0
 		q10_eff_layer[i] = 0.0f;    // 默认冻结层记为 0
-
-		//if (T_kelvin > 273.15f) {    // only unfrozen layer produces CH4
-		//	// handWtrDep > 0 时，认为甲烷生产环境饱和
-		//	float sat_for_ch4 = (handWtrDep > 1e-6f) ? 1.0f : soil_saturation[i];
-
-		//	// WETMETH 文献中的温度依赖 Q10
-		//	float q10_eff = 1.7f + 2.5f * std::tanh(0.1f * (ch4_tref - T_kelvin));
-
-		//	// 文献附录说明：当 Q10(Ti) 变成负值时，设为 1e-3
-		//	if (q10_eff <= 0.0f) {
-		//		q10_eff = 1e-3f;
-		//	}
-
-		//	q10_eff_layer[i] = q10_eff;
-
-		//	Pi = ch4_r * Soc[i] * sat_for_ch4 *
-		//		std::exp((T_kelvin - CH4_T0) / 10.0f * std::log(q10_eff)) *
-		//		std::exp(-cumulative_depth[i] / ch4_tau_prod) * 1e3f;
-		//}
 
 		if (T_kelvin > 273.15f) {    // only unfrozen layer produces CH4
 	        // 改回：始终使用该层实际土壤饱和度
@@ -192,7 +201,7 @@ float SoilCol::calculate_oxic_depth(float ch4_z_oatz) {
 	for (int i = 0; i < num_layers; i++) {
 
 		// If this layer is saturated, stop here
-		if (soil_saturation[i] >= 0.90f) { // Saturation >= 1.0 is considered saturated
+		if (soil_saturation[i] >= 0.999f) { // Saturation >= 0.999 is considered saturated
 			found_saturated_layer = true;
 			break;
 		}
@@ -228,6 +237,7 @@ CH4_WETMETH::CH4_WETMETH() :
 	m_soilWP(nullptr),
 	m_soilPor(nullptr),
 	// m_Soc(nullptr), // commented out, using m_Soc_kg_ha instead
+	m_soilFC(nullptr),
 	m_Soc_kg_ha(nullptr),
 	m_Tsoil(nullptr),
 	m_SoilCols(nullptr),
@@ -265,6 +275,7 @@ CH4_WETMETH::~CH4_WETMETH() {
 	if (m_soil_saturated != nullptr) Release2DArray(m_nCells, m_soil_saturated);
 	if (m_soilWP != nullptr) Release2DArray(m_nCells, m_soilWP);
 	if (m_soilPor != nullptr) Release2DArray(m_nCells, m_soilPor);
+	if (m_soilFC != nullptr) Release2DArray(m_nCells, m_soilFC);
 	if (m_Soc_kg_ha != nullptr) Release2DArray(m_nCells, m_Soc_kg_ha);
 	if (m_Tsoil != nullptr) Release2DArray(m_nCells, m_Tsoil);
 	if (m_SoilCols != nullptr) Release1DArray(m_SoilCols);
@@ -365,7 +376,13 @@ void CH4_WETMETH::Set2DData(const char* key, int n, int col, float** data) {
 		m_soilPerco = data;
 	} else if (StringMatch(sk, VAR_SSRU)) {
 		m_subSurfRf = data;
-	} else {
+	}
+	else if (StringMatch(sk, VAR_FIELDCAP)) {
+        m_soilFC = data;
+	}
+		
+
+	else {
 		throw ModelException(MID_CH4_WETMETH, "Set2DData", "Parameter " + sk + " does not exist.");
 	}
 }
@@ -435,6 +452,9 @@ bool CH4_WETMETH::CheckInputData() {
 	if (m_soilPor == nullptr) {
 		throw ModelException(MID_CH4_WETMETH, "CheckInputData", "Soil porosity data is not set.");
 	}
+	if (m_soilFC == nullptr) {
+		throw ModelException(MID_CH4_WETMETH, "CheckInputData", "Soil field capacity data is not set.");
+	}
 	if (m_handWtrDep == nullptr) {
 		throw ModelException(MID_CH4_WETMETH, "CheckInputData", "Depth of each hand data is not set.");
 	}
@@ -499,7 +519,7 @@ int CH4_WETMETH::Execute() {
 	m_total_CH4 = 0.0f;
 
 #ifdef _WIN32
-	std::string debug_file = "D:/SEIMS_C/data/CW_2/workspace/rundata/sub19_lake_debug_CH4.csv";
+	std::string debug_file = "G:/program/seims/SEIMS_C/data/CW_2/workspace/rundata/sub19_lake_debug_CH4.csv";
 #else
 	std::string debug_file = "/tmp/sub19_lake_debug.csv";
 #endif
@@ -541,6 +561,8 @@ int CH4_WETMETH::Execute() {
 			<< ",soil_saturated"
 			<< ",soilWP"
 			<< ",soilPor"
+			<< ",soilFC"
+			<< ",theta_current"
 			<< ",Soc_kg_ha"
 			<< ",Tsoil"
 			<< ",soilPerco"
@@ -583,6 +605,7 @@ int CH4_WETMETH::Execute() {
 			m_SoilCols[i].soil_saturated[j] = m_soil_saturated[i][j];
 			m_SoilCols[i].m_soilWP[j] = m_soilWP[i][j];
 			m_SoilCols[i].m_soilPor[j] = m_soilPor[i][j];
+			m_SoilCols[i].m_soilFC[j] = m_soilFC[i][j];
 
 			// Convert kg/ha to kg C/m³ for WETMETH model
 			// kg/ha / (thickness_m * 10000) = kg C/m³
@@ -605,7 +628,7 @@ int CH4_WETMETH::Execute() {
 		CH4_before = m_SoilCols[i].SoilCol_CH4;
 
 		// 只输出关心的 cell，避免文件太大
-		if (i == 1312 || i == 1313 || i == 1314 || i == 1316 || i == 1321) {
+		if (i == 1306 || i == 1307 || i == 1308 || i == 1309 || i == 1310) {
 			for (int j = 0; j < actual_layers; j++) {
 				dbg << m_date << ","
 					<< m_year << ","
@@ -633,6 +656,8 @@ int CH4_WETMETH::Execute() {
 					<< m_soil_saturated[i][j] << ","
 					<< m_soilWP[i][j] << ","
 					<< m_soilPor[i][j] << ","
+					<< m_soilFC[i][j] << ","
+					<< ((m_soil_water_storage[i][j] + m_soilWP[i][j]) / m_layer_thickness[i][j]) << ","
 					<< m_Soc_kg_ha[i][j] << ","
 					<< m_Tsoil[i][j] << ","
 					<< m_soilPerco[i][j] << ","

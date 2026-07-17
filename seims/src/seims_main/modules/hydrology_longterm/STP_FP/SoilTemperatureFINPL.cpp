@@ -438,7 +438,10 @@ void SoilTemperatureFINPL::Set2DData(const char* key, int n, int col, float** da
     //ljj++
     else if (StringMatch(sk, VAR_SOILTHICK)) m_soilthick = data;
     else if (StringMatch(sk, VAR_POROST)) m_soilPor = data;
-    else if (StringMatch(sk, VAR_SOL_ST)) m_soilWtrSto = data;
+	else if (StringMatch(sk, VAR_SOL_ST)) {
+		m_soilWtrSto = data;
+
+	}
 	else if (StringMatch(sk, VAR_SOL_WPMM)) m_soilWP = data;
     else if (StringMatch(sk, VAR_SOL_BD)) m_soilBD = data;
     else if (StringMatch(sk, VAR_SOL_RSD)) m_soilRsd = data;

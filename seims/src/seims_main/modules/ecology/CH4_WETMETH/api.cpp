@@ -30,6 +30,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     // mdi.AddParameter(VAR_SOL_OM, UNIT_PERCENT, DESC_SOL_OM, Source_ParameterDB, DT_Raster2D); // commented out, using VAR_SOL_WOC from NUTR_TF instead
     mdi.AddParameter(VAR_SOL_UL, UNIT_DEPTH_MM, DESC_SOL_UL, Source_ParameterDB, DT_Raster2D);
     mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);
+	//mdi.AddParameter(VAR_SOL_AWC, UNIT_DEPTH_MM, DESC_SOL_AWC, Source_ParameterDB, DT_Raster2D);
+	mdi.AddParameter(VAR_FIELDCAP, UNIT_VOL_FRA_M3M3, DESC_FIELDCAP, Source_ParameterDB, DT_Raster2D);
 
 	mdi.AddParameter(VAR_CH4_R, UNIT_NON_DIM, DESC_CH4_R, Source_ParameterDB, DT_Single);
 	mdi.AddParameter(VAR_CH4_TREF, UNIT_NON_DIM, DESC_CH4_TREF, Source_ParameterDB, DT_Single);
