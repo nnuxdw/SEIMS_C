@@ -27,9 +27,9 @@ import matplotlib.dates as mdates
 from matplotlib.ticker import NullFormatter, FuncFormatter
 
 def main(watershed_num):
-    NN = 5  #可调，需要前多少组参数集
+    NN = 1  #可调，需要前多少组参数集
     # watershed_num = 123
-    plot_mode = 'combined'  # combined/separate
+    plot_mode = 'separate'  # combined/separate
     plot_percentile = False
     plot_legent = False
     save_legend_as_png = False
@@ -177,6 +177,8 @@ def main(watershed_num):
 
         HOSTNAME = cf.get('SEIMS_Model', 'HOSTNAME')
         PORT = int(cf.get('SEIMS_Model', 'PORT'))
+        HOSTNAME = '127.0.0.1'
+        PORT = 27017
         mongoclient = ConnectMongoDB(HOSTNAME, PORT).get_conn()
         readData = ReadModelData(mongoclient, DEMO_MODELS[wtsd_name])
         start = sims.index[0]
@@ -697,6 +699,6 @@ def main(watershed_num):
 
 if __name__ == "__main__":
     # watershed_nums = [123,141,214,225,322,347,457]
-    watershed_nums = [1171]
+    watershed_nums = [347]
     for watershed_num in watershed_nums:
         main(watershed_num)

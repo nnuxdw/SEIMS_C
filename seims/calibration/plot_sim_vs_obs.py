@@ -333,7 +333,7 @@ if __name__ == "__main__":
     # === 配置区 ===
     QTXT_PATH = r"C:\Users\David\Desktop\鄱阳\Q.txt"
     MONGO_URI = "mongodb://172.21.124.127:27019"
-    STATION_ID = 141
+    STATION_ID = 347
 
     # 1) 从 Q.txt 读模拟流量
     sim = load_sim_from_qtxt(QTXT_PATH,STATION_ID, level_label="Q_sim")
