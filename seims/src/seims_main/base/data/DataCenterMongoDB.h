@@ -107,6 +107,9 @@ public:
     */
     bool SetRasterForScenario() OVERRIDE;
 
+    //! Pass the active model database context to DLLs with module-local readers.
+    void SetModuleRuntimeContext(SimulationModule* p_module) OVERRIDE;
+
     /******* MongoDB specified functions *********/
 
     /*!

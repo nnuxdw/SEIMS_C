@@ -119,6 +119,13 @@ public:
     }
 
     /*!
+     * \brief Pass the MongoDB run context to modules that own specialized
+     * database readers. The default is intentionally a no-op so existing DLLs
+     * and their data paths are unchanged.
+     */
+    virtual void SetMongoDBContext(MongoClient* client, const string& db_name) {}
+
+    /*!
      * \brief Check the input data. Make sure all the input data is available.
      *
      *        This function is optional to be overridden.

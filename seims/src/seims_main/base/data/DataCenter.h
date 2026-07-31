@@ -132,6 +132,9 @@ public:
      */
     virtual bool SetRasterForScenario() = 0;
 
+    /*! \brief Give a module an optional database run context before it loads parameters. */
+    virtual void SetModuleRuntimeContext(SimulationModule* p_module) {}
+
 public:
     /**** Load or update data ****/
     /*!

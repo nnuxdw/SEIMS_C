@@ -8,13 +8,104 @@
 from __future__ import absolute_import, unicode_literals
 
 import bisect
+import numpy as np
 from collections import OrderedDict
 from datetime import datetime
 
 from typing import List, Dict, Optional, Union, AnyStr
 from pygeoc.utils import MathClass,StringClass
-from spotpy.objectivefunctions import nashsutcliffe, rsquared, rmse, pbias, lognashsutcliffe, correlationcoefficient,kge,kge_non_parametric
+from spotpy.objectivefunctions import nashsutcliffe, rsquared, rmse, pbias, lognashsutcliffe, correlationcoefficient
 from datetime import timezone
+
+def kge(obs, sim):
+    """Calculate Kling-Gupta Efficiency (KGE).
+    
+    KGE = 1 - sqrt((r - 1)^2 + (alpha - 1)^2 + (beta - 1)^2)
+    
+    where:
+    - r is Pearson correlation coefficient
+    - alpha = mean(sim) / mean(obs)
+    - beta = CV(sim) / CV(obs)
+    
+    Args:
+        obs: Observed values list/array
+        sim: Simulated values list/array
+    
+    Returns:
+        KGE value (ranges from -inf to 1, 1 is perfect)
+    """
+    obs = np.asarray(obs, dtype=float)
+    sim = np.asarray(sim, dtype=float)
+    
+    # Remove NaN values
+    mask = ~np.isnan(obs) & ~np.isnan(sim)
+    obs = obs[mask]
+    sim = sim[mask]
+    
+    if len(obs) == 0 or len(sim) == 0:
+        return -9999.0
+    
+    # Pearson correlation coefficient
+    r = np.corrcoef(obs, sim)[0, 1]
+    if np.isnan(r):
+        r = 0.0
+    
+    # Alpha: ratio of means
+    mean_obs = np.mean(obs)
+    mean_sim = np.mean(sim)
+    
+    if mean_obs != 0:
+        alpha = mean_sim / mean_obs
+    else:
+        alpha = 1.0 if mean_sim == 0 else np.inf
+    
+    # Beta: ratio of coefficients of variation
+    std_obs = np.std(obs, ddof=1)
+    std_sim = np.std(sim, ddof=1)
+    
+    if mean_obs != 0 and std_obs != 0:
+        cv_obs = std_obs / mean_obs
+        cv_sim = std_sim / mean_sim if mean_sim != 0 else 0.0
+        beta = cv_sim / cv_obs
+    else:
+        beta = 1.0
+    
+    # Calculate KGE
+    kge_val = 1.0 - np.sqrt((r - 1.0)**2 + (alpha - 1.0)**2 + (beta - 1.0)**2)
+    
+    return kge_val
+
+def lnkge(obs, sim):
+    """Calculate log-transformed KGE (lnKGE).
+    
+    First applies log transformation to both obs and sim (adding small constant to avoid log(0)),
+    then calculates KGE on the transformed data.
+    
+    Args:
+        obs: Observed values list/array
+        sim: Simulated values list/array
+    
+    Returns:
+        lnKGE value
+    """
+    obs = np.asarray(obs, dtype=float)
+    sim = np.asarray(sim, dtype=float)
+    
+    # Remove NaN values
+    mask = ~np.isnan(obs) & ~np.isnan(sim)
+    obs = obs[mask]
+    sim = sim[mask]
+    
+    if len(obs) == 0 or len(sim) == 0:
+        return -9999.0
+    
+    # Apply log transformation (add small constant to avoid log(0))
+    epsilon = 1e-10
+    obs_log = np.log(obs + epsilon)
+    sim_log = np.log(sim + epsilon)
+    
+    # Calculate KGE on log-transformed data
+    return kge(obs_log, sim_log)
 # def to_utc_naive(dt):
 #     if dt is None:
 #         return None
@@ -156,7 +247,8 @@ def calculate_statistics(sim_obs_dict,  # type: Optional[Dict[AnyStr, Dict[AnySt
         rsr_value = MathClass.rsr(obsl, siml)
         lnnse_value = MathClass.nashcoef(obsl, siml, log=True)
         nse1_value = MathClass.nashcoef(obsl, siml, expon=1)
-        nse1_value = kge(obsl, siml)  #ljj change for kge
+        kge_value = kge(obsl, siml)
+        lnkge_value = lnkge(obsl, siml)
         nse3_value = MathClass.nashcoef(obsl, siml, expon=3)
 
         values['NSE'] = nse_value
@@ -167,9 +259,11 @@ def calculate_statistics(sim_obs_dict,  # type: Optional[Dict[AnyStr, Dict[AnySt
         values['lnNSE'] = lnnse_value
         values['NSE1'] = nse1_value
         values['NSE3'] = nse3_value
+        values['KGE'] = kge_value
+        values['lnKGE'] = lnkge_value
 
         # print('Statistics for %s, NSE: %.3f, R2: %.3f, RMSE: %.3f, PBIAS: %.3f, RSR: %.3f,'
         #       ' lnNSE: %.3f, NSE1: %.3f, NSE3: %.3f' %
         #       (param, nse_value, r2_value, rmse_value, pbias_value, rsr_value,
         #        lnnse_value, nse1_value, nse3_value))
-    return ['NSE', 'R-square', 'RMSE', 'PBIAS', 'RSR', 'lnNSE', 'NSE1', 'NSE3']
+    return ['NSE', 'R-square', 'RMSE', 'PBIAS', 'RSR', 'lnNSE', 'NSE1', 'NSE3', 'KGE', 'lnKGE']

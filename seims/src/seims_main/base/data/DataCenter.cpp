@@ -329,6 +329,7 @@ double DataCenter::LoadDataForModules(vector<SimulationModule *>& modules) {
     map<string, vector<ParamInfo*> >& module_parameters = factory_->GetModuleParameters();
     for (size_t i = 0; i < module_ids.size(); i++) {
         string id = module_ids[i];
+        SetModuleRuntimeContext(modules[i]);
         vector<ParamInfo*>& parameters = module_parameters[id];
         for (size_t j = 0; j < parameters.size(); j++) {
             ParamInfo* param = parameters[j];

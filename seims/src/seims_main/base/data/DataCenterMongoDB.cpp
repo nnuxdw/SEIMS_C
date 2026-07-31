@@ -73,6 +73,10 @@ DataCenterMongoDB::~DataCenterMongoDB() {
     }
 }
 
+void DataCenterMongoDB::SetModuleRuntimeContext(SimulationModule* p_module) {
+    if (nullptr != p_module) p_module->SetMongoDBContext(mongo_client_, model_name_);
+}
+
 bool DataCenterMongoDB::CheckModelPreparedData() {
     /// 1. Check and get the main model database
     vector<string> existed_dbnames;
