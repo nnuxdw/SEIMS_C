@@ -75,8 +75,12 @@ string FindNetworkCollection(MongoClient* client, const string& db_name,
 }
 
 SWMMDynamicWave::SWMMDynamicWave() : network_loaded_(false), max_subbasin_id_(0),
-    subbasin_count_(0), max_trials_(8), dt_channel_(-1.0), head_tolerance_(0.001),
-    min_route_step_(1.0), courant_factor_(0.75), min_surface_area_(12.566),
+    subbasin_count_(0), max_trials_(8),             // Default: eight Picard iterations per substep.
+    dt_channel_(-1.0),                               // Must be set by WISE in seconds before Execute().
+    head_tolerance_(0.001),                          // Default convergence tolerance: 1 mm.
+    min_route_step_(1.0),                            // Default smallest internal dynamic-wave step: 1 s.
+    courant_factor_(0.75),                           // Default Courant safety factor; 0 disables substepping.
+    min_surface_area_(1.167),                        // SWMM default node area (4-ft diameter) converted to m2.
     q_surf_(nullptr), q_interflow_(nullptr), q_groundwater_(nullptr) {
 }
 
@@ -114,14 +118,20 @@ void SWMMDynamicWave::LoadNetwork(MongoClient* client, const string& db_name) {
         NodeDefinition node;
         node.id = static_cast<int>(ReadRequired(document, node_id_names, 2, node_table_name, "NODE_ID"));
         node.subbasin_id = static_cast<int>(ReadOptional(document, node_subbasin_names, 2, 0.0));
+        // SUBBASINID=0 (the default) means the node receives no SBOF/SBIF/SBQG lateral inflow.
         node.invert_elev = ReadRequired(document, node_invert_names, 3, node_table_name, "INVERT_ELEV");
-        node.max_depth = ReadOptional(document, node_max_depth_names, 2, 1.0);
-        node.init_depth = ReadOptional(document, node_init_depth_names, 2, 0.0);
-        node.surcharge_depth = ReadOptional(document, node_surcharge_names, 2, 0.0);
-        node.ponded_area = ReadOptional(document, node_ponded_names, 3, 0.0);
+        // INVERT_ELEV is mandatory and is the node bed elevation in metres.
+        node.has_max_depth = GetNumericField(document, node_max_depth_names, 2, node.max_depth);
+        if (!node.has_max_depth) node.max_depth = 0.0; // Later derived from the highest connected channel top.
+        node.init_depth = ReadOptional(document, node_init_depth_names, 2, 0.0); // Default: dry node.
+        node.surcharge_depth = ReadOptional(document, node_surcharge_names, 2, 0.0); // Default: no pressure surcharge.
+        node.ponded_area = ReadOptional(document, node_ponded_names, 3, 0.0); // Default: use SWMM_MIN_SURFACE_AREA.
         node.boundary_stage = ReadOptional(document, node_stage_names, 3, node.invert_elev);
-        node.is_outfall = ReadOptional(document, node_type_names, 3, 0.0) > 0.0;
+        // BOUNDARY_STAGE defaults to the invert elevation and is used only by NODE_TYPE=1.
+        const double node_type = ReadOptional(document, node_type_names, 3, 0.0);
+        node.is_outfall = node_type == 1.0; // NODE_TYPE=0: junction; NODE_TYPE=1: fixed-stage outfall.
         if (node.max_depth < 0.0 || node.init_depth < 0.0 || node.ponded_area < 0.0 ||
+            (node_type != 0.0 && node_type != 1.0) ||
             node_index.find(node.id) != node_index.end()) {
             bson_destroy(query);
             mongoc_cursor_destroy(cursor);
@@ -184,20 +194,30 @@ void SWMMDynamicWave::LoadNetwork(MongoClient* client, const string& db_name) {
         reach.subbasin_id = static_cast<int>(ReadOptional(document, reach_subbasin_names, 2, 0.0));
         reach.from_node = static_cast<int>(ReadRequired(document, from_node_names, 3, reach_table_name, "FROM_NODE"));
         reach.to_node = static_cast<int>(ReadRequired(document, to_node_names, 3, reach_table_name, "TO_NODE"));
-        reach.shape = static_cast<int>(ReadOptional(document, shape_names, 3, 0.0));
-        reach.barrels = static_cast<int>(ReadOptional(document, barrels_names, 2, 1.0));
-        reach.length = ReadRequired(document, length_names, 2, reach_table_name, "LENGTH");
-        reach.manning_n = ReadRequired(document, manning_names, 3, reach_table_name, "MANNING_N");
-        reach.inlet_offset = ReadOptional(document, inlet_offset_names, 3, 0.0);
-        reach.outlet_offset = ReadOptional(document, outlet_offset_names, 3, 0.0);
+        // SHAPE=0: open rectangle; 1: open trapezoid (default); 2: circular conduit;
+        // 3: closed rectangle. Use 0 or 1 for rivers and open channels.
+        reach.shape = static_cast<int>(ReadOptional(document, shape_names, 3, 1.0));
+        reach.barrels = static_cast<int>(ReadOptional(document, barrels_names, 2, 1.0)); // Default: one passage.
+        reach.length = ReadRequired(document, length_names, 2, reach_table_name, "LENGTH"); // Metres; mandatory.
+        reach.manning_n = ReadRequired(document, manning_names, 3, reach_table_name, "MANNING_N"); // Dimensionless; mandatory.
+        reach.inlet_offset = ReadOptional(document, inlet_offset_names, 3, 0.0); // [m] above FROM_NODE invert; default 0.
+        reach.outlet_offset = ReadOptional(document, outlet_offset_names, 3, 0.0); // [m] above TO_NODE invert; default 0.
         reach.full_depth = ReadRequired(document, depth_names, 4, reach_table_name, "FULL_DEPTH");
-        reach.bottom_width = ReadOptional(document, width_names, 3, reach.full_depth);
-        reach.side_slope = ReadOptional(document, side_slope_names, 3, 0.0);
-        reach.init_flow = ReadOptional(document, init_flow_names, 2, 0.0);
-        reach.max_flow = ReadOptional(document, max_flow_names, 3, 0.0);
-        reach.inlet_loss = ReadOptional(document, inlet_loss_names, 2, 0.0);
-        reach.outlet_loss = ReadOptional(document, outlet_loss_names, 2, 0.0);
-        reach.average_loss = ReadOptional(document, average_loss_names, 2, 0.0);
+        // FULL_DEPTH [m] is bankfull depth for open channels, diameter for SHAPE=2, and height for SHAPE=3.
+        if (reach.shape == CIRCULAR) {
+            reach.bottom_width = reach.full_depth; // SHAPE=2: width is not used; FULL_DEPTH is the diameter.
+        } else {
+            reach.bottom_width = ReadRequired(document, width_names, 3, reach_table_name, "BOTTOM_WIDTH");
+            // BOTTOM_WIDTH [m] is mandatory for SHAPE=0, 1, and 3; no synthetic river width is assumed.
+        }
+        reach.side_slope = ReadOptional(document, side_slope_names, 3,
+                                        reach.shape == TRAPEZOID ? 2.0 : 0.0);
+        // SIDE_SLOPE is one-bank H:V. For SHAPE=1 it defaults to 2.0 (2H:1V); it is ignored otherwise.
+        reach.init_flow = ReadOptional(document, init_flow_names, 2, 0.0); // [m3/s], signed FROM_NODE -> TO_NODE; default 0.
+        reach.max_flow = ReadOptional(document, max_flow_names, 3, 0.0); // [m3/s], 0 means no flow cap.
+        reach.inlet_loss = ReadOptional(document, inlet_loss_names, 2, 0.0); // Dimensionless inlet K; default 0.
+        reach.outlet_loss = ReadOptional(document, outlet_loss_names, 2, 0.0); // Dimensionless outlet K; default 0.
+        reach.average_loss = ReadOptional(document, average_loss_names, 2, 0.0); // Dimensionless distributed K; default 0.
         if (node_index.find(reach.from_node) == node_index.end() ||
             node_index.find(reach.to_node) == node_index.end() || reach.length <= 0.0 ||
             reach.manning_n <= 0.0 || reach.full_depth <= 0.0 || reach.bottom_width <= 0.0 ||
@@ -240,13 +260,7 @@ void SWMMDynamicWave::InitializeStates() {
     for (size_t i = 0; i < nodes_.size(); ++i) {
         NodeState& node = nodes_[i];
         node.crown_depth = 0.0;
-        node.old_depth = std::min(node.data.init_depth, node.data.max_depth + node.data.surcharge_depth);
-        node.new_depth = node.old_depth;
         node.old_net_inflow = 0.0;
-        if (node.data.is_outfall) {
-            node.old_depth = std::max(0.0, node.data.boundary_stage - node.data.invert_elev);
-            node.new_depth = node.old_depth;
-        }
     }
     for (size_t i = 0; i < links_.size(); ++i) {
         LinkState& link = links_[i];
@@ -257,6 +271,20 @@ void SWMMDynamicWave::InitializeStates() {
                                                    link.data.inlet_offset + link.data.full_depth);
         nodes_[link.node2].crown_depth = std::max(nodes_[link.node2].crown_depth,
                                                    link.data.outlet_offset + link.data.full_depth);
+    }
+    for (size_t i = 0; i < nodes_.size(); ++i) {
+        NodeState& node = nodes_[i];
+        // For an open-channel junction without a supplied bank depth, use the
+        // highest connected channel top (the same crown reference SWMM builds
+        // from conduit offsets and full depths). An explicit MAX_DEPTH always
+        // takes precedence.
+        if (!node.data.has_max_depth) node.data.max_depth = std::max(EPSILON, node.crown_depth);
+        node.old_depth = std::min(node.data.init_depth, node.data.max_depth + node.data.surcharge_depth);
+        node.new_depth = node.old_depth;
+        if (node.data.is_outfall) {
+            node.old_depth = std::max(0.0, node.data.boundary_stage - node.data.invert_elev);
+            node.new_depth = node.old_depth;
+        }
     }
     q_reach_.assign(max_subbasin_id_ + 1, 0.f);
     node_depth_.assign(nodes_.size(), 0.f);
@@ -278,12 +306,17 @@ bool SWMMDynamicWave::CheckInputData() {
 
 void SWMMDynamicWave::SetValue(const char* key, const float data) {
     const string name(key);
-    if (StringMatch(name, Tag_ChannelTimeStep)) dt_channel_ = data;
+    if (StringMatch(name, Tag_ChannelTimeStep)) dt_channel_ = data; // Mandatory channel interval [s]; must be > 0.
     else if (StringMatch(name, "SWMM_MAX_TRIALS")) max_trials_ = std::max(1, static_cast<int>(data));
+    // SWMM_MAX_TRIALS: Picard iterations per internal step; integer >= 1, default 8.
     else if (StringMatch(name, "SWMM_HEAD_TOL")) head_tolerance_ = std::max(EPSILON, static_cast<double>(data));
+    // SWMM_HEAD_TOL: node-depth convergence tolerance [m], > 0, default 0.001 m.
     else if (StringMatch(name, "SWMM_MIN_ROUTE_STEP")) min_route_step_ = std::max(0.001, static_cast<double>(data));
+    // SWMM_MIN_ROUTE_STEP: lower bound for internal step [s], >= 0.001, default 1 s.
     else if (StringMatch(name, "SWMM_COURANT_FACTOR")) courant_factor_ = std::max(0.0, static_cast<double>(data));
+    // SWMM_COURANT_FACTOR: 0 disables Courant substepping; positive values scale it, default 0.75.
     else if (StringMatch(name, "SWMM_MIN_SURFACE_AREA")) min_surface_area_ = std::max(EPSILON, static_cast<double>(data));
+    // SWMM_MIN_SURFACE_AREA: minimum node storage area [m2], > 0, default 1.167 m2.
     else throw ModelException("SWMM_DW", "SetValue", "Unsupported parameter: " + name);
 }
 
@@ -294,9 +327,9 @@ void SWMMDynamicWave::Set1DData(const char* key, const int n, float* data) {
     }
     subbasin_count_ = n;
     const string name(key);
-    if (StringMatch(name, VAR_SBOF)) q_surf_ = data;
-    else if (StringMatch(name, VAR_SBIF)) q_interflow_ = data;
-    else if (StringMatch(name, VAR_SBQG)) q_groundwater_ = data;
+    if (StringMatch(name, VAR_SBOF)) q_surf_ = data; // Surface runoff [m3/s] indexed by SUBBASINID.
+    else if (StringMatch(name, VAR_SBIF)) q_interflow_ = data; // Interflow [m3/s] indexed by SUBBASINID.
+    else if (StringMatch(name, VAR_SBQG)) q_groundwater_ = data; // Groundwater flow [m3/s] indexed by SUBBASINID.
     else throw ModelException("SWMM_DW", "Set1DData", "Unsupported input: " + name);
     if (static_cast<int>(q_reach_.size()) < n) q_reach_.resize(n, 0.f);
 }

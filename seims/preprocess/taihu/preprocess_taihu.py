@@ -17,7 +17,9 @@ from __future__ import print_function
 import math
 import os
 import sys
+import threading
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 from osgeo import gdal
@@ -157,6 +159,157 @@ def delete_existing_shapefile(path, overwrite):
 
     if result != 0 and os.path.exists(path):
         raise IOError("无法删除已有矢量文件：{}".format(path))
+
+
+def _find_multipart_subbasin_ids(shp_path):
+    """
+    读取子流域 SHP，一次性返回所有多面（MultiPolygon / GeometryCollection）
+    要素对应的 SUBBASINID 集合。若 SHP 不存在或无法读取则返回空集合。
+    """
+    if not os.path.exists(shp_path):
+        return set()
+
+    shp_ds = ogr.Open(shp_path, gdal.GA_ReadOnly)
+    if shp_ds is None:
+        return set()
+
+    layer = shp_ds.GetLayer(0)
+    if layer is None:
+        shp_ds = None
+        return set()
+
+    defn = layer.GetLayerDefn()
+    subbasin_idx = defn.GetFieldIndex("SUBBASINID")
+
+    multipart_ids = set()
+    layer.ResetReading()
+    for feature in layer:
+        geom = feature.GetGeometryRef()
+        if geom is None:
+            feature = None
+            continue
+        geom_type = geom.GetGeometryType()
+        # MultiPolygon(6) / GeometryCollection(7) 及其 25D / ZM 变体
+        is_multi = (
+            geom_type == ogr.wkbMultiPolygon
+            or geom_type == ogr.wkbMultiPolygon25D
+            or geom_type == ogr.wkbGeometryCollection
+            or geom_type == ogr.wkbGeometryCollection25D
+            or geom_type == ogr.wkbMultiPolygonZM
+            or geom_type == ogr.wkbGeometryCollectionZM
+        )
+        if not is_multi:
+            feature = None
+            continue
+
+        if subbasin_idx >= 0:
+            val = feature.GetField("SUBBASINID")
+            if val is not None:
+                multipart_ids.add(int(val))
+        feature = None
+
+    shp_ds = None
+    return multipart_ids
+
+
+def _copy_raster(src_path, dst_path, overwrite):
+    """用 GDAL 驱动复制栅格文件。"""
+    if os.path.abspath(src_path) == os.path.abspath(dst_path):
+        return
+    delete_existing_raster(dst_path, overwrite)
+    driver = gdal.GetDriverByName("GTiff")
+    src_ds = gdal.Open(src_path, gdal.GA_ReadOnly)
+    if src_ds is None:
+        raise IOError("无法打开源栅格：{}".format(src_path))
+    dst_ds = driver.CreateCopy(dst_path, src_ds, options=["TILED=YES", "COMPRESS=LZW"])
+    if dst_ds is None:
+        src_ds = None
+        raise IOError("无法复制栅格到：{}".format(dst_path))
+    dst_ds = None
+    src_ds = None
+
+
+def _copy_shapefile(src_path, dst_path, overwrite):
+    """用 OGR 驱动复制 Shapefile（含 .shp/.dbf/.shprj 等）。"""
+    if os.path.abspath(src_path) == os.path.abspath(dst_path):
+        return
+    delete_existing_shapefile(dst_path, overwrite)
+    driver = ogr.GetDriverByName("ESRI Shapefile")
+    src_ds = ogr.Open(src_path, gdal.GA_ReadOnly)
+    if src_ds is None:
+        raise IOError("无法打开源 Shapefile：{}".format(src_path))
+    dst_ds = driver.CopyDataSource(src_ds, dst_path)
+    if dst_ds is None:
+        src_ds = None
+        raise IOError("无法复制 Shapefile 到：{}".format(dst_path))
+    dst_ds = None
+    src_ds = None
+
+
+def compute_pixel_area_sqm(geotransform, projection_wkt, n_rows, n_cols):
+    """
+    计算栅格的「平均像元面积」，单位：平方米（m²）。
+
+    策略：
+        1. 尝试从投影 WKT 中解析线性单位（米、英尺等）。
+        2. 若是投影坐标系（线性单位为米），直接返回 |dx*dy|。
+        3. 若是地理坐标系（单位为度），则用栅格中心附近的平均纬度
+           做球面近似，换算为 m²：
+               dx_m = dx_deg * (π/180) * R * cos(lat)
+               dy_m = dy_deg * (π/180) * R
+               area = dx_m * dy_m
+    """
+    dx = abs(geotransform[1])
+    dy = abs(geotransform[5])
+    raw_area = dx * dy
+
+    if not projection_wkt:
+        return raw_area, "unknown"
+
+    srs = osr.SpatialReference(wkt=projection_wkt)
+    if srs is None:
+        return raw_area, "unknown"
+
+    # 是否是地理坐标系（单位为度）
+    is_geographic = srs.IsGeographic() == 1
+
+    unit_name = ""
+    unit_factor = 1.0  # 到 米 的换算系数
+    if is_geographic:
+        try:
+            unit_name = srs.GetAttrValue("UNIT") or ""
+        except Exception:
+            unit_name = ""
+        # 地理坐标的 ANGLEUNIT
+        unit_name = unit_name.lower()
+        # 绝大多数为度
+        if "metre" in unit_name or "meter" in unit_name:
+            is_geographic = False
+            unit_factor = 1.0
+        # 地理坐标系：用球面近似换算
+    else:
+        try:
+            # 投影坐标系：GetLinearUnits 返回 (name, meters_per_unit)
+            result = srs.GetLinearUnits()
+            if result is not None:
+                unit_name, unit_factor = result
+        except Exception:
+            unit_name = ""
+            unit_factor = 1.0
+
+    if is_geographic:
+        # 球面半径（米），WGS84 半长轴 ≈ 6378137
+        R = 6378137.0
+        # 取栅格中心纬度
+        x_center = geotransform[0] + geotransform[1] * (n_cols / 2.0)
+        y_center = geotransform[3] + geotransform[5] * (n_rows / 2.0)
+        lat_center = y_center  # 中心纬度
+        lat_rad = math.radians(lat_center)
+        dx_m = dx * math.pi / 180.0 * R * math.cos(lat_rad)
+        dy_m = dy * math.pi / 180.0 * R
+        return dx_m * dy_m, "degree→m²(approx)"
+
+    return raw_area * (unit_factor * unit_factor), "meter"
 
 
 def read_mask_union(mask_path):
@@ -1114,83 +1267,58 @@ def generate_lake_subbasin(watershed_path, hydrolake_path,
     else:
         hl_valid = np.ones((n_rows, n_cols), dtype=np.bool_)
 
-    # ---------- 空间匹配湖泊 ----------
-    unique_lake_ids = np.unique(hl_data[hl_valid])
-    unique_lake_ids = unique_lake_ids.astype(np.int64)
-
-    # 跟踪已被分配到某个湖泊子流域的单元格，防止重复分配
-    assigned = np.zeros((n_rows, n_cols), dtype=np.bool_)
-    matched_lake_ids = []
-
-    for lake_id in unique_lake_ids:
-        lake_id = int(lake_id)
-        hl_lake_mask = (hl_data == lake_id) & hl_valid
-
-        # hydrolake 湖泊与 Watershed 湖泊 (-1) 的重叠区域
-        overlap_mask = hl_lake_mask & ws_lake_mask & ws_valid & (~assigned)
-
-        if not np.any(overlap_mask):
-            # 该湖泊在 Watershed 中没有对应的湖泊区，跳过
-            continue
-
-        # 坡面栅格：Watershed 中值等于湖泊 ID 负值的单元格
-        # （Watershed 编码规则：坡面值 = -hydrolake_id）
-        slope_mask = (ws_data == -lake_id) & ws_valid & (~assigned)
-
-        # 合并坡面 + 湖泊 → 湖泊子流域，统一用 -lake_id 作为栅格值
-        # 这样坡面栅格（本身就是 -lake_id）和湖泊栅格值完全一致
-        combined_mask = slope_mask | overlap_mask
-
-        if not np.any(combined_mask):
-            continue
-
-        output_data[combined_mask] = -lake_id
-        assigned[combined_mask] = True
-        matched_lake_ids.append(lake_id)
-
-    if len(matched_lake_ids) == 0:
+    # ---------- 空间匹配湖泊（向量化，避免逐 ID 遍历全图）----------
+    # 策略：
+    #   1. overlap = ws_lake_mask & hl_valid  → Watershed -1 像素中有 hydrolake 值的
+    #   2. output_data[overlap] = -hl_data[overlap]  → 直接用 hydrolake 值赋 -lake_id
+    #   3. matched_lake_ids = unique(hl_data[overlap])  → 匹配到的湖泊 ID
+    #   4. 坡面像素 (ws=-lake_id) 已在 output_data 中（copy 自 ws_data），无需再赋值
+    overlap = ws_lake_mask & hl_valid
+    if not np.any(overlap):
         ws_ds = None
         hl_ds = None
         raise RuntimeError("没有匹配到任何湖泊子流域")
 
-    # ---------- BFS 区域生长：将剩余 -1 湖泊栅格合并到相邻子流域 ----------
-    # 主匹配循环只处理了与 hydrolake 重叠的湖泊栅格。但很多 -1 湖泊栅格
-    # 虽属同一子流域（被相同坡面栅格包围），却未被 hydrolake 覆盖，
-    # 会在 TIF 中留下 NoData 缝隙，导致 Polygonize 无法将湖泊与坡面融合成
-    # 一个面要素。这里用 BFS 从已匹配的单元格向邻接的 -1 单元格扩散，
-    # 保证湖泊-坡面栅格值完全一致。
-    #
-    # 注意：此时已匹配单元格的值为 -lake_id（负值），剩余湖泊栅格值为 -1。
-    # 使用独立的 visited 数组避免 lake_id==1 时 -lake_id==-1 导致的重复入队。
+    output_data[overlap] = (-hl_data[overlap].astype(output_data.dtype))
+    matched_lake_ids = np.unique(hl_data[overlap].astype(np.int64)).tolist()
+    matched_lake_id_set = set(int(x) for x in matched_lake_ids)
 
-    visited = assigned.copy()
-    matched_indices = np.where(assigned)
-    queue = deque()
+    print("        匹配到 {} 个湖泊子流域".format(len(matched_lake_ids)))
 
-    for r, c in zip(matched_indices[0], matched_indices[1]):
-        queue.append((int(r), int(c)))
+    # ---------- 向量化区域生长：将剩余 -1 湖泊栅格合并到相邻子流域 ----------
+    # 用 ndimage.label 一次性找到 (unfilled | filled) 的连通分量，
+    # 再用 ndimage.maximum 将每个分量的 -lake_id 传播到该分量中的 -1 像素。
+    try:
+        from scipy import ndimage
+    except ImportError:
+        ndimage = None
 
-    # 8 邻域方向
-    _directions = [(-1, -1), (-1, 0), (-1, 1),
-                   (0, -1),           (0, 1),
-                   (1, -1),  (1, 0),  (1, 1)]
+    unfilled = (output_data == -1) & ws_valid
+    filled = (output_data < 0) & (output_data != -1) & ws_valid
 
-    while queue:
-        r, c = queue.popleft()
-        current_id = output_data[r, c]
+    if ndimage is not None and np.any(unfilled) and np.any(filled):
+        structure = np.ones((3, 3), dtype=np.uint8)
+        combined = unfilled | filled
+        labeled, n_components = ndimage.label(combined, structure=structure)
 
-        for dr, dc in _directions:
-            nr, nc = r + dr, c + dc
-            if 0 <= nr < n_rows and 0 <= nc < n_cols:
-                if (not visited[nr, nc]) and (output_data[nr, nc] == -1):
-                    output_data[nr, nc] = current_id
-                    visited[nr, nc] = True
-                    queue.append((nr, nc))
+        # 每个分量的 -lake_id 值（用 maximum 获取；0 表示该分量无 filled 像素）
+        filled_values = np.where(filled, output_data, 0)
+        component_vals = ndimage.maximum(
+            filled_values, labels=labeled, index=range(1, n_components + 1)
+        )
+        label_to_val = np.zeros(n_components + 1, dtype=output_data.dtype)
+        label_to_val[1:] = component_vals
+
+        # 将分量值赋给未填充的 -1 像素
+        unfilled_labels = labeled[unfilled]
+        unfilled_vals = label_to_val[unfilled_labels]
+        has_val = unfilled_vals != 0
+        uf_rows, uf_cols = np.where(unfilled)
+        output_data[uf_rows[has_val], uf_cols[has_val]] = unfilled_vals[has_val]
+    elif np.any(unfilled):
+        print("        警告：scipy 不可用，跳过区域生长；部分 -1 湖泊栅格可能未合并")
 
     # ---------- 临时编号：从原始最大子流域 ID + 1 开始 ----------
-    # 找到原始 watershed 中非湖泊子流域（正值）的最大 ID，
-    # 湖泊子流域的临时 ID 从 max_existing_id + 1 开始递增，
-    # 避免与已有子流域 ID 冲突。最终统一编号在后续步骤中完成。
     positive_mask = (ws_data > 0) & ws_valid
     if np.any(positive_mask):
         max_existing_id = int(np.max(ws_data[positive_mask]))
@@ -1198,24 +1326,45 @@ def generate_lake_subbasin(watershed_path, hydrolake_path,
         max_existing_id = 0
 
     temp_id_map = {}
-    sorted_lake_ids = sorted(set(matched_lake_ids))
+    sorted_lake_ids = sorted(matched_lake_id_set)
     for i, lake_id in enumerate(sorted_lake_ids):
         temp_id = max_existing_id + i + 1
         temp_id_map[lake_id] = temp_id
 
-    # 重映射 output_data 中的湖泊子流域值（-lake_id → temp_id）
-    for lake_id, temp_id in temp_id_map.items():
-        output_data[output_data == -lake_id] = temp_id
+    # ---------- 用查找表一次性完成重映射 + NoData 设置 ----------
+    # lookup[old_val - min_val] = new_val
+    #   - 正值 → 保持不变
+    #   - 匹配的 -lake_id → temp_id
+    #   - 未匹配的负值 / 残留 -1 → NoData(-9999)
+    all_valid_vals = output_data[ws_valid]
+    min_val = int(all_valid_vals.min())
+    max_val = int(all_valid_vals.max())
+    lookup_size = max_val - min_val + 1
+    lookup = np.arange(lookup_size, dtype=np.int64) + min_val
 
-    # 将剩余所有 ID < 0 的栅格设为 NoData
-    # 这些可能是未匹配的湖泊栅格（-1）或其他残留的负值子流域，
-    # 均不纳入湖泊子流域的输出范围。
-    negative_mask = (output_data < 0) & ws_valid
-    negative_count = int(np.sum(negative_mask))
-    if negative_count > 0:
-        print("        警告：发现 {} 个 ID<0 的残留栅格，已设为 NoData".format(
-            negative_count))
-        output_data[negative_mask] = -9999
+    out_nodata = -9999
+    for lake_id, temp_id in temp_id_map.items():
+        neg_id = -lake_id
+        if min_val <= neg_id <= max_val:
+            lookup[neg_id - min_val] = temp_id
+
+    # 所有剩余负值（未匹配的 -lake_id、残留 -1）→ NoData
+    neg_vals = np.unique(all_valid_vals[all_valid_vals < 0])
+    for v in neg_vals:
+        v_int = int(v)
+        if v_int not in (-int(lid) for lid in matched_lake_id_set):
+            if min_val <= v_int <= max_val:
+                lookup[v_int - min_val] = out_nodata
+
+    # 应用查找表（仅对有效像素）
+    in_range = ws_valid & (output_data >= min_val) & (output_data <= max_val)
+    indices = (output_data[in_range] - min_val).astype(np.int64)
+    output_data[in_range] = lookup[indices].astype(output_data.dtype)
+
+    # 统计被设为 NoData 的残留栅格数
+    nodata_count = int(np.sum((output_data == out_nodata) & ws_valid))
+    if nodata_count > 0:
+        print("        警告：发现 {} 个残留栅格已设为 NoData".format(nodata_count))
 
     # ---------- 写出 TIF ----------
     driver = gdal.GetDriverByName("GTiff")
@@ -1282,7 +1431,452 @@ def generate_lake_subbasin(watershed_path, hydrolake_path,
     }
 
 
-def renumber_subbasins(tif_path, shp_path, overwrite=True):
+def split_disconnected_subbasins(tif_path, shp_path, overwrite=True,
+                                output_tif_path=None, output_shp_path=None):
+    """
+    将 TIF 中每个子流域 ID 对应的离散（不连通）栅格区域拆分为独立的子流域，
+    各自分配唯一的新 ID。拆分后重新生成 SHP。
+
+    优化策略：
+        1. 先读取 SHP，一次性识别哪些子流域是多面（MultiPolygon）要素。
+        2. 仅对这些多面 ID 在其 bounding box 内做 ndimage.label，
+           避免对所有 ID 遍历全图。
+        3. 为多余连通区域分配新 ID。
+
+    若 output_tif_path / output_shp_path 与输入不同，则保留输入文件不变，
+    结果写入输出路径；否则就地覆盖。
+    """
+    if output_tif_path is None:
+        output_tif_path = tif_path
+    if output_shp_path is None:
+        output_shp_path = shp_path
+    try:
+        from scipy import ndimage
+    except ImportError:
+        raise RuntimeError("split_disconnected_subbasins 需要 scipy，请先安装 scipy")
+
+    ensure_file(tif_path, "子流域栅格")
+
+    # ---------- 读取 TIF ----------
+    ds = gdal.Open(tif_path, gdal.GA_ReadOnly)
+    if ds is None:
+        raise IOError("无法打开子流域栅格：{}".format(tif_path))
+
+    if ds.RasterCount != 1:
+        ds = None
+        raise RuntimeError("子流域栅格必须是单波段：{}".format(tif_path))
+
+    band = ds.GetRasterBand(1)
+    data = band.ReadAsArray()
+    if data is None:
+        ds = None
+        raise RuntimeError("无法读取子流域栅格数据")
+
+    nodata = band.GetNoDataValue()
+    geotransform = ds.GetGeoTransform()
+    projection = ds.GetProjection()
+    n_rows, n_cols = data.shape
+
+    source_data = data.astype(np.int32)
+
+    if nodata is not None:
+        if np.isnan(nodata):
+            valid_mask = ~np.isnan(data)
+        else:
+            valid_mask = (source_data != int(nodata))
+    else:
+        valid_mask = np.ones((n_rows, n_cols), dtype=np.bool_)
+
+    unique_ids = np.unique(source_data[valid_mask])
+    if len(unique_ids) == 0:
+        ds = None
+        raise RuntimeError("子流域栅格中没有有效子流域")
+
+    max_id = int(unique_ids.max())
+    next_id = max_id + 1
+    split_count = 0
+
+    # 8 连通结构元素
+    structure = np.ones((3, 3), dtype=np.uint8)
+
+    output_data = source_data.copy()
+
+    # ---------- 一次性识别多面子流域 ----------
+    multipart_ids = _find_multipart_subbasin_ids(shp_path)
+    print("        SHP 中检测到 {} 个多面子流域，将逐一检查连通性".format(
+        len(multipart_ids)))
+
+    if len(multipart_ids) == 0:
+        band = None
+        ds = None
+        print("        无离散子流域需要拆分")
+        # 输入=输出时无需写入
+        if output_tif_path != tif_path or output_shp_path != shp_path:
+            _copy_raster(tif_path, output_tif_path, overwrite)
+            _copy_shapefile(shp_path, output_shp_path, overwrite)
+        return {"split_count": 0, "total_subbasins": int(len(unique_ids))}
+
+    # ---------- 一次全图扫描：找到所有多面 ID 的像素坐标和 bounding box ----------
+    multipart_list = sorted(int(x) for x in multipart_ids)
+    multipart_mask = np.isin(source_data, multipart_list) & valid_mask
+
+    if not np.any(multipart_mask):
+        band = None
+        ds = None
+        print("        无离散子流域需要拆分")
+        if output_tif_path != tif_path or output_shp_path != shp_path:
+            _copy_raster(tif_path, output_tif_path, overwrite)
+            _copy_shapefile(shp_path, output_shp_path, overwrite)
+        return {"split_count": 0, "total_subbasins": int(len(unique_ids))}
+
+    # 提取所有多面像素的坐标和 ID 值
+    mp_rows, mp_cols = np.where(multipart_mask)
+    mp_vals = source_data[mp_rows, mp_cols].astype(np.int64)
+
+    # 按 ID 排序后用 reduceat 一次性计算每个 ID 的 bounding box
+    sort_idx = np.argsort(mp_vals)
+    sorted_vals = mp_vals[sort_idx]
+    sorted_rows = mp_rows[sort_idx]
+    sorted_cols = mp_cols[sort_idx]
+
+    unique_vals, start_idx, counts = np.unique(
+        sorted_vals, return_index=True, return_counts=True
+    )
+    r_mins = np.minimum.reduceat(sorted_rows, start_idx)
+    r_maxs = np.maximum.reduceat(sorted_rows, start_idx)
+    c_mins = np.minimum.reduceat(sorted_cols, start_idx)
+    c_maxs = np.maximum.reduceat(sorted_cols, start_idx)
+
+    # ---------- 仅对多面 ID 在 bounding box 内做连通标记 ----------
+    for i in range(len(unique_vals)):
+        sub_id_int = int(unique_vals[i])
+        r_min, r_max = int(r_mins[i]), int(r_maxs[i])
+        c_min, c_max = int(c_mins[i]), int(c_maxs[i])
+
+        # 在 bounding box 内提取该 ID 的掩码并做连通标记
+        sub_data = source_data[r_min:r_max + 1, c_min:c_max + 1]
+        sub_mask = (sub_data == sub_id_int)
+        labeled, n_components = ndimage.label(sub_mask, structure=structure)
+
+        if n_components <= 1:
+            continue
+
+        # 第 1 个连通区域保留原 ID，第 2..N 个分配新 ID
+        new_ids_for_this = [sub_id_int]
+        sub_view = output_data[r_min:r_max + 1, c_min:c_max + 1]
+        for comp in range(2, n_components + 1):
+            comp_mask = (labeled == comp)
+            sub_view[comp_mask] = next_id
+            new_ids_for_this.append(next_id)
+            next_id += 1
+            split_count += 1
+
+        print("        {}号子流域被拆分为：{}".format(
+            sub_id_int, "和".join("{}号".format(x) for x in new_ids_for_this)))
+
+    band = None
+    ds = None
+
+    if split_count == 0:
+        print("        无离散子流域需要拆分")
+        return {"split_count": 0, "total_subbasins": int(len(unique_ids))}
+
+    # ---------- 重写 TIF ----------
+    delete_existing_raster(output_tif_path, overwrite)
+
+    driver = gdal.GetDriverByName("GTiff")
+    out_ds = driver.Create(
+        output_tif_path,
+        n_cols,
+        n_rows,
+        1,
+        gdal.GDT_Int32,
+        options=[
+            "TILED=YES",
+            "COMPRESS=LZW",
+            "BIGTIFF=IF_SAFER",
+        ]
+    )
+    if out_ds is None:
+        raise IOError("无法创建输出栅格：{}".format(output_tif_path))
+
+    out_ds.SetGeoTransform(geotransform)
+    out_ds.SetProjection(projection)
+
+    out_band = out_ds.GetRasterBand(1)
+    out_nodata = -9999
+    out_band.SetNoDataValue(out_nodata)
+    output_data[~valid_mask] = out_nodata
+    out_band.WriteArray(output_data)
+    out_band.FlushCache()
+    out_ds.FlushCache()
+    out_ds = None
+
+    # ---------- 重新生成 SHP ----------
+    feature_count = raster_to_dissolved_subbasin_shp(
+        output_tif_path, output_shp_path, overwrite
+    )
+
+    total = int(len(unique_ids)) + split_count
+    print("        拆分了 {} 个离散区域，当前共 {} 个子流域（{} 个面要素）".format(
+        split_count, total, feature_count))
+
+    return {"split_count": split_count, "total_subbasins": total}
+
+
+def merge_small_subbasins(tif_path, shp_path, min_area, overwrite=True,
+                          output_tif_path=None, output_shp_path=None):
+    """
+    将面积小于 min_area 的子流域合并到相邻的大子流域中。
+
+    优化策略（每轮 O(N)，避免逐 ID 遍历全图）：
+        1. 用 np.bincount 一次性计算所有子流域面积。
+        2. 用 8 方向数组移位一次性提取所有相邻 ID 对。
+        3. 按面积升序处理小面积子流域，用 remap 字典记录合并目标。
+        4. 用查找表（lookup）一次性应用所有合并。
+
+    参数：
+        min_area — 面积阈值，单位与栅格坐标系一致（投影坐标系为平方米）。
+
+    若 output_tif_path / output_shp_path 与输入不同，则保留输入文件不变，
+    结果写入输出路径；否则就地覆盖。
+    """
+    if output_tif_path is None:
+        output_tif_path = tif_path
+    if output_shp_path is None:
+        output_shp_path = shp_path
+    ensure_file(tif_path, "子流域栅格")
+
+    # ---------- 读取 TIF ----------
+    ds = gdal.Open(tif_path, gdal.GA_ReadOnly)
+    if ds is None:
+        raise IOError("无法打开子流域栅格：{}".format(tif_path))
+
+    if ds.RasterCount != 1:
+        ds = None
+        raise RuntimeError("子流域栅格必须是单波段：{}".format(tif_path))
+
+    band = ds.GetRasterBand(1)
+    data = band.ReadAsArray()
+    if data is None:
+        ds = None
+        raise RuntimeError("无法读取子流域栅格数据")
+
+    nodata = band.GetNoDataValue()
+    geotransform = ds.GetGeoTransform()
+    projection = ds.GetProjection()
+    n_rows, n_cols = data.shape
+
+    output_data = data.astype(np.int32)
+
+    if nodata is not None:
+        if np.isnan(nodata):
+            valid_mask = ~np.isnan(data)
+        else:
+            valid_mask = (output_data != int(nodata))
+    else:
+        valid_mask = np.ones((n_rows, n_cols), dtype=np.bool_)
+
+    band = None
+    ds = None
+
+    # 计算平均像元面积（m²），自动处理经纬度坐标系
+    pixel_area, unit_mode = compute_pixel_area_sqm(
+        geotransform, projection, n_rows, n_cols
+    )
+    print("        面积计算模式：{}，平均像元面积 ≈ {:.4e} m²".format(
+        unit_mode, pixel_area))
+    # 总有效面积用于诊断
+    valid_cell_count = int(np.sum(valid_mask))
+    total_sqm = valid_cell_count * pixel_area
+    total_km2 = total_sqm / 1e6
+    print("        总有效面积 ≈ {:.2f} km²，阈值 {} m² = {:.2f} km²".format(
+        total_km2, min_area, min_area / 1e6))
+
+    merged_count = 0
+
+    while True:
+        # ---------- 1. bincount 一次性计算所有子流域面积 ----------
+        flat_valid = output_data[valid_mask]
+        if len(flat_valid) == 0:
+            break
+
+        min_val = int(flat_valid.min())
+        max_val = int(flat_valid.max())
+        shifted = (flat_valid - min_val).astype(np.int64)
+        counts = np.bincount(shifted)
+
+        id_areas = {}
+        for i in range(len(counts)):
+            if counts[i] > 0:
+                id_areas[i + min_val] = int(counts[i]) * pixel_area
+
+        # ---------- 2. 筛选小面积子流域 ----------
+        small_ids = sorted(
+            [uid for uid, area in id_areas.items() if area < min_area],
+            key=lambda x: id_areas[x]
+        )
+        if not small_ids:
+            break
+
+        # ---------- 3. 8 方向移位一次性提取所有相邻 ID 对 ----------
+        neighbors = {}
+        offset = max_val - min_val + 1  # 用于编码 ID 对
+
+        for dr in (-1, 0, 1):
+            for dc in (-1, 0, 1):
+                if dr == 0 and dc == 0:
+                    continue
+                r1s, r1e = max(0, dr), min(n_rows, n_rows + dr)
+                r2s, r2e = max(0, -dr), min(n_rows, n_rows - dr)
+                c1s, c1e = max(0, dc), min(n_cols, n_cols + dc)
+                c2s, c2e = max(0, -dc), min(n_cols, n_cols - dc)
+
+                a = output_data[r1s:r1e, c1s:c1e]
+                b = output_data[r2s:r2e, c2s:c2e]
+                va = valid_mask[r1s:r1e, c1s:c1e]
+                vb = valid_mask[r2s:r2e, c2s:c2e]
+
+                diff = (a != b) & va & vb
+                if not np.any(diff):
+                    continue
+
+                # 编码为 (lo, hi) 去重
+                a_shifted = a[diff].astype(np.int64) - min_val
+                b_shifted = b[diff].astype(np.int64) - min_val
+                lo = np.minimum(a_shifted, b_shifted)
+                hi = np.maximum(a_shifted, b_shifted)
+                codes = lo * offset + hi
+                unique_codes = np.unique(codes)
+
+                for code in unique_codes.tolist():
+                    v1 = code // offset + min_val
+                    v2 = code % offset + min_val
+                    neighbors.setdefault(v1, set()).add(v2)
+                    neighbors.setdefault(v2, set()).add(v1)
+
+        # ---------- 4. 按面积升序处理合并 ----------
+        small_set = set(small_ids)
+        remap = {}  # old_id -> target_id
+
+        def resolve_chain(id_val):
+            """沿 remap 链找到最终目标 ID。"""
+            seen = set()
+            while id_val in remap and id_val not in seen:
+                seen.add(id_val)
+                id_val = remap[id_val]
+            return id_val
+
+        for small_id in small_ids:
+            if small_id in remap:
+                continue
+
+            nbrs = neighbors.get(small_id, set())
+            if not nbrs:
+                continue
+
+            # 优先选择非小面积的邻居；若全是小面积，选面积最大的
+            best_neighbor = None
+            best_area = -1.0
+
+            for nbr in nbrs:
+                eff = resolve_chain(nbr)
+                if eff == small_id:
+                    continue
+                # 跳过尚未合并的小面积邻居（优先找大邻居）
+                if eff in small_set and eff not in remap:
+                    continue
+                eff_area = id_areas.get(eff, 0.0)
+                if eff_area > best_area:
+                    best_area = eff_area
+                    best_neighbor = eff
+
+            # 若没有非小面积邻居，退而选择最大的小面积邻居
+            if best_neighbor is None:
+                for nbr in nbrs:
+                    eff = resolve_chain(nbr)
+                    if eff == small_id or eff in remap:
+                        continue
+                    eff_area = id_areas.get(eff, 0.0)
+                    if eff_area > best_area:
+                        best_area = eff_area
+                        best_neighbor = eff
+
+            if best_neighbor is None:
+                continue
+
+            remap[small_id] = best_neighbor
+            id_areas[best_neighbor] = id_areas.get(best_neighbor, 0.0) + id_areas[small_id]
+            merged_count += 1
+            print("        {}号子流域被合并到{}号子流域".format(
+                small_id, best_neighbor))
+
+        if not remap:
+            break
+
+        # ---------- 5. 查找表一次性应用所有合并 ----------
+        lookup_min = min_val
+        lookup_size = max_val - min_val + 1
+        lookup = np.arange(lookup_size, dtype=np.int32) + lookup_min
+
+        for old_id in remap:
+            final = resolve_chain(old_id)
+            lookup[old_id - lookup_min] = final
+
+        in_range = valid_mask & (output_data >= lookup_min) & (output_data < lookup_min + lookup_size)
+        output_data[in_range] = lookup[output_data[in_range] - lookup_min]
+
+    if merged_count == 0:
+        print("        无小面积子流域需要合并")
+        remaining_ids = np.unique(output_data[valid_mask])
+        return {"merged_count": 0, "total_subbasins": int(len(remaining_ids))}
+
+    # ---------- 重写 TIF ----------
+    delete_existing_raster(output_tif_path, overwrite)
+
+    driver = gdal.GetDriverByName("GTiff")
+    out_ds = driver.Create(
+        output_tif_path,
+        n_cols,
+        n_rows,
+        1,
+        gdal.GDT_Int32,
+        options=[
+            "TILED=YES",
+            "COMPRESS=LZW",
+            "BIGTIFF=IF_SAFER",
+        ]
+    )
+    if out_ds is None:
+        raise IOError("无法创建输出栅格：{}".format(output_tif_path))
+
+    out_ds.SetGeoTransform(geotransform)
+    out_ds.SetProjection(projection)
+
+    out_band = out_ds.GetRasterBand(1)
+    out_nodata = -9999
+    out_band.SetNoDataValue(out_nodata)
+    output_data[~valid_mask] = out_nodata
+    out_band.WriteArray(output_data)
+    out_band.FlushCache()
+    out_ds.FlushCache()
+    out_ds = None
+
+    # ---------- 重新生成 SHP ----------
+    feature_count = raster_to_dissolved_subbasin_shp(
+        output_tif_path, output_shp_path, overwrite
+    )
+
+    remaining_ids = np.unique(output_data[valid_mask])
+    total = int(len(remaining_ids))
+    print("        合并了 {} 个小面积子流域，剩余 {} 个子流域（{} 个面要素）".format(
+        merged_count, total, feature_count))
+
+    return {"merged_count": merged_count, "total_subbasins": total}
+
+
+def renumber_subbasins(tif_path, shp_path, overwrite=True,
+                       output_tif_path=None, output_shp_path=None):
     """
     统一重新编号所有子流域：读取子流域 TIF 中所有非 NoData 的唯一值，
     排序后映射为从 1 开始的连续正整数，同步更新 TIF 和 SHP 的 SUBBASINID。
@@ -1292,7 +1886,14 @@ def renumber_subbasins(tif_path, shp_path, overwrite=True):
         2. 将所有 ID 排序并映射为 1, 2, 3, ...。
         3. 用新 ID 重写 TIF 栅格。
         4. 更新 SHP 中每个要素的 SUBBASINID 字段。
+
+    若 output_tif_path / output_shp_path 与输入不同，则保留输入文件不变，
+    结果写入输出路径（SHP 从输出 TIF 重新生成）；否则就地覆盖。
     """
+    if output_tif_path is None:
+        output_tif_path = tif_path
+    if output_shp_path is None:
+        output_shp_path = shp_path
     ensure_file(tif_path, "子流域栅格")
     ensure_file(shp_path, "子流域 Shapefile")
     # delete_existing_raster(tif_path, overwrite)
@@ -1339,26 +1940,34 @@ def renumber_subbasins(tif_path, shp_path, overwrite=True):
     for new_id, old_id in enumerate(sorted_ids, start=1):
         id_mapping[int(old_id)] = new_id
 
-    # ---------- 重写 TIF ----------
-    # 先转为 int32，再进行 ID 映射；用 np.isclose 避免浮点精度问题
-    # 使用原始副本作为判断条件，避免 0 -> 1 后又被 1 -> 2 覆盖
+    # ---------- 用查找表一次性完成 ID 重映射（避免逐 ID 全图扫描）----------
     source_data = data.astype(np.int32)
     new_data = source_data.copy()
 
+    min_val = int(source_data[valid_mask].min())
+    max_val = int(source_data[valid_mask].max())
+    lookup_size = max_val - min_val + 1
+    lookup = np.arange(lookup_size, dtype=np.int64) + min_val
+
     for old_id, new_id in id_mapping.items():
-        new_data[source_data == old_id] = new_id
+        if min_val <= old_id <= max_val:
+            lookup[old_id - min_val] = new_id
+
+    in_range = valid_mask & (source_data >= min_val) & (source_data <= max_val)
+    indices = (source_data[in_range] - min_val).astype(np.int64)
+    new_data[in_range] = lookup[indices].astype(new_data.dtype)
 
     # 已完成读取和计算，释放输入文件句柄后再删除旧 tif
     band = None
     ds = None
 
-    # 此时 tif_path 才是待覆盖的输出文件
-    delete_existing_raster(tif_path, overwrite)
+    # 删除输出文件（若与输入相同则覆盖输入，否则只删除输出）
+    delete_existing_raster(output_tif_path, overwrite)
 
     # 写回 TIF
     driver = gdal.GetDriverByName("GTiff")
     out_ds = driver.Create(
-        tif_path,
+        output_tif_path,
         n_cols,
         n_rows,
         1,
@@ -1370,7 +1979,7 @@ def renumber_subbasins(tif_path, shp_path, overwrite=True):
         ]
     )
     if out_ds is None:
-        raise IOError("无法创建输出栅格：{}".format(tif_path))
+        raise IOError("无法创建输出栅格：{}".format(output_tif_path))
 
     out_ds.SetGeoTransform(geotransform)
     out_ds.SetProjection(projection)
@@ -1385,42 +1994,51 @@ def renumber_subbasins(tif_path, shp_path, overwrite=True):
     out_ds = None
 
     print("        已重写 TIF：{}（{} 个子流域，ID 从 1 开始）".format(
-        tif_path, len(sorted_ids)))
+        output_tif_path, len(sorted_ids)))
 
-    # ---------- 更新 SHP ----------
-    shp_ds = ogr.Open(shp_path, 1)  # 1 = 可写
-    if shp_ds is None:
-        raise IOError("无法打开子流域 Shapefile 进行更新：{}".format(shp_path))
+    # ---------- 更新 / 重新生成 SHP ----------
+    if output_shp_path == shp_path:
+        # 就地更新：直接修改 SUBBASINID 字段
+        shp_ds = ogr.Open(shp_path, 1)  # 1 = 可写
+        if shp_ds is None:
+            raise IOError("无法打开子流域 Shapefile 进行更新：{}".format(shp_path))
 
-    shp_layer = shp_ds.GetLayer(0)
-    if shp_layer is None:
+        shp_layer = shp_ds.GetLayer(0)
+        if shp_layer is None:
+            shp_ds = None
+            raise RuntimeError("子流域 Shapefile 中没有可用图层")
+
+        # 检查是否有 SUBBASINID 字段
+        defn = shp_layer.GetLayerDefn()
+        subbasin_idx = defn.GetFieldIndex("SUBBASINID")
+        if subbasin_idx < 0:
+            shp_ds = None
+            raise RuntimeError("子流域 Shapefile 缺少 SUBBASINID 字段")
+
+        updated_count = 0
+        shp_layer.ResetReading()
+        for feature in shp_layer:
+            old_val = feature.GetField("SUBBASINID")
+            if old_val is not None:
+                old_id = int(old_val)
+                if old_id in id_mapping:
+                    feature.SetField("SUBBASINID", id_mapping[old_id])
+                    shp_layer.SetFeature(feature)
+                    updated_count += 1
+            feature = None
+
+        shp_layer.SyncToDisk()
         shp_ds = None
-        raise RuntimeError("子流域 Shapefile 中没有可用图层")
 
-    # 检查是否有 SUBBASINID 字段
-    defn = shp_layer.GetLayerDefn()
-    subbasin_idx = defn.GetFieldIndex("SUBBASINID")
-    if subbasin_idx < 0:
-        shp_ds = None
-        raise RuntimeError("子流域 Shapefile 缺少 SUBBASINID 字段")
-
-    updated_count = 0
-    shp_layer.ResetReading()
-    for feature in shp_layer:
-        old_val = feature.GetField("SUBBASINID")
-        if old_val is not None:
-            old_id = int(old_val)
-            if old_id in id_mapping:
-                feature.SetField("SUBBASINID", id_mapping[old_id])
-                shp_layer.SetFeature(feature)
-                updated_count += 1
-        feature = None
-
-    shp_layer.SyncToDisk()
-    shp_ds = None
-
-    print("        已更新 SHP：{}（更新 {} 个要素）".format(
-        shp_path, updated_count))
+        print("        已更新 SHP：{}（更新 {} 个要素）".format(
+            shp_path, updated_count))
+    else:
+        # 输出路径不同于输入：从输出 TIF 重新生成 SHP
+        feature_count = raster_to_dissolved_subbasin_shp(
+            output_tif_path, output_shp_path, overwrite
+        )
+        print("        已重新生成 SHP：{}（{} 个面要素）".format(
+            output_shp_path, feature_count))
 
     return {
         "total_subbasins": len(sorted_ids),
@@ -1428,17 +2046,24 @@ def renumber_subbasins(tif_path, shp_path, overwrite=True):
     }
 
 
-def update_stream_linkno_by_subbasin(stream_path, subbasin_path,
-                                      overwrite=True):
+def update_stream_linkno_by_subbasin(stream_path, subbasin_path, overwrite=True, max_workers=1):
     """
     根据湖泊子流域面更新河道 Shapefile 的 LINKNO 字段。
 
     对每条河道段，计算其与所有子流域面的空间相交关系，
     将 LINKNO 设置为相交长度最大的子流域的 SUBBASINID。
     若河道完全不在任何子流域内，则 LINKNO 设为 0。
+
+    多线程仅用于“河道—子流域”的空间相交计算；Shapefile 的读写保持
+    单线程，避免旧版 GDAL/OGR 在并发访问数据源时出现不稳定。
     """
     ensure_file(stream_path, "河道 Shapefile")
     ensure_file(subbasin_path, "湖泊子流域 Shapefile")
+
+    try:
+        max_workers = max(1, int(max_workers))
+    except (TypeError, ValueError):
+        raise ValueError("max_workers 必须是大于等于 1 的整数")
 
     # ---------- 先将所有数据读入内存 ----------
     # 读取子流域面
@@ -1512,6 +2137,23 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path,
             if transform_result not in (0, None):
                 raise RuntimeError("子流域面坐标转换失败")
 
+    # OGR Geometry 对象不在线程间共享。此处先序列化为 WKB，工作线程再各自
+    # 重建 Geometry，避免旧版 GDAL/OGR 的线程安全问题。
+    # 同时预计算每个子流域的包围盒，用于后续快速过滤。
+    subbasin_wkbs = []
+    for sb in subbasins:
+        try:
+            geometry_wkb = bytes(sb["geometry"].ExportToWkb())
+        except Exception:
+            print("        警告：子流域 {} 无法序列化，已跳过".format(sb["subbasin_id"]))
+            continue
+        # 预计算包围盒 (minX, maxX, minY, maxY)
+        env = sb["geometry"].GetEnvelope()
+        subbasin_wkbs.append((sb["subbasin_id"], geometry_wkb, env))
+
+    if len(subbasin_wkbs) == 0:
+        raise RuntimeError("没有可用于多线程相交计算的子流域面")
+
     # 读取所有河道要素及字段定义
     orig_defn = st_layer.GetLayerDefn()
     orig_field_count = orig_defn.GetFieldCount()
@@ -1530,8 +2172,22 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path,
         field_values = []
         for i in range(orig_field_count):
             field_values.append(st_feature.GetField(i))
+        geometry_clone = geometry.Clone()
+        try:
+            geometry_wkb = bytes(geometry_clone.ExportToWkb())
+        except Exception:
+            geometry_wkb = None
+            print("        警告：河道 FID={} 无法序列化，将写入 LINKNO=0".format(st_feature.GetFID()))
+        # 预计算包围盒 (minX, maxX, minY, maxY)
+        try:
+            stream_env = geometry_clone.GetEnvelope()
+        except Exception:
+            stream_env = None
         stream_features.append({
-            "geometry": geometry.Clone(),
+            "fid": st_feature.GetFID(),
+            "geometry": geometry_clone,
+            "geometry_wkb": geometry_wkb,
+            "envelope": stream_env,
             "field_values": field_values,
         })
 
@@ -1540,54 +2196,139 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path,
     if len(stream_features) == 0:
         raise RuntimeError("河道 Shapefile 中没有有效线要素")
 
-    # ---------- 在内存中处理 LINKNO ----------
-    for sf in stream_features:
-        stream_geom = sf["geometry"]
+    # ---------- 多线程：按子流域打断河道 → 合并 → 计算 LINKNO ----------
+    # 每个工作线程处理一个子流域，完成三步：
+    #   1) 打断：用子流域面裁切所有河道（Intersection），使河道不跨子流域；
+    #   2) 合并：将该子流域内的所有河道片段组装为一个 MultiLineString；
+    #   3) LINKNO = subbasin_id（河道已裁切到此子流域内，无需再搜索）。
+    total_subbasin_count = len(subbasin_wkbs)
+    total_stream_count = len(stream_features)
+    worker_state = threading.local()
 
-        best_id = 0
-        best_length = 0.0
+    def _bbox_overlap(env_a, env_b):
+        """快速判断两个包围盒是否重叠。env = (minX, maxX, minY, maxY)。"""
+        if env_a is None or env_b is None:
+            return True  # 无法判断时保守返回 True
+        return not (env_a[1] < env_b[0] or env_a[0] > env_b[1] or
+                    env_a[3] < env_b[2] or env_a[2] > env_b[3])
 
-        # 检测每个子流域与河道的相交长度
-        for sb in subbasins:
+    def get_worker_streams():
+        """每个工作线程只反序列化一次河道几何，后续子流域复用。"""
+        cached = getattr(worker_state, "streams", None)
+        if cached is not None:
+            return cached
+        cached = []
+        for sf in stream_features:
+            wkb = sf["geometry_wkb"]
+            if wkb is None:
+                cached.append((None, sf["envelope"]))
+                continue
             try:
-                intersection = stream_geom.Intersection(sb["geometry"])
+                geom = ogr.CreateGeometryFromWkb(wkb)
             except Exception:
-                # 子流域面已在读取阶段修复；个别无效河道跳过该子流域面。
-                # 不调用 MakeValid()，以兼容旧版 GDAL Python 绑定。
+                geom = None
+            cached.append((geom, sf["envelope"]))
+        worker_state.streams = cached
+        return cached
+
+    def collect_line_parts(geom, parts):
+        """递归收集几何中的所有线部分到 parts 列表。"""
+        if geom is None:
+            return
+        name = geom.GetGeometryName().upper()
+        if "LINESTRING" in name and "MULTI" not in name:
+            parts.append(geom.Clone())
+        elif "MULTI" in name or "GEOMETRYCOLLECTION" in name:
+            for i in range(geom.GetGeometryCount()):
+                collect_line_parts(geom.GetGeometryRef(i), parts)
+
+    def process_subbasin(sb_index):
+        """线程内处理一个子流域：打断河道 → 合并 → LINKNO = subbasin_id。
+
+        返回 (sb_index, subbasin_id, merged_wkb, linkno)。
+        若该子流域内无河道片段，merged_wkb 为 None。
+        """
+        subbasin_id, subbasin_wkb, sb_env = subbasin_wkbs[sb_index]
+        try:
+            subbasin_geom = ogr.CreateGeometryFromWkb(subbasin_wkb)
+        except Exception:
+            subbasin_geom = None
+        if subbasin_geom is None or subbasin_geom.IsEmpty():
+            return sb_index, subbasin_id, None, 0
+
+        # 1) 打断：用子流域面裁切每条河道，收集落在子流域内的线段
+        #    先用包围盒快速过滤，再对候选做昂贵的 Intersection
+        worker_streams = get_worker_streams()
+        line_parts = []
+        for stream_geom, stream_env in worker_streams:
+            if stream_geom is None or stream_geom.IsEmpty():
+                continue
+            # 包围盒快速过滤：不重叠则跳过，避免无谓的 Intersection
+            if not _bbox_overlap(sb_env, stream_env):
+                continue
+            try:
+                intersection = stream_geom.Intersection(subbasin_geom)
+            except Exception:
                 continue
             if intersection is None or intersection.IsEmpty():
                 continue
+            collect_line_parts(intersection, line_parts)
 
-            length = intersection.Length()
-            if length > best_length:
-                best_length = length
-                best_id = sb["subbasin_id"]
+        if not line_parts:
+            return sb_index, subbasin_id, None, 0
 
-        # 若相交检测全部为空，尝试用“点在面内”检测（取首点）
-        if best_id == 0:
-            first_point = None
-            geom_name = stream_geom.GetGeometryName().upper()
-            if "MULTILINESTRING" in geom_name:
-                if stream_geom.GetGeometryCount() > 0:
-                    first_line = stream_geom.GetGeometryRef(0)
-                    if first_line.GetPointCount() > 0:
-                        first_point = first_line.GetPoint(0)
-            elif stream_geom.GetPointCount() > 0:
-                first_point = stream_geom.GetPoint(0)
+        # 2) 合并：将所有线段组装为一个 MultiLineString
+        merged = ogr.Geometry(ogr.wkbMultiLineString)
+        for part in line_parts:
+            merged.AddGeometry(part)
 
-            if first_point is not None:
-                point_geom = ogr.Geometry(ogr.wkbPoint)
-                point_geom.AddPoint(first_point[0], first_point[1])
-                for sb in subbasins:
-                    if point_geom.Within(sb["geometry"]):
-                        best_id = sb["subbasin_id"]
-                        break
+        if merged.IsEmpty():
+            return sb_index, subbasin_id, None, 0
 
-        # 更新 field_values 中的 LINKNO
-        if linkno_idx >= 0:
-            sf["field_values"][linkno_idx] = best_id
-        else:
-            sf["field_values"].append(best_id)
+        try:
+            merged_wkb = bytes(merged.ExportToWkb())
+        except Exception:
+            return sb_index, subbasin_id, None, 0
+
+        # 3) LINKNO = subbasin_id
+        #    河道已裁切到此子流域内，LINKNO 即为当前子流域 ID，无需再搜索。
+        return sb_index, subbasin_id, merged_wkb, subbasin_id
+
+    # 存放每个子流域的处理结果
+    merged_results = [None] * total_subbasin_count
+
+    print("        河道打断-合并-LINKNO 使用 {} 个线程（{} 个子流域 × {} 条河道）".format(
+        max_workers, total_subbasin_count, total_stream_count))
+
+    if max_workers == 1:
+        for sb_index in range(total_subbasin_count):
+            try:
+                idx, sb_id, merged_wkb, linkno = process_subbasin(sb_index)
+            except Exception as error:
+                print("        警告：子流域索引 {} 处理失败：{}".format(sb_index, error))
+                continue
+            merged_results[idx] = (sb_id, merged_wkb, linkno)
+            if merged_wkb is not None:
+                print("        子流域 {}/{}（ID={}）河道合并完成，LINKNO={}".format(
+                    sb_index + 1, total_subbasin_count, sb_id, linkno), flush=True)
+    else:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_index = {}
+            for sb_index in range(total_subbasin_count):
+                future = executor.submit(process_subbasin, sb_index)
+                future_to_index[future] = sb_index
+
+            for future in as_completed(future_to_index):
+                sb_index = future_to_index[future]
+                try:
+                    idx, sb_id, merged_wkb, linkno = future.result()
+                except Exception as error:
+                    print("        警告：子流域索引 {} 处理失败：{}".format(sb_index, error))
+                    continue
+                merged_results[idx] = (sb_id, merged_wkb, linkno)
+                if merged_wkb is not None:
+                    print("        子流域 {}/{}（ID={}）河道合并完成，LINKNO={}".format(
+                        sb_index + 1, total_subbasin_count, sb_id, linkno), flush=True)
 
     # ---------- 删除原文件并写出新文件 ----------
     if not overwrite:
@@ -1637,25 +2378,32 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path,
     out_count = 0
     no_match_count = 0
 
-    for sf in stream_features:
+    # 每个子流域输出一个合并后的河道要素
+    for result in merged_results:
+        if result is None:
+            continue
+        sb_id, merged_wkb, linkno = result
+        if merged_wkb is None:
+            continue
+
+        try:
+            merged_geom = ogr.CreateGeometryFromWkb(merged_wkb)
+        except Exception:
+            continue
+        if merged_geom is None or merged_geom.IsEmpty():
+            continue
+
         new_feature = ogr.Feature(out_defn)
-
-        for i in range(orig_field_count):
-            if i < len(sf["field_values"]):
-                val = sf["field_values"][i]
-                if val is not None:
-                    new_feature.SetField(i, val)
-
-        # 设置 LINKNO
-        new_feature.SetField(linkno_idx, sf["field_values"][linkno_idx])
-        new_feature.SetGeometry(sf["geometry"])
+        # 合并后的要素无法保留原始逐条河道的属性，仅设置 LINKNO
+        new_feature.SetField(linkno_idx, linkno)
+        new_feature.SetGeometry(merged_geom)
 
         if out_layer.CreateFeature(new_feature) != 0:
             new_feature = None
             out_ds = None
             raise RuntimeError("写入更新后的河道要素失败")
 
-        if sf["field_values"][linkno_idx] == 0:
+        if linkno == 0:
             no_match_count += 1
 
         new_feature = None
@@ -1665,13 +2413,641 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path,
     out_ds = None
 
     print(
-        "        更新河道 LINKNO：共 {} 条，其中 {} 条未匹配到子流域（LINKNO=0）".format(
+        "        更新河道 LINKNO：共 {} 条合并河道，其中 {} 条未匹配到子流域（LINKNO=0）".format(
             out_count,
             no_match_count
         )
     )
 
     return out_count
+
+
+def repair_stream_topology(stream_path, subbasin_path, output_path=None,
+                            overwrite=True, snap_tolerance=1e-4,
+                            vertex_merge_tolerance=1e-4):
+    """
+    修复河道拓扑：将河道端点对齐到≥3个子流域的共同交点（锚点）。
+
+    核心思路：
+        1. 从子流域 SHP 中提取所有多边形顶点，按 vertex_merge_tolerance 精度
+           四舍五入后识别「≥3 个子流域共享的顶点」作为锚点。
+           锚点坐标用原始坐标质心（而非四舍五入值），避免位置偏移。
+        2. 对每个锚点，找出共享它的子流域集合。
+        3. 对每个子流域中的河道端点，若距离锚点 < snap_tolerance，
+           则将该端点移动到锚点位置。
+        4. 写出修复后的河道 SHP，保留原始字段。
+
+    参数：
+        stream_path           : 河道 Shapefile 路径。
+        subbasin_path         : 子流域 Shapefile 路径。
+        output_path           : 输出路径；若为 None 则覆盖 stream_path。
+        overwrite             : 是否覆盖已存在的输出文件。
+        snap_tolerance        : 端点吸附到锚点的距离容差（度）。
+        vertex_merge_tolerance: 识别「同一顶点」的精度（度），应 ≤ snap_tolerance。
+    """
+    if output_path is None:
+        output_path = stream_path
+
+    ensure_file(stream_path, "河道 Shapefile")
+    ensure_file(subbasin_path, "子流域 Shapefile")
+
+    # ---------- 1. 读取子流域，构建顶点信息 ----------
+    print("        读取子流域顶点，识别多子流域共享拐点 ...")
+
+    sb_ds = ogr.Open(subbasin_path, gdal.GA_ReadOnly)
+    if sb_ds is None:
+        raise IOError("无法打开子流域 Shapefile：{}".format(subbasin_path))
+
+    sb_layer = sb_ds.GetLayer(0)
+    if sb_layer is None:
+        sb_ds = None
+        raise RuntimeError("子流域 Shapefile 中没有可用图层")
+
+    sb_srs = sb_layer.GetSpatialRef()
+    if sb_srs is None:
+        sb_ds = None
+        raise RuntimeError("子流域 Shapefile 缺少坐标系")
+
+    sb_srs = sb_srs.Clone()
+    set_traditional_axis_order(sb_srs)
+
+    # 同时存储：
+    #   vertex_to_sbs: (rx, ry) → set of subbasin_ids
+    #   vertex_to_coords: (rx, ry) → list of original (x, y) coords
+    # 这样既能判断共享关系，又能计算质心坐标
+    vertex_to_sbs = {}
+    vertex_to_coords = {}
+    round_prec = max(0, int(-math.log10(vertex_merge_tolerance)))
+
+    sb_layer.ResetReading()
+    for sb_feature in sb_layer:
+        sb_id = sb_feature.GetField("SUBBASINID")
+        sb_geom = sb_feature.GetGeometryRef()
+        if sb_id is None or sb_geom is None or sb_geom.IsEmpty():
+            continue
+        sb_id = int(sb_id)
+
+        geom_name = sb_geom.GetGeometryName().upper()
+
+        def _collect_polygon_vertices(polygon_geom):
+            if polygon_geom is None:
+                return
+            ring_count = polygon_geom.GetGeometryCount()
+            for ring_idx in range(ring_count):
+                ring = polygon_geom.GetGeometryRef(ring_idx)
+                if ring is None:
+                    continue
+                n_pts = ring.GetPointCount()
+                for pt_idx in range(n_pts):
+                    pt = ring.GetPoint(pt_idx)
+                    rx = round(pt[0], round_prec)
+                    ry = round(pt[1], round_prec)
+                    vkey = (rx, ry)
+                    if vkey not in vertex_to_sbs:
+                        vertex_to_sbs[vkey] = set()
+                        vertex_to_coords[vkey] = []
+                    vertex_to_sbs[vkey].add(sb_id)
+                    vertex_to_coords[vkey].append((pt[0], pt[1]))
+
+        if "MULTIPOLYGON" in geom_name or "GEOMETRYCOLLECTION" in geom_name:
+            for g_idx in range(sb_geom.GetGeometryCount()):
+                sub = sb_geom.GetGeometryRef(g_idx)
+                if sub is not None and "POLYGON" in sub.GetGeometryName().upper():
+                    _collect_polygon_vertices(sub)
+        elif "POLYGON" in geom_name:
+            _collect_polygon_vertices(sb_geom)
+
+    sb_ds = None
+
+    # 识别多子流域共享顶点（≥3 个子流域共享）作为锚点
+    # 锚点坐标用原始坐标的质心（而非四舍五入后的 key）
+    anchors = []  # [(cx, cy, set_of_sb_ids), ...]
+    for vkey, sbs in vertex_to_sbs.items():
+        if len(sbs) >= 3:
+            coords = vertex_to_coords[vkey]
+            cx = sum(c[0] for c in coords) / len(coords)
+            cy = sum(c[1] for c in coords) / len(coords)
+            anchors.append((cx, cy, sbs))
+
+    print("        子流域顶点：{} 个，其中多子流域共享拐点：{} 个".format(
+        len(vertex_to_sbs), len(anchors)))
+
+    if len(anchors) == 0:
+        print("        未找到多子流域共享拐点，跳过拓扑修复")
+        return {"snapped_count": 0}
+
+    # ---------- 2. 读取河道，收集端点 ----------
+    print("        读取河道端点 ...")
+
+    st_ds = ogr.Open(stream_path, gdal.GA_ReadOnly)
+    if st_ds is None:
+        raise IOError("无法打开河道 Shapefile：{}".format(stream_path))
+
+    st_layer = st_ds.GetLayer(0)
+    if st_layer is None:
+        st_ds = None
+        raise RuntimeError("河道 Shapefile 中没有可用图层")
+
+    st_srs = st_layer.GetSpatialRef()
+    if st_srs is None:
+        st_ds = None
+        raise RuntimeError("河道 Shapefile 缺少坐标系")
+
+    st_srs = st_srs.Clone()
+    set_traditional_axis_order(st_srs)
+
+    orig_defn = st_layer.GetLayerDefn()
+    orig_field_count = orig_defn.GetFieldCount()
+
+    # 坐标转换：锚点子流域坐标系 → 河道坐标系
+    coord_trans = None
+    if not sb_srs.IsSame(st_srs):
+        coord_trans = osr.CoordinateTransformation(sb_srs, st_srs)
+        for i in range(len(anchors)):
+            cx, cy, sbs = anchors[i]
+            pt = ogr.Geometry(ogr.wkbPoint)
+            pt.AddPoint(cx, cy)
+            pt.Transform(coord_trans)
+            anchors[i] = (pt.GetX(), pt.GetY(), sbs)
+            pt = None
+
+    # 收集每条河道的几何、字段和端点信息
+    stream_records = []
+    st_layer.ResetReading()
+    for st_feature in st_layer:
+        geom = st_feature.GetGeometryRef()
+        if geom is None or geom.IsEmpty():
+            stream_records.append({
+                "fid": st_feature.GetFID(),
+                "geom": None,
+                "geom_name": "",
+                "field_values": [st_feature.GetField(i) for i in range(orig_field_count)],
+                "from_xy": None,
+                "to_xy": None,
+            })
+            continue
+
+        geom_clone = geom.Clone()
+        geom_name = geom_clone.GetGeometryName().upper()
+
+        from_xy = None
+        to_xy = None
+        if "MULTILINESTRING" in geom_name:
+            n_parts = geom_clone.GetGeometryCount()
+            if n_parts > 0:
+                first_line = geom_clone.GetGeometryRef(0)
+                if first_line is not None and first_line.GetPointCount() > 0:
+                    p = first_line.GetPoint(0)
+                    from_xy = (p[0], p[1])
+                last_line = geom_clone.GetGeometryRef(n_parts - 1)
+                if last_line is not None and last_line.GetPointCount() > 0:
+                    p = last_line.GetPoint(last_line.GetPointCount() - 1)
+                    to_xy = (p[0], p[1])
+        elif "LINESTRING" in geom_name:
+            n_pts = geom_clone.GetPointCount()
+            if n_pts > 0:
+                p = geom_clone.GetPoint(0)
+                from_xy = (p[0], p[1])
+                p = geom_clone.GetPoint(n_pts - 1)
+                to_xy = (p[0], p[1])
+
+        stream_records.append({
+            "fid": st_feature.GetFID(),
+            "geom": geom_clone,
+            "geom_name": geom_name,
+            "field_values": [st_feature.GetField(i) for i in range(orig_field_count)],
+            "from_xy": from_xy,
+            "to_xy": to_xy,
+        })
+
+    st_ds = None
+
+    # ---------- 3. 空间查询：每个端点属于哪个子流域 ----------
+    # 读取子流域几何用于点-面包含查询
+    sb_ds2 = ogr.Open(subbasin_path, gdal.GA_ReadOnly)
+    sb_layer2 = sb_ds2.GetLayer(0)
+
+    # 构建子流域几何列表：[(sb_id, geom_clone, minx, miny, maxx, maxy), ...]
+    sb_geoms = []
+    sb_layer2.ResetReading()
+    for sb_feature in sb_layer2:
+        sb_id = sb_feature.GetField("SUBBASINID")
+        sb_geom = sb_feature.GetGeometryRef()
+        if sb_id is None or sb_geom is None or sb_geom.IsEmpty():
+            continue
+        sb_id = int(sb_id)
+        sb_clone = sb_geom.Clone()
+        env = sb_clone.GetEnvelope()  # (minX, maxX, minY, maxY)
+        sb_geoms.append((sb_id, sb_clone, env[0], env[2], env[1], env[3]))
+
+    sb_ds2 = None
+
+    def find_subbasin_for_point(x, y):
+        """返回包含点 (x,y) 的子流域 ID；若不在任何子流域内返回 None。"""
+        for sb_id, sb_geom, minx, miny, maxx, maxy in sb_geoms:
+            if x < minx or x > maxx or y < miny or y > maxy:
+                continue
+            pt = ogr.Geometry(ogr.wkbPoint)
+            pt.AddPoint(x, y)
+            if sb_geom.Contains(pt):
+                pt = None
+                return sb_id
+            pt = None
+        return None
+
+    # ---------- 4. 吸附端点到锚点（按子流域限制） ----------
+    print("        吸附端点到子流域拐点（容差 {} 度）...".format(snap_tolerance))
+
+    # 构建锚点数组用于距离计算
+    anchor_positions = np.array([(a[0], a[1]) for a in anchors], dtype=np.float64)
+    anchor_sbs_list = [a[2] for a in anchors]  # 每个锚点的子流域集合
+
+    # 诊断：统计端点到最近锚点距离
+    min_dist_list = []
+    for rec in stream_records:
+        for xy in (rec["from_xy"], rec["to_xy"]):
+            if xy is None:
+                continue
+            dists = np.hypot(anchor_positions[:, 0] - xy[0],
+                             anchor_positions[:, 1] - xy[1])
+            min_dist_list.append(float(dists.min()))
+    if min_dist_list:
+        min_dist_arr = np.array(min_dist_list)
+        print("        诊断：端点到最近锚点距离——最小 {} / 中位数 {} / 90%分位 {} 度".format(
+            round(float(min_dist_arr.min()), 8),
+            round(float(np.median(min_dist_arr)), 8),
+            round(float(np.percentile(min_dist_arr, 90)), 8)))
+
+    # 对每个锚点，只吸附属于其共享子流域内的端点
+    # 先收集每个端点的子流域归属
+    endpoint_sb_info = {}  # fid → {"from_sb": sb_id or None, "to_sb": sb_id or None}
+    for rec in stream_records:
+        fid = rec["fid"]
+        from_sb = find_subbasin_for_point(*rec["from_xy"]) if rec["from_xy"] else None
+        to_sb = find_subbasin_for_point(*rec["to_xy"]) if rec["to_xy"] else None
+        endpoint_sb_info[fid] = {"from_sb": from_sb, "to_sb": to_sb}
+
+    snapped_count = 0
+    new_stream_records = []
+    snapped_fids = set()  # 记录哪些端点已被吸附，避免重复吸附
+
+    for rec in stream_records:
+        geom = rec["geom"]
+        geom_name = rec["geom_name"]
+        if geom is None:
+            new_stream_records.append(rec)
+            continue
+
+        fid = rec["fid"]
+        from_xy = rec["from_xy"]
+        to_xy = rec["to_xy"]
+        from_sb = endpoint_sb_info[fid]["from_sb"]
+        to_sb = endpoint_sb_info[fid]["to_sb"]
+
+        snapped_from = None
+        snapped_to = None
+
+        # 对起点：遍历所有锚点，若锚点的共享子流域包含 from_sb，且距离 < 容差，则吸附
+        if from_xy is not None and from_sb is not None:
+            best_dist = snap_tolerance
+            best_anchor = None
+            for a_idx, (ax, ay, a_sbs) in enumerate(anchors):
+                if from_sb not in a_sbs:
+                    continue
+                d = math.hypot(ax - from_xy[0], ay - from_xy[1])
+                if d <= best_dist:
+                    best_dist = d
+                    best_anchor = (ax, ay)
+            if best_anchor is not None:
+                snapped_from = best_anchor
+                print("          FID {} 起点 ({:.6f},{:.6f}) → ({:.6f},{:.6f})  子流域{}".format(
+                    fid, from_xy[0], from_xy[1], best_anchor[0], best_anchor[1], from_sb))
+
+        # 对终点：同上
+        if to_xy is not None and to_sb is not None:
+            best_dist = snap_tolerance
+            best_anchor = None
+            for a_idx, (ax, ay, a_sbs) in enumerate(anchors):
+                if to_sb not in a_sbs:
+                    continue
+                d = math.hypot(ax - to_xy[0], ay - to_xy[1])
+                if d <= best_dist:
+                    best_dist = d
+                    best_anchor = (ax, ay)
+            if best_anchor is not None:
+                snapped_to = best_anchor
+                print("          FID {} 终点 ({:.6f},{:.6f}) → ({:.6f},{:.6f})  子流域{}".format(
+                    fid, to_xy[0], to_xy[1], best_anchor[0], best_anchor[1], to_sb))
+
+        if snapped_from is None and snapped_to is None:
+            new_stream_records.append(rec)
+            continue
+
+        if snapped_from is not None:
+            snapped_count += 1
+        if snapped_to is not None:
+            snapped_count += 1
+
+        # 重建几何
+        if "MULTILINESTRING" in geom_name:
+            n_parts = geom.GetGeometryCount()
+            new_ml = ogr.Geometry(ogr.wkbMultiLineString)
+            for part_idx in range(n_parts):
+                line_part = geom.GetGeometryRef(part_idx)
+                if line_part is None or line_part.GetPointCount() == 0:
+                    continue
+                new_line = ogr.Geometry(ogr.wkbLineString)
+                n_pts = line_part.GetPointCount()
+                for pt_idx in range(n_pts):
+                    pt = line_part.GetPoint(pt_idx)
+                    if part_idx == 0 and pt_idx == 0 and snapped_from is not None:
+                        new_line.AddPoint(snapped_from[0], snapped_from[1])
+                    elif part_idx == n_parts - 1 and pt_idx == n_pts - 1 and snapped_to is not None:
+                        new_line.AddPoint(snapped_to[0], snapped_to[1])
+                    else:
+                        new_line.AddPoint(pt[0], pt[1])
+                new_ml.AddGeometry(new_line)
+                new_line = None
+            geom = new_ml
+        elif "LINESTRING" in geom_name:
+            n_pts = geom.GetPointCount()
+            new_line = ogr.Geometry(ogr.wkbLineString)
+            for pt_idx in range(n_pts):
+                pt = geom.GetPoint(pt_idx)
+                if pt_idx == 0 and snapped_from is not None:
+                    new_line.AddPoint(snapped_from[0], snapped_from[1])
+                elif pt_idx == n_pts - 1 and snapped_to is not None:
+                    new_line.AddPoint(snapped_to[0], snapped_to[1])
+                else:
+                    new_line.AddPoint(pt[0], pt[1])
+            geom = new_line
+
+        rec["geom"] = geom
+        if snapped_from is not None:
+            rec["from_xy"] = snapped_from
+        if snapped_to is not None:
+            rec["to_xy"] = snapped_to
+
+        new_stream_records.append(rec)
+
+    print("        吸附了 {} 个端点".format(snapped_count))
+
+    # ---------- 5. 写出修复后的河道 SHP ----------
+    print("        写出修复后的河道 SHP ...")
+
+    driver = ogr.GetDriverByName("ESRI Shapefile")
+    if os.path.exists(output_path):
+        if not overwrite:
+            raise IOError("输出文件已存在：{}".format(output_path))
+        driver.DeleteDataSource(output_path)
+
+    out_ds = driver.CreateDataSource(output_path)
+    if out_ds is None:
+        raise IOError("无法创建输出河道 Shapefile：{}".format(output_path))
+
+    out_layer = out_ds.CreateLayer(
+        os.path.splitext(os.path.basename(output_path))[0],
+        srs=st_srs,
+        geom_type=ogr.wkbMultiLineString,
+        options=["ENCODING=UTF-8"]
+    )
+
+    if out_layer is None:
+        out_ds = None
+        raise RuntimeError("无法创建输出图层")
+
+    for field_idx in range(orig_field_count):
+        field_defn = orig_defn.GetFieldDefn(field_idx)
+        if out_layer.CreateField(field_defn) != 0:
+            out_ds = None
+            raise RuntimeError("无法复制河道字段：{}".format(field_defn.GetName()))
+
+    out_defn = out_layer.GetLayerDefn()
+    out_count = 0
+
+    for rec in new_stream_records:
+        geom = rec["geom"]
+        if geom is None or geom.IsEmpty():
+            continue
+
+        new_feature = ogr.Feature(out_defn)
+        for i, val in enumerate(rec["field_values"]):
+            new_feature.SetField(i, val)
+
+        gname = geom.GetGeometryName().upper()
+        if "LINESTRING" in gname and "MULTI" not in gname:
+            ml = ogr.Geometry(ogr.wkbMultiLineString)
+            ml.AddGeometry(geom)
+            geom = ml
+
+        new_feature.SetGeometry(geom)
+
+        if out_layer.CreateFeature(new_feature) != 0:
+            new_feature = None
+            out_ds = None
+            raise RuntimeError("写入河道要素失败")
+
+        new_feature = None
+        out_count += 1
+
+    out_layer.SyncToDisk()
+    out_ds = None
+
+    print("        拓扑修复完成：{} 条河道，吸附 {} 个端点".format(
+        out_count, snapped_count))
+
+    return {"stream_count": out_count, "snapped_count": snapped_count}
+
+
+def extract_stream_nodes(stream_path, node_path, overwrite=True, precision=6):
+    """
+    从河道 Shapefile 中提取节点并输出节点 Shapefile，同时为河道添加
+    FROM_NODE 和 TO_NODE 字段。
+
+    步骤：
+        1. 遍历所有河道要素，提取每条河道的起点和终点。
+        2. 按坐标去重（容差由 precision 控制），为每个唯一节点分配 NODEID。
+        3. 输出节点 Shapefile（点要素，含 NODEID 字段）。
+        4. 在河道 Shapefile 中新增 FROM_NODE 和 TO_NODE 字段。
+
+    对于 MultiLineString，取第一条 LineString 的第一个点作为起点，
+    最后一条 LineString 的最后一个点作为终点。
+
+    参数：
+        stream_path  : 河道 Shapefile 路径（将被原地修改以添加字段）。
+        node_path    : 输出节点 Shapefile 路径。
+        overwrite    : 是否覆盖已存在的节点文件。
+        precision    : 坐标去重的小数位数（6 ≈ 0.1 m，适用于经纬度）。
+    """
+    ensure_file(stream_path, "河道 Shapefile")
+
+    # ---------- 1. 读取河道，提取端点 ----------
+    ds = ogr.Open(stream_path, 1)  # 可写模式，后续要添加字段
+    if ds is None:
+        raise IOError("无法打开河道 Shapefile：{}".format(stream_path))
+
+    layer = ds.GetLayer(0)
+    if layer is None:
+        ds = None
+        raise RuntimeError("河道 Shapefile 中没有可用图层")
+
+    srs = layer.GetSpatialRef()
+    defn = layer.GetLayerDefn()
+
+    # 收集每条河道的 (fid, from_xy, to_xy)
+    stream_endpoints = []
+    layer.ResetReading()
+    for feature in layer:
+        geom = feature.GetGeometryRef()
+        if geom is None or geom.IsEmpty():
+            stream_endpoints.append((feature.GetFID(), None, None))
+            continue
+
+        geom_name = geom.GetGeometryName().upper()
+        first_point = None
+        last_point = None
+
+        if "MULTILINESTRING" in geom_name:
+            n_parts = geom.GetGeometryCount()
+            if n_parts > 0:
+                first_line = geom.GetGeometryRef(0)
+                if first_line is not None and first_line.GetPointCount() > 0:
+                    first_point = first_line.GetPoint(0)
+                last_line = geom.GetGeometryRef(n_parts - 1)
+                if last_line is not None and last_line.GetPointCount() > 0:
+                    last_point = last_line.GetPoint(last_line.GetPointCount() - 1)
+        elif "LINESTRING" in geom_name:
+            n_pts = geom.GetPointCount()
+            if n_pts > 0:
+                first_point = geom.GetPoint(0)
+                last_point = geom.GetPoint(n_pts - 1)
+
+        if first_point is not None:
+            from_xy = (round(first_point[0], precision),
+                       round(first_point[1], precision))
+        else:
+            from_xy = None
+
+        if last_point is not None:
+            to_xy = (round(last_point[0], precision),
+                     round(last_point[1], precision))
+        else:
+            to_xy = None
+
+        stream_endpoints.append((feature.GetFID(), from_xy, to_xy))
+        feature = None
+
+    # ---------- 2. 去重并分配 NODEID ----------
+    node_map = {}  # (x, y) -> NODEID
+    node_list = []  # [(NODEID, x, y), ...]
+
+    for _, from_xy, to_xy in stream_endpoints:
+        for xy in (from_xy, to_xy):
+            if xy is None:
+                continue
+            if xy not in node_map:
+                node_id = len(node_list) + 1
+                node_map[xy] = node_id
+                node_list.append((node_id, xy[0], xy[1]))
+
+    print("        提取到 {} 个唯一节点（{} 条河道）".format(
+        len(node_list), len(stream_endpoints)))
+
+    # ---------- 3. 输出节点 Shapefile ----------
+    if os.path.exists(node_path):
+        if not overwrite:
+            ds = None
+            raise IOError("输出文件已存在：{}；请将 overwrite 设为 True".format(node_path))
+        node_driver = ogr.GetDriverByName("ESRI Shapefile")
+        node_driver.DeleteDataSource(node_path)
+
+    node_driver = ogr.GetDriverByName("ESRI Shapefile")
+    node_ds = node_driver.CreateDataSource(node_path)
+    if node_ds is None:
+        ds = None
+        raise IOError("无法创建节点 Shapefile：{}".format(node_path))
+
+    node_layer = node_ds.CreateLayer(
+        os.path.splitext(os.path.basename(node_path))[0],
+        srs=srs,
+        geom_type=ogr.wkbPoint,
+        options=["ENCODING=UTF-8"]
+    )
+    if node_layer is None:
+        node_ds = None
+        ds = None
+        raise RuntimeError("无法创建节点图层")
+
+    node_field = ogr.FieldDefn("NODEID", ogr.OFTInteger)
+    if node_layer.CreateField(node_field) != 0:
+        node_ds = None
+        ds = None
+        raise RuntimeError("无法添加 NODEID 字段")
+
+    node_defn = node_layer.GetLayerDefn()
+    for node_id, x, y in node_list:
+        point_geom = ogr.Geometry(ogr.wkbPoint)
+        point_geom.AddPoint(x, y)
+        node_feature = ogr.Feature(node_defn)
+        node_feature.SetField("NODEID", node_id)
+        node_feature.SetGeometry(point_geom)
+        if node_layer.CreateFeature(node_feature) != 0:
+            node_feature = None
+            node_ds = None
+            ds = None
+            raise RuntimeError("写入节点要素失败")
+        node_feature = None
+
+    node_layer.SyncToDisk()
+    node_ds = None
+
+    print("        已输出节点 Shapefile：{}（{} 个节点）".format(
+        node_path, len(node_list)))
+
+    # ---------- 4. 为河道添加 FROM_NODE / TO_NODE 字段 ----------
+    # 检查字段是否已存在
+    from_idx = defn.GetFieldIndex("FROM_NODE")
+    if from_idx < 0:
+        if layer.CreateField(ogr.FieldDefn("FROM_NODE", ogr.OFTInteger)) != 0:
+            ds = None
+            raise RuntimeError("无法添加 FROM_NODE 字段")
+        from_idx = layer.GetLayerDefn().GetFieldIndex("FROM_NODE")
+
+    to_idx = defn.GetFieldIndex("TO_NODE")
+    if to_idx < 0:
+        if layer.CreateField(ogr.FieldDefn("TO_NODE", ogr.OFTInteger)) != 0:
+            ds = None
+            raise RuntimeError("无法添加 TO_NODE 字段")
+        to_idx = layer.GetLayerDefn().GetFieldIndex("TO_NODE")
+
+    # 构建 fid → (from_xy, to_xy) 查找表，避免回写时对每个要素做 O(n) 线性扫描
+    endpoints_by_fid = {ep_fid: (ep_from, ep_to)
+                        for ep_fid, ep_from, ep_to in stream_endpoints}
+
+    updated_count = 0
+    layer.ResetReading()
+    for feature in layer:
+        fid = feature.GetFID()
+        from_xy, to_xy = endpoints_by_fid.get(fid, (None, None))
+
+        from_node = node_map.get(from_xy, 0) if from_xy else 0
+        to_node = node_map.get(to_xy, 0) if to_xy else 0
+
+        feature.SetField(from_idx, from_node)
+        feature.SetField(to_idx, to_node)
+        if layer.SetFeature(feature) != 0:
+            print("        警告：河道 FID={} 写入 FROM_NODE/TO_NODE 失败".format(fid))
+        else:
+            updated_count += 1
+        feature = None
+
+    layer.SyncToDisk()
+    ds = None
+
+    print("        已更新河道 FROM_NODE/TO_NODE：{}（{} 条河道）".format(
+        stream_path, updated_count))
+
+    return {"node_count": len(node_list), "stream_count": updated_count}
 
 
 def main():
@@ -1697,9 +3073,10 @@ def main():
         r"\taihu_preprocess\cliped_taihu_data"
     )
 
+
     ensure_file(mask_path, "太湖流域范围 Shapefile")
     mask_geometry, mask_srs = read_mask_union(mask_path)
-
+    """
     # ------------------------------------------------------------------
     # 第 1 步：裁剪 Watershed.tif
     # ------------------------------------------------------------------
@@ -1712,7 +3089,7 @@ def main():
 
     print("[1/12] 裁剪栅格：Watershed.tif")
 
-    # info = clip_raster(input_path,output_path,mask_path,mask_geometry,mask_srs,overwrite)
+    info = clip_raster(input_path, output_path, mask_path, mask_geometry, mask_srs, overwrite)
     # 第 2 步：subbasin.tif 转为融合后的子流域面
     # ------------------------------------------------------------------
     input_path = os.path.join(output_basepath, "subbasin.tif")
@@ -1721,14 +3098,9 @@ def main():
 
     print("[2/12] 栅格转子流域面：subbasin.tif")
 
-    # feature_count = raster_to_dissolved_subbasin_shp(input_path,output_path,overwrite)
+    feature_count = raster_to_dissolved_subbasin_shp(input_path, output_path, overwrite)
 
-    # print(
-    #     "        输出：{}（{} 个子流域面要素）".format(
-    #         output_path,
-    #         feature_count
-    #     )
-    # )
+    print("        输出：{}（{} 个子流域面要素）".format(output_path, feature_count))
 
     # ------------------------------------------------------------------
     # 第 3 步：裁剪 Taihu_lakes.tif (hydrolake)
@@ -1743,45 +3115,81 @@ def main():
 
     print("[3/12] 裁剪栅格：Taihu_lakes.tif (hydrolake)")
 
-    # info = clip_raster(input_path,output_path,mask_path,mask_geometry,mask_srs,overwrite)
+    info = clip_raster(input_path, output_path, mask_path, mask_geometry, mask_srs, overwrite)
 
 
     # ------------------------------------------------------------------
     # 第 4 步：生成湖泊子流域
     # ------------------------------------------------------------------
     watershed_path = os.path.join(output_basepath, "subbasin.tif")
+    cliped_hydrlakes_path = os.path.join(output_basepath, "hydrolake.tif")
     lake_tif_path = os.path.join(output_basepath, "lake_subbasin.tif")
     lake_shp_path = os.path.join(output_basepath, "lake_subbasin.shp")
     overwrite = True
 
     print("[4/12] 生成湖泊子流域：subbasin.tif + hydrolake.tif")
 
-    # lake_info = generate_lake_subbasin(watershed_path,cliped_hydrlakes_path,lake_tif_path,lake_shp_path,overwrite)
+    lake_info = generate_lake_subbasin(watershed_path, cliped_hydrlakes_path, lake_tif_path, lake_shp_path, overwrite)
 
-    # print(
-    #     "        匹配到 {} 个湖泊子流域，最大已有子流域 ID={}，临时 ID 起始值={}".format(
-    #         lake_info["matched_lake_count"],
-    #         lake_info["max_existing_id"],
-    #         min(lake_info["temp_ids"]) if lake_info["temp_ids"] else "N/A"
-    #     )
-    # )
+    print(
+        "        匹配到 {} 个湖泊子流域，最大已有子流域 ID={}，临时 ID 起始值={}".format(
+            lake_info["matched_lake_count"],
+            lake_info["max_existing_id"],
+            min(lake_info["temp_ids"]) if lake_info["temp_ids"] else "N/A"
+        )
+    )
+
+    # ------------------------------------------------------------------
+    # 第 4.1 步：拆分离散子流域（同一 ID 的不连通区域拆为独立子流域）
+    # ------------------------------------------------------------------
+    split_tif_path = os.path.join(output_basepath, "lake_subbasin_split.tif")
+    split_shp_path = os.path.join(output_basepath, "lake_subbasin_split.shp")
+    print("[4.1] 拆分离散子流域：lake_subbasin.tif → lake_subbasin_split.tif")
+
+    split_info = split_disconnected_subbasins(
+        lake_tif_path, lake_shp_path, overwrite,
+        output_tif_path=split_tif_path, output_shp_path=split_shp_path)
+
+    print("        拆分 {} 个离散区域，共 {} 个子流域".format(
+        split_info["split_count"], split_info["total_subbasins"]))
+
+    # ------------------------------------------------------------------
+    # 第 4.2 步：合并小面积子流域到相邻的大子流域
+    # ------------------------------------------------------------------
+    # min_area 单位为平方米（经纬度栅格会自动用球面近似换算）。
+    # 10000000 平方米 = 10 平方公里
+    min_subbasin_area = 100000
+    merged_tif_path = os.path.join(output_basepath, "lake_subbasin_merged.tif")
+    merged_shp_path = os.path.join(output_basepath, "lake_subbasin_merged.shp")
+    print("[4.2] 合并小面积子流域（阈值 {} m²）：lake_subbasin_split.tif → lake_subbasin_merged.tif".format(
+        min_subbasin_area))
+
+    merge_info = merge_small_subbasins(
+        split_tif_path, split_shp_path, min_subbasin_area, overwrite,
+        output_tif_path=merged_tif_path, output_shp_path=merged_shp_path)
+
+    print("        合并 {} 个小面积子流域，剩余 {} 个子流域".format(
+        merge_info["merged_count"], merge_info["total_subbasins"]))
 
     # ------------------------------------------------------------------
     # 第 5 步：统一重新编号所有子流域（从 1 开始递增）
     # ------------------------------------------------------------------
-    print("[5/12] 统一重新编号所有子流域：lake_subbasin.tif + lake_subbasin.shp")
+    final_tif_path = os.path.join(output_basepath, "lake_subbasin_final.tif")
+    final_shp_path = os.path.join(output_basepath, "lake_subbasin_final.shp")
+    print("[5/12] 统一重新编号所有子流域：lake_subbasin_merged.tif → lake_subbasin_final.tif")
 
-    # renumber_info = renumber_subbasins(lake_tif_path,lake_shp_path,overwrite)
+    renumber_info = renumber_subbasins(
+        merged_tif_path, merged_shp_path, overwrite,
+        output_tif_path=final_tif_path, output_shp_path=final_shp_path)
 
-    # print(
-    #     "        共 {} 个子流域已统一编号（从 1 开始）".format(
-    #         renumber_info["total_subbasins"]
-    #     )
-    # )
+    print("        共 {} 个子流域已统一编号（从 1 开始）".format(renumber_info["total_subbasins"]))
+
+
 
     # ------------------------------------------------------------------
     # 第 6 步：裁剪 burnedfillDEM.tif
     # ------------------------------------------------------------------
+
     input_path = os.path.join(input_basepath, "burnedfillDEM.tif")
     output_path = os.path.join(output_basepath, "dem.tif")
     overwrite = True
@@ -1791,7 +3199,7 @@ def main():
 
     print("[6/12] 裁剪栅格：burnedfillDEM.tif")
 
-    # info = clip_raster(input_path,output_path,mask_path,mask_geometry,mask_srs,overwrite)
+    info = clip_raster(input_path, output_path, mask_path, mask_geometry, mask_srs, overwrite)
 
     # ------------------------------------------------------------------
     # 第 7 步：裁剪 Final_fdr.tif
@@ -1805,7 +3213,7 @@ def main():
 
     print("[7/12] 裁剪栅格：Final_fdr.tif")
 
-    # info = clip_raster(input_path,output_path,mask_path,mask_geometry, mask_srs,overwrite)
+    info = clip_raster(input_path, output_path, mask_path, mask_geometry, mask_srs, overwrite)
 
     # ------------------------------------------------------------------
     # 第 8 步：裁剪单方向 fdr.tif
@@ -1819,7 +3227,8 @@ def main():
 
     print("[8/12] 裁剪栅格：fdr.tif")
 
-    # info = clip_raster(input_path,output_path,mask_path,mask_geometry,mask_srs,overwrite)
+    info = clip_raster(input_path, output_path, mask_path, mask_geometry, mask_srs, overwrite)
+
 
     # ------------------------------------------------------------------
     # 第 9 步：裁剪 stream.tif
@@ -1833,8 +3242,8 @@ def main():
 
     print("[9/12] 裁剪栅格：stream.tif")
 
-    # info = clip_raster(input_path,output_path,mask_path,mask_geometry,mask_srs,overwrite)
-
+    info = clip_raster(input_path, output_path, mask_path, mask_geometry, mask_srs, overwrite)
+    """
     # ------------------------------------------------------------------
     # 第 10 步：裁剪 stream_split.shp
     # ------------------------------------------------------------------
@@ -1847,33 +3256,64 @@ def main():
 
     print("[10/12] 裁剪河网：stream_split.shp")
 
-    # feature_count = clip_stream_vector(input_path,output_path,mask_geometry,mask_srs,overwrite)
+    # feature_count = clip_stream_vector(input_path, output_path, mask_geometry, mask_srs, overwrite)
 
-    # print(
-    #     "        输出：{}（{} 条河道要素）".format(
-    #         output_path,
-    #         feature_count
-    #     )
-    # )
+    # print("        输出：{}（{} 条河道要素）".format(output_path, feature_count))
+
 
     # ------------------------------------------------------------------
-    # 第 11 步：根据湖泊子流域更新河道 LINKNO 字段
+    # 第 11 步：根据已有湖泊子流域更新河道 LINKNO 字段
     # ------------------------------------------------------------------
-    lake_shp_path = os.path.join(output_basepath, "lake_subbasin.shp")
+    lake_shp_path = os.path.join(output_basepath, "lake_subbasin_final.shp")
     stream_shp_path = os.path.join(output_basepath, "stream_link.shp")
+    overwrite = True
+    # max_workers = min(8, max(1, os.cpu_count() or 1))
 
-    print("[11/12] 根据湖泊子流域更新河道 LINKNO")
+    max_workers = 14
 
-    updated_count = update_stream_linkno_by_subbasin(
-        stream_shp_path,
-        lake_shp_path,
-        overwrite
-    )
+    # ------------------------------------------------------------------
+    # 第 11 步：修复河道拓扑（吸附交点到子流域拐点）
+    # ------------------------------------------------------------------
+    # 先修复拓扑：将河道交点对齐到子流域拐点，再根据子流域打断河道，
+    # 这样打断时河道交点已在子流域边界上，LINKNO 更新更准确。
+    # snap_tolerance: 端点吸附容差（度）。0.003 度 ≈ 333 米（赤道）。
+    # vertex_merge_tolerance: 顶点去重精度，保持小值避免误合并不同顶点。
+    snap_tolerance = 0.003        # ≈ 300 米
+    vertex_merge_tolerance = 0.003  # ≈ 300 米
 
-    print(
-        "        已更新 {} 条河道的 LINKNO 字段".format(updated_count)
-    )
+    print("[11/12] 修复河道拓扑：吸附交点到子流域拐点")
+    snaped_stream_shp = os.path.join(output_basepath, "stream_link_snaped.shp")
+    topology_info = repair_stream_topology(
+        stream_shp_path, lake_shp_path,
+        output_path=snaped_stream_shp, snap_tolerance=snap_tolerance,
+        vertex_merge_tolerance=vertex_merge_tolerance)
 
+    print("        吸附 {} 个端点".format(
+        topology_info["snapped_count"]))
+
+    # ------------------------------------------------------------------
+    # 第 11.1 步：根据湖泊子流域更新河道 LINKNO
+    # ------------------------------------------------------------------
+    print("[11.1/12] 根据湖泊子流域更新河道 LINKNO")
+
+    updated_count = update_stream_linkno_by_subbasin(snaped_stream_shp, lake_shp_path, overwrite, max_workers)
+
+    print("        已更新 {} 条河道的 LINKNO 字段".format(updated_count))
+
+    # ------------------------------------------------------------------
+    # 第 11.2 步：提取河道节点，添加 FROM_NODE / TO_NODE 字段
+    # ------------------------------------------------------------------
+    node_shp_path = os.path.join(output_basepath, "node.shp")
+    overwrite = True
+    print("[11.2/12] 提取河道节点：FROM_NODE / TO_NODE")
+
+    node_info = extract_stream_nodes(snaped_stream_shp, node_shp_path, overwrite)
+
+    print("        节点 {} 个，河道 {} 条".format(
+        node_info["node_count"], node_info["stream_count"]))
+
+
+    """
     # ------------------------------------------------------------------
     # 第 12 步：根据单方向 FDR.tif 计算汇流累积量
     # ------------------------------------------------------------------
@@ -1885,12 +3325,7 @@ def main():
 
     print("[12/12] 计算单方向 FDR 汇流累积量：FDR.tif")
 
-    accumulation_info = calculate_d8_flow_accumulation(
-        input_path,
-        output_path,
-        overwrite=overwrite,
-        include_self=include_self
-    )
+    accumulation_info = calculate_d8_flow_accumulation(input_path, output_path, overwrite=overwrite, include_self=include_self)
 
     print(
         "        输出：{}（有效格点数：{}，最大累积量：{}）".format(
@@ -1899,7 +3334,7 @@ def main():
             accumulation_info["max_accumulation"]
         )
     )
-
+    """
     return 0
 
 

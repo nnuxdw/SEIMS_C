@@ -20,14 +20,14 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.SetVersion("0.1");
     mdi.SetWebsite(SEIMS_SITE);
 
-    mdi.AddParameter(Tag_ChannelTimeStep, UNIT_SECOND, DESC_TIMESTEP, File_Input, DT_Single);
+    mdi.AddParameter(Tag_ChannelTimeStep, UNIT_SECOND, DESC_TIMESTEP, File_Input, DT_Single); // Required, > 0 s.
     mdi.AddParameter("SWMM_MAX_TRIALS", UNIT_NON_DIM, "Maximum Picard iterations per internal routing step",
-                     Source_ParameterDB_Optional, DT_Single);
-    mdi.AddParameter("SWMM_HEAD_TOL", UNIT_LEN_M, "Node head convergence tolerance", Source_ParameterDB_Optional, DT_Single);
-    mdi.AddParameter("SWMM_MIN_ROUTE_STEP", UNIT_SECOND, "Minimum internal dynamic-wave step", Source_ParameterDB_Optional, DT_Single);
+                     Source_ParameterDB_Optional, DT_Single); // Integer >= 1; default 8.
+    mdi.AddParameter("SWMM_HEAD_TOL", UNIT_LEN_M, "Node head convergence tolerance", Source_ParameterDB_Optional, DT_Single); // > 0; default 0.001 m.
+    mdi.AddParameter("SWMM_MIN_ROUTE_STEP", UNIT_SECOND, "Minimum internal dynamic-wave step", Source_ParameterDB_Optional, DT_Single); // >= 0.001; default 1 s.
     mdi.AddParameter("SWMM_COURANT_FACTOR", UNIT_NON_DIM, "Courant factor; zero uses the channel time step",
-                     Source_ParameterDB_Optional, DT_Single);
-    mdi.AddParameter("SWMM_MIN_SURFACE_AREA", "m2", "Minimum node surface area", Source_ParameterDB_Optional, DT_Single);
+                     Source_ParameterDB_Optional, DT_Single); // 0 disables substepping; default 0.75.
+    mdi.AddParameter("SWMM_MIN_SURFACE_AREA", "m2", "Minimum node surface area", Source_ParameterDB_Optional, DT_Single); // > 0; default 1.167 m2.
 
     mdi.AddInput(VAR_SBOF, UNIT_FLOW_CMS, DESC_SBOF, Source_Module, DT_Array1D);
     mdi.AddInput(VAR_SBIF, UNIT_FLOW_CMS, DESC_SBIF, Source_Module, DT_Array1D);
