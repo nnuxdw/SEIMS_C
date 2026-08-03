@@ -688,7 +688,7 @@ void SUR_MR_HAND::Set1DData(const char* key, const int n, float* data) {
 
 void SUR_MR_HAND::SetReaches(clsReaches* reaches) {
 	if (nullptr == reaches) {
-		throw ModelException(MID_MUSK_CH, "SetReaches", "The reaches input can not to be NULL.");
+		throw ModelException(MID_SUR_MR_HAND, "SetReaches", "The reaches input can not to be NULL.");
 	}
 	m_nreach = reaches->GetReachNumber();
 }
