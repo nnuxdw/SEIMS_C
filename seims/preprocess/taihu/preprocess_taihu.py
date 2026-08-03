@@ -2050,12 +2050,12 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path, overwrite=True,
     """
     根据湖泊子流域面更新河道 Shapefile 的 LINKNO 字段。
 
-    对每条河道段，计算其与所有子流域面的空间相交关系，
-    将 LINKNO 设置为相交长度最大的子流域的 SUBBASINID。
-    若河道完全不在任何子流域内，则 LINKNO 设为 0。
+    保留每条河道的原始几何，不再用子流域边界裁剪、打断或合并河道。
+    对每条河道，计算其与各子流域的相交长度，并将 LINKNO 设置为相交长度
+    最大的 SUBBASINID；若河道完全不与任何子流域相交，LINKNO 设为 0。
 
-    多线程仅用于“河道—子流域”的空间相交计算；Shapefile 的读写保持
-    单线程，避免旧版 GDAL/OGR 在并发访问数据源时出现不稳定。
+    多线程仅用于“单条河道—候选子流域”的相交长度计算；Shapefile 的读写
+    保持单线程，避免旧版 GDAL/OGR 在并发访问数据源时出现不稳定。
     """
     ensure_file(stream_path, "河道 Shapefile")
     ensure_file(subbasin_path, "湖泊子流域 Shapefile")
@@ -2157,6 +2157,7 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path, overwrite=True,
     # 读取所有河道要素及字段定义
     orig_defn = st_layer.GetLayerDefn()
     orig_field_count = orig_defn.GetFieldCount()
+    orig_geom_type = st_layer.GetGeomType()
     orig_field_names = [orig_defn.GetFieldDefn(i).GetName()
                         for i in range(orig_field_count)]
 
@@ -2196,141 +2197,90 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path, overwrite=True,
     if len(stream_features) == 0:
         raise RuntimeError("河道 Shapefile 中没有有效线要素")
 
-    # ---------- 多线程：按子流域打断河道 → 合并 → 计算 LINKNO ----------
-    # 每个工作线程处理一个子流域，完成三步：
-    #   1) 打断：用子流域面裁切所有河道（Intersection），使河道不跨子流域；
-    #   2) 合并：将该子流域内的所有河道片段组装为一个 MultiLineString；
-    #   3) LINKNO = subbasin_id（河道已裁切到此子流域内，无需再搜索）。
+    # ---------- 多线程：为每条原始河道选择相交长度最大的子流域 ----------
     total_subbasin_count = len(subbasin_wkbs)
     total_stream_count = len(stream_features)
-    worker_state = threading.local()
 
     def _bbox_overlap(env_a, env_b):
         """快速判断两个包围盒是否重叠。env = (minX, maxX, minY, maxY)。"""
         if env_a is None or env_b is None:
-            return True  # 无法判断时保守返回 True
+            return True
         return not (env_a[1] < env_b[0] or env_a[0] > env_b[1] or
                     env_a[3] < env_b[2] or env_a[2] > env_b[3])
 
-    def get_worker_streams():
-        """每个工作线程只反序列化一次河道几何，后续子流域复用。"""
-        cached = getattr(worker_state, "streams", None)
-        if cached is not None:
-            return cached
-        cached = []
-        for sf in stream_features:
-            wkb = sf["geometry_wkb"]
-            if wkb is None:
-                cached.append((None, sf["envelope"]))
-                continue
-            try:
-                geom = ogr.CreateGeometryFromWkb(wkb)
-            except Exception:
-                geom = None
-            cached.append((geom, sf["envelope"]))
-        worker_state.streams = cached
-        return cached
+    def _lineal_length(geom):
+        """返回几何中线要素的总长度，忽略仅由点构成的相交结果。"""
+        if geom is None or geom.IsEmpty():
+            return 0.0
+        geom_name = geom.GetGeometryName().upper()
+        if "LINESTRING" in geom_name:
+            return geom.Length()
+        if "MULTI" in geom_name or "GEOMETRYCOLLECTION" in geom_name:
+            return sum(_lineal_length(geom.GetGeometryRef(index))
+                       for index in range(geom.GetGeometryCount()))
+        return 0.0
 
-    def collect_line_parts(geom, parts):
-        """递归收集几何中的所有线部分到 parts 列表。"""
-        if geom is None:
-            return
-        name = geom.GetGeometryName().upper()
-        if "LINESTRING" in name and "MULTI" not in name:
-            parts.append(geom.Clone())
-        elif "MULTI" in name or "GEOMETRYCOLLECTION" in name:
-            for i in range(geom.GetGeometryCount()):
-                collect_line_parts(geom.GetGeometryRef(i), parts)
+    def process_stream(stream_index):
+        """为一条河道选择重叠长度最大的子流域，不改变其原始几何。"""
+        stream = stream_features[stream_index]
+        if stream["geometry_wkb"] is None:
+            return stream_index, 0, 0.0, 0.0
 
-    def process_subbasin(sb_index):
-        """线程内处理一个子流域：打断河道 → 合并 → LINKNO = subbasin_id。
-
-        返回 (sb_index, subbasin_id, merged_wkb, linkno)。
-        若该子流域内无河道片段，merged_wkb 为 None。
-        """
-        subbasin_id, subbasin_wkb, sb_env = subbasin_wkbs[sb_index]
         try:
-            subbasin_geom = ogr.CreateGeometryFromWkb(subbasin_wkb)
+            stream_geom = ogr.CreateGeometryFromWkb(stream["geometry_wkb"])
         except Exception:
-            subbasin_geom = None
-        if subbasin_geom is None or subbasin_geom.IsEmpty():
-            return sb_index, subbasin_id, None, 0
+            stream_geom = None
+        if stream_geom is None or stream_geom.IsEmpty():
+            return stream_index, 0, 0.0, 0.0
 
-        # 1) 打断：用子流域面裁切每条河道，收集落在子流域内的线段
-        #    先用包围盒快速过滤，再对候选做昂贵的 Intersection
-        worker_streams = get_worker_streams()
-        line_parts = []
-        for stream_geom, stream_env in worker_streams:
-            if stream_geom is None or stream_geom.IsEmpty():
-                continue
-            # 包围盒快速过滤：不重叠则跳过，避免无谓的 Intersection
-            if not _bbox_overlap(sb_env, stream_env):
+        stream_length = _lineal_length(stream_geom)
+        best_subbasin_id = 0
+        best_overlap_length = 0.0
+
+        for subbasin_id, subbasin_wkb, subbasin_env in subbasin_wkbs:
+            if not _bbox_overlap(stream["envelope"], subbasin_env):
                 continue
             try:
+                subbasin_geom = ogr.CreateGeometryFromWkb(subbasin_wkb)
                 intersection = stream_geom.Intersection(subbasin_geom)
+                overlap_length = _lineal_length(intersection)
             except Exception:
                 continue
-            if intersection is None or intersection.IsEmpty():
-                continue
-            collect_line_parts(intersection, line_parts)
 
-        if not line_parts:
-            return sb_index, subbasin_id, None, 0
+            # 边界重合时可能长度相同；按更小的子流域 ID 打破平局，保证结果稳定。
+            if overlap_length > best_overlap_length or (
+                    overlap_length == best_overlap_length and
+                    overlap_length > 0 and
+                    (best_subbasin_id == 0 or subbasin_id < best_subbasin_id)):
+                best_subbasin_id = subbasin_id
+                best_overlap_length = overlap_length
 
-        # 2) 合并：将所有线段组装为一个 MultiLineString
-        merged = ogr.Geometry(ogr.wkbMultiLineString)
-        for part in line_parts:
-            merged.AddGeometry(part)
+        return stream_index, best_subbasin_id, best_overlap_length, stream_length
 
-        if merged.IsEmpty():
-            return sb_index, subbasin_id, None, 0
-
-        try:
-            merged_wkb = bytes(merged.ExportToWkb())
-        except Exception:
-            return sb_index, subbasin_id, None, 0
-
-        # 3) LINKNO = subbasin_id
-        #    河道已裁切到此子流域内，LINKNO 即为当前子流域 ID，无需再搜索。
-        return sb_index, subbasin_id, merged_wkb, subbasin_id
-
-    # 存放每个子流域的处理结果
-    merged_results = [None] * total_subbasin_count
-
-    print("        河道打断-合并-LINKNO 使用 {} 个线程（{} 个子流域 × {} 条河道）".format(
-        max_workers, total_subbasin_count, total_stream_count))
+    # 每个结果与 stream_features 下标对应，因而写出时可保留原有要素顺序、属性与几何。
+    stream_results = [None] * total_stream_count
+    print("        计算原始河道的主归属子流域：{} 条河道 × {} 个子流域，使用 {} 个线程".format(
+        total_stream_count, total_subbasin_count, max_workers))
 
     if max_workers == 1:
-        for sb_index in range(total_subbasin_count):
-            try:
-                idx, sb_id, merged_wkb, linkno = process_subbasin(sb_index)
-            except Exception as error:
-                print("        警告：子流域索引 {} 处理失败：{}".format(sb_index, error))
-                continue
-            merged_results[idx] = (sb_id, merged_wkb, linkno)
-            if merged_wkb is not None:
-                print("        子流域 {}/{}（ID={}）河道合并完成，LINKNO={}".format(
-                    sb_index + 1, total_subbasin_count, sb_id, linkno), flush=True)
+        for stream_index in range(total_stream_count):
+            stream_results[stream_index] = process_stream(stream_index)
     else:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_index = {}
-            for sb_index in range(total_subbasin_count):
-                future = executor.submit(process_subbasin, sb_index)
-                future_to_index[future] = sb_index
-
+            future_to_index = {
+                executor.submit(process_stream, stream_index): stream_index
+                for stream_index in range(total_stream_count)
+            }
             for future in as_completed(future_to_index):
-                sb_index = future_to_index[future]
+                stream_index = future_to_index[future]
                 try:
-                    idx, sb_id, merged_wkb, linkno = future.result()
+                    stream_results[stream_index] = future.result()
                 except Exception as error:
-                    print("        警告：子流域索引 {} 处理失败：{}".format(sb_index, error))
-                    continue
-                merged_results[idx] = (sb_id, merged_wkb, linkno)
-                if merged_wkb is not None:
-                    print("        子流域 {}/{}（ID={}）河道合并完成，LINKNO={}".format(
-                        sb_index + 1, total_subbasin_count, sb_id, linkno), flush=True)
+                    print("        警告：河道 FID={} 的主归属计算失败：{}".format(
+                        stream_features[stream_index]["fid"], error))
+                    stream_results[stream_index] = (stream_index, 0, 0.0, 0.0)
 
-    # ---------- 删除原文件并写出新文件 ----------
+    # ---------- 保留原始河道，一一写回仅更新 LINKNO ----------
     if not overwrite:
         raise IOError(
             "输出文件已经存在：{}；请将 overwrite 设为 True".format(
@@ -2349,7 +2299,7 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path, overwrite=True,
     out_layer = out_ds.CreateLayer(
         os.path.splitext(os.path.basename(stream_path))[0],
         srs=st_srs,
-        geom_type=ogr.wkbMultiLineString,
+        geom_type=orig_geom_type,
         options=["ENCODING=UTF-8"]
     )
 
@@ -2357,7 +2307,6 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path, overwrite=True,
         out_ds = None
         raise RuntimeError("无法创建输出河道图层")
 
-    # 复制原字段
     for field_idx in range(orig_field_count):
         field_defn = orig_defn.GetFieldDefn(field_idx)
         if out_layer.CreateField(field_defn) != 0:
@@ -2365,7 +2314,6 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path, overwrite=True,
             raise RuntimeError("无法复制河道字段：{}".format(
                 field_defn.GetName()))
 
-    # 添加 LINKNO 字段（如果之前不存在）
     if linkno_idx < 0:
         integer_field_type = getattr(ogr, "OFTInteger64", ogr.OFTInteger)
         if out_layer.CreateField(
@@ -2377,26 +2325,18 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path, overwrite=True,
     out_defn = out_layer.GetLayerDefn()
     out_count = 0
     no_match_count = 0
-
-    # 每个子流域输出一个合并后的河道要素
-    for result in merged_results:
-        if result is None:
-            continue
-        sb_id, merged_wkb, linkno = result
-        if merged_wkb is None:
-            continue
-
-        try:
-            merged_geom = ogr.CreateGeometryFromWkb(merged_wkb)
-        except Exception:
-            continue
-        if merged_geom is None or merged_geom.IsEmpty():
-            continue
-
+    minority_match_count = 0
+    for stream_index, result in enumerate(stream_results):
+        _, linkno, overlap_length, stream_length = result
+        stream = stream_features[stream_index]
         new_feature = ogr.Feature(out_defn)
-        # 合并后的要素无法保留原始逐条河道的属性，仅设置 LINKNO
+
+        for field_idx, field_value in enumerate(stream["field_values"]):
+            if field_value is not None:
+                new_feature.SetField(field_idx, field_value)
         new_feature.SetField(linkno_idx, linkno)
-        new_feature.SetGeometry(merged_geom)
+        if stream["geometry"] is not None:
+            new_feature.SetGeometry(stream["geometry"])
 
         if out_layer.CreateFeature(new_feature) != 0:
             new_feature = None
@@ -2405,7 +2345,8 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path, overwrite=True,
 
         if linkno == 0:
             no_match_count += 1
-
+        elif stream_length > 0 and overlap_length / stream_length < 0.5:
+            minority_match_count += 1
         new_feature = None
         out_count += 1
 
@@ -2413,9 +2354,9 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path, overwrite=True,
     out_ds = None
 
     print(
-        "        更新河道 LINKNO：共 {} 条合并河道，其中 {} 条未匹配到子流域（LINKNO=0）".format(
-            out_count,
-            no_match_count
+        "        更新河道 LINKNO：保留 {} 条原始河道；{} 条未匹配（LINKNO=0），"
+        "{} 条最大重叠仍不足 50%".format(
+            out_count, no_match_count, minority_match_count
         )
     )
 
@@ -2424,17 +2365,18 @@ def update_stream_linkno_by_subbasin(stream_path, subbasin_path, overwrite=True,
 
 def repair_stream_topology(stream_path, subbasin_path, output_path=None,
                             overwrite=True, snap_tolerance=1e-4,
-                            vertex_merge_tolerance=1e-4):
+                            min_streams_at_junction=3):
     """
-    修复河道拓扑：将河道端点对齐到≥3个子流域的共同交点（锚点）。
+    修复河道拓扑：将同一汇合处的河道端点对齐到子流域共同交点（锚点）。
 
     核心思路：
-        1. 从子流域 SHP 中提取所有多边形顶点，按 vertex_merge_tolerance 精度
-           四舍五入后识别「≥3 个子流域共享的顶点」作为锚点。
-           锚点坐标用原始坐标质心（而非四舍五入值），避免位置偏移。
-        2. 对每个锚点，找出共享它的子流域集合。
-        3. 对每个子流域中的河道端点，若距离锚点 < snap_tolerance，
-           则将该端点移动到锚点位置。
+        1. 从子流域 SHP 中提取原始顶点。若一个顶点同时位于至少 3 个子流域
+           的边界上，则作为公共锚点；其中一个子流域可以仅由边穿过该顶点，
+           不要求所有子流域都在该点显式存有顶点。
+        2. 将距离不超过 snap_tolerance 的河道端点聚为候选汇合组。只有当组内
+           至少有 min_streams_at_junction 条不同河道时，才视为多河道交点。
+        3. 将该组全部端点整体移动到距离该组最近的子流域公共顶点；若最近点
+           不在所有端点的吸附容差内，则跳过该组。未分组端点不作任何移动。
         4. 写出修复后的河道 SHP，保留原始字段。
 
     参数：
@@ -2443,10 +2385,20 @@ def repair_stream_topology(stream_path, subbasin_path, output_path=None,
         output_path           : 输出路径；若为 None 则覆盖 stream_path。
         overwrite             : 是否覆盖已存在的输出文件。
         snap_tolerance        : 端点吸附到锚点的距离容差（度）。
-        vertex_merge_tolerance: 识别「同一顶点」的精度（度），应 ≤ snap_tolerance。
+        min_streams_at_junction: 一个汇合组至少应包含的不同河道数；默认 3，
+                                 即每条河道与至少两条其他河道相交。
     """
     if output_path is None:
         output_path = stream_path
+
+    if snap_tolerance <= 0:
+        raise ValueError("snap_tolerance 必须大于 0")
+    try:
+        min_streams_at_junction = int(min_streams_at_junction)
+    except (TypeError, ValueError):
+        raise ValueError("min_streams_at_junction 必须是大于等于 3 的整数")
+    if min_streams_at_junction < 3:
+        raise ValueError("min_streams_at_junction 必须大于等于 3")
 
     ensure_file(stream_path, "河道 Shapefile")
     ensure_file(subbasin_path, "子流域 Shapefile")
@@ -2471,13 +2423,89 @@ def repair_stream_topology(stream_path, subbasin_path, output_path=None,
     sb_srs = sb_srs.Clone()
     set_traditional_axis_order(sb_srs)
 
-    # 同时存储：
-    #   vertex_to_sbs: (rx, ry) → set of subbasin_ids
-    #   vertex_to_coords: (rx, ry) → list of original (x, y) coords
-    # 这样既能判断共享关系，又能计算质心坐标
+    # (x, y) -> set(subbasin_id)。候选点来自原始顶点；不能按距离连通聚类，
+    # 因为栅格矢量化的阶梯状边界会被错误地合并为一个大簇。
     vertex_to_sbs = {}
-    vertex_to_coords = {}
-    round_prec = max(0, int(-math.log10(vertex_merge_tolerance)))
+    # 边界线段按规则网格索引。这里的网格只加速候选查询，不参与拓扑判定。
+    boundary_segments = {}
+    boundary_grid_size = max(snap_tolerance, 1e-6)
+    boundary_tolerance = 1e-9
+
+    def _add_boundary_segment(sb_id, start, end):
+        """将一条边界线段加入其覆盖的空间网格。"""
+        minx = min(start[0], end[0])
+        maxx = max(start[0], end[0])
+        miny = min(start[1], end[1])
+        maxy = max(start[1], end[1])
+        first_x = int(math.floor(minx / boundary_grid_size))
+        last_x = int(math.floor(maxx / boundary_grid_size))
+        first_y = int(math.floor(miny / boundary_grid_size))
+        last_y = int(math.floor(maxy / boundary_grid_size))
+        segment = (sb_id, start[0], start[1], end[0], end[1])
+        for cell_x in range(first_x, last_x + 1):
+            for cell_y in range(first_y, last_y + 1):
+                boundary_segments.setdefault((cell_x, cell_y), []).append(segment)
+
+    def _point_on_segment(x, y, segment):
+        """判断点是否位于边界线段上，使用极小容差抵消浮点误差。"""
+        _, x1, y1, x2, y2 = segment
+        if x < min(x1, x2) - boundary_tolerance or \
+                x > max(x1, x2) + boundary_tolerance or \
+                y < min(y1, y2) - boundary_tolerance or \
+                y > max(y1, y2) + boundary_tolerance:
+            return False
+
+        dx = x2 - x1
+        dy = y2 - y1
+        length_sq = dx * dx + dy * dy
+        if length_sq <= boundary_tolerance * boundary_tolerance:
+            return math.hypot(x - x1, y - y1) <= boundary_tolerance
+
+        cross = abs((x - x1) * dy - (y - y1) * dx)
+        if cross > boundary_tolerance * math.sqrt(length_sq):
+            return False
+
+        projection = (x - x1) * dx + (y - y1) * dy
+        return -boundary_tolerance <= projection <= \
+            length_sq + boundary_tolerance
+
+    def _cluster_nearby_points(points, tolerance):
+        """按欧氏距离聚合二维点，返回每个连通簇的原始下标列表。"""
+        parent = list(range(len(points)))
+
+        def _find(index):
+            while parent[index] != index:
+                parent[index] = parent[parent[index]]
+                index = parent[index]
+            return index
+
+        def _union(first, second):
+            first_root = _find(first)
+            second_root = _find(second)
+            if first_root != second_root:
+                parent[second_root] = first_root
+
+        # 规则网格只用于候选查询；最终是否同簇仍由实际欧氏距离判定。
+        grid = {}
+        for index, point in enumerate(points):
+            x, y = point[0], point[1]
+            cell_x = int(math.floor(x / tolerance))
+            cell_y = int(math.floor(y / tolerance))
+
+            for offset_x in (-1, 0, 1):
+                for offset_y in (-1, 0, 1):
+                    for other_index in grid.get(
+                            (cell_x + offset_x, cell_y + offset_y), []):
+                        other = points[other_index]
+                        if math.hypot(x - other[0], y - other[1]) <= tolerance:
+                            _union(index, other_index)
+
+            grid.setdefault((cell_x, cell_y), []).append(index)
+
+        clusters = {}
+        for index in range(len(points)):
+            clusters.setdefault(_find(index), []).append(index)
+        return list(clusters.values())
 
     sb_layer.ResetReading()
     for sb_feature in sb_layer:
@@ -2498,16 +2526,14 @@ def repair_stream_topology(stream_path, subbasin_path, output_path=None,
                 if ring is None:
                     continue
                 n_pts = ring.GetPointCount()
+                previous = None
                 for pt_idx in range(n_pts):
                     pt = ring.GetPoint(pt_idx)
-                    rx = round(pt[0], round_prec)
-                    ry = round(pt[1], round_prec)
-                    vkey = (rx, ry)
-                    if vkey not in vertex_to_sbs:
-                        vertex_to_sbs[vkey] = set()
-                        vertex_to_coords[vkey] = []
-                    vertex_to_sbs[vkey].add(sb_id)
-                    vertex_to_coords[vkey].append((pt[0], pt[1]))
+                    coordinate = (pt[0], pt[1])
+                    vertex_to_sbs.setdefault(coordinate, set()).add(sb_id)
+                    if previous is not None:
+                        _add_boundary_segment(sb_id, previous, coordinate)
+                    previous = coordinate
 
         if "MULTIPOLYGON" in geom_name or "GEOMETRYCOLLECTION" in geom_name:
             for g_idx in range(sb_geom.GetGeometryCount()):
@@ -2519,22 +2545,59 @@ def repair_stream_topology(stream_path, subbasin_path, output_path=None,
 
     sb_ds = None
 
-    # 识别多子流域共享顶点（≥3 个子流域共享）作为锚点
-    # 锚点坐标用原始坐标的质心（而非四舍五入后的 key）
+    # 识别多子流域公共交点。候选点必须是至少两个子流域共享的原始顶点，
+    # 再检查其是否落在第三个子流域的边界上。这样“两子流域顶点 + 第三个
+    # 子流域边界穿过该点”的 T 形连接也会被识别，同时不会把普通单面拐点
+    # 误判为三子流域交点；相邻顶点之间也不会按距离合并。
     anchors = []  # [(cx, cy, set_of_sb_ids), ...]
-    for vkey, sbs in vertex_to_sbs.items():
-        if len(sbs) >= 3:
-            coords = vertex_to_coords[vkey]
-            cx = sum(c[0] for c in coords) / len(coords)
-            cy = sum(c[1] for c in coords) / len(coords)
-            anchors.append((cx, cy, sbs))
+    # 与 anchors 下标一一对应，用于输出实际被采用锚点的拓扑来源。
+    # vertex_sbs 是显式存有该顶点的子流域；boundary_sbs 是边界经过该点、
+    # 但未将该点显式作为顶点保存的额外子流域。
+    anchor_details = []
+    vertex_only_anchor_count = 0
+    boundary_intersection_anchor_count = 0
+    for coordinate, vertex_sbs in vertex_to_sbs.items():
+        if len(vertex_sbs) < 2:
+            continue
+        x, y = coordinate
+        shared_sbs = set(vertex_sbs)
+        cell = (
+            int(math.floor(x / boundary_grid_size)),
+            int(math.floor(y / boundary_grid_size)),
+        )
+        boundary_sbs = set()
+        for segment in boundary_segments.get(cell, []):
+            sb_id = segment[0]
+            if sb_id in shared_sbs:
+                continue
+            if _point_on_segment(x, y, segment):
+                shared_sbs.add(sb_id)
+                boundary_sbs.add(sb_id)
 
-    print("        子流域顶点：{} 个，其中多子流域共享拐点：{} 个".format(
-        len(vertex_to_sbs), len(anchors)))
+        if len(shared_sbs) >= 3:
+            anchors.append((x, y, shared_sbs))
+            anchor_details.append({
+                "vertex_sbs": sorted(vertex_sbs),
+                "boundary_sbs": sorted(boundary_sbs),
+            })
+            if len(vertex_sbs) >= 3:
+                vertex_only_anchor_count += 1
+            else:
+                boundary_intersection_anchor_count += 1
+
+    print("        子流域顶点：{} 个，公共交点：{} 个（顶点共享 {} 个，顶点-边界相交 {} 个）".format(
+        len(vertex_to_sbs), len(anchors), vertex_only_anchor_count,
+        boundary_intersection_anchor_count))
 
     if len(anchors) == 0:
         print("        未找到多子流域共享拐点，跳过拓扑修复")
-        return {"snapped_count": 0}
+        return {
+            "stream_count": 0,
+            "snapped_count": 0,
+            "junction_group_count": 0,
+            "junction_endpoint_count": 0,
+            "dropped_degenerate_count": 0,
+        }
 
     # ---------- 2. 读取河道，收集端点 ----------
     print("        读取河道端点 ...")
@@ -2558,6 +2621,7 @@ def repair_stream_topology(stream_path, subbasin_path, output_path=None,
 
     orig_defn = st_layer.GetLayerDefn()
     orig_field_count = orig_defn.GetFieldCount()
+    linkno_field_index = orig_defn.GetFieldIndex("LINKNO")
 
     # 坐标转换：锚点子流域坐标系 → 河道坐标系
     coord_trans = None
@@ -2621,46 +2685,14 @@ def repair_stream_topology(stream_path, subbasin_path, output_path=None,
         })
 
     st_ds = None
+    stream_records_by_fid = {rec["fid"]: rec for rec in stream_records}
 
-    # ---------- 3. 空间查询：每个端点属于哪个子流域 ----------
-    # 读取子流域几何用于点-面包含查询
-    sb_ds2 = ogr.Open(subbasin_path, gdal.GA_ReadOnly)
-    sb_layer2 = sb_ds2.GetLayer(0)
-
-    # 构建子流域几何列表：[(sb_id, geom_clone, minx, miny, maxx, maxy), ...]
-    sb_geoms = []
-    sb_layer2.ResetReading()
-    for sb_feature in sb_layer2:
-        sb_id = sb_feature.GetField("SUBBASINID")
-        sb_geom = sb_feature.GetGeometryRef()
-        if sb_id is None or sb_geom is None or sb_geom.IsEmpty():
-            continue
-        sb_id = int(sb_id)
-        sb_clone = sb_geom.Clone()
-        env = sb_clone.GetEnvelope()  # (minX, maxX, minY, maxY)
-        sb_geoms.append((sb_id, sb_clone, env[0], env[2], env[1], env[3]))
-
-    sb_ds2 = None
-
-    def find_subbasin_for_point(x, y):
-        """返回包含点 (x,y) 的子流域 ID；若不在任何子流域内返回 None。"""
-        for sb_id, sb_geom, minx, miny, maxx, maxy in sb_geoms:
-            if x < minx or x > maxx or y < miny or y > maxy:
-                continue
-            pt = ogr.Geometry(ogr.wkbPoint)
-            pt.AddPoint(x, y)
-            if sb_geom.Contains(pt):
-                pt = None
-                return sb_id
-            pt = None
-        return None
-
-    # ---------- 4. 吸附端点到锚点（按子流域限制） ----------
-    print("        吸附端点到子流域拐点（容差 {} 度）...".format(snap_tolerance))
+    # ---------- 3. 按多河道汇合组吸附到最近的公共锚点 ----------
+    print("        聚合河道汇合端点并吸附到子流域共同拐点（容差 {} 度）...".format(
+        snap_tolerance))
 
     # 构建锚点数组用于距离计算
     anchor_positions = np.array([(a[0], a[1]) for a in anchors], dtype=np.float64)
-    anchor_sbs_list = [a[2] for a in anchors]  # 每个锚点的子流域集合
 
     # 诊断：统计端点到最近锚点距离
     min_dist_list = []
@@ -2678,18 +2710,155 @@ def repair_stream_topology(stream_path, subbasin_path, output_path=None,
             round(float(np.median(min_dist_arr)), 8),
             round(float(np.percentile(min_dist_arr, 90)), 8)))
 
-    # 对每个锚点，只吸附属于其共享子流域内的端点
-    # 先收集每个端点的子流域归属
-    endpoint_sb_info = {}  # fid → {"from_sb": sb_id or None, "to_sb": sb_id or None}
+    # 只使用河道端点的空间关系：不再以端点当前属于哪个子流域作为筛选条件。
+    endpoint_entries = []
     for rec in stream_records:
         fid = rec["fid"]
-        from_sb = find_subbasin_for_point(*rec["from_xy"]) if rec["from_xy"] else None
-        to_sb = find_subbasin_for_point(*rec["to_xy"]) if rec["to_xy"] else None
-        endpoint_sb_info[fid] = {"from_sb": from_sb, "to_sb": to_sb}
+        if rec["from_xy"] is not None:
+            endpoint_entries.append({
+                "fid": fid,
+                "side": "from",
+                "xy": rec["from_xy"],
+            })
+        if rec["to_xy"] is not None:
+            endpoint_entries.append({
+                "fid": fid,
+                "side": "to",
+                "xy": rec["to_xy"],
+            })
 
-    snapped_count = 0
+    # endpoint_targets 的键是 (fid, "from" / "to")。一个簇中需有至少 3 条
+    # 不同河道，表示每条河道都与至少两条其他河道相交。
+    endpoint_targets = {}
+    junction_group_count = 0
+    junction_endpoint_count = 0
+    printed_junction_group_count = 0
+    max_detail_log_count = 20
+    endpoint_clusters = _cluster_nearby_points(
+        [entry["xy"] for entry in endpoint_entries], snap_tolerance)
+    for cluster_indices in endpoint_clusters:
+        cluster = [endpoint_entries[index] for index in cluster_indices]
+        stream_fids = set(entry["fid"] for entry in cluster)
+        if len(stream_fids) < min_streams_at_junction:
+            continue
+
+        center_x = sum(entry["xy"][0] for entry in cluster) / len(cluster)
+        center_y = sum(entry["xy"][1] for entry in cluster) / len(cluster)
+        candidate_anchors = []
+        for anchor_index, (anchor_x, anchor_y, anchor_sbs) in enumerate(anchors):
+            distances = [
+                math.hypot(anchor_x - entry["xy"][0],
+                           anchor_y - entry["xy"][1])
+                for entry in cluster
+            ]
+            if max(distances) > snap_tolerance:
+                continue
+
+            candidate_anchors.append((
+                math.hypot(anchor_x - center_x, anchor_y - center_y),
+                max(distances),
+                sum(distance * distance for distance in distances),
+                anchor_index,
+            ))
+
+        if not candidate_anchors:
+            continue
+
+        _, _, _, anchor_index = min(candidate_anchors)
+        anchor_x, anchor_y, _ = anchors[anchor_index]
+        for entry in cluster:
+            endpoint_targets[(entry["fid"], entry["side"])] = (anchor_x, anchor_y)
+
+        junction_group_count += 1
+        junction_endpoint_count += len(cluster)
+        if printed_junction_group_count < max_detail_log_count:
+            detail = anchor_details[anchor_index]
+            endpoint_labels = []
+            for entry in sorted(cluster, key=lambda item: (item["fid"], item["side"])):
+                rec = stream_records_by_fid[entry["fid"]]
+                side_name = "起点" if entry["side"] == "from" else "终点"
+                linkno_text = ""
+                if linkno_field_index >= 0:
+                    linkno_text = "，LINKNO={}".format(
+                        rec["field_values"][linkno_field_index])
+                endpoint_labels.append("FID {} {}{}".format(
+                    entry["fid"], side_name, linkno_text))
+
+            print("          汇合组 {} 条河道、{} 个端点 → ({:.6f},{:.6f})".format(
+                len(stream_fids), len(cluster), anchor_x, anchor_y))
+            print("            显式共享顶点的子流域：{}".format(
+                detail["vertex_sbs"]))
+            if detail["boundary_sbs"]:
+                print("            顶点同时落在子流域 {} 的边界上（该面未显式存该顶点）".format(
+                    detail["boundary_sbs"]))
+            else:
+                print("            所有相关子流域均显式共享该顶点")
+            print("            参与河道端点：{}".format("； ".join(endpoint_labels)))
+            printed_junction_group_count += 1
+
+    snapped_count = len(endpoint_targets)
     new_stream_records = []
-    snapped_fids = set()  # 记录哪些端点已被吸附，避免重复吸附
+    dropped_degenerate_count = 0
+
+    # 某些原始河段在端点处有重复（或近乎重复）的顶点。若只替换第一/最后
+    # 一个顶点，会得到“新锚点 -> 旧重复顶点 -> 后续河道”的人工折返线。
+    # 使用远小于吸附容差的阈值，仅清理这种端点重复，不删除正常折线顶点。
+    endpoint_duplicate_tolerance = min(snap_tolerance * 1e-3, 1e-7)
+
+    def _distance_between(first, second):
+        return math.hypot(first[0] - second[0], first[1] - second[1])
+
+    def _rebuild_line_part(line_part, snapped_start=None, snapped_end=None,
+                           original_start=None, original_end=None):
+        """替换端点并剔除端点附近的重复顶点；退化线返回 None。"""
+        point_count = line_part.GetPointCount()
+        first_index = 0
+        last_index = point_count
+
+        if snapped_start is not None and original_start is not None:
+            while first_index < last_index:
+                point = line_part.GetPoint(first_index)
+                if _distance_between(point, original_start) <= endpoint_duplicate_tolerance:
+                    first_index += 1
+                else:
+                    break
+
+        if snapped_end is not None and original_end is not None:
+            while last_index > first_index:
+                point = line_part.GetPoint(last_index - 1)
+                if _distance_between(point, original_end) <= endpoint_duplicate_tolerance:
+                    last_index -= 1
+                else:
+                    break
+
+        coordinates = []
+        if snapped_start is not None:
+            coordinates.append(snapped_start)
+
+        for point_index in range(first_index, last_index):
+            point = line_part.GetPoint(point_index)
+            coordinate = (point[0], point[1])
+            if not coordinates or \
+                    _distance_between(coordinates[-1], coordinate) > endpoint_duplicate_tolerance:
+                coordinates.append(coordinate)
+
+        if snapped_end is not None and (
+                not coordinates or
+                _distance_between(coordinates[-1], snapped_end) > endpoint_duplicate_tolerance):
+            coordinates.append(snapped_end)
+
+        if len(coordinates) < 2:
+            return None
+
+        if all(_distance_between(coordinates[index - 1], coordinates[index]) <=
+               endpoint_duplicate_tolerance
+               for index in range(1, len(coordinates))):
+            return None
+
+        rebuilt = ogr.Geometry(ogr.wkbLineString)
+        for coordinate in coordinates:
+            rebuilt.AddPoint(coordinate[0], coordinate[1])
+        return rebuilt
 
     for rec in stream_records:
         geom = rec["geom"]
@@ -2699,54 +2868,12 @@ def repair_stream_topology(stream_path, subbasin_path, output_path=None,
             continue
 
         fid = rec["fid"]
-        from_xy = rec["from_xy"]
-        to_xy = rec["to_xy"]
-        from_sb = endpoint_sb_info[fid]["from_sb"]
-        to_sb = endpoint_sb_info[fid]["to_sb"]
-
-        snapped_from = None
-        snapped_to = None
-
-        # 对起点：遍历所有锚点，若锚点的共享子流域包含 from_sb，且距离 < 容差，则吸附
-        if from_xy is not None and from_sb is not None:
-            best_dist = snap_tolerance
-            best_anchor = None
-            for a_idx, (ax, ay, a_sbs) in enumerate(anchors):
-                if from_sb not in a_sbs:
-                    continue
-                d = math.hypot(ax - from_xy[0], ay - from_xy[1])
-                if d <= best_dist:
-                    best_dist = d
-                    best_anchor = (ax, ay)
-            if best_anchor is not None:
-                snapped_from = best_anchor
-                print("          FID {} 起点 ({:.6f},{:.6f}) → ({:.6f},{:.6f})  子流域{}".format(
-                    fid, from_xy[0], from_xy[1], best_anchor[0], best_anchor[1], from_sb))
-
-        # 对终点：同上
-        if to_xy is not None and to_sb is not None:
-            best_dist = snap_tolerance
-            best_anchor = None
-            for a_idx, (ax, ay, a_sbs) in enumerate(anchors):
-                if to_sb not in a_sbs:
-                    continue
-                d = math.hypot(ax - to_xy[0], ay - to_xy[1])
-                if d <= best_dist:
-                    best_dist = d
-                    best_anchor = (ax, ay)
-            if best_anchor is not None:
-                snapped_to = best_anchor
-                print("          FID {} 终点 ({:.6f},{:.6f}) → ({:.6f},{:.6f})  子流域{}".format(
-                    fid, to_xy[0], to_xy[1], best_anchor[0], best_anchor[1], to_sb))
+        snapped_from = endpoint_targets.get((fid, "from"))
+        snapped_to = endpoint_targets.get((fid, "to"))
 
         if snapped_from is None and snapped_to is None:
             new_stream_records.append(rec)
             continue
-
-        if snapped_from is not None:
-            snapped_count += 1
-        if snapped_to is not None:
-            snapped_count += 1
 
         # 重建几何
         if "MULTILINESTRING" in geom_name:
@@ -2756,31 +2883,29 @@ def repair_stream_topology(stream_path, subbasin_path, output_path=None,
                 line_part = geom.GetGeometryRef(part_idx)
                 if line_part is None or line_part.GetPointCount() == 0:
                     continue
-                new_line = ogr.Geometry(ogr.wkbLineString)
-                n_pts = line_part.GetPointCount()
-                for pt_idx in range(n_pts):
-                    pt = line_part.GetPoint(pt_idx)
-                    if part_idx == 0 and pt_idx == 0 and snapped_from is not None:
-                        new_line.AddPoint(snapped_from[0], snapped_from[1])
-                    elif part_idx == n_parts - 1 and pt_idx == n_pts - 1 and snapped_to is not None:
-                        new_line.AddPoint(snapped_to[0], snapped_to[1])
-                    else:
-                        new_line.AddPoint(pt[0], pt[1])
+                new_line = _rebuild_line_part(
+                    line_part,
+                    snapped_start=snapped_from if part_idx == 0 else None,
+                    snapped_end=snapped_to if part_idx == n_parts - 1 else None,
+                    original_start=rec["from_xy"] if part_idx == 0 else None,
+                    original_end=rec["to_xy"] if part_idx == n_parts - 1 else None,
+                )
+                if new_line is None:
+                    dropped_degenerate_count += 1
+                    continue
                 new_ml.AddGeometry(new_line)
                 new_line = None
-            geom = new_ml
+            geom = new_ml if new_ml.GetGeometryCount() > 0 else None
         elif "LINESTRING" in geom_name:
-            n_pts = geom.GetPointCount()
-            new_line = ogr.Geometry(ogr.wkbLineString)
-            for pt_idx in range(n_pts):
-                pt = geom.GetPoint(pt_idx)
-                if pt_idx == 0 and snapped_from is not None:
-                    new_line.AddPoint(snapped_from[0], snapped_from[1])
-                elif pt_idx == n_pts - 1 and snapped_to is not None:
-                    new_line.AddPoint(snapped_to[0], snapped_to[1])
-                else:
-                    new_line.AddPoint(pt[0], pt[1])
-            geom = new_line
+            geom = _rebuild_line_part(
+                geom,
+                snapped_start=snapped_from,
+                snapped_end=snapped_to,
+                original_start=rec["from_xy"],
+                original_end=rec["to_xy"],
+            )
+            if geom is None:
+                dropped_degenerate_count += 1
 
         rec["geom"] = geom
         if snapped_from is not None:
@@ -2790,7 +2915,13 @@ def repair_stream_topology(stream_path, subbasin_path, output_path=None,
 
         new_stream_records.append(rec)
 
-    print("        吸附了 {} 个端点".format(snapped_count))
+    print("        汇合组 {} 个，整组吸附 {} 个端点；总计吸附 {} 个端点；删除 {} 条退化河段".format(
+        junction_group_count, junction_endpoint_count, snapped_count,
+        dropped_degenerate_count))
+    if junction_group_count > printed_junction_group_count:
+        print("        其余 {} 个汇合组已省略逐项输出（详细日志上限为 {} 组）".format(
+            junction_group_count - printed_junction_group_count,
+            max_detail_log_count))
 
     # ---------- 5. 写出修复后的河道 SHP ----------
     print("        写出修复后的河道 SHP ...")
@@ -2856,7 +2987,13 @@ def repair_stream_topology(stream_path, subbasin_path, output_path=None,
     print("        拓扑修复完成：{} 条河道，吸附 {} 个端点".format(
         out_count, snapped_count))
 
-    return {"stream_count": out_count, "snapped_count": snapped_count}
+    return {
+        "stream_count": out_count,
+        "snapped_count": snapped_count,
+        "junction_group_count": junction_group_count,
+        "junction_endpoint_count": junction_endpoint_count,
+        "dropped_degenerate_count": dropped_degenerate_count,
+    }
 
 
 def extract_stream_nodes(stream_path, node_path, overwrite=True, precision=6):
@@ -3076,7 +3213,7 @@ def main():
 
     ensure_file(mask_path, "太湖流域范围 Shapefile")
     mask_geometry, mask_srs = read_mask_union(mask_path)
-    """
+
     # ------------------------------------------------------------------
     # 第 1 步：裁剪 Watershed.tif
     # ------------------------------------------------------------------
@@ -3158,7 +3295,7 @@ def main():
     # ------------------------------------------------------------------
     # min_area 单位为平方米（经纬度栅格会自动用球面近似换算）。
     # 10000000 平方米 = 10 平方公里
-    min_subbasin_area = 100000
+    min_subbasin_area = 10000
     merged_tif_path = os.path.join(output_basepath, "lake_subbasin_merged.tif")
     merged_shp_path = os.path.join(output_basepath, "lake_subbasin_merged.shp")
     print("[4.2] 合并小面积子流域（阈值 {} m²）：lake_subbasin_split.tif → lake_subbasin_merged.tif".format(
@@ -3243,7 +3380,7 @@ def main():
     print("[9/12] 裁剪栅格：stream.tif")
 
     info = clip_raster(input_path, output_path, mask_path, mask_geometry, mask_srs, overwrite)
-    """
+
     # ------------------------------------------------------------------
     # 第 10 步：裁剪 stream_split.shp
     # ------------------------------------------------------------------
@@ -3274,22 +3411,28 @@ def main():
     # ------------------------------------------------------------------
     # 第 11 步：修复河道拓扑（吸附交点到子流域拐点）
     # ------------------------------------------------------------------
-    # 先修复拓扑：将河道交点对齐到子流域拐点，再根据子流域打断河道，
-    # 这样打断时河道交点已在子流域边界上，LINKNO 更新更准确。
-    # snap_tolerance: 端点吸附容差（度）。0.003 度 ≈ 333 米（赤道）。
-    # vertex_merge_tolerance: 顶点去重精度，保持小值避免误合并不同顶点。
+    # 先修复拓扑：将河道交点对齐到子流域拐点；随后仅按各河道在子流域内的
+    # 最大重叠长度更新 LINKNO，不再使用子流域边界裁剪或打断河道。
+    # snap_tolerance: 多河道汇合组到最近子流域公共顶点的最大吸附距离（度）。
+    # 0.003 度约为 300 米；需覆盖河道交点的定位误差，但不应跨越相邻汇合点。
+    # 至少 3 条不同河道才视作拓扑汇合点（每条河道与至少两条其他河道相交）。
     snap_tolerance = 0.003        # ≈ 300 米
-    vertex_merge_tolerance = 0.003  # ≈ 300 米
+    min_streams_at_junction = 3
 
     print("[11/12] 修复河道拓扑：吸附交点到子流域拐点")
     snaped_stream_shp = os.path.join(output_basepath, "stream_link_snaped.shp")
     topology_info = repair_stream_topology(
         stream_shp_path, lake_shp_path,
         output_path=snaped_stream_shp, snap_tolerance=snap_tolerance,
-        vertex_merge_tolerance=vertex_merge_tolerance)
+        min_streams_at_junction=min_streams_at_junction)
 
     print("        吸附 {} 个端点".format(
         topology_info["snapped_count"]))
+    print("        合并 {} 个河道汇合组（{} 个端点）".format(
+        topology_info.get("junction_group_count", 0),
+        topology_info.get("junction_endpoint_count", 0)))
+    print("        删除 {} 条端点吸附后退化的短河段".format(
+        topology_info.get("dropped_degenerate_count", 0)))
 
     # ------------------------------------------------------------------
     # 第 11.1 步：根据湖泊子流域更新河道 LINKNO

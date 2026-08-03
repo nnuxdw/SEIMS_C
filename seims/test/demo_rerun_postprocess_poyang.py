@@ -30,7 +30,7 @@ def main():
     # ========= 新增：选择参数集的方式 =========
     # 方式1：False -> 使用原来的“加权排序 + 取前 NN 组”
     # 方式2：True  -> 直接指定某一代、某个 ID 的个体
-    USE_SPECIFIC_PARAMSET = True  # 这里改 True/False 来切换
+    USE_SPECIFIC_PARAMSET = False  # 这里改 True/False 来切换
 
     # 只有在 USE_SPECIFIC_PARAMSET = True 时才有效：
     SPECIFIC_GENERATION = 85   # 例如第 10 代
@@ -40,7 +40,7 @@ def main():
     # tar = ['QG','QI','QS','SBGS']
     tar = ['F','Q']
     plot_tar_map = {'F':'Inundation Area(km²)','Q':'Discharge(m³/s)'}
-    subbasin_id = 347   # 123,141,214,225,322,347,457
+    subbasin_id = 1171   # 123,141,214,225,322,347,457
     conn = MongoClient('127.0.0.1', 27017)
     db = conn.poyang_lake1_longterm_model_1171   #需要自己修改数据库名字
 
@@ -197,7 +197,7 @@ def main():
 
     # Execute model
     model_obj.SetMongoClient()
-    # model_obj.run()
+    model_obj.run()
 
     # 获取模拟数据
     path = model_paths.model_dir + os.path.sep + f'OUTPUT0-{int(id2row[SPECIFIC_ID])}'
