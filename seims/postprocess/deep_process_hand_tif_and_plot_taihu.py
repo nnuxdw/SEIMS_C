@@ -1313,12 +1313,11 @@ def convert_tif_to_pngs(input_dir, output_dir, colormap='Blues'):
 if __name__ == "__main__":
 
     if os.name == 'nt':  # Windows
-        base_path = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model_1171'
-        obs_dir = r"J:\G\program\seims\SEIMS_HAND\data\poyang_lake\鄱阳湖全天候面积逐日数据集（2014-2023年)\2014-2023年鄱阳湖水域面积栅格数据"
-        # shp_dir = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\sci_figure_study_region\upstream_subbasin_1171.shp"
+        base_path = r'G:\program\seims\SEIMS_HAND\data\taihu_1\taihu_1_longterm_model'
+        obs_dir = r"J:\G\program\seims\SEIMS_HAND\data\taihu_1\鄱阳湖全天候面积逐日数据集（2014-2023年)\2014-2023年鄱阳湖水域面积栅格数据"
+        shp_dir = r"G:\program\seims\SEIMS_HAND\data\taihu_1\workspace\spatial_shp\basin.shp"
         ## 缩小统计范围
-        shp_dir = "G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_shp\subbasin_1171_upstream_only_inundation_disolved3.shp"
-        dem_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\spatial_raster\dem.tif"
+        dem_path = r"G:\program\seims\SEIMS_HAND\data\taihu_1\workspace\spatial_raster\dem.tif"
     else:  # Linux/Unix
         base_path = '/data/user/xiaodw/software/WISE/data/poyang_lake1/poyang_lake1_longterm_model_1171'
         obs_dir = '/data/user/xiaodw/software/WISE/data/poyang_lake1/鄱阳湖全天候面积逐日数据集/2014-2023年鄱阳湖水域面积栅格数据'
@@ -1330,13 +1329,13 @@ if __name__ == "__main__":
     selected_obs_out_dir = os.path.join(inundation_base_path,'selected_obs_tif')
     selected_sim_out_dir = os.path.join(inundation_base_path, 'selected_sim_tif')
     ## 这一步处理的图像太多，通常在服务器上做，然后把selected_obs_tif和selected_sim_tif下载到本地
-    # monthly_sim, monthly_obs = select_simulation_files_by_obs_time_monthly(
-    #     obs_dir=obs_dir,
-    #     sim_dir=sim_dir,
-    #     selected_obs_out_dir=selected_obs_out_dir,
-    #     selected_sim_out_dir=selected_sim_out_dir,
-    #     keep_one_per_month=False
-    # )
+    monthly_sim, monthly_obs = select_simulation_files_by_obs_time_monthly(
+        obs_dir=obs_dir,
+        sim_dir=sim_dir,
+        selected_obs_out_dir=selected_obs_out_dir,
+        selected_sim_out_dir=selected_sim_out_dir,
+        keep_one_per_month=False
+    )
 
     # 1.1 把观测值tif裁剪到鄱阳湖本身的范围
 

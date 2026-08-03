@@ -106,23 +106,23 @@ def count_hand_levels(csv_path: str) -> Dict[int, int]:
     return counts.to_dict()
 
 if __name__ == '__main__':
-    # mongo_uri = "mongodb://localhost:27017"
-    mongo_uri = "mongodb://172.21.124.127:27019"
-    db_name = "MSL_1_longterm_model"
+
+    db_name = "taihu_1_longterm_model"
     collection = "REACHES"
     subbasin_field = "SUBBASINID"
     target_field= "Lake_Hand_Level_Ini"
     if os.name == 'nt':  # Windows
         # csv_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\InundationMap.csv"
-        csv_path = r"G:\program\seims\SEIMS_HAND\data\MSL_1\workspace\rundata\InundationMap.csv"
+        csv_path = r"G:\program\seims\SEIMS_HAND\data\taihu_1\workspace\rundata\InundationMap.csv"
+        mongo_uri = "mongodb://localhost:27017"
     else:  # Linux/Unix
         csv_path = r"/data/user/xiaodw/software/WISE_V20160219/data/MSL_1/workspace/rundata/InundationMap.csv"
-
+        mongo_uri = "mongodb://172.21.124.127:27019"
 
     # 从InundationMap.csv中统计每个Subbasin有多少层级HAND
     level_counts_map = count_hand_levels(csv_path)
     level_counts_map_ini = {}
-    ratio = 0.1
+    ratio = 0.15
     for subbasinid, nlevels in level_counts_map.items():
         ini_level = int(nlevels * ratio)   # 截断取整
         level_counts_map_ini[subbasinid] = ini_level

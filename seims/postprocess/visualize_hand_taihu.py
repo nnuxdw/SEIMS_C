@@ -883,10 +883,10 @@ if __name__ == '__main__':
     # longter_model_name = '-90_124556_38_819347_longterm_model'
     # 鄱阳湖
     if os.name == 'nt':  # Windows
-        work_dir = r'G:\program\seims\SEIMS_HAND\data\TH_4'
+        work_dir = r'G:\program\seims\SEIMS_HAND\data\taihu_1'
     else:
         work_dir = f'/data/user/xiaodw/software/WISE/data/poyang_lake1'
-    longter_model_name = 'TH_4_longterm_model'
+    longter_model_name = 'taihu_1_longterm_model'
     calibration_name = 'OUTPUT0-0'
     longterm_model_dir = os.path.join(work_dir,longter_model_name)
     directory = os.path.join(longterm_model_dir,calibration_name)
@@ -904,8 +904,8 @@ if __name__ == '__main__':
 
     #########################  将HAND输出的结果生成为shp  ################################
     shp_path = os.path.join(work_dir,r"workspace\HRU_file\HRU_mollwede_dissolved.shp")
-    start = datetime(2010, 1, 1, 0, 0, 0)
-    end = datetime(2012, 12, 30, 0, 0, 0)
+    start = datetime(2001, 1, 1, 0, 0, 0)
+    end = datetime(2001, 1, 30, 0, 0, 0)
     #########################  将HAND输出的结果生成为tif  ################################
 
     """ HAND淹没水深txt转shp """
