@@ -40,7 +40,7 @@ def main():
     # tar = ['QG','QI','QS','SBGS']
     tar = ['F','Q']
     plot_tar_map = {'F':'Inundation Area(km²)','Q':'Discharge(m³/s)'}
-    subbasin_id = 347   # 123,141,214,225,322,347,457
+    subbasin_id = 1171   # 123,141,214,225,322,347,457
     conn = MongoClient('127.0.0.1', 27017)
     db = conn.poyang_lake1_longterm_model_1171   #需要自己修改数据库名字
 
@@ -197,7 +197,7 @@ def main():
 
     # Execute model
     model_obj.SetMongoClient()
-    # model_obj.run()
+    model_obj.run()
 
     # 获取模拟数据
     path = model_paths.model_dir + os.path.sep + f'OUTPUT0-{int(id2row[SPECIFIC_ID])}'

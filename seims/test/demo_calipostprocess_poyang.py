@@ -36,7 +36,7 @@ def main(watershed_num):
     model_name = f'poyang_lake1_longterm_model_{watershed_num}'
     y_label_map={
         "Q_123":"Discharge(m³/s)","Q_141":"Discharge(m³/s)","Q_214":"Discharge(m³/s)","Q_225":"Discharge(m³/s)",
-        "Q_322": "Discharge(m³/s)","Q_347":"Discharge(m³/s)","Q_457":"Discharge(m³/s)"
+        "Q_322": "Discharge(m³/s)","Q_347":"Discharge(m³/s)","Q_457":"Discharge(m³/s)","Q_1171":"Discharge(m³/s)"
     }
     label_font_size = 24
     title_font_size = 28
@@ -699,6 +699,6 @@ def main(watershed_num):
 
 if __name__ == "__main__":
     # watershed_nums = [123,141,214,225,322,347,457]
-    watershed_nums = [347]
+    watershed_nums = [1171]
     for watershed_num in watershed_nums:
         main(watershed_num)
