@@ -1162,9 +1162,9 @@ def raster_to_dissolved_subbasin_shp(input_path, output_path, overwrite):
     return output_count
 
 
-def generate_lake_subbasin(watershed_path, hydrolake_path,
-                           output_tif_path, output_shp_path,
-                           overwrite=True):
+def process_lake_subbasin(watershed_path, hydrolake_path,
+                          output_tif_path, output_shp_path,
+                          overwrite=True):
     """
     根据 Watershed.tif 和 Taihu_lakes.tif (hydrolake) 生成湖泊子流域。
 
@@ -3218,55 +3218,51 @@ def main():
     # 第 1 步：裁剪 Watershed.tif
     # ------------------------------------------------------------------
     input_path = os.path.join(input_basepath, "Watershed.tif")
-    output_path = os.path.join(output_basepath, "subbasin.tif")
+    subbasins_cliped_path = os.path.join(output_basepath, "subbasins_cliped.tif")
     overwrite = True
 
-    ensure_different_paths(input_path, output_path)
-    ensure_output_directory(output_path)
+    ensure_different_paths(input_path, subbasins_cliped_path)
+    ensure_output_directory(subbasins_cliped_path)
 
     print("[1/12] 裁剪栅格：Watershed.tif")
 
-    info = clip_raster(input_path, output_path, mask_path, mask_geometry, mask_srs, overwrite)
+    info = clip_raster(input_path, subbasins_cliped_path, mask_path, mask_geometry, mask_srs, overwrite)
     # 第 2 步：subbasin.tif 转为融合后的子流域面
     # ------------------------------------------------------------------
-    input_path = os.path.join(output_basepath, "subbasin.tif")
-    output_path = os.path.join(output_basepath, "subbasin.shp")
+    subbasins_origin_path = os.path.join(output_basepath, "subbasins_origin.shp")
     overwrite = True
 
-    print("[2/12] 栅格转子流域面：subbasin.tif")
+    print("[2/12] 栅格转子流域面：subbasins_cliped.tif")
 
-    feature_count = raster_to_dissolved_subbasin_shp(input_path, output_path, overwrite)
+    feature_count = raster_to_dissolved_subbasin_shp(subbasins_cliped_path, subbasins_origin_path, overwrite)
 
-    print("        输出：{}（{} 个子流域面要素）".format(output_path, feature_count))
+    print("        输出：{}（{} 个子流域面要素）".format(subbasins_origin_path, feature_count))
 
     # ------------------------------------------------------------------
     # 第 3 步：裁剪 Taihu_lakes.tif (hydrolake)
     # ------------------------------------------------------------------
     input_path = os.path.join(input_basepath, "Taihu_lakes.tif")
-    output_path = os.path.join(output_basepath, "hydrolake.tif")
-    cliped_hydrlakes_path = output_path
+    cliped_hydrlakes_path = os.path.join(output_basepath, "Taihu_lakes_cliped.tif")
     overwrite = True
 
-    ensure_different_paths(input_path, output_path)
-    ensure_output_directory(output_path)
+    ensure_different_paths(input_path, cliped_hydrlakes_path)
+    ensure_output_directory(cliped_hydrlakes_path)
 
     print("[3/12] 裁剪栅格：Taihu_lakes.tif (hydrolake)")
 
-    info = clip_raster(input_path, output_path, mask_path, mask_geometry, mask_srs, overwrite)
+    info = clip_raster(input_path, cliped_hydrlakes_path, mask_path, mask_geometry, mask_srs, overwrite)
 
 
     # ------------------------------------------------------------------
-    # 第 4 步：生成湖泊子流域
+    # 第 4 步：合并湖泊和坡面到同一个子流域
     # ------------------------------------------------------------------
-    watershed_path = os.path.join(output_basepath, "subbasin.tif")
-    cliped_hydrlakes_path = os.path.join(output_basepath, "hydrolake.tif")
-    lake_tif_path = os.path.join(output_basepath, "lake_subbasin.tif")
-    lake_shp_path = os.path.join(output_basepath, "lake_subbasin.shp")
+    merged_lake_tif_path = os.path.join(output_basepath, "subbasin_merged.tif")
+    merged_lake_shp_path = os.path.join(output_basepath, "subbasin_merged.shp")
     overwrite = True
 
-    print("[4/12] 生成湖泊子流域：subbasin.tif + hydrolake.tif")
+    print("[4/12] 匹配湖泊子流域：subbasins_origin.shp + Taihu_lakes_cliped.tif")
 
-    lake_info = generate_lake_subbasin(watershed_path, cliped_hydrlakes_path, lake_tif_path, lake_shp_path, overwrite)
+    lake_info = process_lake_subbasin(subbasins_cliped_path, cliped_hydrlakes_path, merged_lake_tif_path, merged_lake_shp_path, overwrite)
 
     print(
         "        匹配到 {} 个湖泊子流域，最大已有子流域 ID={}，临时 ID 起始值={}".format(
@@ -3279,12 +3275,12 @@ def main():
     # ------------------------------------------------------------------
     # 第 4.1 步：拆分离散子流域（同一 ID 的不连通区域拆为独立子流域）
     # ------------------------------------------------------------------
-    split_tif_path = os.path.join(output_basepath, "lake_subbasin_split.tif")
-    split_shp_path = os.path.join(output_basepath, "lake_subbasin_split.shp")
-    print("[4.1] 拆分离散子流域：lake_subbasin.tif → lake_subbasin_split.tif")
+    split_tif_path = os.path.join(output_basepath, "subbasin_split.tif")
+    split_shp_path = os.path.join(output_basepath, "subbasin_split.shp")
+    print("[4.1] 拆分离散子流域：subbasin_merged.tif → subbasin_split.tif")
 
     split_info = split_disconnected_subbasins(
-        lake_tif_path, lake_shp_path, overwrite,
+        merged_lake_tif_path, merged_lake_shp_path, overwrite,
         output_tif_path=split_tif_path, output_shp_path=split_shp_path)
 
     print("        拆分 {} 个离散区域，共 {} 个子流域".format(
@@ -3296,14 +3292,14 @@ def main():
     # min_area 单位为平方米（经纬度栅格会自动用球面近似换算）。
     # 10000000 平方米 = 10 平方公里
     min_subbasin_area = 10000
-    merged_tif_path = os.path.join(output_basepath, "lake_subbasin_merged.tif")
-    merged_shp_path = os.path.join(output_basepath, "lake_subbasin_merged.shp")
-    print("[4.2] 合并小面积子流域（阈值 {} m²）：lake_subbasin_split.tif → lake_subbasin_merged.tif".format(
+    merged_byarea_tif_path = os.path.join(output_basepath, "subbasin_merged_byarea.tif")
+    merged_byarea_shp_path = os.path.join(output_basepath, "subbasin_merged_byarea.shp")
+    print("[4.2] 合并小面积子流域（阈值 {} m²）：subbasin_split.tif → subbasin_merged_byarea.tif".format(
         min_subbasin_area))
 
     merge_info = merge_small_subbasins(
         split_tif_path, split_shp_path, min_subbasin_area, overwrite,
-        output_tif_path=merged_tif_path, output_shp_path=merged_shp_path)
+        output_tif_path=merged_byarea_tif_path, output_shp_path=merged_byarea_shp_path)
 
     print("        合并 {} 个小面积子流域，剩余 {} 个子流域".format(
         merge_info["merged_count"], merge_info["total_subbasins"]))
@@ -3311,13 +3307,13 @@ def main():
     # ------------------------------------------------------------------
     # 第 5 步：统一重新编号所有子流域（从 1 开始递增）
     # ------------------------------------------------------------------
-    final_tif_path = os.path.join(output_basepath, "lake_subbasin_final.tif")
-    final_shp_path = os.path.join(output_basepath, "lake_subbasin_final.shp")
-    print("[5/12] 统一重新编号所有子流域：lake_subbasin_merged.tif → lake_subbasin_final.tif")
+    final_subbasin_tif_path = os.path.join(output_basepath, "subbasins.tif")
+    final_subbasin_shp_path = os.path.join(output_basepath, "subbasins.shp")
+    print("[5/12] 统一重新编号所有子流域：subbasin_merged_byarea.tif → subbasins.tif")
 
     renumber_info = renumber_subbasins(
-        merged_tif_path, merged_shp_path, overwrite,
-        output_tif_path=final_tif_path, output_shp_path=final_shp_path)
+        merged_byarea_tif_path, merged_byarea_shp_path, overwrite,
+        output_tif_path=final_subbasin_tif_path, output_shp_path=final_subbasin_shp_path)
 
     print("        共 {} 个子流域已统一编号（从 1 开始）".format(renumber_info["total_subbasins"]))
 
@@ -3371,42 +3367,30 @@ def main():
     # 第 9 步：裁剪 stream.tif
     # ------------------------------------------------------------------
     input_path = os.path.join(input_basepath, "stream.tif")
-    output_path = os.path.join(output_basepath, "stream_link.tif")
+    stream_cliped_path = os.path.join(output_basepath, "stream_cliped.tif")
     overwrite = True
 
-    ensure_different_paths(input_path, output_path)
-    ensure_output_directory(output_path)
+    ensure_different_paths(input_path, stream_cliped_path)
+    ensure_output_directory(stream_cliped_path)
 
     print("[9/12] 裁剪栅格：stream.tif")
 
-    info = clip_raster(input_path, output_path, mask_path, mask_geometry, mask_srs, overwrite)
+    info = clip_raster(input_path, stream_cliped_path, mask_path, mask_geometry, mask_srs, overwrite)
 
     # ------------------------------------------------------------------
     # 第 10 步：裁剪 stream_split.shp
     # ------------------------------------------------------------------
     input_path = os.path.join(input_basepath, "stream_split.shp")
-    output_path = os.path.join(output_basepath, "stream_link.shp")
     overwrite = True
 
-    ensure_different_paths(input_path, output_path)
-    ensure_output_directory(output_path)
+    ensure_different_paths(input_path, stream_cliped_path)
+    ensure_output_directory(stream_cliped_path)
 
     print("[10/12] 裁剪河网：stream_split.shp")
 
-    # feature_count = clip_stream_vector(input_path, output_path, mask_geometry, mask_srs, overwrite)
+    feature_count = clip_stream_vector(input_path, stream_cliped_path, mask_geometry, mask_srs, overwrite)
+    print("        输出：{}（{} 条河道要素）".format(output_path, feature_count))
 
-    # print("        输出：{}（{} 条河道要素）".format(output_path, feature_count))
-
-
-    # ------------------------------------------------------------------
-    # 第 11 步：根据已有湖泊子流域更新河道 LINKNO 字段
-    # ------------------------------------------------------------------
-    lake_shp_path = os.path.join(output_basepath, "lake_subbasin_final.shp")
-    stream_shp_path = os.path.join(output_basepath, "stream_link.shp")
-    overwrite = True
-    # max_workers = min(8, max(1, os.cpu_count() or 1))
-
-    max_workers = 14
 
     # ------------------------------------------------------------------
     # 第 11 步：修复河道拓扑（吸附交点到子流域拐点）
@@ -3418,11 +3402,13 @@ def main():
     # 至少 3 条不同河道才视作拓扑汇合点（每条河道与至少两条其他河道相交）。
     snap_tolerance = 0.003        # ≈ 300 米
     min_streams_at_junction = 3
+    max_workers = 14
+    overwrite = True
 
     print("[11/12] 修复河道拓扑：吸附交点到子流域拐点")
-    snaped_stream_shp = os.path.join(output_basepath, "stream_link_snaped.shp")
+    snaped_stream_shp = os.path.join(output_basepath, "stream_link.shp")
     topology_info = repair_stream_topology(
-        stream_shp_path, lake_shp_path,
+        stream_cliped_path, final_subbasin_shp_path,
         output_path=snaped_stream_shp, snap_tolerance=snap_tolerance,
         min_streams_at_junction=min_streams_at_junction)
 
@@ -3439,7 +3425,7 @@ def main():
     # ------------------------------------------------------------------
     print("[11.1/12] 根据湖泊子流域更新河道 LINKNO")
 
-    updated_count = update_stream_linkno_by_subbasin(snaped_stream_shp, lake_shp_path, overwrite, max_workers)
+    updated_count = update_stream_linkno_by_subbasin(snaped_stream_shp, final_subbasin_shp_path, overwrite, max_workers)
 
     print("        已更新 {} 条河道的 LINKNO 字段".format(updated_count))
 
@@ -3456,7 +3442,7 @@ def main():
         node_info["node_count"], node_info["stream_count"]))
 
 
-    """
+
     # ------------------------------------------------------------------
     # 第 12 步：根据单方向 FDR.tif 计算汇流累积量
     # ------------------------------------------------------------------
@@ -3477,7 +3463,7 @@ def main():
             accumulation_info["max_accumulation"]
         )
     )
-    """
+
     return 0
 
 
