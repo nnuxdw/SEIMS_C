@@ -883,11 +883,11 @@ if __name__ == '__main__':
     # longter_model_name = '-90_124556_38_819347_longterm_model'
     # 鄱阳湖
     if os.name == 'nt':  # Windows
-        work_dir = r'G:\program\seims\SEIMS_HAND\data\taihu_1'
+        work_dir = r'G:\program\seims\SEIMS_HAND\data\taihu_5'
     else:
         work_dir = f'/data/user/xiaodw/software/WISE/data/poyang_lake1'
-    longter_model_name = 'taihu_1_longterm_model'
-    calibration_name = 'OUTPUT0-0'
+    longter_model_name = 'taihu_5_longterm_model'
+    calibration_name = 'OUTPUT0'
     longterm_model_dir = os.path.join(work_dir,longter_model_name)
     directory = os.path.join(longterm_model_dir,calibration_name)
     # prefix = 'SNAC_TS'
@@ -904,8 +904,8 @@ if __name__ == '__main__':
 
     #########################  将HAND输出的结果生成为shp  ################################
     shp_path = os.path.join(work_dir,r"workspace\HRU_file\HRU_mollwede_dissolved.shp")
-    start = datetime(2001, 1, 1, 0, 0, 0)
-    end = datetime(2001, 1, 30, 0, 0, 0)
+    start = datetime(2021, 7, 20, 0, 0, 0)
+    end = datetime(2021, 7, 30, 0, 0, 0)
     #########################  将HAND输出的结果生成为tif  ################################
 
     """ HAND淹没水深txt转shp """
@@ -920,7 +920,8 @@ if __name__ == '__main__':
     # prefix = 'OL_Hand_WTRDEP_TS'
     # prefix = 'SNAC_TS_'
 
-    input_tif_path = os.path.join(work_dir,r'workspace/HRU_file/ALL_HRU_final.tif')
+    # input_tif_path = os.path.join(work_dir,r'workspace/HRU_file/ALL_HRU_final.tif')
+    input_tif_path = os.path.join(work_dir, r'workspace/rundata/HRU.tif')
 
     """ HAND淹没水深txt转tif """
     # 设置最大线程数（建议不超过 CPU 核心数的 2~4 倍）

@@ -107,13 +107,13 @@ def count_hand_levels(csv_path: str) -> Dict[int, int]:
 
 if __name__ == '__main__':
 
-    db_name = "taihu_1_longterm_model"
+    db_name = "taihu_5_longterm_model"
     collection = "REACHES"
     subbasin_field = "SUBBASINID"
     target_field= "Lake_Hand_Level_Ini"
     if os.name == 'nt':  # Windows
         # csv_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\InundationMap.csv"
-        csv_path = r"G:\program\seims\SEIMS_HAND\data\taihu_1\workspace\rundata\InundationMap.csv"
+        csv_path = r"G:\program\seims\SEIMS_HAND\data\taihu_5\workspace\rundata\InundationMap.csv"
         mongo_uri = "mongodb://localhost:27017"
     else:  # Linux/Unix
         csv_path = r"/data/user/xiaodw/software/WISE_V20160219/data/MSL_1/workspace/rundata/InundationMap.csv"

@@ -517,7 +517,14 @@ void OL_HAND::updateAllHandsWtrDep(const int reachId) {
 	}
 	m_subbasinInundationArea[reachId] = inundationArea * 0.000001;
 	m_subbasinArea[reachId] = subbasinArea * 0.000001;
-	m_subbasinWtrDep[reachId] = m_Hands[reachId].levels[1].m_levelWtrDep;
+	if (m_Hands[reachId].levels.size() >= 1)
+	{
+		m_subbasinWtrDep[reachId] = m_Hands[reachId].levels[1].m_levelWtrDep;
+	}
+	else {
+		m_subbasinWtrDep[reachId] = 0.0;
+		cout << "Warning: the count of HRU (reach " << reachId << ") is less than 1. Please check InundationMap.csv." << endl;
+	}
 	//m_chWtrDepth[reachId] = m_Hands[reachId].levels[1].m_levelWtrDep;
 	return;
 }

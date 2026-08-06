@@ -22,7 +22,7 @@ from postprocess.plot_timeseries import read_simulation_only,plot_sim_only
 
 def main():
     ###--------------------xiaodw, plot Q,QI,QS,QG into one chart
-    subbasin_id = 7
+    subbasin_id = 30
     # subbasin_id = 1171
     file_dict = {
         "Surface Runoff": "QS.txt",
@@ -31,7 +31,7 @@ def main():
         "Total Runoff": "Q.txt"
     }
     # basedir = r'G:\program\seims\SEIMS_HAND\data\-90.124556_38.819347\-90_124556_38_819347_longterm_model\OUTPUT0_base'
-    basedir = r'G:\program\seims\SEIMS_HAND\data\TH_4\TH_4_longterm_model\OUTPUT0-0'
+    basedir = r'G:\program\seims\SEIMS_HAND\data\taihu_5\taihu_5_longterm_model\OUTPUT0'
     # plot_runoff_components(basedir,file_dict,subbasin_id)
     # plot_runoff_difference(basedir,file_dict,subbasin_id)
 
@@ -48,7 +48,7 @@ def main():
     # 时间分布图
     plot_sim_only(
         merged_df=merged,
-        out_path=os.path.join(basedir, "Q_obs_vs_sim.png"),
+        out_path=os.path.join(basedir, "Q_sim.png"),
         title="Hydrograph",
         ylabel="Discharge",
         show=True
