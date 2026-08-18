@@ -251,11 +251,12 @@ if __name__ == '__main__':
     base_path = r'G:\program\seims\SEIMS_HAND\data\poyang_lake1'
     model_name = r'poyang_lake1_longterm_model'
     # cali_name = r'CALI_NSGA2_Gen_100_Pop_20'
-    #
-    SUBBASIN_IDs = [123,141,214,225,322,347,457]
+    # xdw 2026.8.15 添加，把1171的最佳参数也写回到csv，为了文章上传参数率定结果
+    SUBBASIN_IDs = [123,141,214,225,322,347,457,1171]
     cali_name_map = {123:'CALI_NSGA2_Gen_100_Pop_20',141:'CALI_NSGA2_Gen_100_Pop_20',214:'CALI_NSGA2_Gen_100_Pop_20',
                  225:'CALI_NSGA2_Gen_100_Pop_20',322:'CALI_NSGA2_Gen_100_Pop_20',347:'CALI_NSGA2_Gen_55_Pop_20',
-                 457:'CALI_NSGA2_Gen_100_Pop_20'}
+                 457:'CALI_NSGA2_Gen_100_Pop_20',
+                 1171:'CALI_NSGA2_Gen_100_Pop_20'}
     TARGET_SUBBASIN_ID = 1171
     for SUBBASIN_ID in SUBBASIN_IDs:
         # 把下面这些变量改成你的实际文件路径

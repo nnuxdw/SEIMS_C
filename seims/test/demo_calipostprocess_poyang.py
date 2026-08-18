@@ -36,7 +36,8 @@ def main(watershed_num):
     model_name = f'poyang_lake1_longterm_model_{watershed_num}'
     y_label_map={
         "Q_123":"Discharge(m³/s)","Q_141":"Discharge(m³/s)","Q_214":"Discharge(m³/s)","Q_225":"Discharge(m³/s)",
-        "Q_322": "Discharge(m³/s)","Q_347":"Discharge(m³/s)","Q_457":"Discharge(m³/s)","Q_1171":"Discharge(m³/s)"
+        "Q_322": "Discharge(m³/s)","Q_347":"Discharge(m³/s)","Q_457":"Discharge(m³/s)","Q_1171":"Discharge(m³/s)",
+        "F_1171": "Inundation Area(km²)"
     }
     label_font_size = 24
     title_font_size = 28
@@ -165,7 +166,6 @@ def main(watershed_num):
 
         #画图
         fig, ax =plt.subplots(1,1, figsize=(22,8), dpi=100)
-        ax = plt.subplot(1,1,1)
         p1 = ax.scatter(x=obssim.index,y=obssim.Obs, label='Observation', color='#6F6F6F', s=13)
         p2 = ax.plot(sims.index,np.median(sims,1), label='Simulation', color='#C82423')
         if plot_percentile:
@@ -251,9 +251,12 @@ def main(watershed_num):
 
         plt.tight_layout()
 
-        plt.savefig(model_paths.model_dir + os.path.sep + r'CALI_NSGA2_Gen_%s_Pop_%s\%s.png'%(ngens,npop,kk), dpi=300)
-        print(model_paths.model_dir + os.path.sep + r'CALI_NSGA2_Gen_%s_Pop_%s\%s.png'%(ngens,npop,kk))
-        print("///////查看结果///////")
+        main_png = model_paths.model_dir + os.path.sep + r'CALI_NSGA2_Gen_%s_Pop_%s\%s.png'%(ngens,npop,kk)
+        fig.savefig(main_png, dpi=300)
+        print(main_png)
+        print("///%s 主图保存完成///"%kk)
+        # 关闭主图释放内存，避免多变量循环时 figure 堆积
+        plt.close(fig)
         # 把这个变量的 Obs + 所有参数集模拟保存起来，后面多子图要用
         sims_dict[kk] = sims.copy()
         obssim_dict[kk] = obssim.copy()
@@ -398,7 +401,7 @@ def main(watershed_num):
                 ax_i.set_ylim(0, maxy_i)
 
                 # 坐标轴格式
-                ax_i.set_ylabel('%s' % y_label_map[kk], fontsize=label_font_size, fontweight='bold')
+                ax_i.set_ylabel('%s' % y_label_map.get(kk, kk), fontsize=label_font_size, fontweight='bold')
                 ax_i.tick_params('both', length=5, width=1.5, which='major', labelsize=label_font_size)
                 ax_i.xaxis.set_major_locator(mdates.YearLocator())
                 ax_i.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
@@ -490,7 +493,7 @@ def main(watershed_num):
                     % (ngens, npop, kk, gen_i, id_i)
                 )
 
-                plt.savefig(single_png, dpi=300)
+                fig_i.savefig(single_png, dpi=300)
                 plt.close(fig_i)
                 print(single_png)
 
@@ -693,7 +696,8 @@ def main(watershed_num):
                 + r'CALI_NSGA2_Gen_%s_Pop_%s\multiVar_gen%s_ID%s.png'
                 % (ngens, npop, gen_i, id_i)
             )
-            plt.savefig(multi_png, dpi=300)
+            fig.savefig(multi_png, dpi=300)
+            plt.close(fig)
             print(multi_png)
 
 
