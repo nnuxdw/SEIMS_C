@@ -586,6 +586,57 @@ def clip_raster(input_path, output_path, mask_path, mask_geometry,
     return info
 
 
+def assert_same_raster_grid(reference_path, candidate_path):
+    """校验两个单波段栅格可安全逐像元叠加。"""
+    # 校大卫: HRU 与子流域流程要求 DEM、流向和汇流累积量严格同网格，不能只比较空间范围。
+    reference = gdal.Open(reference_path, gdal.GA_ReadOnly)
+    candidate = gdal.Open(candidate_path, gdal.GA_ReadOnly)
+
+    if reference is None:
+        raise IOError("无法打开参考栅格：{}".format(reference_path))
+    if candidate is None:
+        reference = None
+        raise IOError("无法打开待校验栅格：{}".format(candidate_path))
+
+    try:
+        reference_size = (reference.RasterXSize, reference.RasterYSize)
+        candidate_size = (candidate.RasterXSize, candidate.RasterYSize)
+        if reference_size != candidate_size:
+            raise RuntimeError(
+                "栅格行列数不一致：{}={}，{}={}".format(
+                    reference_path, reference_size,
+                    candidate_path, candidate_size
+                )
+            )
+
+        reference_gt = reference.GetGeoTransform()
+        candidate_gt = candidate.GetGeoTransform()
+        if any(abs(left - right) > 1e-12
+               for left, right in zip(reference_gt, candidate_gt)):
+            raise RuntimeError(
+                "栅格 GeoTransform 不一致：{} 与 {}".format(
+                    reference_path, candidate_path
+                )
+            )
+
+        reference_srs = osr.SpatialReference()
+        candidate_srs = osr.SpatialReference()
+        reference_srs.ImportFromWkt(reference.GetProjection())
+        candidate_srs.ImportFromWkt(candidate.GetProjection())
+        # 校大卫: 导入 WKT 后再设置传统 GIS 轴顺序，保证 GDAL 3 环境中的投影比较稳定。
+        set_traditional_axis_order(reference_srs)
+        set_traditional_axis_order(candidate_srs)
+        if not reference_srs.IsSame(candidate_srs):
+            raise RuntimeError(
+                "栅格投影不一致：{} 与 {}".format(
+                    reference_path, candidate_path
+                )
+            )
+    finally:
+        candidate = None
+        reference = None
+
+
 def append_line_parts(geometry, multi_line):
     """递归提取相交结果中的线要素，忽略仅接触边界产生的点。"""
     if geometry is None or geometry.IsEmpty():
@@ -3324,7 +3375,7 @@ def main():
     # ------------------------------------------------------------------
 
     input_path = os.path.join(input_basepath, "burnedfillDEM.tif")
-    output_path = os.path.join(output_basepath, "dem.tif")
+    output_path = os.path.join(output_basepath, "basin_elv.tif")
     overwrite = True
 
     ensure_different_paths(input_path, output_path)
@@ -3352,7 +3403,7 @@ def main():
     # 第 8 步：裁剪单方向 fdr.tif
     # ------------------------------------------------------------------
     input_path = os.path.join(input_basepath, "fdr.tif")
-    output_path = os.path.join(output_basepath, "flow_dir.tif")
+    output_path = os.path.join(output_basepath, "basin_dir.tif")
     overwrite = True
 
     ensure_different_paths(input_path, output_path)
@@ -3367,7 +3418,7 @@ def main():
     # 第 9 步：裁剪 stream.tif
     # ------------------------------------------------------------------
     input_path = os.path.join(input_basepath, "stream.tif")
-    stream_cliped_path = os.path.join(output_basepath, "stream_cliped.tif")
+    stream_cliped_path = os.path.join(output_basepath, "basin_Stream.tif")
     overwrite = True
 
     ensure_different_paths(input_path, stream_cliped_path)
@@ -3381,15 +3432,17 @@ def main():
     # 第 10 步：裁剪 stream_split.shp
     # ------------------------------------------------------------------
     input_path = os.path.join(input_basepath, "stream_split.shp")
+    # 校大卫: 矢量河网必须写入独立 .shp 路径，不能复用第 9 步栅格 stream_cliped.tif 的输出变量。
+    stream_cliped_shp_path = os.path.join(output_basepath, "stream_cliped.shp")
     overwrite = True
 
-    ensure_different_paths(input_path, stream_cliped_path)
-    ensure_output_directory(stream_cliped_path)
+    ensure_different_paths(input_path, stream_cliped_shp_path)
+    ensure_output_directory(stream_cliped_shp_path)
 
     print("[10/12] 裁剪河网：stream_split.shp")
 
-    feature_count = clip_stream_vector(input_path, stream_cliped_path, mask_geometry, mask_srs, overwrite)
-    print("        输出：{}（{} 条河道要素）".format(output_path, feature_count))
+    feature_count = clip_stream_vector(input_path, stream_cliped_shp_path, mask_geometry, mask_srs, overwrite)
+    print("        输出：{}（{} 条河道要素）".format(stream_cliped_shp_path, feature_count))
 
 
     # ------------------------------------------------------------------
@@ -3406,9 +3459,10 @@ def main():
     overwrite = True
 
     print("[11/12] 修复河道拓扑：吸附交点到子流域拐点")
-    snaped_stream_shp = os.path.join(output_basepath, "stream_link.shp")
+    snaped_stream_shp = os.path.join(output_basepath, "Stream.shp")
+    # 校大卫: 拓扑修复应读取第 10 步生成的矢量河网，而非第 9 步的 stream.tif 栅格。
     topology_info = repair_stream_topology(
-        stream_cliped_path, final_subbasin_shp_path,
+        stream_cliped_shp_path, final_subbasin_shp_path,
         output_path=snaped_stream_shp, snap_tolerance=snap_tolerance,
         min_streams_at_junction=min_streams_at_junction)
 
@@ -3444,15 +3498,16 @@ def main():
 
 
     # ------------------------------------------------------------------
-    # 第 12 步：根据单方向 FDR.tif 计算汇流累积量
+    # 校大卫: 第 12 步根据已裁剪的单方向 FDR 计算汇流累积量。
     # ------------------------------------------------------------------
-    input_path = os.path.join(input_basepath, "FDR.tif")
-    output_path = os.path.join(output_basepath, "acc.tif")
+    # 校大卫: 使用第 8 步已按太湖边界裁剪的 flow_dir.tif，避免全域 FDR 生成的 acc.tif 与 DEM/流向行列数不一致。
+    input_path = os.path.join(output_basepath, "basin_dir.tif")
+    output_path = os.path.join(output_basepath, "basin_upa.tif")
 
     include_self = True
     overwrite = True
 
-    print("[12/12] 计算单方向 FDR 汇流累积量：FDR.tif")
+    print("[12/12] 计算单方向 FDR 汇流累积量：basin_dir.tif")
 
     accumulation_info = calculate_d8_flow_accumulation(input_path, output_path, overwrite=overwrite, include_self=include_self)
 
@@ -3463,6 +3518,17 @@ def main():
             accumulation_info["max_accumulation"]
         )
     )
+
+    # 校大卫: 写出后立即验证 acc、flow_dir 与 DEM 可逐像元叠加，阻止尺寸错误进入后续 WISE 工作流。
+    assert_same_raster_grid(
+        os.path.join(output_basepath, "flow_dir.tif"),
+        output_path
+    )
+    assert_same_raster_grid(
+        os.path.join(output_basepath, "dem.tif"),
+        output_path
+    )
+    print("        网格校验通过：acc.tif 与 flow_dir.tif、dem.tif 严格对齐")
 
     return 0
 
