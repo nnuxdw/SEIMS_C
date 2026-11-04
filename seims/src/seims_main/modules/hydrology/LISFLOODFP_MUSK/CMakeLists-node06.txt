@@ -1,0 +1,85 @@
+MESSAGE(STATUS "        Compiling hydrology_subdir: LISFLOODFP_MUSK...")
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# 模块名定义
+set(MODNAME LISFLOODFP_MUSK)
+project(SEIMS_MODULE_${MODNAME})
+
+# 设置输出路径
+set(LIBRARY_OUTPUT_PATH ${SEIMS_BINARY_OUTPUT_PATH})
+
+# 源文件收集
+FILE(GLOB SRC_LIST 
+	*.cpp 
+	*.h
+	lisflood2/*.cpp
+	lisflood2/*.h
+	rain/*.cpp
+	rain/*.h
+	swe/*.cpp
+	swe/*.h
+	swe/fv1/*.cpp
+	swe/fv1/*.h
+	swe/dg2/*.cpp
+	swe/dg2/*.h
+)
+
+# 头文件目录（整合 VS 下的设置）
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    /data/user/xiaodw/software/WISE/seims/src/seims_main/base
+    /data/user/xiaodw/software/WISE/seims/src/seims_main/base/WetSpaInterface2
+    /data/user/xiaodw/software/WISE/seims/src/seims_main/base/bmps
+    /data/user/xiaodw/software/WISE/seims/src/seims_main/base/module_setting
+    /data/user/xiaodw/software/WISE/seims/src/seims_main/base/data
+    /data/user/xiaodw/software/WISE/seims/src/seims_main/base/common_algorithm
+    /data/user/xiaodw/software/WISE/seims/src/ccgl/src
+    /data/user/xiaodw/software/gdal/include
+    /data/user/xiaodw/software/mongo-c-driver/include/libbson-1.0
+    /data/user/xiaodw/software/mongo-c-driver/include/libmongoc-1.0
+    /data/user/xiaodw/software/netcdf_build_intel/release/include
+)
+
+# 动态库链接
+link_directories(
+    /data/user/xiaodw/software/gdal/lib
+    /data/user/xiaodw/software/mongo-c-driver/lib
+    /data/user/xiaodw/software/netcdf_build_intel/release/lib
+	/data/user/xiaodw/software/WISE/build/seims/bin/ccgl
+	/data/user/xiaodw/software/WISE/build/seims/bin/seims_project
+)
+
+# 添加库
+add_library(${MODNAME} SHARED ${SRC_LIST})
+
+# 链接基础库
+target_link_libraries(${MODNAME}
+    common_algorithm
+    module_setting
+    data
+    bmps
+    ccgl
+    ${GDAL_LIBRARIES}
+    bson-1.0
+    mongoc-1.0
+    netcdf
+)
+
+# 定义宏（来自 VS 中预处理器定义）
+target_compile_definitions(${MODNAME} PRIVATE
+    SUPPORT_OMP
+    USE_GDAL
+    MONGO_HAVE_STDINT
+    USE_MONGODB
+    MODULE_EXPORTS
+    LISFLOODFP_MUSK_EXPORTS
+    _NETCDF=1
+    LINUX
+	_DEBUG=0
+)
+
+# 安装指令
+install(TARGETS ${MODNAME} DESTINATION ${INSTALL_DIR})
+
+# 设置项目分组（IDE 可见）
+set_property(TARGET ${MODNAME} PROPERTY FOLDER "modules/hydrology")

@@ -1,0 +1,5 @@
+MESSAGE(STATUS "      Compiling SEIMS_subdir: base...")
+ADD_SUBDIRECTORY(./common_algorithm)
+ADD_SUBDIRECTORY(./data)
+ADD_SUBDIRECTORY(./bmps)
+ADD_SUBDIRECTORY(./module_setting)
