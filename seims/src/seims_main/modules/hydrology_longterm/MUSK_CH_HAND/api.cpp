@@ -67,7 +67,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_CHWTRWIDTH, UNIT_LEN_M, DESC_CHWTWIDTH, DT_Array1D);
     mdi.AddOutput(VAR_CHBTMWIDTH, UNIT_LEN_M, DESC_CHBTMWIDTH, DT_Array1D);
     mdi.AddOutput(VAR_CHCROSSAREA, UNIT_AREA_M2, DESC_CHCROSSAREA, DT_Array1D);
-	
+
 
 
     //ljj++
@@ -83,7 +83,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 
 	mdi.AddParameter("LAKEB", UNIT_NON_DIM, DESC_LAKE_MNVOL, Source_ParameterDB, DT_Single);
 	//mdi.AddParameter(REACH_LAKEB_1D, UNIT_NON_DIM, DESC_LAKE_MNVOL, Source_ParameterDB, DT_Array1D);
-	mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_AHRU, UNIT_AREA_M2, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_DEM, UNIT_LEN_M, DESC_DEM, Source_ParameterDB_Optional, DT_Raster1D);
     mdi.AddParameter(VAR_RUNOFF_CO, UNIT_NON_DIM, DESC_RUNOFF_CO, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_SLOPE, UNIT_PERCENT, DESC_SLOPE, Source_ParameterDB, DT_Raster1D);
@@ -99,7 +99,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddParameter(VAR_HAND_LowerAccDepthFlat, UNIT_LEN_M, DESC_HAND_LowerAccDepthFlat, Source_ParameterDB, DT_Raster1D);
 	mdi.AddParameter(VAR_HAND_LowerAccDepthLen, UNIT_NON_DIM, DESC_HAND_LowerAccDepthLen, Source_ParameterDB, DT_Raster1D);
 
-    mdi.AddInput(VAR_PCP, UNIT_DEPTH_MM, DESC_PCP, Source_Module, DT_Raster1D); 
+    mdi.AddInput(VAR_PCP, UNIT_DEPTH_MM, DESC_PCP, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_PET, UNIT_WTRDLT_MMD, DESC_PET, Source_Module, DT_Raster1D);
 	//mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);   // xiaodw comment, don't need soil temperature now
 	// xdw++

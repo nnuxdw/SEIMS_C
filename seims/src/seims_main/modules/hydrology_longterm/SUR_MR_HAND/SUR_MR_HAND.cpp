@@ -1,7 +1,11 @@
 ﻿#include "SUR_MR_HAND.h"
 //#define DEBUG_SUR_MR_HAND
+//// 只输出18号子流域逐日汇总
+//#define DEBUG_SUR_MR_HAND_18
 #include <set>
 #include "text.h"
+#include <iomanip>
+#include <ctime>
 using namespace std;
 
 SUR_MR_HAND::SUR_MR_HAND() :
@@ -54,9 +58,11 @@ bool SUR_MR_HAND::CheckInputData() {
     CHECK_POINTER(MID_SUR_MR_HAND, m_potRfCoef);
     //CHECK_POINTER(MID_SUR_MR_HAND, m_soilFC);
     CHECK_POINTER(MID_SUR_MR_HAND, m_meanTemp);
-	//CHECK_POINTER(MID_SUR_MR_HAND, m_soilTemp);   // xiaodw comment, don't need soil temperature now
+	CHECK_POINTER(MID_SUR_MR_HAND, m_soilTemp);               // xiaodw comment, don't need soil temperature now
+	CHECK_POINTER(MID_SUR_MR_HAND, m_soilFrozenTemp_1d);      // lj
 	CHECK_POINTER(MID_SUR_MR_HAND, m_netPcp);
     CHECK_POINTER(MID_SUR_MR_HAND, m_deprSto);
+	CHECK_POINTER(MID_SUR_MR_HAND, m_handWtrDep);
     return true;
 }
 
@@ -269,17 +275,37 @@ void SUR_MR_HAND::InitialOutputs() {
             for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
                 // if (m_initSoilWtrStoRatio[i] >= 0.f && m_initSoilWtrStoRatio[i] <= 1.f && m_soilFC[i][j] >= 0.f) {
                 //     m_soilWtrSto[i][j] = m_initSoilWtrStoRatio[i] * m_soilFC[i][j];
+
                 if (m_initSoilWtrStoRatio[i] >= 0.f && m_initSoilWtrStoRatio[i] <= 1.f && m_soilAWC[i][j] >= 0.f) {
                     m_soilWtrSto[i][j] = m_initSoilWtrStoRatio[i] * m_soilAWC[i][j];
                 } else {
                     m_soilWtrSto[i][j] = 0.f;
                 }
+
+				//// 全饱和初始化试验：
+	   //         // m_soilWtrSto 表示萎蔫点以上的土壤液态水储量；
+	   //         // m_soilSat 对应 SOL_UL，即该变量允许的饱和上限。
+				//if (m_soilSat[i][j] >= 0.f) {
+				//	m_soilWtrSto[i][j] = m_soilSat[i][j];
+				//}
+				//else {
+				//	m_soilWtrSto[i][j] = 0.f;
+				//}
+
+				/*if (m_initSoilWtrStoRatio[i] >= 0.f && m_initSoilWtrStoRatio[i] <= 1.f && m_soilSat[i][j] >= 0.f) {
+					m_soilWtrSto[i][j] = m_initSoilWtrStoRatio[i] * m_soilSat[i][j];
+				}
+				else {
+					m_soilWtrSto[i][j] = 0.f;
+				}*/
+
 				m_soilWtrStoBfe[i][j] = m_soilWtrSto[i][j];
 				m_soilFCDepth[i][j] = m_soilFC[i][j] * m_soilThk[i][j];
 				m_soilPorDepth[i][j] = m_soilPor[i][j] * m_soilThk[i][j];
                 m_soilWtrStoPrfl[i] += m_soilWtrSto[i][j];
             }
         }
+
 		int lower_flat_len = 0;
 		for (int i = 0; i < m_nCells; i++)
 		{
@@ -303,14 +329,67 @@ void SUR_MR_HAND::InitialOutputs() {
 
 
 int SUR_MR_HAND::Execute() {
+
 	//int SPECIFIED_ID = 342;
-	//int SPECIFIED_ID = 19;
+	int SPECIFIED_ID = -1;
 	//set<int> SPECIFIED_SBID = { 1,2, 3,4, 5,6, 7 };
 	set<int> SPECIFIED_SBID = { 19 };
     CheckInputData();
     InitialOutputs();
     int frez =0;
     m_maxPcpRf *= m_dt * 1.1574074074074073e-05f; /// 1. / 86400. = 1.1574074074074073e-05;
+
+#ifdef DEBUG_SUR_MR_HAND_18
+
+// ============================================================
+// 18号子流域调试变量
+// 只用于记录，不参与任何模型计算
+// ============================================================
+
+	const int dbgSbid18 = 18;
+
+	const std::time_t dbgCurrentDate =
+		static_cast<std::time_t>(m_date);
+
+	std::tm dbgDateInfo = {};
+
+#ifdef _WIN32
+	localtime_s(&dbgDateInfo, &dbgCurrentDate);
+#else
+	localtime_r(&dbgCurrentDate, &dbgDateInfo);
+#endif
+
+	const int dbgYear =
+		dbgDateInfo.tm_year + 1900;
+
+	// 与 CH4_LPJGUESS 保持一致：只输出2010—2015年
+	const bool dbgSelectedYear =
+		dbgYear >= 2010 &&
+		dbgYear <= 2015;
+
+	char dbgDateText[16] = {};
+
+	std::strftime(
+		dbgDateText,
+		sizeof(dbgDateText),
+		"%Y-%m-%d",
+		&dbgDateInfo
+	);
+
+	// ---------- HAND积水入渗 ----------
+	double dbgHandArea_m2 = 0.0;
+
+	double dbgHandBefore_m3 = 0.0;
+	double dbgHandAfter_m3 = 0.0;
+	double dbgHandInfil_m3 = 0.0;
+
+	double dbgSoilDeficitBefore_m3 = 0.0;
+	double dbgSoilGainFromHand_m3 = 0.0;
+
+	int dbgHandCellCount = 0;
+	int dbgWetHandCellCount = 0;
+
+#endif
 
 
 #ifdef DEBUG_SUR_MR_HAND
@@ -337,8 +416,31 @@ int SUR_MR_HAND::Execute() {
 
 					float hand_infil = 0.f;
 
-					
-					if (handWtrDepMM >= m_soilPor[i][ly] * m_soilThk[i][ly] - m_soilWtrSto[i][ly]) {
+					// lj++
+					if (m_soilSat[i][ly] <= 0.f) {
+						continue;
+					}
+
+					// 防止负入渗
+					if (m_soilWtrSto[i][ly] >= m_soilSat[i][ly]) {
+						m_soilWtrSto[i][ly] = m_soilSat[i][ly];
+						continue;
+					}
+
+					if (handWtrDepMM >= m_soilSat[i][ly] - m_soilWtrSto[i][ly]) {
+						hand_infil = m_soilSat[i][ly] - m_soilWtrSto[i][ly];
+						m_soilWtrSto[i][ly] = m_soilSat[i][ly];
+						hand_infil_acc += hand_infil;
+						handWtrDepMM -= hand_infil;
+					}
+					else {
+						hand_infil = handWtrDepMM;
+						m_soilWtrSto[i][ly] += hand_infil;
+						hand_infil_acc += hand_infil;
+						handWtrDepMM = 0.f;
+					}
+
+					/*if (handWtrDepMM >= m_soilPor[i][ly] * m_soilThk[i][ly] - m_soilWtrSto[i][ly]) {
 						hand_infil = m_soilPor[i][ly] * m_soilThk[i][ly] - m_soilWtrSto[i][ly];
 						m_soilWtrSto[i][ly] = m_soilPor[i][ly] * m_soilThk[i][ly];
 						hand_infil_acc += hand_infil;
@@ -349,15 +451,113 @@ int SUR_MR_HAND::Execute() {
 						m_soilWtrSto[i][ly] += hand_infil;
 						hand_infil_acc += hand_infil;
 						handWtrDepMM = 0.f;
-					}
-					handWtrDepAftInfil[i] = handWtrDepMM * 0.001;   // m
+					}*/
+
+					//handWtrDepAftInfil[i] = handWtrDepMM * 0.001;   // m
 					if (m_handWtrDep[i] < 0.f)
 					{
 						cout << "Error: In SUR_MR_HAND module, m_handWtrDep is "  << m_handWtrDep[i] << " at subbasinId=" << sbid << ", i =" << i << endl;
 						//exit(-1);
 					}
 				}
-				m_HAND_Infil[i] = hand_infil_acc; // mm
+				m_HAND_Infil[i] = hand_infil_acc;    // mm
+				handWtrDepAftInfil[i] = handWtrDepMM * 0.001;   // m
+
+				//// 只检查19号子流域的1306号HAND单元
+    //            // 想检查19号子流域全部单元时，删除“&& i == 1306”
+				//if (sbid == 19 &&(i == 1304 ||i == 1305 ||i == 1306 ||i == 1309 ||i == 1310))
+				//{
+				//	int validLayerCount = 0;
+				//	int saturatedLayerCount = 0;
+				//	int unsaturatedLayerCount = 0;
+
+				//	cout << endl;
+				//	cout << "***********************************************" << endl;
+				//	cout << "*[SUR_MR_HAND_SOIL_SATURATION]*" << endl;
+
+				//	cout << fixed << setprecision(6);
+
+				//	cout << " Sbid: " << sbid
+				//		<< "   HandId: " << i
+				//		<< "   handBefore_mm: " << m_handWtrDep[i] * 1000.0f
+				//		<< "   handAfter_m: " << handWtrDepAftInfil[i]
+				//		<< "   handInfil_mm: " << m_HAND_Infil[i]
+				//		<< endl;
+
+				//	cout << "---------------------------------------------------------------"
+				//		<< endl;
+
+				//	cout << left
+				//		<< setw(8) << "Layer"
+				//		<< setw(16) << "WtrBefore_mm"
+				//		<< setw(16) << "WtrAfter_mm"
+				//		<< setw(16) << "SoilSat_mm"
+				//		<< setw(16) << "SatRatio"
+				//		<< setw(12) << "Saturated"
+				//		<< endl;
+
+				//	cout << "---------------------------------------------------------------"
+				//		<< endl;
+
+				//	for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[i]); ++ly)
+				//	{
+				//		if (m_soilSat[i][ly] <= 0.0f)
+				//		{
+				//			continue;
+				//		}
+
+				//		++validLayerCount;
+
+				//		float saturationRatio =
+				//			m_soilWtrSto[i][ly] / m_soilSat[i][ly];
+
+				//		bool isSaturated =
+				//			saturationRatio >= 0.999f;
+
+				//		if (isSaturated)
+				//		{
+				//			++saturatedLayerCount;
+				//		}
+				//		else
+				//		{
+				//			++unsaturatedLayerCount;
+				//		}
+
+				//		cout << left
+				//			<< setw(8) << ly
+				//			<< setw(16) << m_soilWtrStoBfe[i][ly]
+				//			<< setw(16) << m_soilWtrSto[i][ly]
+				//			<< setw(16) << m_soilSat[i][ly]
+				//			<< setw(16) << saturationRatio
+				//			<< setw(12) << (isSaturated ? "YES" : "NO")
+				//			<< endl;
+				//	}
+
+				//	bool allLayersSaturated =
+				//		validLayerCount > 0 &&
+				//		unsaturatedLayerCount == 0;
+
+				//	cout << "---------------------------------------------------------------"
+				//		<< endl;
+
+				//	cout << " Valid layers: " << validLayerCount
+				//		<< "   Saturated layers: " << saturatedLayerCount
+				//		<< "   Unsaturated layers: " << unsaturatedLayerCount
+				//		<< endl;
+
+				//	cout << " Soil profile saturated: "
+				//		<< (allLayersSaturated ? "YES" : "NO")
+				//		<< endl;
+
+				//	if (handWtrDepAftInfil[i] > 1.0e-6f &&
+				//		!allLayersSaturated)
+				//	{
+				//		cout << " WARNING: Surface water exists, but soil is unsaturated!"
+				//			<< endl;
+				//	}
+
+				//	cout << "***********************************************" << endl;
+				//}
 				
 			}
 		}
@@ -371,26 +571,22 @@ int SUR_MR_HAND::Execute() {
 				int i = m_Hands[sbid].levels[ll].handIds[idx];
 				if (SPECIFIED_SBID.find(sbid) != SPECIFIED_SBID.end())
 				{
-					if (m_handWtrDep[i] > 0.0f) {
-						cout << "******************************************" << endl;
-						cout << "*[SUR_MR_HAND_INUNDATION]* " << endl;
-						cout << " Sbid: " << sbid << "   "
-							<< " HandId: " << i << "   "
-							<< " handWtrDep=" << m_handWtrDep[i] * 1000.0 << "   "
-							<< " handWtrDepAftInfil=" << handWtrDepAftInfil[i] << "   "
-							<< " hand_infil=" << m_HAND_Infil[i] << "   "
-							<< " handArea=" << m_handArea[i] << "   "
+					//cout << "******************************************" << endl;
+					//cout << "*[SUR_MR_HAND_INUNDATION]* " << endl;
+					cout << " Sbid: " << sbid << "   "
+						<< " HandId: " << i << "   "
+						<< " handWtrDep=" << m_handWtrDep[i] * 1000.0 << "   "
+						<< " handWtrDepAftInfil=" << handWtrDepAftInfil[i] << "   "
+						<< " hand_infil=" << m_HAND_Infil[i] << "   "
+						<< " handArea=" << m_handArea[i] << "   "
+						<< endl;
+					for (int ly = 0; ly <= CVT_INT(m_nSoilLyrs[i]) - 1; ly++) {
+						cout
+							<< "Layer: " << ly << "   "
+							<< " WtrStoBfe=" << m_soilWtrStoBfe[i][ly] << "   "
+							<< " WtrStoAft=" << m_soilWtrSto[i][ly] << "   "
 							<< endl;
-						for (int ly = 0; ly <= CVT_INT(m_nSoilLyrs[i]) - 1; ly++) {
-							cout
-								<< "Layer: " << ly << "   "
-								<< " WtrStoBfe=" << m_soilWtrStoBfe[i][ly] << "   "
-								<< " WtrStoAft=" << m_soilWtrSto[i][ly] << "   "
-								<< " Sat=" << m_soilPor[i][ly] * m_soilThk[i][ly] <<  "   "
-								<< endl;
-						}
 					}
-					
 						
 
 				}
@@ -401,6 +597,531 @@ int SUR_MR_HAND::Execute() {
 #endif
 	}
 
+
+	// =====================================================================
+// 新增：18号子流域 HAND 入渗调试汇总
+// 注意：一定放在上面的 sbid 循环结束之后
+//       一定放在 DEBUG_WB19 之前
+//       这里只读取数据，不修改模型状态
+// =====================================================================
+#ifdef DEBUG_SUR_MR_HAND_18
+
+	std::set<int> dbgVisitedHandIds;
+
+	// ============================================================
+// 逐HAND单元明细输出
+// 只用于调试，不参与模型计算
+// ============================================================
+
+#ifdef _WIN32
+	const char* dbgHandDetailFile = "D:/SEIMS_C/log/sur_mr_hand_sbid18_hand_detail.csv";
+#else
+	const char* dbgHandDetailFile = "/data/user/lijing/software/SEIMS_C/log/sur_mr_hand_sbid18_hand_detail.csv";
+#endif
+
+	bool dbgHandDetailNeedHeader = false;
+
+	{
+		std::ifstream dbgCheck(
+			dbgHandDetailFile,
+			std::ios::in
+		);
+
+		if (!dbgCheck.good())
+		{
+			dbgHandDetailNeedHeader = true;
+		}
+		else
+		{
+			dbgCheck.seekg(0, std::ios::end);
+
+			if (dbgCheck.tellg() == 0)
+			{
+				dbgHandDetailNeedHeader = true;
+			}
+
+			dbgCheck.close();
+		}
+	}
+
+	std::ofstream dbgHandDetailOut(
+		dbgHandDetailFile,
+		std::ios::out | std::ios::app
+	);
+
+	if (dbgHandDetailOut.is_open() &&
+		dbgHandDetailNeedHeader)
+	{
+		dbgHandDetailOut
+			<< "DATE"
+			<< ",sbid"
+			<< ",hand_id"
+			<< ",area_m2"
+			<< ",n_layers"
+
+			<< ",hand_before_m"
+			<< ",hand_before_mm"
+			<< ",hand_before_m3"
+
+			<< ",hand_infil_mm"
+			<< ",hand_infil_m3"
+
+			<< ",hand_after_m"
+			<< ",hand_after_mm"
+			<< ",hand_after_m3"
+
+			<< ",soil_before_profile_mm"
+			<< ",soil_after_hand_profile_mm"
+			<< ",soil_sat_profile_mm"
+
+			<< ",soil_deficit_before_mm"
+			<< ",soil_deficit_before_m3"
+
+			<< ",soil_gain_from_hand_mm"
+			<< ",soil_gain_from_hand_m3"
+
+			<< std::endl;
+	}
+
+	if (dbgSbid18 > 0 &&
+		dbgSbid18 <= m_nreach &&
+		dbgSbid18 < static_cast<int>(m_Hands.size()))
+	{
+		for (int ll = 1;
+			ll <= m_Hands[dbgSbid18].n_levels;
+			++ll)
+		{
+			for (int idx = 0;
+				idx < m_Hands[dbgSbid18].levels[ll].m_levelHandNum;
+				++idx)
+			{
+				const int i =
+					m_Hands[dbgSbid18]
+					.levels[ll]
+					.handIds[idx];
+
+				// ---------------------------------------------------------
+				// HAND ID合法性检查
+				// ---------------------------------------------------------
+				if (i < 0 || i >= m_nCells)
+				{
+					continue;
+				}
+
+				// 防止同一个HAND单元被重复统计
+				if (!dbgVisitedHandIds.insert(i).second)
+				{
+					continue;
+				}
+
+				const double area =
+					static_cast<double>(m_handArea[i]);
+
+				if (!std::isfinite(area) || area <= 0.0)
+				{
+					continue;
+				}
+
+				++dbgHandCellCount;
+				dbgHandArea_m2 += area;
+
+
+				// =========================================================
+				// 1. HAND入渗前地表积水体积
+				//
+				// m_handWtrDep 单位：m
+				// area 单位：m2
+				// 所以结果单位：m3
+				// =========================================================
+
+				const double handBefore_m =
+					static_cast<double>(
+						m_handWtrDep[i]
+						);
+
+				dbgHandBefore_m3 +=
+					handBefore_m * area;
+
+				if (handBefore_m > 1.0e-8)
+				{
+					++dbgWetHandCellCount;
+				}
+
+
+				// =========================================================
+				// 2. HAND入渗后剩余地表积水体积
+				// =========================================================
+
+				const double handAfter_m =
+					static_cast<double>(
+						handWtrDepAftInfil[i]
+						);
+
+				dbgHandAfter_m3 +=
+					handAfter_m * area;
+
+
+				// =========================================================
+				// 3. HAND实际入渗量
+				//
+				// m_HAND_Infil 单位：mm
+				// mm × 0.001 × m2 = m3
+				// =========================================================
+
+				const double handInfil_mm =
+					static_cast<double>(
+						m_HAND_Infil[i]
+						);
+
+				dbgHandInfil_m3 +=
+					handInfil_mm
+					* 0.001
+					* area;
+
+
+				// =========================================================
+                // 4. 只检查“当天有HAND积水”的单元
+                //
+                // 因为只有这些单元当天才具备HAND入渗条件。
+                // 否则把大量未淹水单元的土壤缺水也统计进来，
+                // 会人为压低 deficit_fill_fraction。
+                // =========================================================
+
+				if (handBefore_m > 1.0e-8)
+				{
+					// 当前HAND单元自己的土壤剖面统计
+					double cellSoilBefore_mm = 0.0;
+					double cellSoilAfterHand_mm = 0.0;
+					double cellSoilSat_mm = 0.0;
+
+					double cellSoilDeficitBefore_mm = 0.0;
+					double cellSoilGainFromHand_mm = 0.0;
+
+
+					for (int ly = 0;
+						ly < CVT_INT(m_nSoilLyrs[i]);
+						++ly)
+					{
+						if (m_soilSat[i][ly] <= 0.0f)
+						{
+							continue;
+						}
+
+						const double soilBefore_mm =
+							static_cast<double>(
+								m_soilWtrStoBfe[i][ly]
+								);
+
+						const double soilAfterHand_mm =
+							static_cast<double>(
+								m_soilWtrSto[i][ly]
+								);
+
+						const double soilSat_mm =
+							static_cast<double>(
+								m_soilSat[i][ly]
+								);
+
+
+						// 整个土壤剖面的水量和饱和容量
+						cellSoilBefore_mm +=
+							soilBefore_mm;
+
+						cellSoilAfterHand_mm +=
+							soilAfterHand_mm;
+
+						cellSoilSat_mm +=
+							soilSat_mm;
+
+
+						// 入渗前距离饱和还缺多少
+						const double deficitBefore_mm =
+							(std::max)(
+								0.0,
+								soilSat_mm - soilBefore_mm
+								);
+
+						cellSoilDeficitBefore_mm +=
+							deficitBefore_mm;
+
+
+						// HAND入渗实际增加多少土壤水
+						const double soilGain_mm =
+							soilAfterHand_mm
+							- soilBefore_mm;
+
+						cellSoilGainFromHand_mm +=
+							soilGain_mm;
+					}
+
+
+					// -----------------------------------------------------
+					// 当前HAND单元转换成体积 m3
+					// -----------------------------------------------------
+
+					const double cellHandBefore_m3 =
+						handBefore_m * area;
+
+					const double cellHandInfil_m3 =
+						handInfil_mm
+						* 0.001
+						* area;
+
+					const double cellHandAfter_m3 =
+						handAfter_m * area;
+
+					const double cellSoilDeficitBefore_m3 =
+						cellSoilDeficitBefore_mm
+						* 0.001
+						* area;
+
+					const double cellSoilGainFromHand_m3 =
+						cellSoilGainFromHand_mm
+						* 0.001
+						* area;
+
+
+					// -----------------------------------------------------
+					// 保留原来的18号子流域总体统计
+					// -----------------------------------------------------
+
+					dbgSoilDeficitBefore_m3 +=
+						cellSoilDeficitBefore_m3;
+
+					dbgSoilGainFromHand_m3 +=
+						cellSoilGainFromHand_m3;
+
+
+					// -----------------------------------------------------
+					// 写逐HAND单元明细
+					// -----------------------------------------------------
+
+					if (dbgSelectedYear &&
+						dbgHandDetailOut.is_open())
+					{
+						dbgHandDetailOut
+							<< std::setprecision(12)
+
+							<< dbgDateText
+							<< "," << dbgSbid18
+							<< "," << i
+							<< "," << area
+							<< "," << CVT_INT(m_nSoilLyrs[i])
+
+							<< "," << handBefore_m
+							<< "," << handBefore_m * 1000.0
+							<< "," << cellHandBefore_m3
+
+							<< "," << handInfil_mm
+							<< "," << cellHandInfil_m3
+
+							<< "," << handAfter_m
+							<< "," << handAfter_m * 1000.0
+							<< "," << cellHandAfter_m3
+
+							<< "," << cellSoilBefore_mm
+							<< "," << cellSoilAfterHand_mm
+							<< "," << cellSoilSat_mm
+
+							<< "," << cellSoilDeficitBefore_mm
+							<< "," << cellSoilDeficitBefore_m3
+
+							<< "," << cellSoilGainFromHand_mm
+							<< "," << cellSoilGainFromHand_m3
+
+							<< std::endl;
+					}
+				}
+			}       
+		}           
+	}               
+
+
+	// 关闭逐HAND明细文件
+	if (dbgHandDetailOut.is_open())
+	{
+		dbgHandDetailOut.close();
+	}
+
+#endif
+	// =====================================================================
+	// 新增结束
+	// =====================================================================
+
+#ifdef DEBUG_WB19
+{
+const int debugSubbasin = 19;
+
+double handBeforeVol = 0.0;  // 入渗前HAND水量，m3
+double handAfterVol = 0.0;  // 入渗后HAND水量，m3
+double infilVol = 0.0;  // HAND入渗量，m3
+double soilGainVol = 0.0;  // 土壤水增加量，m3
+
+int cellCount = 0;
+int negativeInfilCount = 0;
+int negativeDepthCount = 0;
+int invalidAreaCount = 0;
+
+// 防止同一个HAND单元重复统计
+std::set<int> visitedIds;
+
+if (debugSubbasin > 0 &&
+	debugSubbasin <= m_nreach &&
+	debugSubbasin < static_cast<int>(m_Hands.size()))
+{
+	for (int ll = 1;
+		ll <= m_Hands[debugSubbasin].n_levels;
+		++ll)
+	{
+		for (int idx = 0;
+			idx < m_Hands[debugSubbasin]
+			.levels[ll]
+			.m_levelHandNum;
+			++idx)
+		{
+			const int i =
+				m_Hands[debugSubbasin]
+				.levels[ll]
+				.handIds[idx];
+
+			if (i < 0 || i >= m_nCells)
+			{
+				continue;
+			}
+
+			// 防止重复ID被重复累加
+			if (!visitedIds.insert(i).second)
+			{
+				continue;
+			}
+
+			const double area =
+				static_cast<double>(m_handArea[i]);
+
+			if (!std::isfinite(area) || area <= 0.0)
+			{
+				++invalidAreaCount;
+				continue;
+			}
+
+			++cellCount;
+
+			// 入渗前地表水体积：m × m2 = m3
+			handBeforeVol +=
+				static_cast<double>(m_handWtrDep[i])
+				* area;
+
+			// 入渗后地表水体积
+			handAfterVol +=
+				static_cast<double>(
+					handWtrDepAftInfil[i]
+					)
+				* area;
+
+			// HAND入渗体积：mm × 0.001 × m2 = m3
+			infilVol +=
+				static_cast<double>(
+					m_HAND_Infil[i]
+					)
+				* 0.001
+				* area;
+
+			// 土壤水增加体积
+			for (int ly = 0;
+				ly < CVT_INT(m_nSoilLyrs[i]);
+				++ly)
+			{
+				soilGainVol +=
+					static_cast<double>(
+						m_soilWtrSto[i][ly]
+						- m_soilWtrStoBfe[i][ly]
+						)
+					* 0.001
+					* area;
+			}
+
+			if (m_HAND_Infil[i] < -1.0e-6f)
+			{
+				++negativeInfilCount;
+			}
+
+			if (handWtrDepAftInfil[i] < -1.0e-8f)
+			{
+				++negativeDepthCount;
+			}
+		}
+	}
+}
+
+// 地表水量平衡：
+// 入渗前水量 = 入渗后水量 + 入渗量
+const double surfaceBalanceError =
+handBeforeVol
+- handAfterVol
+- infilVol;
+
+// 入渗水量应等于土壤水增加量
+const double soilBalanceError =
+infilVol
+- soilGainVol;
+
+const double surfaceScale =
+(std::max)(
+	1.0,
+	(std::max)(
+		std::fabs(handBeforeVol),
+		std::fabs(handAfterVol + infilVol)
+	)
+);
+
+const double soilScale =
+(std::max)(
+	1.0,
+	(std::max)(
+		std::fabs(infilVol),
+		std::fabs(soilGainVol)
+	)
+);
+
+cout << "[WB19_SUR]"
+<< ",date=" << m_date
+<< ",cellCount=" << cellCount
+
+<< ",handBefore_m3=" << handBeforeVol
+<< ",handAfter_m3=" << handAfterVol
+<< ",infil_m3=" << infilVol
+<< ",soilGain_m3=" << soilGainVol
+
+<< ",surfaceBalanceError="
+<< surfaceBalanceError
+
+<< ",surfaceRelativeError="
+<< surfaceBalanceError / surfaceScale
+
+<< ",soilBalanceError="
+<< soilBalanceError
+
+<< ",soilRelativeError="
+<< soilBalanceError / soilScale
+
+<< ",negativeInfilCount="
+<< negativeInfilCount
+
+<< ",negativeDepthCount="
+<< negativeDepthCount
+
+<< ",invalidAreaCount="
+<< invalidAreaCount
+
+<< endl;
+}
+#endif
+
+#ifdef DEBUG_SUR_MR_HAND
+	{
+		cout << "[SUR_MR_HAND_2]" << endl;
+	}
+#endif
 
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
@@ -460,60 +1181,86 @@ int SUR_MR_HAND::Execute() {
                 m_exsPcp[i] = surfq;
 
             }else{
-//                //for frozen soil, no infiltration will occur
-//                //if (m_soilTemp[i] <= m_soilFrozenTemp && smFraction >= m_soilFrozenWtrRatio) {
-//                if (m_soilTemp[i] <= m_soilFrozenTemp_1d[i] && smFraction >= m_soilFrozenWtrRatio) {
-//                    m_exsPcp[i] = m_netPcp[i];
-//                    m_infil[i] = 0.f;
-//                } else {
-//                    alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
-//                    if (hWater >= m_maxPcpRf) {
-//                        alpha = 1.f;
-//                    }
-//
-//                    //runoff percentage
-//                    float runoffPercentage;
-////#ifndef DEBUG_SUR_MR_HAND
-////				cout << i << ": " << m_potRfCoef[i] << endl;
-////#endif
-//                    if (m_potRfCoef[i] > 0.99f ||  (m_landUse[i] == LANDUSE_ID_GLC)) {
-//                        runoffPercentage = 1.f;
-//                    } else {
-//                        runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
-//                    }
-//                    runoffPercentage = Min(runoffPercentage,1.f);
-//                    float surfq = hWater * runoffPercentage;
-//                    if (surfq > hWater) surfq = hWater;
-//                    m_infil[i] = hWater - surfq;
-//                    m_exsPcp[i] = surfq;
-//
-//                    /// TODO: Why calculate surfq first, rather than infiltration first?
-//                    ///       I think we should calculate infiltration first, until saturation,
-//                    ///       then surface runoff should be calculated. By LJ.
-//                }
 
-				alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
-				if (hWater >= m_maxPcpRf) {
-					alpha = 1.f;
-				}
-
-
-				//#ifndef DEBUG_SUR_MR_HAND
-				//				cout << i << ": " << m_potRfCoef[i] << endl;
-				//#endif
-				if (m_potRfCoef[i] > 0.99f || (m_landUse[i] == LANDUSE_ID_GLC)) {
-					runoffPercentage = 1.f;
+				// for frozen soil, no infiltration will occur
+				if (m_soilTemp[i] <= m_soilFrozenTemp_1d[i] && smFraction >= m_soilFrozenWtrRatio) {
+					m_exsPcp[i] = m_netPcp[i];
+					m_infil[i] = 0.f;
 				}
 				else {
-					runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+					alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
+					if (hWater >= m_maxPcpRf) {
+						alpha = 1.f;
+					}
+
+					if (m_potRfCoef[i] > 0.99f || m_landUse[i] == LANDUSE_ID_GLC) {
+						runoffPercentage = 1.f;
+					}
+					else {
+						runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+					}
+					runoffPercentage = Min(runoffPercentage, 1.f);
+					m_HAND_Runoff_Perc[i] = runoffPercentage;
+					surfq = hWater * runoffPercentage;
+					if (surfq > hWater) surfq = hWater;
+					m_infil[i] = hWater - surfq;
+					m_exsPcp[i] = surfq;
 				}
-				runoffPercentage = Min(runoffPercentage, 1.f);
-				m_HAND_Runoff_Perc[i] = runoffPercentage;
-				surfq = hWater * runoffPercentage;
-				if (surfq > hWater) surfq = hWater;
-				m_infil[i] = hWater - surfq;
-				m_exsPcp[i] = surfq;
-            }
+			}
+////                //for frozen soil, no infiltration will occur
+////                //if (m_soilTemp[i] <= m_soilFrozenTemp && smFraction >= m_soilFrozenWtrRatio) {
+////                if (m_soilTemp[i] <= m_soilFrozenTemp_1d[i] && smFraction >= m_soilFrozenWtrRatio) {
+////                    m_exsPcp[i] = m_netPcp[i];
+////                    m_infil[i] = 0.f;
+////                } else {
+////                    alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
+////                    if (hWater >= m_maxPcpRf) {
+////                        alpha = 1.f;
+////                    }
+////
+////                    //runoff percentage
+////                    float runoffPercentage;
+//////#ifndef DEBUG_SUR_MR_HAND
+//////				cout << i << ": " << m_potRfCoef[i] << endl;
+//////#endif
+////                    if (m_potRfCoef[i] > 0.99f ||  (m_landUse[i] == LANDUSE_ID_GLC)) {
+////                        runoffPercentage = 1.f;
+////                    } else {
+////                        runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+////                    }
+////                    runoffPercentage = Min(runoffPercentage,1.f);
+////                    float surfq = hWater * runoffPercentage;
+////                    if (surfq > hWater) surfq = hWater;
+////                    m_infil[i] = hWater - surfq;
+////                    m_exsPcp[i] = surfq;
+////
+////                    /// TODO: Why calculate surfq first, rather than infiltration first?
+////                    ///       I think we should calculate infiltration first, until saturation,
+////                    ///       then surface runoff should be calculated. By LJ.
+////                }
+//
+//				alpha = m_rfExp - (m_rfExp - 1.f) * hWater / m_maxPcpRf;
+//				if (hWater >= m_maxPcpRf) {
+//					alpha = 1.f;
+//				}
+//
+//
+//				//#ifndef DEBUG_SUR_MR_HAND
+//				//				cout << i << ": " << m_potRfCoef[i] << endl;
+//				//#endif
+//				if (m_potRfCoef[i] > 0.99f || (m_landUse[i] == LANDUSE_ID_GLC)) {
+//					runoffPercentage = 1.f;
+//				}
+//				else {
+//					runoffPercentage = m_potRfCoef[i] * pow(smFraction, alpha);
+//				}
+//				runoffPercentage = Min(runoffPercentage, 1.f);
+//				m_HAND_Runoff_Perc[i] = runoffPercentage;
+//				surfq = hWater * runoffPercentage;
+//				if (surfq > hWater) surfq = hWater;
+//				m_infil[i] = hWater - surfq;
+//				m_exsPcp[i] = surfq;
+//            }
 			m_alpha[i] = alpha;
 
         } else {
@@ -548,6 +1295,597 @@ int SUR_MR_HAND::Execute() {
 //		}
 //#endif
     }
+
+#ifdef DEBUG_SUR_MR_HAND_18
+
+	// ============================================================
+	// DEBUG B：统计18号子流域当天的降雨产流
+	//
+	// 注意：
+	// 前面的正常SUR_MR_HAND计算已经全部结束。
+	// 这里只读取结果，不修改任何模型变量。
+	// ============================================================
+
+	double dbgSubArea_m2 = 0.0;
+	double dbgActiveArea_m2 = 0.0;
+
+	int dbgSubCellCount = 0;
+	int dbgActiveCellCount = 0;
+
+
+	// ---------- 当天水量输入 ----------
+	double dbgNetPcp_m3 = 0.0;
+	double dbgDeprSto_m3 = 0.0;
+	// 所有18号子流域单元的原始 hWater = netPcp + deprSto
+	double dbgHWaterRaw_m3 = 0.0;
+
+	// 真正进入 if (hWater > 0) 产流分支的水量
+	double dbgHWaterActive_m3 = 0.0;
+
+
+	// ---------- 当天产流 ----------
+	double dbgSurfq_m3 = 0.0;
+	double dbgRainInfil_m3 = 0.0;
+
+
+	// ---------- runoff percentage ----------
+	double dbgRunoffPercAreaSum = 0.0;
+	double dbgRunoffPercMax = 0.0;
+
+	int dbgRunoffPercGt099Count = 0;
+
+
+	// ---------- 强制100%产流 ----------
+	int dbgForcedRunoffCellCount = 0;
+	double dbgForcedRunoffArea_m2 = 0.0;
+
+
+	// ---------- Runoff_co ----------
+	double dbgRunoffCoAreaSum = 0.0;
+	double dbgRunoffCoMax = -1.0e30;
+
+
+	// ---------- alpha ----------
+	double dbgAlphaAreaSum = 0.0;
+
+
+	// ---------- soil saturation fraction ----------
+	double dbgSmFractionAreaSum = 0.0;
+	double dbgSmFractionMax = 0.0;
+
+
+	for (int i = 0; i < m_nCells; ++i)
+	{
+		if (CVT_INT(m_subbsnID[i]) != dbgSbid18)
+		{
+			continue;
+		}
+
+		const double area =
+			static_cast<double>(m_handArea[i]);
+
+		if (!std::isfinite(area) || area <= 0.0)
+		{
+			continue;
+		}
+
+
+		++dbgSubCellCount;
+
+		dbgSubArea_m2 += area;
+
+
+		// ========================================================
+		// 1. 当天进入SUR_MR_HAND的水量
+		// ========================================================
+
+		const double netPcp_mm =
+			static_cast<double>(
+				m_netPcp[i]
+				);
+
+		const double deprSto_mm =
+			static_cast<double>(
+				m_deprSto[i]
+				);
+
+		const double hWater_mm =
+			netPcp_mm + deprSto_mm;
+
+
+		dbgNetPcp_m3 +=
+			netPcp_mm
+			* 0.001
+			* area;
+
+		dbgDeprSto_m3 +=
+			deprSto_mm
+			* 0.001
+			* area;
+
+
+		// 原始 hWater，完全不筛选
+		dbgHWaterRaw_m3 +=
+			hWater_mm
+			* 0.001
+			* area;
+
+
+		// 真正进入原模型 if(hWater > 0) 分支的水量
+		if (hWater_mm > 0.0)
+		{
+			dbgHWaterActive_m3 +=
+				hWater_mm
+				* 0.001
+				* area;
+		}
+
+
+		// ========================================================
+		// 2. SUR_MR_HAND真实产生的地表径流和降雨入渗
+		// ========================================================
+
+		const double surfq_mm =
+			static_cast<double>(
+				m_exsPcp[i]
+				);
+
+		const double rainInfil_mm =
+			static_cast<double>(
+				m_infil[i]
+				);
+
+
+		dbgSurfq_m3 +=
+			surfq_mm
+			* 0.001
+			* area;
+
+		dbgRainInfil_m3 +=
+			rainInfil_mm
+			* 0.001
+			* area;
+
+
+		// ========================================================
+		// hWater <= 0时：
+		//
+		// 原代码没有重新计算
+		// m_HAND_Runoff_Perc 和 m_alpha。
+		//
+		// 所以这里直接跳过，
+		// 避免把以前某一天留下来的值当成今天的值。
+		//
+		// 注意：
+		// 我们没有修改原变量。
+		// ========================================================
+
+		if (hWater_mm <= 0.0)
+		{
+			continue;
+		}
+
+
+		++dbgActiveCellCount;
+
+		dbgActiveArea_m2 += area;
+
+
+		// ========================================================
+		// 3. runoffPercentage
+		// ========================================================
+
+		const double runoffPerc =
+			static_cast<double>(
+				m_HAND_Runoff_Perc[i]
+				);
+
+
+		dbgRunoffPercAreaSum +=
+			runoffPerc * area;
+
+
+		dbgRunoffPercMax =
+			(std::max)(
+				dbgRunoffPercMax,
+				runoffPerc
+				);
+
+
+		if (runoffPerc > 0.99)
+		{
+			++dbgRunoffPercGt099Count;
+		}
+
+
+		// ========================================================
+		// 4. Runoff_co真实值
+		// ========================================================
+
+		const double runoffCo =
+			static_cast<double>(
+				m_potRfCoef[i]
+				);
+
+
+		dbgRunoffCoAreaSum +=
+			runoffCo * area;
+
+
+		dbgRunoffCoMax =
+			(std::max)(
+				dbgRunoffCoMax,
+				runoffCo
+				);
+
+
+		// ========================================================
+		// 5. 判断是否触发了原代码中的：
+		//
+		// if (m_potRfCoef[i] > 0.99f ||
+		//     m_landUse[i] == LANDUSE_ID_GLC)
+		//
+		// 即强制 runoffPercentage = 1
+		// ========================================================
+
+		if (m_potRfCoef[i] > 0.99f ||
+			m_landUse[i] == LANDUSE_ID_GLC)
+		{
+			++dbgForcedRunoffCellCount;
+
+			dbgForcedRunoffArea_m2 += area;
+		}
+
+
+		// ========================================================
+		// 6. alpha真实值
+		// ========================================================
+
+		const double alpha =
+			static_cast<double>(
+				m_alpha[i]
+				);
+
+
+		dbgAlphaAreaSum +=
+			alpha * area;
+
+
+		// ========================================================
+		// 7. 当天真实用于产流计算的 smFraction
+		//
+		// 原代码计算 runoffPercentage 前：
+		//
+		// m_soilWtrStoPrfl[i] = sum(m_soilWtrSto)
+		//
+		// 后面虽然把 m_infil 加到第一层，
+		// 但没有再次更新 m_soilWtrStoPrfl。
+		//
+		// 所以这里保存的仍然是当天真实用于
+		// runoffPercentage计算的土壤水状态。
+		// ========================================================
+
+		double smFraction = 0.0;
+
+
+		if (m_soilSumSat[i] > 1.0e-8f)
+		{
+			smFraction =
+				static_cast<double>(
+					m_soilWtrStoPrfl[i]
+					/ m_soilSumSat[i]
+					);
+
+
+			smFraction =
+				(std::max)(
+					0.0,
+					(std::min)(
+						smFraction,
+						1.0
+						)
+					);
+		}
+
+
+		dbgSmFractionAreaSum +=
+			smFraction * area;
+
+
+		dbgSmFractionMax =
+			(std::max)(
+				dbgSmFractionMax,
+				smFraction
+				);
+	}
+
+
+	// ============================================================
+	// 计算面积加权平均
+	// ============================================================
+
+	double dbgRunoffPercMean = 0.0;
+	double dbgRunoffCoMean = 0.0;
+	double dbgAlphaMean = 0.0;
+	double dbgSmFractionMean = 0.0;
+
+	double dbgForcedRunoffAreaFraction = 0.0;
+
+
+	if (dbgActiveArea_m2 > 0.0)
+	{
+		dbgRunoffPercMean =
+			dbgRunoffPercAreaSum
+			/ dbgActiveArea_m2;
+
+
+		dbgRunoffCoMean =
+			dbgRunoffCoAreaSum
+			/ dbgActiveArea_m2;
+
+
+		dbgAlphaMean =
+			dbgAlphaAreaSum
+			/ dbgActiveArea_m2;
+
+
+		dbgSmFractionMean =
+			dbgSmFractionAreaSum
+			/ dbgActiveArea_m2;
+
+
+		dbgForcedRunoffAreaFraction =
+			dbgForcedRunoffArea_m2
+			/ dbgActiveArea_m2;
+	}
+
+
+	// ============================================================
+	// SUR_MR_HAND当天总产流比例
+	// ============================================================
+
+	double dbgSurfqFraction = 0.0;
+
+
+	if (dbgHWaterActive_m3 > 1.0e-12)
+	{
+		dbgSurfqFraction =
+			dbgSurfq_m3
+			/ dbgHWaterActive_m3;
+	}
+
+
+	// ============================================================
+	// HAND当天入渗占积水比例
+	// ============================================================
+
+	double dbgHandInfilFraction = 0.0;
+
+
+	if (dbgHandBefore_m3 > 1.0e-12)
+	{
+		dbgHandInfilFraction =
+			dbgHandInfil_m3
+			/ dbgHandBefore_m3;
+	}
+
+
+	// ============================================================
+	// HAND当天填充了多少土壤缺水库容
+	// ============================================================
+
+	double dbgDeficitFillFraction = 0.0;
+
+
+	if (dbgSoilDeficitBefore_m3 > 1.0e-12)
+	{
+		dbgDeficitFillFraction =
+			dbgHandInfil_m3
+			/ dbgSoilDeficitBefore_m3;
+	}
+
+
+	// ============================================================
+	// 三个水量平衡检查
+	// ============================================================
+
+	// HAND地表水：
+	// 入渗前 = 入渗后 + HAND入渗
+	const double dbgHandSurfaceBalanceError_m3 =
+		dbgHandBefore_m3
+		- dbgHandAfter_m3
+		- dbgHandInfil_m3;
+
+
+	// HAND入渗应该等于土壤实际增加
+	const double dbgHandSoilBalanceError_m3 =
+		dbgHandInfil_m3
+		- dbgSoilGainFromHand_m3;
+
+
+	// 降雨水量：
+	// hWater = surfq + rain infiltration
+	const double dbgRunoffBalanceError_m3 =
+		dbgHWaterActive_m3
+		- dbgSurfq_m3
+		- dbgRainInfil_m3;
+
+
+	// ============================================================
+	// 写CSV
+	// ============================================================
+
+#ifdef _WIN32
+	const char* dbgFile = "D:/SEIMS_C/log/sur_mr_hand_sbid18_debug.csv";
+#else
+	const char* dbgFile = "/data/user/lijing/software/SEIMS_C/log/sur_mr_hand_sbid18_debug.csv";
+#endif
+
+
+	// 判断文件是否已经存在以及是否为空
+	bool dbgNeedHeader = false;
+
+	{
+		std::ifstream dbgCheck(
+			dbgFile,
+			std::ios::in
+		);
+
+		if (!dbgCheck.good())
+		{
+			dbgNeedHeader = true;
+		}
+		else
+		{
+			dbgCheck.seekg(
+				0,
+				std::ios::end
+			);
+
+			if (dbgCheck.tellg() == 0)
+			{
+				dbgNeedHeader = true;
+			}
+
+			dbgCheck.close();
+		}
+	}
+
+
+	std::ofstream dbgOut(
+		dbgFile,
+		std::ios::out | std::ios::app
+	);
+
+
+	if (dbgSelectedYear &&
+		dbgOut.is_open())
+	{
+		if (dbgNeedHeader)
+		{
+			dbgOut
+
+				<< "DATE"
+
+				<< ",hand_cells"
+				<< ",wet_hand_cells"
+				<< ",hand_area_m2"
+
+				<< ",hand_before_m3"
+				<< ",soil_deficit_before_m3"
+
+				<< ",hand_infil_m3"
+				<< ",soil_gain_from_hand_m3"
+
+				<< ",hand_after_m3"
+
+				<< ",hand_infil_fraction"
+				<< ",deficit_fill_fraction"
+
+				<< ",hand_surface_balance_error_m3"
+				<< ",hand_soil_balance_error_m3"
+
+				<< ",sub_cells"
+				<< ",active_runoff_cells"
+
+				<< ",sub_area_m2"
+				<< ",active_area_m2"
+
+				<< ",netPcp_m3"
+				<< ",deprSto_m3"
+				<< ",hWaterRaw_m3"
+				<< ",hWaterActive_m3"
+
+				<< ",surfq_m3"
+				<< ",rain_infil_m3"
+
+				<< ",surfq_fraction"
+
+				<< ",runoffPerc_mean"
+				<< ",runoffPerc_max"
+				<< ",runoffPerc_gt099_count"
+
+				<< ",forced_runoff_cells"
+				<< ",forced_runoff_area_fraction"
+
+				<< ",runoffCo_mean"
+				<< ",runoffCo_max"
+
+				<< ",alpha_mean"
+
+				<< ",smFraction_mean"
+				<< ",smFraction_max"
+
+				<< ",runoff_balance_error_m3"
+
+				<< std::endl;
+		}
+
+
+		dbgOut
+			<< std::setprecision(12)
+
+			<< dbgDateText
+
+			<< "," << dbgHandCellCount
+			<< "," << dbgWetHandCellCount
+			<< "," << dbgHandArea_m2
+
+			<< "," << dbgHandBefore_m3
+			<< "," << dbgSoilDeficitBefore_m3
+
+			<< "," << dbgHandInfil_m3
+			<< "," << dbgSoilGainFromHand_m3
+
+			<< "," << dbgHandAfter_m3
+
+			<< "," << dbgHandInfilFraction
+			<< "," << dbgDeficitFillFraction
+
+			<< "," << dbgHandSurfaceBalanceError_m3
+			<< "," << dbgHandSoilBalanceError_m3
+
+			<< "," << dbgSubCellCount
+			<< "," << dbgActiveCellCount
+
+			<< "," << dbgSubArea_m2
+			<< "," << dbgActiveArea_m2
+
+			<< "," << dbgNetPcp_m3
+			<< "," << dbgDeprSto_m3
+			<< "," << dbgHWaterRaw_m3
+			<< "," << dbgHWaterActive_m3
+
+			<< "," << dbgSurfq_m3
+			<< "," << dbgRainInfil_m3
+
+			<< "," << dbgSurfqFraction
+
+			<< "," << dbgRunoffPercMean
+			<< "," << dbgRunoffPercMax
+			<< "," << dbgRunoffPercGt099Count
+
+			<< "," << dbgForcedRunoffCellCount
+			<< "," << dbgForcedRunoffAreaFraction
+
+			<< "," << dbgRunoffCoMean
+			<< "," << dbgRunoffCoMax
+
+			<< "," << dbgAlphaMean
+
+			<< "," << dbgSmFractionMean
+			<< "," << dbgSmFractionMax
+
+			<< "," << dbgRunoffBalanceError_m3
+
+			<< std::endl;
+
+
+		dbgOut.close();
+	}
+
+#endif
+
     return 0;
 }
 
@@ -707,7 +2045,7 @@ void SUR_MR_HAND::Set2DData(const char* key, const int nrows, const int ncols, f
 }
 
 void SUR_MR_HAND::Get1DData(const char* key, int* n, float** data) {
-    //InitialOutputs();
+    InitialOutputs();
     string sk(key);
     if (StringMatch(sk, VAR_INFIL)) {
         *data = m_infil; //infiltration
@@ -728,10 +2066,10 @@ void SUR_MR_HAND::Get1DData(const char* key, int* n, float** data) {
 	else if (StringMatch(sk, VAR_OL_HAND_INFIL)) {
 		*data = m_HAND_Infil;
 	}
-	//else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
-	//	*data = m_handWtrDep;
-	//	*n = m_nCells;
-	//}
+	/*else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
+		*data = m_handWtrDep;
+		*n = m_nCells;
+	}*/
 	else {
         throw ModelException(MID_SUR_MR_HAND, "Get1DData", "Result " + sk + " does not exist.");
     }
@@ -762,3 +2100,8 @@ void SUR_MR_HAND::Get2DData(const char* key, int* nRows, int* nCols, float*** da
         throw ModelException(MID_SUR_MR_HAND, "Get2DData", "Output " + sk + " does not exist.");
     }
 }
+
+
+
+
+

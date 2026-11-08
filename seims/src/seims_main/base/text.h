@@ -424,7 +424,6 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_SERO_MUSLE                       "use MUSLE method to calculate sediment yield of each cell"
 #define MID_IUH_SED_OL                         "IUH_SED_OL"
 #define MDESC_IUH_SED_OL                       "Overland routing of sediment using IUH"
-
 #define MID_NUTR_CH                            "NUTR_CH"
 #define MDESC_NUTR_CH                          "Channel routing of nutrients"
 /// Management
@@ -445,6 +444,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MCLSDESC_CH4                           "Methane calculation"
 #define MID_CH4_LPJGUESS                       "CH4_LPJGUESS"
 #define MDESC_CH4_LPJGUESS                     "Calculating methane production, oxidation, and transport from wetlands"
+#define MID_CH4_MCNICOL                        "CH4_MCNICOL"
+#define MDESC_CH4_MCNICOL                      "Calculating methane production, oxidation, and transport from wetlands"
 /// Overland routing related modules
 #define MCLS_OL_ROUTING                        "Overland routing"
 #define MCLSDESC_OL_ROUTING                    "Overland routing module"
@@ -471,6 +472,8 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define MDESC_MUSK_CH                          "Channel routing using Muskingum-Cunge method of longterm model."
 #define MID_MUSK_CH_HAND                       "MUSK_CH_HAND"
 #define MDESC_MUSK_CH_HAND                     "Channel routing using Muskingum-Cunge method of longterm model for HAND method."
+#define MID_DW_CH_HAND                         "DW_CH_HAND"
+#define MDESC_DW_CH_HAND                       "Channel routing using DW method of longterm model for HAND method."
 /// Sediment routing related modules
 #define MCLS_SED_ROUTING                       "Sediment routing"
 #define MCLSDESC_SED_ROUTING                   "Sediment channel routing modules."
@@ -1097,22 +1100,22 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define    VAR_SOL_HSN    "sol_HSN"
 #define    VAR_SOL_HPC    "sol_HPC"
 #define    VAR_SOL_HPN    "sol_HPN"
-#define    VAR_SOL_LM    "sol_LM"
+#define    VAR_SOL_LM     "sol_LM"
 #define    VAR_SOL_LMC    "sol_LMC"
 #define    VAR_SOL_LMN    "sol_LMN"
-#define    VAR_SOL_LS    "sol_LS"
+#define    VAR_SOL_LS     "sol_LS"
 #define    VAR_SOL_LSL    "sol_LSL"
 #define    VAR_SOL_LSC    "sol_LSC"
 #define    VAR_SOL_LSN    "sol_LSN"
-#define    VAR_SOL_RNMN    "sol_RNMN"
-#define    VAR_SOL_LSLC    "sol_LSLC"
-#define    VAR_SOL_LSLNC    "sol_LSLNC"
-#define    VAR_SOL_RSPC    "sol_RSPC"
+#define    VAR_SOL_RNMN   "sol_RNMN"
+#define    VAR_SOL_LSLC   "sol_LSLC"
+#define    VAR_SOL_LSLNC  "sol_LSLNC"
+#define    VAR_SOL_RSPC   "sol_RSPC"
 #define    VAR_SOL_WOC    "sol_WOC"
 #define    VAR_SOL_WON    "sol_WON"
-#define    VAR_SOL_HP    "sol_HP"
-#define    VAR_SOL_HS    "sol_HS"
-#define    VAR_SOL_BM    "sol_BM"
+#define    VAR_SOL_HP     "sol_HP"
+#define    VAR_SOL_HS     "sol_HS"
+#define    VAR_SOL_BM     "sol_BM"
 
 #define VAR_SOL_LATERAL_C "sol_latc" /// m_soilIfluCbn, lateral flow Carbon loss in each soil layer
 #define VAR_SOL_PERCO_C "sol_percoc" /// m_soilPercoCbn, percolation Carbon loss in each soil layer
@@ -1275,50 +1278,50 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 /// Apr. , 2016  //////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 #define UNIT_AREA_HA "ha"
-#define UNIT_AREA_KM2 "km2"                         /// Square kilometer of area
+#define UNIT_AREA_KM2 "km2"                     /// Square kilometer of area
 #define UNIT_AREA_RATIO "m2/m2"
-#define UNIT_CONDRATE_MSPA "m/s/kPa"                /// Rate of decline in stomatal conductance per unit increase in vapor pressure deficit
-#define UNIT_CONT_KGHA "kg/ha"                      /// For convenient, keep consistent with SWAT, need Conversion later.
-#define UNIT_CONT_KGKM2 "kg/km2"                    /// Kilograms per Square kilometers of nutrient content
+#define UNIT_CONDRATE_MSPA "m/s/kPa"            /// Rate of decline in stomatal conductance per unit increase in vapor pressure deficit
+#define UNIT_CONT_KGHA "kg/ha"                  /// For convenient, keep consistent with SWAT, need Conversion later.
+#define UNIT_CONT_KGKM2 "kg/km2"                /// Kilograms per Square kilometers of nutrient content
 #define UNIT_CONT_RATIO "(kg/ha)/(kg/ha)"
 #define UNIT_CONT_TONHA "tons/ha"
-#define UNIT_DENSITY "Mg/m3"                        /// density, equal to g/cm3, Mg/m3, ton/m3
-#define UNIT_SEDCONC "g/L"                         /// i.e., kg/m3
-#define UNIT_CONCENTRATION "mg/L"                        /// concentration, or mg/kg
-#define UNIT_DEPTH_MM "mm"                          /// Depth related unit, mm
-#define UNIT_FLOW_CMS "m3/s"                        /// Cubic meters per second of flow discharge
-#define UNIT_GAS_CON "uL/L"   /// e.g., uL CO2/L air, IS this same with ppmv? LJ
-#define UNIT_GAS_PPMV "ppmv"                        /// Concentration of gas, e.g., CO2
+#define UNIT_DENSITY "Mg/m3"                    /// density, equal to g/cm3, Mg/m3, ton/m3
+#define UNIT_SEDCONC "g/L"                      /// i.e., kg/m3
+#define UNIT_CONCENTRATION "mg/L"               /// concentration, or mg/kg
+#define UNIT_DEPTH_MM "mm"                      /// Depth related unit, mm
+#define UNIT_FLOW_CMS "m3/s"                    /// Cubic meters per second of flow discharge
+#define UNIT_GAS_CON "uL/L"                     /// e.g., uL CO2/L air, IS this same with ppmv? LJ
+#define UNIT_GAS_PPMV "ppmv"                    /// Concentration of gas, e.g., CO2
 #define UNIT_HEAT_UNIT "hr"
-#define UNIT_KG "kg"                                /// mass Kg
-#define UNIT_TONS "t"                               /// metric tons
+#define UNIT_KG "kg"                            /// mass Kg
+#define UNIT_TONS "t"                           /// metric tons
 #define UNIT_KG_S "kg/s"
 #define UNIT_KGM3 "kg/m3"
-#define UNIT_LAP_RATE "/100m"                       /// Lapse rate
-#define UNIT_LEN_M "m"                              /// Meter of length
-#define UNIT_LONLAT_DEG "degree"                    /// Degree of longitude and latitude
-#define UNIT_MELT_FACTOR "mm/deg C/day"                 /// Melt factor
-#define UNIT_NON_DIM ""                             /// Non dimension
-#define UNIT_NUTR_RATIO "mg/mg"         /// mg H2O/mg Nutrient
-#define UNIT_PER_DAY "1/day"               /// rate per day
-#define UNIT_PERCENT "%"                            /// Percent
-#define UNIT_PRESSURE "kPa"                         /// Vapor pressure
+#define UNIT_LAP_RATE "/100m"                   /// Lapse rate
+#define UNIT_LEN_M "m"                          /// Meter of length
+#define UNIT_LONLAT_DEG "degree"                /// Degree of longitude and latitude
+#define UNIT_MELT_FACTOR "mm/deg C/day"         /// Melt factor
+#define UNIT_NON_DIM ""                         /// Non dimension
+#define UNIT_NUTR_RATIO "mg/mg"                 /// mg H2O/mg Nutrient
+#define UNIT_PER_DAY "1/day"                    /// rate per day
+#define UNIT_PERCENT "%"                        /// Percent
+#define UNIT_PRESSURE "kPa"                     /// Vapor pressure
 #define UNIT_RAD_USE_EFFI "(kg/ha)/(MJ/m2)"
-#define UNIT_SPEED_MS "m/s"                         /// Speed related
-#define UNIT_SR "MJ/m2/d"                           /// Solar Radiation
-#define UNIT_STRG_M3M "m3/m"                       /// storage per meter of reach length
-#define UNIT_TEMP_DEG "deg C"                       /// Celsius degree of air temperature
-#define UNIT_TEMP_FACTOR "mm/deg C"                 /// temperature factor
+#define UNIT_SPEED_MS "m/s"                     /// Speed related
+#define UNIT_SR "MJ/m2/d"                       /// Solar Radiation
+#define UNIT_STRG_M3M "m3/m"                    /// storage per meter of reach length
+#define UNIT_TEMP_DEG "deg C"                   /// Celsius degree of air temperature
+#define UNIT_TEMP_FACTOR "mm/deg C"             /// temperature factor
 #define UNIT_YEAR "yr"
-#define UNIT_DAY "day"                    /// Time step (day)
-#define UNIT_HOUR "hr"                     /// Time step (h)
-#define UNIT_SECOND "sec"                      /// Time step (sec)
+#define UNIT_DAY "day"                          /// Time step (day)
+#define UNIT_HOUR "hr"                          /// Time step (h)
+#define UNIT_SECOND "sec"                       /// Time step (sec)
 #define UNIT_VOL_FRA_M3M3 "m3/m3"
-#define UNIT_VOL_M3 "m3"                           /// volume
-#define UNIT_AREA_M2 "m2"               /// Area
-#define UNIT_WAT_RATIO "mm/mm"         /// mm H2O/mm Soil
-#define UNIT_WTRDLT_MMD "mm/d"                      /// Millimeter per day of water changes
-#define UNIT_WTRDLT_MMH "mm/h"                      /// Millimeter per hour of water changes
+#define UNIT_VOL_M3 "m3"                        /// volume
+#define UNIT_AREA_M2 "m2"                       /// Area
+#define UNIT_WAT_RATIO "mm/mm"                  /// mm H2O/mm Soil
+#define UNIT_WTRDLT_MMD "mm/d"                  /// Millimeter per day of water changes
+#define UNIT_WTRDLT_MMH "mm/h"                  /// Millimeter per hour of water changes
 
 /// Units used in rice growth module (PG_ORYZA), by Fang Shen
 #define UNIT_DVR "deg C/d"
@@ -1334,8 +1337,14 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define UNIT_GRAIN_WEIGHT "kg/grain"
 #define UNIT_PHENOLOGY "deg C d"
 #define UNIT_NUMBERHA "no/ha"
+#define UNIT_MG_CH4_M2_HOUR "mg CH4/m2/h"  /// mg CH4 m-2 h-1
+#define UNIT_MG_CH4_HOUR "mg CH4/h"        /// mg CH4 h-1
+#define UNIT_G_M2_HOUR "g m2/h"         /// g m-2 h-1
 
-#define UNIT_G_M2_HOUR "g/m2/h"                      /// flux g/m2/h
+#define UNIT_LATENTHEAT_JKG "J/kg"
+#define UNIT_HEATFLUX_WM2 "W/m2"
+#define UNIT_FRACTION_DIMLESS  "-"
+#define UNIT_TEMP_K "K"
 
 //////////////////////////////////////////////////////////////////////////
 /// Define description of units common used in SEIMS            //////////
@@ -1900,100 +1909,100 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_HAND_LowerAccDepthLen   "Segment lengths to reconstruct LowerAccDepth from the flattened array"
 
 /// CENTURY model for C/N cycling
-#define    DESC_SOL_BM        "NEED to figure out"
-#define    DESC_SOL_BMC    "NEED to figure out"
-#define    DESC_SOL_BMN    "NEED to figure out"
-#define    DESC_SOL_HSC    "mass of C present in slow humus"
-#define    DESC_SOL_HSN    "mass of N present in slow humus"
-#define    DESC_SOL_HPC    "mass of C present in passive humus"
-#define    DESC_SOL_HPN    "mass of N present in passive humus"
-#define    DESC_SOL_LM        "mass of metabolic litter"
-#define    DESC_SOL_LMC    "metabolic litter C pool"
-#define    DESC_SOL_LMN    "metabolic litter N pool"
-#define    DESC_SOL_LS        "structural litter SOM pool"
-#define    DESC_SOL_LSL    "lignin weight in structural litter"
-#define    DESC_SOL_LSC    "structural litter C pool"
-#define    DESC_SOL_LSN    "structural litter N pool"
-#define    DESC_SOL_LSLC    "lignin amount in structural litter pool"
-#define    DESC_SOL_LSLNC    "non-lignin part of the structural litter C"
-#define    DESC_SOL_RNMN    "NEED to figure out"
-#define    DESC_SOL_RSPC    "NEED to figure out"
-#define    DESC_SOL_WOC    "NEED to figure out"
-#define    DESC_SOL_WON    "NEED to figure out"
-#define    DESC_SOL_HP    "mass of OM in passive humus"
-#define    DESC_SOL_HS    "mass of OM in slow humus"
+#define DESC_SOL_BM        "NEED to figure out"
+#define DESC_SOL_BMC       "NEED to figure out"
+#define DESC_SOL_BMN       "NEED to figure out"
+#define DESC_SOL_HSC       "mass of C present in slow humus"
+#define DESC_SOL_HSN       "mass of N present in slow humus"
+#define DESC_SOL_HPC       "mass of C present in passive humus"
+#define DESC_SOL_HPN       "mass of N present in passive humus"
+#define DESC_SOL_LM        "mass of metabolic litter"
+#define DESC_SOL_LMC       "metabolic litter C pool"
+#define DESC_SOL_LMN       "metabolic litter N pool"
+#define DESC_SOL_LS        "structural litter SOM pool"
+#define DESC_SOL_LSL       "lignin weight in structural litter"
+#define DESC_SOL_LSC       "structural litter C pool"
+#define DESC_SOL_LSN       "structural litter N pool"
+#define DESC_SOL_LSLC      "lignin amount in structural litter pool"
+#define DESC_SOL_LSLNC     "non-lignin part of the structural litter C"
+#define DESC_SOL_RNMN      "NEED to figure out"
+#define DESC_SOL_RSPC      "NEED to figure out"
+#define DESC_SOL_WOC       "NEED to figure out"
+#define DESC_SOL_WON       "NEED to figure out"
+#define DESC_SOL_HP        "mass of OM in passive humus"
+#define DESC_SOL_HS        "mass of OM in slow humus"
 #define DESC_SOL_LATERAL_C "lateral flow Carbon loss in each soil layer"
-#define DESC_SOL_PERCO_C "percolation Carbon loss in each soil layer"
-#define DESC_LATERAL_C "lateral flow Carbon loss in soil profile"
-#define DESC_PERCO_C "percolation Carbon loss in soil profile"
-#define DESC_SEDLOSS_C "amount of Carbon lost with sediment"
+#define DESC_SOL_PERCO_C   "percolation Carbon loss in each soil layer"
+#define DESC_LATERAL_C     "lateral flow Carbon loss in soil profile"
+#define DESC_PERCO_C       "percolation Carbon loss in soil profile"
+#define DESC_SEDLOSS_C     "amount of Carbon lost with sediment"
 
-#define DESC_SOL_NH4 "amount of nitrogen stored in the ammonium pool in soil layer"
-#define DESC_SOL_NO3 "amount of nitrogen stored in the nitrate pool in soil layer"
-#define DESC_SOL_OM "percent of organic matter in soil"
-#define DESC_SOL_SORGN "amount of nitrogen stored in the stable organic N pool"
-#define DESC_SOL_HORGP "amount of phosphorus stored in the humic organic P pool in soil layer"
-#define DESC_SOL_PERCO "percolation from soil layer"
-#define DESC_RSDCOV_COEF "residue cover factor for computing fraction of cover"
-#define DESC_SOL_RSD "amount of organic matter in the soil classified as residue"
-#define DESC_SOL_RSDIN "amount of organic matter in the soil classified as residue"
-#define DESC_SOL_SOLP "amount of phosphorus stored in solution"
-#define DESC_SOL_STAP "amount of phosphorus in the soil layer stored in the stable mineral phosphorus pool"
-#define DESC_SOL_SUMAWC "amount of water held in soil profile at field capacity"
-#define DESC_SOL_SUMSAT "amount of water held in soil profile at saturation"
-#define DESC_SOL_TA0 "Coefficient a0 for Finn Plauborg Method"
-#define DESC_SOL_TA1 "Coefficient a1 for Finn Plauborg Method"
-#define DESC_SOL_TA2 "Coefficient a2 for Finn Plauborg Method"
-#define DESC_SOL_TA3 "Coefficient a3 for Finn Plauborg Method"
-#define DESC_SOL_TB1 "Coefficient b1 for Finn Plauborg Method"
-#define DESC_SOL_TB2 "Coefficient b2 for Finn Plauborg Method"
-#define DESC_SOL_TD1 "Coefficient d1 for Finn Plauborg Method"
-#define DESC_SOL_TD2 "Coefficient d2 for Finn Plauborg Method"
-#define DESC_SOL_TMP "daily average temperature of soil layer"
-#define DESC_SOL_UL "amount of water held in the soil layer at saturation (sat - wp water)"
-#define DESC_SOL_WFC "Water content of soil profile at field capacity"
-#define DESC_SOL_WPMM "water content of soil at -1.5 MPa (wilting point)"
-#define DESC_SOL_ZMX "Maximum rooting depth of soil profile (mm)"
-#define DESC_SOL_ST "amount of water stored in the soil layer on current day(mm H2O)"
-#define DESC_SOL_SW "amount of water stored in soil profile on current day (mm H2O)"
-#define DESC_SOL_MOIST "amount of water stored in soil profile on current day (%)"
-#define DESC_SW_CAP "amount of water capacity in soil layers such as sol_awc sol_ul and wiltingpoint"
-#define DESC_SOTE "soil Temperature"
-#define DESC_SOWB "soil water balance"
-#define DESC_SOXY "saturation concentration of dissolved oxygen"
-#define DESC_SPCON "Coefficient in sediment transport equation"
-#define DESC_SPEXP "Exponent in sediment transport equation"
-#define DESC_SR "Solar radiation"
-#define DESC_SR_MAX "Max solar radiation"
-#define DESC_SRA " solar radiation for the day"
-#define DESC_SSRU "Subsurface runoff"
-#define DESC_SSRUVOL "Subsurface runoff volume (m3)."
-#define DESC_STCAPSURPLUS "surplus of storage capacity"
-#define DESC_STREAM_LINK "Stream link (id of reaches)"
-#define DESC_SUB_SEDTOCH "sediment to streams from each subbasin"
+#define DESC_SOL_NH4       "amount of nitrogen stored in the ammonium pool in soil layer"
+#define DESC_SOL_NO3       "amount of nitrogen stored in the nitrate pool in soil layer"
+#define DESC_SOL_OM        "percent of organic matter in soil"
+#define DESC_SOL_SORGN     "amount of nitrogen stored in the stable organic N pool"
+#define DESC_SOL_HORGP     "amount of phosphorus stored in the humic organic P pool in soil layer"
+#define DESC_SOL_PERCO     "percolation from soil layer"
+#define DESC_RSDCOV_COEF   "residue cover factor for computing fraction of cover"
+#define DESC_SOL_RSD       "amount of organic matter in the soil classified as residue"
+#define DESC_SOL_RSDIN     "amount of organic matter in the soil classified as residue"
+#define DESC_SOL_SOLP      "amount of phosphorus stored in solution"
+#define DESC_SOL_STAP      "amount of phosphorus in the soil layer stored in the stable mineral phosphorus pool"
+#define DESC_SOL_SUMAWC    "amount of water held in soil profile at field capacity"
+#define DESC_SOL_SUMSAT    "amount of water held in soil profile at saturation"
+#define DESC_SOL_TA0       "Coefficient a0 for Finn Plauborg Method"
+#define DESC_SOL_TA1       "Coefficient a1 for Finn Plauborg Method"
+#define DESC_SOL_TA2       "Coefficient a2 for Finn Plauborg Method"
+#define DESC_SOL_TA3       "Coefficient a3 for Finn Plauborg Method"
+#define DESC_SOL_TB1       "Coefficient b1 for Finn Plauborg Method"
+#define DESC_SOL_TB2       "Coefficient b2 for Finn Plauborg Method"
+#define DESC_SOL_TD1       "Coefficient d1 for Finn Plauborg Method"
+#define DESC_SOL_TD2       "Coefficient d2 for Finn Plauborg Method"
+#define DESC_SOL_TMP       "daily average temperature of soil layer"
+#define DESC_SOL_UL        "amount of water held in the soil layer at saturation (sat - wp water)"
+#define DESC_SOL_WFC       "Water content of soil profile at field capacity"
+#define DESC_SOL_WPMM      "water content of soil at -1.5 MPa (wilting point)"
+#define DESC_SOL_ZMX       "Maximum rooting depth of soil profile (mm)"
+#define DESC_SOL_ST        "amount of water stored in the soil layer on current day(mm H2O)"
+#define DESC_SOL_SW        "amount of water stored in soil profile on current day (mm H2O)"
+#define DESC_SOL_MOIST     "amount of water stored in soil profile on current day (%)"
+#define DESC_SW_CAP        "amount of water capacity in soil layers such as sol_awc sol_ul and wiltingpoint"
+#define DESC_SOTE          "soil Temperature"
+#define DESC_SOWB          "soil water balance"
+#define DESC_SOXY          "saturation concentration of dissolved oxygen"
+#define DESC_SPCON         "Coefficient in sediment transport equation"
+#define DESC_SPEXP         "Exponent in sediment transport equation"
+#define DESC_SR            "Solar radiation"
+#define DESC_SR_MAX        "Max solar radiation"
+#define DESC_SRA           "solar radiation for the day"
+#define DESC_SSRU          "Subsurface runoff"
+#define DESC_SSRUVOL       "Subsurface runoff volume (m3)."
+#define DESC_STCAPSURPLUS  "surplus of storage capacity"
+#define DESC_STREAM_LINK   "Stream link (id of reaches)"
+#define DESC_SUB_SEDTOCH   "sediment to streams from each subbasin"
 #define DESC_SubbasinSelected "The subbasion IDs listed in file.out"
-#define DESC_SUBBSN "The subbasion grid"
-#define DESC_SUBBSNID_NUM "number of subbasins"
-#define DESC_SUR_NO3 "amount of nitrate transported with surface runoff"
-#define DESC_SUR_NO3_ToCH "amount of nitrate transported with surface runoff to channel"
-#define DESC_SUR_NH4 "amount of ammonian transported with surface runoff"
-#define DESC_SUR_NH4_ToCH "amount of ammonian transported with surface runoff to channel"
-#define DESC_SUR_SOLP "amount of solution phosphorus in surface runoff"
+#define DESC_SUBBSN        "The subbasion grid"
+#define DESC_SUBBSNID_NUM  "number of subbasins"
+#define DESC_SUR_NO3       "amount of nitrate transported with surface runoff"
+#define DESC_SUR_NO3_ToCH  "amount of nitrate transported with surface runoff to channel"
+#define DESC_SUR_NH4       "amount of ammonian transported with surface runoff"
+#define DESC_SUR_NH4_ToCH  "amount of ammonian transported with surface runoff to channel"
+#define DESC_SUR_SOLP      "amount of solution phosphorus in surface runoff"
 #define DESC_SUR_SOLP_ToCH "amount of soluble phosphorus from surface runoff to channel"
-#define DESC_SUR_COD_ToCH "amount of COD to reach in surface runoff"
-#define DESC_SURU "surface runoff"
-#define DESC_SWE "average snow accumulation of the watershed"
-#define DESC_SWE0 "Initial snow water equivalent"
-#define DESC_T_BASE "base or minimum temperature for plant growth"
-#define DESC_T_OPT "optimal temperature for plant growth"
-#define DESC_T_RG "groundwater runoff"
-#define DESC_T_SNOW "Snowfall temperature"
-#define DESC_T_SOIL "soil freezing temperature threshold"
-#define DESC_T0 "the snowmelt threshold temperature"
+#define DESC_SUR_COD_ToCH  "amount of COD to reach in surface runoff"
+#define DESC_SURU          "surface runoff"
+#define DESC_SWE           "average snow accumulation of the watershed"
+#define DESC_SWE0          "Initial snow water equivalent"
+#define DESC_T_BASE        "base or minimum temperature for plant growth"
+#define DESC_T_OPT         "optimal temperature for plant growth"
+#define DESC_T_RG          "groundwater runoff"
+#define DESC_T_SNOW        "Snowfall temperature"
+#define DESC_T_SOIL        "soil freezing temperature threshold"
+#define DESC_T0            "the snowmelt threshold temperature"
 #define DESC_Tag_FLOWIN_PERCENTAGE_DINF "Percentage of flow in"
-#define DESC_TFACT "fraction of solar radiation computed in the temperature heat balance that is photo synthetically active"
+#define DESC_TFACT         "fraction of solar radiation computed in the temperature heat balance that is photo synthetically active"
 #define DESC_TILLAGE_LOOKUP "Tillage lookup table"
-#define DESC_TILLAGE_DAYS "days from tillage"
+#define DESC_TILLAGE_DAYS  "days from tillage"
 #define DESC_TILLAGE_DEPTH "tillage depth"
 #define DESC_TILLAGE_SWITCH "switch of whether to tillage"
 #define DESC_TILLAGE_FACTOR "influence factor of tillage operation"
@@ -2078,10 +2087,10 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 
 //ljj++
 /// Nutrient loading contributed by groundwater flow
-#define MCLS_CarbonGW                            "Carbon in groundwater"
-#define MCLSDESC_CarbonGW                        "estimates DOC transport by baseflow to streamflow"
-#define MID_CarbonGW                             "CarbonGW"
-#define MDESC_CarbonGW                           "estimates DOC transport by baseflow to streamflow"
+#define MCLS_CarbonGW                       "Carbon in groundwater"
+#define MCLSDESC_CarbonGW                   "estimates DOC transport by baseflow to streamflow"
+#define MID_CarbonGW                        "CarbonGW"
+#define MDESC_CarbonGW                      "estimates DOC transport by baseflow to streamflow"
 
 #define VAR_GWH                             "GW_HEIGHT"
 #define VAR_GW_SH                           "GW_SH"
@@ -2183,11 +2192,11 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_R10                             "r10"
 #define VAR_KSR                             "ksr"
 #define VAR_qout                            "qout"
-#define VAR_qsurf                            "qsurf"
-#define VAR_qgshallow                             "qsshallow"
-#define VAR_chtotdoc                           "chtotdoc"
-#define VAR_chsurfdoc                           "chsurfdoc"
-#define VAR_chgwsdoc                           "chgwsdoc"
+#define VAR_qsurf                           "qsurf"
+#define VAR_qgshallow                       "qsshallow"
+#define VAR_chtotdoc                        "chtotdoc"
+#define VAR_chsurfdoc                       "chsurfdoc"
+#define VAR_chgwsdoc                        "chgwsdoc"
 
 #define REACH_PERMAFORST                    "Is_permafrost"
 #define REACH_SPYLD                         "GW_SPYLD"
@@ -2212,13 +2221,15 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define REACH_SURFRDOC                      "SURFRDOC"
 #define REACH_LATRDOC                       "LATRDOC"
 #define REACH_GWDRDOC                       "GWDRDOC"
-#define REACH_BED_MEAN_ELEV                       "Bed_Mean_Elev"
-#define REACH_BED_MAX_ELEV                       "Bed_Max_Elev"
-#define REACH_BED_MIN_ELEV                       "Bed_Min_Elev"
-#define REACH_BED_START_ELEV                       "Bed_Start_Elev"
-#define REACH_BED_END_ELEV                       "Bed_End_Elev"
+#define REACH_BED_MEAN_ELEV                 "Bed_Mean_Elev"
+#define REACH_BED_MAX_ELEV                  "Bed_Max_Elev"
+#define REACH_BED_MIN_ELEV                  "Bed_Min_Elev"
+#define REACH_BED_START_ELEV                "Bed_Start_Elev"
+#define REACH_BED_END_ELEV                  "Bed_End_Elev"
+#define REACH_CH_BED_ELEV                   "CH_BED_ELEV"
+#define REACH_CH_OUTLET_HANDID              "CH_OUTLET_HANDID"
 // xiaodw add, this is not water level, it's HAND's level, eg. 1,2,3,4,5...
-#define REACH_LAKE_HAND_LEVEL_INI                      "Lake_Hand_Level_Ini"
+#define REACH_LAKE_HAND_LEVEL_INI           "Lake_Hand_Level_Ini"
 #define FLOOD_DEPTH_THRESH 0.1f
 
 #define DESC_GWH                             "groundwater height"
@@ -2297,16 +2308,40 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 
 /// Methane module variables   lj++
 #define VAR_CH4_R                            "CH4_R"
+#define VAR_CH4_RH_RATIO                     "CH4_RH_RATIO"
 #define VAR_CH4_TREF                         "CH4_TREF"
 #define VAR_CH4_TAU_PROD                     "CH4_TAU_PROD"
 #define VAR_CH4_Z_OATZ                       "CH4_Z_OATZ"
 #define VAR_CH4_TAU_OXID                     "CH4_TAU_OXID"
 
+#define VAR_CH4_KP                           "CH4_KP"
+#define VAR_CH4_P1                           "CH4_P1"
+#define VAR_CH4_KO                           "CH4_KO"
+#define VAR_CH4_P2                           "CH4_P2"
+#define VAR_CH4_QP                           "CH4_QP"
+#define VAR_CH4_P3                           "CH4_P3"
+#define VAR_CH4_QO                           "CH4_QO"
+#define VAR_CH4_KEP                          "CH4_KEP"
+#define VAR_CH4_P5                           "CH4_P5"
+#define VAR_CH4_LAI_LAG                      "CH4_LAI_LAG"
+
 #define DESC_CH4_R                           "Specific CH4 production rate (kg kg^-1 s^-1)"
+#define DESC_CH4_RH_RATIO                    "Reference-condition potential CH4-C to heterotrophic respiration CO2-C production ratio"
 #define DESC_CH4_TREF                        "Reference temperature for temperature-dependent Q10 of CH4 production (K)"
 #define DESC_CH4_TAU_PROD                    "Scaling parameter for CH4 production"
 #define DESC_CH4_Z_OATZ                      "Thickness of oxic-anoxic transition zone (m)"
 #define DESC_CH4_TAU_OXID                    "Scaling parameter for CH4 oxidation (m)"
+
+#define DESC_CH4_KP                          "Base CH4 production rate in the soil column (mg CH4 cm^-2 d^-1)"
+#define DESC_CH4_P1                          "Exponent controlling CH4 production decline under inundated conditions"
+#define DESC_CH4_KO                          "Maximum first-order CH4 oxidation rate (d^-1)"
+#define DESC_CH4_P2                          "Water-table control parameter for CH4 oxidation (cm^-1)"
+#define DESC_CH4_QP                          "Q10 temperature sensitivity parameter for CH4 production"
+#define DESC_CH4_P3                          "Vegetation substrate sensitivity exponent for CH4 production"
+#define DESC_CH4_QO                          "Q10 temperature sensitivity parameter for CH4 oxidation"
+#define DESC_CH4_KEP                         "Combined plant-mediated transport and ebullition emission rate (d^-1)"
+#define DESC_CH4_P5                          "Exponent controlling CH4 production decline when water table is below soil surface"
+#define DESC_CH4_LAI_LAG                     "Time lag between LAI and vegetation-derived substrate availability for CH4 production (d)"
 
 #define VAR_CH4_PRODUCTION                   "CH4_PRODUCTION"
 #define VAR_CH4_EMISSION_FLUX                "CH4_EMISSION_FLUX"
@@ -2314,18 +2349,38 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define DESC_CH4_PRODUCTION                  "Methane production rate in each cell"
 #define DESC_CH4_EMISSION_FLUX               "Methane emission flux in each cell"
 #define DESC_CH4_TOTAL                       "Total methane production in the watershed"
+#define VAR_CH4_TVEG                         "CH4_TVEG"
+#define VAR_CH4_POX                          "CH4_POX"
+#define VAR_CH4_TGR                          "CH4_TGR"
+#define VAR_CH4_CO2_RATIO                    "CH4_CO2_RATIO"
+#define VAR_CH4_FGAS                         "CH4_FGAS"
+#define VAR_CH4_OXID_FRAC                    "CH4_OXID_FRAC"
+#define VAR_CH4_ROOTDEPTH                    "CH4_ROOTDEPTH"
+#define VAR_CH4_AERENCHYMA                   "CH4_AERENCHYMA"
+#define VAR_CH4_FGROW                        "CH4_FGROW"
+#define VAR_CH4_TSOIL50                      "CH4_TSOIL50"
+#define DESC_CH4_TVEG                        "Quality of Walter plant-mediated CH4 transport (0-15)"
+#define DESC_CH4_POX                         "Fraction of plant-transported CH4 oxidized in the rhizosphere (0-1)"
+#define DESC_CH4_TGR                         "Walter plant growth threshold temperature; TMAT equals TGR plus 10 deg C"
+#define DESC_CH4_CO2_RATIO                   "Ratio of CH4 production to anaerobic heterotrophic respiration"
+#define DESC_CH4_FGAS                        "Constant gas-filled fraction in peat soil"
+#define DESC_CH4_OXID_FRAC                   "Fraction of available oxygen used for methane oxidation"
+#define DESC_CH4_ROOTDEPTH                   "Fixed rooting depth for plant-mediated CH4 transport (mm)"
+#define DESC_CH4_AERENCHYMA                  "Presence of aerenchyma plants: 1=yes, 0=no"
+#define DESC_CH4_FGROW                       "Walter plant growth factor"
+#define DESC_CH4_TSOIL50                     "Soil temperature at 50 cm depth (deg C)"
 #define VAR_CH4_DIFF                         "CH4_diffusion"
-#define DESC_CH4_DIFF                        "CH4 diffusion(gC/m2/hour)"
-#define VAR_CH4_PLANT                        "CH4 plant transport"
-#define DESC_CH4_PLANT                       "CH4 plant transport(gC/m2/hour)"
+#define DESC_CH4_DIFF                        "CH4 diffusion(mg CH4/m2/hour)"
+#define VAR_CH4_PLANT                        "CH4_plant_transport"
+#define DESC_CH4_PLANT                       "CH4 plant transport(mg CH4/m2/hour)"
 #define VAR_CH4_EBUL                         "CH4_ebullition"
-#define DESC_CH4_EBUL                        "CH4 ebullition(gC/m2/hour)"
+#define DESC_CH4_EBUL                        "CH4 ebullition(mg CH4/m2/hour)"
 #define VAR_CH4_OXID                         "CH4_oxidation"
-#define DESC_CH4_OXID                        "CH4 oxidation(gC/m2/hour)"
-#define VAR_CH4_PROD                         "CH4_production"
-#define DESC_CH4_PROD                        "CH4 production(gC/m2/hour)"
+#define DESC_CH4_OXID                        "CH4 oxidation(mg CH4/m2/hour)"
+#define VAR_CH4_PROD                         "CH4_LPJGUESS_PRODUCTION"
+#define DESC_CH4_PROD                        "CH4 production(mg CH4/m2/hour)"
 #define VAR_CH4_FLUX                         "CH4_flux"
-#define DESC_CH4_FLUX                        "CH4 flux(gC/m2/hour)"
+#define DESC_CH4_FLUX                        "CH4 flux(mg CH4/m2/hour)"
 #define VAR_SOL_ANOXIC                       "CH4_SOL_ANOXIC"
 #define VAR_TILLER_AREA                      "TILLER_AREA"
 #define DESC_SOL_ANOXIC                      "Anoxic degree in each cell"
@@ -2345,6 +2400,67 @@ CONST_CHARS_LIST Tag_Weight_ID[] = { "WEIGHT_ID", "Weight Id used for interpolat
 #define VAR_SOILSAT_L7                       "SOILSAT_L7"
 #define DESC_SOILSAT_L7                      "The saturation of soil layer 7"
 #define VAR_ICNUM                            "ICNUM"
+
+#define VAR_CH4_MCNICOL_FLUX                 "CH4_MCNICOL_FLUX"
+#define VAR_CH4_MCNICOL_MS                   "CH4_MCNICOL_MS"
+#define VAR_CH4_MCNICOL_PROD                 "CH4_MCNICOL_PROD"
+#define VAR_CH4_MCNICOL_OXID                 "CH4_MCNICOL_OXID"
+#define VAR_CH4_MCNICOL_EMIT                 "CH4_MCNICOL_EMIT"
+#define VAR_CH4_MCNICOL_ZW                   "CH4_MCNICOL_ZW"
+#define VAR_CH4_MCNICOL_FTP                  "CH4_MCNICOL_FTP"
+#define VAR_CH4_MCNICOL_FWP                  "CH4_MCNICOL_FWP"
+#define VAR_CH4_MCNICOL_FBP                  "CH4_MCNICOL_FBP"
+#define VAR_CH4_MCNICOL_FTO                  "CH4_MCNICOL_FTO"
+#define VAR_CH4_MCNICOL_FWO                  "CH4_MCNICOL_FWO"
+
+#define DESC_CH4_MCNICOL_FLUX                "CH4 emission flux from McNicol reduced model (mg CH4 m^-2 h^-1)"
+#define DESC_CH4_MCNICOL_MS                  "Soil-column CH4 pool per unit ground area (mg CH4 cm^-2)"
+#define DESC_CH4_MCNICOL_PROD                "CH4 production rate in the soil column (mg CH4 cm^-2 d^-1)"
+#define DESC_CH4_MCNICOL_OXID                "CH4 oxidation rate in the soil column (mg CH4 cm^-2 d^-1)"
+#define DESC_CH4_MCNICOL_EMIT                "CH4 emission rate before unit conversion (mg CH4 cm^-2 d^-1)"
+#define DESC_CH4_MCNICOL_ZW                  "Estimated water table position relative to soil surface (cm)"
+#define DESC_CH4_MCNICOL_FTP                 "Temperature limitation factor for CH4 production"
+#define DESC_CH4_MCNICOL_FWP                 "Water-table limitation factor for CH4 production"
+#define DESC_CH4_MCNICOL_FBP                 "Vegetation substrate factor for CH4 production"
+#define DESC_CH4_MCNICOL_FTO                 "Temperature limitation factor for CH4 oxidation"
+#define DESC_CH4_MCNICOL_FWO                 "Water-table limitation factor for CH4 oxidation"
+
+//NOAA
+#define MID_STP_NOAA				         "STP_NOAA"
+#define MDESC_STP_NOAA				         "NOAA Method to compute soil temperature."
+// paramaters
+#define VAR_SOIL_DT                          "SOIL_DT"
+#define VAR_B                                "B"
+#define VAR_QUARTZ                           "QUARTZ"
+#define VAR_SATPSI                           "SATPSI"
+#define VAR_LATENT_HEAT                      "LATENT_HEAT"
+// NOAA Input  
+#define VAR_GROUND_TEMP                      "GROUND_TEMP"
+#define VAR_SOIL_STORAGE                     "SOIL_STORAGE"
+#define VAR_SOIL_MOISTURE                    "SOIL_MOISTURE"
+// NOAA Output
+#define VAR_SOIL_TEMPERATURE                 "SOIL_TEMPERATURE"
+#define VAR_SOIL_ICE_CONTENT                 "SOIL_ICE_CONTENT"
+#define VAR_SOIL_LIQUID_CONTENT              "SOIL_LIQUID_CONTENT"
+#define VAR_ICE_FRACTION_SCHAAKE             "ICE_FRACTION_SCHAAKE"
+#define VAR_ICE_FRACTION_XINAN               "ICE_FRACTION_XINAN"
+#define VAR_GROUND_HEAT_FLUX                 "GROUND_HEAT_FLUX"
+// description
+#define DESC_SOIL_DT                         "Model time step"
+#define DESC_SMCMAX                          "Saturated soil moisture content"
+#define DESC_B                               "Clapp-Hornberger parameter"
+#define DESC_QUARTZ                          "Quartz content"
+#define DESC_SATPSI                          "Saturated matrix potential"
+#define DESC_LATENT_HEAT                     "Latent heat of fusion"
+#define DESC_GROUND_TEMP                     "Ground surface temperature"
+#define DESC_SOIL_STORAGE                    "Soil water storage"
+#define DESC_SOIL_MOISTURE                   "Soil moisture content profile"
+#define DESC_SOIL_TEMPERATURE                "Soil temperature profile"
+#define DESC_SOIL_ICE_CONTENT                "Soil ice content profile"
+#define DESC_SOIL_LIQUID_CONTENT             "Soil liquid water content profile"
+#define DESC_ICE_FRACTION_SCHAAKE            "Ice fraction for Schaake scheme"
+#define DESC_ICE_FRACTION_XINAN              "Ice fraction for Xinanjiang scheme"
+#define DESC_GROUND_HEAT_FLUX                "Ground heat flux"
 
 //////////////////////////////////////////////////////////////////////////
 /// Define Raster/ related constant strings used in SEIMS and preprocess//

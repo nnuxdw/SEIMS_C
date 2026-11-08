@@ -2,6 +2,13 @@
 
 #include "text.h"
 
+#define DEBUG_SSR_DA_HAND
+
+#include <fstream>
+#include <iomanip>
+#include <algorithm>
+#include <cmath>
+
 SSR_DA::SSR_DA() :
     m_inputSubbsnID(-1), m_nCells(-1), m_CellWth(-1.f), m_maxSoilLyrs(-1), m_nSoilLyrs(nullptr),
     m_soilThk(nullptr),
@@ -29,7 +36,9 @@ SSR_DA::SSR_DA() :
 	m_soilAWC60(nullptr), m_soilAWC100(nullptr), m_soilAWC200(nullptr),
 	m_soilMoistBfe(nullptr), m_soilWtrStoBfe(nullptr),
 	m_ks1(nullptr), m_ks5(nullptr), m_ks15(nullptr), m_ks30(nullptr),
-	m_ks60(nullptr), m_ks100(nullptr), m_ks200(nullptr)
+	m_ks60(nullptr), m_ks100(nullptr), m_ks200(nullptr),
+	//lj++
+	m_K1(NODATA_VALUE)
 
      {
 }
@@ -164,9 +173,9 @@ bool SSR_DA::FlowInSoil(const int id) {
         // }
         //if (frez == 0 && m_soilTempprofile[id][j] <= m_soilFrozenTemp) {
 		 // xiaodw comment, don't need soil temperature now
-        //if (frez == 0 && m_soilTempprofile[id][j] <= m_soilFrozenTemp_1d[id]) {
-        //    continue;
-        //}
+        if (frez == 0 && m_soilTempprofile[id][j] <= m_soilFrozenTemp_1d[id]) {
+            continue;
+        }
 
         float k = 0.f, maxSoilWater = 0.f, soilWater = 0.f, fcSoilWater = 0.f;
         soilWater = m_soilWtrSto[id][j];
@@ -229,7 +238,19 @@ bool SSR_DA::FlowInSoil(const int id) {
             if (maxPerc < 0.f) maxPerc = 0.1f;
             float tt = 3600.f * maxPerc / m_ks[id][j];                  // secs
             //if(frez==1) tt = 3600.f * maxPerc / WCND ;  //ljj++
-            m_soilPerco[id][j] = sw_excess * (1.f - exp(-m_dt / tt)); // secs
+
+            //m_soilPerco[id][j] = sw_excess * (1.f - exp(-m_dt / tt)); // secs
+
+			 // K1只控制最底层向土壤剖面外的PERCO
+			if (j == CVT_INT(m_nSoilLyrs[id]) - 1) {
+
+				m_soilPerco[id][j] = m_K1 * sw_excess * (1.f - exp(-m_dt / tt));
+			}
+			else {
+
+				m_soilPerco[id][j] = sw_excess * (1.f - exp(-m_dt / tt));
+			}
+
             if (m_soilPerco[id][j] > maxPerc) {
                 m_soilPerco[id][j] = maxPerc;
             }
@@ -432,6 +453,387 @@ int SSR_DA::Execute() {
         tmp_qiSubbsn = nullptr;
     } /* END of #pragma omp parallel */
 
+#ifdef DEBUG_SSR_DA_HAND
+	{
+#ifdef _WIN32
+		const char* dbgLayerFile = "D:/SEIMS_C/log/ssr_da_hand_layer_debug.csv";
+#else
+		const char* dbgLayerFile = "/data/user/lijing/software/SEIMS_C/log/ssr_da_hand_layer_debug.csv";
+#endif
+
+		bool needHeader = false;
+
+		{
+			std::ifstream check(
+				dbgLayerFile,
+				std::ios::in
+			);
+
+			if (!check.good())
+			{
+				needHeader = true;
+			}
+			else
+			{
+				check.seekg(0, std::ios::end);
+
+				if (check.tellg() == 0)
+				{
+					needHeader = true;
+				}
+
+				check.close();
+			}
+		}
+
+
+		std::ofstream out(
+			dbgLayerFile,
+			std::ios::out | std::ios::app
+		);
+
+
+		if (out.is_open())
+		{
+			if (needHeader)
+			{
+				out
+					<< "date_raw"
+					<< ",hand_id"
+					<< ",subbasin_id"
+					<< ",k1_value"
+					<< ",applied_perco_coefficient"
+					<< ",layer"
+
+					// SSR_DA开始前这一层有多少水
+					<< ",soil_before_ssr_mm"
+
+					// 同一天上一层向本层传下来的PERCO
+					<< ",upper_layer_perco_mm"
+
+					// SSR_DA结束后这一层剩多少水
+					<< ",soil_after_ssr_mm"
+
+					// 本层净变化
+					<< ",layer_change_mm"
+
+					// 土壤参数
+					<< ",awc_mm"
+					<< ",sat_mm"
+					<< ",ks"
+
+					// 当前层计算出来的PERCO
+					<< ",max_perco_mm"
+					<< ",perco_hit_cap"
+					<< ",perco_mm"
+
+					// 是否为最底层
+					<< ",is_bottom_layer"
+
+					<< std::endl;
+			}
+
+
+			const int dbgIds[] =
+			{
+				1366,
+				1367,
+				1368,
+				1370,
+				1375
+			};
+
+			const int nDbgIds = 5;
+
+			for (int ii = 0; ii < nDbgIds; ++ii)
+			{
+				const int id = dbgIds[ii];
+
+				if (id < 0 || id >= m_nCells)
+				{
+					continue;
+				}
+
+
+				const int nLayers = CVT_INT(m_nSoilLyrs[id]);
+				const int subbasinId = CVT_INT(m_subbsnID[id]);
+
+				for (int j = 0; j < nLayers; ++j)
+				{
+					const double before =
+						static_cast<double>(
+							m_soilWtrStoBfe[id][j]
+							);
+
+					const double after =
+						static_cast<double>(
+							m_soilWtrSto[id][j]
+							);
+
+
+					// 上一层当天向这一层传下来的水
+					//
+					// 在你的原代码中：
+					//
+					// m_soilWtrSto[id][j + 1]
+					//     += m_soilPerco[id][j];
+					//
+					// 所以j层收到的上层渗漏就是
+					// m_soilPerco[id][j-1]
+					double upperPerco = 0.0;
+
+					if (j > 0)
+					{
+						upperPerco =
+							static_cast<double>(
+								m_soilPerco[id][j - 1]
+								);
+					}
+
+
+					const double perco =
+						static_cast<double>(
+							m_soilPerco[id][j]
+							);
+
+
+					const double awc =
+						static_cast<double>(
+							m_soilAWC[id][j]
+							);
+
+
+					const double sat =
+						static_cast<double>(
+							m_soilSat[id][j]
+							);
+
+					const double ks =
+						static_cast<double>(
+							m_ks[id][j]
+							);
+
+					// 与原SSR_DA中的maxPerc计算完全一致
+					double maxPerco = sat - awc;
+
+					if (maxPerco < 0.0)
+					{
+						maxPerco = 0.1;
+					}
+
+					// 判断实际PERCO是否达到该层允许的最大值
+					const int percoHitCap =
+						(maxPerco > 1.0e-8 &&
+							std::fabs(perco - maxPerco) < 1.0e-4)
+						? 1
+						: 0;
+
+
+					const int isBottom =
+						(j == nLayers - 1)
+						? 1
+						: 0;
+					const double appliedPercoCoefficient =
+						(isBottom == 1)
+						? static_cast<double>(m_K1)
+						: 1.0;
+
+					out
+						<< std::setprecision(12)
+
+						<< m_date
+						<< "," << id
+						<< "," << subbasinId
+						<< "," << m_K1
+						<< "," << appliedPercoCoefficient
+						<< "," << j
+
+						<< "," << before
+						<< "," << upperPerco
+						<< "," << after
+
+						// 正数 = 这一层比SSR开始前水更多
+						// 负数 = 这一层净失水
+						<< "," << after - before
+
+						<< "," << awc
+						<< "," << sat
+						<< "," << ks
+
+						<< "," << maxPerco
+						<< "," << percoHitCap
+						<< "," << perco
+
+						<< "," << isBottom
+
+						<< std::endl;
+				}
+			}
+
+
+			out.close();
+		}
+	}
+#endif
+
+
+#ifdef DEBUG_SSR_DA_HAND
+	{
+#ifdef _WIN32
+	const char* dbgFile = "D:/SEIMS_C/log/ssr_da_hand_debug.csv";
+#else
+	const char* dbgFile = "/data/user/lijing/software/SEIMS_C/log/ssr_da_hand_debug.csv";
+#endif
+
+		bool needHeader = false;
+
+		{
+			std::ifstream check(dbgFile, std::ios::in);
+
+			if (!check.good())
+			{
+				needHeader = true;
+			}
+			else
+			{
+				check.seekg(0, std::ios::end);
+
+				if (check.tellg() == 0)
+				{
+					needHeader = true;
+				}
+
+				check.close();
+			}
+		}
+
+
+		std::ofstream out(
+			dbgFile,
+			std::ios::out | std::ios::app
+		);
+
+
+		if (out.is_open())
+		{
+			if (needHeader)
+			{
+				out
+					<< "date_raw"
+					<< ",hand_id"
+					<< ",n_layers"
+
+					<< ",profile_before_mm"
+					<< ",profile_after_mm"
+					<< ",profile_loss_mm"
+
+					<< ",sat_profile_mm"
+					<< ",fc_profile"
+					<< ",awc_profile"
+
+					<< ",bottom_perco_mm"
+					<< ",perco_sum_mm"
+
+					<< std::endl;
+			}
+
+
+			const int dbgIds[] =
+			{
+				1366,
+				1367,
+				1368,
+				1370,
+				1375
+			};
+
+
+			for (int ii = 0; ii < 5; ++ii)
+			{
+				const int id = dbgIds[ii];
+
+				if (id < 0 || id >= m_nCells)
+				{
+					continue;
+				}
+
+
+				const int nLayers =
+					CVT_INT(m_nSoilLyrs[id]);
+
+
+				double before = 0.0;
+				double after = 0.0;
+
+				double sat = 0.0;
+				double fc = 0.0;
+				double awc = 0.0;
+
+				double percoSum = 0.0;
+				double bottomPerco = 0.0;
+
+
+				for (int j = 0; j < nLayers; ++j)
+				{
+					before +=
+						m_soilWtrStoBfe[id][j];
+
+					after +=
+						m_soilWtrSto[id][j];
+
+					sat +=
+						m_soilSat[id][j];
+
+					awc +=
+						m_soilAWC[id][j];
+
+					if (m_soilFC != nullptr)
+					{
+						fc +=
+							m_soilFC[id][j];
+					}
+
+					percoSum +=
+						m_soilPerco[id][j];
+				}
+
+
+				if (nLayers > 0)
+				{
+					bottomPerco =
+						m_soilPerco[id][nLayers - 1];
+				}
+
+
+				out
+					<< std::setprecision(12)
+
+					<< m_date
+					<< "," << id
+					<< "," << nLayers
+
+					<< "," << before
+					<< "," << after
+					<< "," << before - after
+
+					<< "," << sat
+					<< "," << fc
+					<< "," << awc
+
+					<< "," << bottomPerco
+					<< "," << percoSum
+
+					<< std::endl;
+			}
+
+
+			out.close();
+		}
+	}
+#endif
+
+
+
     for (int i = 1; i <= m_nSubbsns; i++) {
         m_ifluQ2Rch[0] += m_ifluQ2Rch[i];
     }
@@ -452,7 +854,9 @@ void SSR_DA::SetValue(const char* key, const float value) {
         m_CellWth = value;
     } else if (StringMatch(s, Tag_TimeStep)) {
         m_dt = CVT_INT(value);
-    } else {
+    } else if (StringMatch(s, "K1")) {
+		m_K1 = value;
+	} else {
         throw ModelException(MID_SSR_DA, "SetValue", "Parameter " + s + " does not exist.");
     }
 }
@@ -699,7 +1103,7 @@ void SSR_DA::Get2DData(const char* key, int* nrows, int* ncols, float*** data) {
 }
 void SSR_DA::SetReaches(clsReaches* reaches) {
 	if (nullptr == reaches) {
-		throw ModelException(MID_MUSK_CH_HAND, "SetReaches", "The reaches input can not to be NULL.");
+		throw ModelException(MID_SSR_DA, "SetReaches", "The reaches input can not to be NULL.");
 	}
 	m_nSubbsns = reaches->GetReachNumber();
 
@@ -725,11 +1129,12 @@ bool SSR_DA::CheckInputData() {
     CHECK_POINTER(MID_SSR_DA, m_soilWP);
     CHECK_POINTER(MID_SSR_DA, m_soilWtrSto);
     CHECK_POINTER(MID_SSR_DA, m_soilWtrStoPrfl);
-	//CHECK_POINTER(MID_SSR_DA, m_soilTemp);     //  xiaodw comment, don't need soil temperature now
+	CHECK_POINTER(MID_SSR_DA, m_soilTemp);     //  xiaodw comment, don't need soil temperature now
 	//CHECK_POINTER(MID_SSR_DA, m_chWidth);
     CHECK_POINTER(MID_SSR_DA, m_rchID);
     CHECK_POINTER(MID_SSR_DA, m_flowInIdxD8);
     CHECK_POINTER(MID_SSR_DA, m_rteLyrs);
+	CHECK_POSITIVE(MID_SSR_DA, m_K1);           //  lj++
     return true;
 }
 

@@ -63,7 +63,7 @@ int PER_STR::Execute() {
 //                 float alpha = 3;
 //                 float f_frozen=exp(-alpha*(1-Min(m_soilIceSto[i][j]/(m_soilPor[i][j]*m_soilThk[i][j]),1)));
 //                 f_frozen = Max(0.f,f_frozen);
-//                 f_frozen = f_frozen - exp(-alpha);
+//                 f_frozen = f_frozen - exp(-alpha); 
 //                 float WCND =  (1-f_frozen)*m_ks[i][j] * Min(1.0,pow(FACTR, EXPON))*3600;
 //                 WCND = Min(WCND,m_ks[i][j]);
 //             }

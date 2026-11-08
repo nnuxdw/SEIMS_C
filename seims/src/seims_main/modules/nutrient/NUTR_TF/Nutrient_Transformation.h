@@ -317,11 +317,11 @@ private:
     float** f_LM_leach;
     float** MA;
     float** MD;
-    float** MIC;
-    float** MAOM;
-    float** POM;
-    float** LMWC;
-    float** SOM;
+    float** MIC;   ///< Millennial microbial biomass carbon pool (g C/m2)
+    float** MAOM;  ///< Millennial mineral-associated organic carbon pool (g C/m2)
+    float** POM;   ///< Millennial particulate organic matter carbon pool (g C/m2)
+    float** LMWC;  ///< Millennial low-molecular-weight carbon pool (g C/m2)
+    float** SOM;   ///< Total SOC = MIC + MAOM + POM + LMWC (g C/m2)
     float** soilCO2;
     float** DOC;
     float** fDOC;
@@ -355,7 +355,7 @@ private:
     float* acue;
     float* param_pi;
 
-    float m_leach;
+    float* m_leach;
     float* m_soilSurfCbn;
     float* m_olWtrEroSed;
     float* m_area;

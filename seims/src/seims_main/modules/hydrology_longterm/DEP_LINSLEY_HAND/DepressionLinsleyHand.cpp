@@ -1,5 +1,5 @@
 #include "DepressionLinsleyHand.h"
-
+//#define DEBUG_WB19
 #include "text.h"
 
 DepressionLinsleyHand::DepressionLinsleyHand() :
@@ -33,6 +33,7 @@ bool DepressionLinsleyHand::CheckInputData() {
     CHECK_POINTER(MID_DEP_LINSLEY, m_pet);
     CHECK_POINTER(MID_DEP_LINSLEY, m_ei);
     CHECK_POINTER(MID_DEP_LINSLEY, m_pe);
+	CHECK_POINTER(MID_DEP_LINSLEY, m_handWtrDep);
     return true;
 }
 
@@ -65,10 +66,10 @@ void DepressionLinsleyHand::InitialOutputs() {
 	if (nullptr == m_sr) {
 		Initialize1DArray(m_nCells, m_sr, 0.f);
 	}
-	if (m_handWtrDep == nullptr)
-	{
-		Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
-	}
+	//if (m_handWtrDep == nullptr)
+	//{
+	//	Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
+	//}
 	if (handWtrDepAftDep == nullptr)
 	{
 		Initialize1DArray(m_nCells, handWtrDepAftDep, 0.f);//xdw++
@@ -98,13 +99,39 @@ void DepressionLinsleyHand::SetReaches(clsReaches* reaches) {
 
 
 int DepressionLinsleyHand::Execute() {
+
     CheckInputData();
     InitialOutputs();
+
+
 #ifdef DEBUG_DEP_LINSLEY_HAND
 	{
 		cout << "[DEP_LINSLEY_HAND]" << endl;
 	}
 #endif
+
+
+#ifdef DEBUG_WB19
+	double dbgSdBeforeHandVol19 = 0.0;
+
+	for (int i = 0; i < m_nCells; ++i)
+	{
+		if (CVT_INT(m_subbsnID[i]) != 19)
+		{
+			continue;
+		}
+
+		const double area =
+			static_cast<double>(m_handArea[i]);
+
+		// 洼地储水单位mm，转成m3
+		dbgSdBeforeHandVol19 +=
+			static_cast<double>(m_sd[i])
+			* 0.001
+			* area;
+	}
+#endif
+
 
 	// depression from HAND's water
 #pragma omp parallel for
@@ -152,9 +179,158 @@ int DepressionLinsleyHand::Execute() {
         }
 
 		handWtrDepAftDep[i] = handWtrDepMM * 0.001;  // m
-
-
     }
+
+
+	// ============================================================
+// 19号子流域：HAND水填洼和蒸发水量平衡
+// ============================================================
+#ifdef DEBUG_WB19
+	{
+		double handBeforeVol = 0.0;       // 进入本模块的HAND水，m3
+		double handAfterVol = 0.0;        // 处理后剩余HAND水，m3
+		double handDepVol = 0.0;          // HAND水转入洼地，m3
+		double handEvapVol = 0.0;         // HAND水面蒸发，m3
+		double sdAfterHandVol = 0.0;      // HAND处理后的洼地储水，m3
+
+		double negativeEvapGainVol = 0.0;
+
+		int cellCount = 0;
+		int negativeHandEvapCount = 0;
+		int negativeHandDepthCount = 0;
+		int invalidAreaCount = 0;
+
+		for (int i = 0; i < m_nCells; ++i)
+		{
+			if (CVT_INT(m_subbsnID[i]) != 19)
+			{
+				continue;
+			}
+
+			const double area =
+				static_cast<double>(m_handArea[i]);
+
+			if (!std::isfinite(area) || area <= 0.0)
+			{
+				++invalidAreaCount;
+				continue;
+			}
+
+			++cellCount;
+
+			// 原代码实际使用MAX(m_handWtrDep*1000, 0)
+			const double handBeforeDepthM =
+				(std::max)(
+					static_cast<double>(m_handWtrDep[i]),
+					0.0
+				);
+
+			handBeforeVol +=
+				handBeforeDepthM * area;
+
+			handAfterVol +=
+				static_cast<double>(
+					handWtrDepAftDep[i]
+					)
+				* area;
+
+			// m_hand_dep单位mm
+			handDepVol +=
+				static_cast<double>(m_hand_dep[i])
+				* 0.001
+				* area;
+
+			// m_hand_eavp单位mm；保留符号，以检查负蒸发
+			handEvapVol +=
+				static_cast<double>(m_hand_eavp[i])
+				* 0.001
+				* area;
+
+			sdAfterHandVol +=
+				static_cast<double>(m_sd[i])
+				* 0.001
+				* area;
+
+			if (m_hand_eavp[i] < -1.0e-6f)
+			{
+				++negativeHandEvapCount;
+
+				// 负蒸发会增加多少水
+				negativeEvapGainVol +=
+					-static_cast<double>(m_hand_eavp[i])
+					* 0.001
+					* area;
+			}
+
+			if (handWtrDepAftDep[i] < -1.0e-8f)
+			{
+				++negativeHandDepthCount;
+			}
+}
+
+		// HAND地表水平衡：
+		// 处理前 = 处理后 + 填洼 + 蒸发
+		const double handBalanceError =
+			handBeforeVol
+			- handAfterVol
+			- handDepVol
+			- handEvapVol;
+
+		// 洼地储水变化应等于HAND转入洼地的水
+		const double depressionStorageError =
+			(
+				sdAfterHandVol
+				- dbgSdBeforeHandVol19
+				)
+			- handDepVol;
+
+		const double scale =
+			(std::max)(
+				1.0,
+				std::fabs(handBeforeVol)
+			);
+
+		cout << "[WB19_DEP_HAND]"
+			<< ",date=" << m_date
+			<< ",cellCount=" << cellCount
+
+			<< ",handBefore_m3=" << handBeforeVol
+			<< ",handAfter_m3=" << handAfterVol
+			<< ",toDepression_m3=" << handDepVol
+			<< ",handEvap_m3=" << handEvapVol
+
+			<< ",sdBefore_m3="
+			<< dbgSdBeforeHandVol19
+			<< ",sdAfterHand_m3="
+			<< sdAfterHandVol
+
+			<< ",handBalanceError="
+			<< handBalanceError
+			<< ",handRelativeError="
+			<< handBalanceError / scale
+
+			<< ",depressionStorageError="
+			<< depressionStorageError
+
+			<< ",negativeHandEvapCount="
+			<< negativeHandEvapCount
+			<< ",negativeEvapGain_m3="
+			<< negativeEvapGainVol
+
+			<< ",negativeHandDepthCount="
+			<< negativeHandDepthCount
+			<< ",invalidAreaCount="
+			<< invalidAreaCount
+
+			<< endl;
+
+		cout.flush();
+}
+#endif
+
+
+
+
 	for (int sbid = 1; sbid <= m_nreach; ++sbid) {
 
 
@@ -186,6 +362,42 @@ int DepressionLinsleyHand::Execute() {
 		
 #endif
 	}
+
+
+#ifdef DEBUG_WB19
+	double dbgSdBeforeRunoffVol19 = 0.0;
+	double dbgPeInputVol19 = 0.0;
+	double dbgPotBeforeVol19 = 0.0;
+
+	for (int i = 0; i < m_nCells; ++i)
+	{
+		if (CVT_INT(m_subbsnID[i]) != 19)
+		{
+			continue;
+		}
+
+		const double area =
+			static_cast<double>(m_handArea[i]);
+
+		dbgSdBeforeRunoffVol19 +=
+			static_cast<double>(m_sd[i])
+			* 0.001
+			* area;
+
+		dbgPeInputVol19 +=
+			static_cast<double>(m_pe[i])
+			* 0.001
+			* area;
+
+		if (m_potVol != nullptr)
+		{
+			dbgPotBeforeVol19 +=
+				static_cast<double>(m_potVol[i])
+				* 0.001
+				* area;
+		}
+	}
+#endif
 
 
 #pragma omp parallel for
@@ -236,6 +448,8 @@ int DepressionLinsleyHand::Execute() {
 			m_ed[i] = 0.f;
 			m_sd[i] = 0.f;
 		}
+
+
 		if (m_impoundTriger != nullptr && FloatEqual(m_impoundTriger[i], 0.f)) {
 			if (m_potVol != nullptr) {
 				m_potVol[i] += m_sr[i];
@@ -265,6 +479,310 @@ int DepressionLinsleyHand::Execute() {
 		}
 #endif
 	}
+
+
+#ifdef DEBUG_WB19
+	{
+		double sdAfterVol = 0.0;
+		double runoffVol = 0.0;
+		double depEvapVol = 0.0;
+		double potAfterVol = 0.0;
+
+		double negativeDepEvapGainVol = 0.0;
+
+		int negativeDepEvapCount = 0;
+		int negativeDepStorageCount = 0;
+		int negativeRunoffCount = 0;
+		int negativePeCount = 0;
+		int impoundCellCount = 0;
+
+		for (int i = 0; i < m_nCells; ++i)
+		{
+			if (CVT_INT(m_subbsnID[i]) != 19)
+			{
+				continue;
+			}
+
+			const double area =
+				static_cast<double>(m_handArea[i]);
+
+			sdAfterVol +=
+				static_cast<double>(m_sd[i])
+				* 0.001
+				* area;
+
+			runoffVol +=
+				static_cast<double>(m_sr[i])
+				* 0.001
+				* area;
+
+			// 保留蒸发符号
+			depEvapVol +=
+				static_cast<double>(m_ed[i])
+				* 0.001
+				* area;
+
+			if (m_potVol != nullptr)
+			{
+				potAfterVol +=
+					static_cast<double>(m_potVol[i])
+					* 0.001
+					* area;
+			}
+
+			if (m_ed[i] < -1.0e-6f)
+			{
+				++negativeDepEvapCount;
+
+				negativeDepEvapGainVol +=
+					-static_cast<double>(m_ed[i])
+					* 0.001
+					* area;
+			}
+
+			if (m_sd[i] < -1.0e-6f)
+			{
+				++negativeDepStorageCount;
+			}
+
+			if (m_sr[i] < -1.0e-6f)
+			{
+				++negativeRunoffCount;
+			}
+
+			if (m_pe[i] < -1.0e-6f)
+			{
+				++negativePeCount;
+			}
+
+			if (m_impoundTriger != nullptr &&
+				FloatEqual(m_impoundTriger[i], 0.f))
+			{
+				++impoundCellCount;
+			}
+		}
+
+		const double potGainVol =
+			potAfterVol - dbgPotBeforeVol19;
+
+		// 完整平衡：
+		// 初始洼地储水 + PE输入
+		// = 最终洼地储水 + 地表径流 + 洼地蒸发 + 转入塘库的水
+		const double balanceError =
+			dbgSdBeforeRunoffVol19
+			+ dbgPeInputVol19
+			- sdAfterVol
+			- runoffVol
+			- depEvapVol
+			- potGainVol;
+
+		const double scale =
+			(std::max)(
+				1.0,
+				(std::max)(
+					std::fabs(
+						dbgSdBeforeRunoffVol19
+						+ dbgPeInputVol19
+					),
+					std::fabs(
+						sdAfterVol
+						+ runoffVol
+						+ depEvapVol
+						+ potGainVol
+					)
+				)
+			);
+
+		cout << "[WB19_DEP_STO]"
+			<< ",date=" << m_date
+
+			<< ",sdBefore_m3="
+			<< dbgSdBeforeRunoffVol19
+			<< ",peInput_m3="
+			<< dbgPeInputVol19
+
+			<< ",sdAfter_m3="
+			<< sdAfterVol
+			<< ",surfaceRunoff_m3="
+			<< runoffVol
+			<< ",depEvap_m3="
+			<< depEvapVol
+			<< ",potGain_m3="
+			<< potGainVol
+
+			<< ",balanceError="
+			<< balanceError
+			<< ",relativeError="
+			<< balanceError / scale
+
+			<< ",negativeDepEvapCount="
+			<< negativeDepEvapCount
+			<< ",negativeDepEvapGain_m3="
+			<< negativeDepEvapGainVol
+
+			<< ",negativeDepStorageCount="
+			<< negativeDepStorageCount
+			<< ",negativeRunoffCount="
+			<< negativeRunoffCount
+			<< ",negativePeCount="
+			<< negativePeCount
+			<< ",impoundCellCount="
+			<< impoundCellCount
+
+			<< endl;
+
+		cout.flush();
+	}
+#endif
+
+
+#ifdef DEBUG_WB19
+{
+double sumM3 = 0.0;
+double sumRawMM = 0.0;
+double areaSumM2 = 0.0;
+
+int nonzeroCount = 0;
+float maxMM = 0.f;
+
+for (int i = 0; i < m_nCells; ++i)
+{
+	if (CVT_INT(m_subbsnID[i]) != 19)
+	{
+		continue;
+	}
+
+	const double areaM2 =
+		static_cast<double>(m_handArea[i]);
+
+	const double runoffMM =
+		static_cast<double>(m_sr[i]);
+
+	sumM3 += runoffMM * 0.001 * areaM2;
+	sumRawMM += runoffMM;
+	areaSumM2 += areaM2;
+
+	if (m_sr[i] > 1.e-10f)
+	{
+		++nonzeroCount;
+	}
+
+	maxMM = Max(maxMM, m_sr[i]);
+}
+
+cout << "[WB19_SURU_OUT]"
+<< ",date=" << m_date
+<< ",ptr="
+<< static_cast<const void*>(m_sr)
+<< ",sumM3=" << sumM3
+<< ",sumRawMM=" << sumRawMM
+<< ",areaSum_m2=" << areaSumM2
+<< ",nonzeroCount=" << nonzeroCount
+<< ",maxMM=" << maxMM
+<< endl;
+
+cout.flush();
+}
+#endif
+
+
+
+#ifdef DEBUG_WB19
+{
+	const int debugSubbasin = 19;
+
+	double sumM3 = 0.0;
+	double sumRawMM = 0.0;
+	double areaSumM2 = 0.0;
+
+	int nonzeroCount = 0;
+	int maxCell = -1;
+
+	float maxMM = -1.0e30f;
+	float maxCellAreaM2 = NODATA_VALUE;
+
+	for (int i = 0; i < m_nCells; ++i)
+	{
+		if (CVT_INT(m_subbsnID[i]) != debugSubbasin)
+		{
+			continue;
+		}
+
+		const double areaM2 =
+			static_cast<double>(m_handArea[i]);
+
+		const double runoffMM =
+			static_cast<double>(m_sr[i]);
+
+		sumM3 += runoffMM * 0.001 * areaM2;
+		sumRawMM += runoffMM;
+		areaSumM2 += areaM2;
+
+		if (m_sr[i] > 1.0e-10f)
+		{
+			++nonzeroCount;
+		}
+
+		if (m_sr[i] > maxMM)
+		{
+			maxMM = m_sr[i];
+			maxCell = i;
+			maxCellAreaM2 = m_handArea[i];
+		}
+	}
+
+	cout << "[WB19_SURU_OUT]"
+		<< ",date=" << m_date
+
+		<< ",suruPtr="
+		<< static_cast<const void*>(m_sr)
+
+		<< ",areaPtr="
+		<< static_cast<const void*>(m_handArea)
+
+		<< ",sumM3=" << sumM3
+		<< ",sumRawMM=" << sumRawMM
+		<< ",areaSum_m2=" << areaSumM2
+
+		<< ",nonzeroCount=" << nonzeroCount
+		<< ",maxCell=" << maxCell
+		<< ",maxMM=" << maxMM
+		<< ",maxCellArea_m2=" << maxCellAreaM2
+
+		<< endl;
+
+	// 输出19号子流域所有非零径流像元
+	for (int i = 0; i < m_nCells; ++i)
+	{
+		if (CVT_INT(m_subbsnID[i]) != debugSubbasin)
+		{
+			continue;
+		}
+
+		if (m_sr[i] > 1.0e-10f)
+		{
+			cout << "[WB19_SURU_OUT_CELL]"
+				<< ",date=" << m_date
+				<< ",cell=" << i
+
+				<< ",suruMM=" << m_sr[i]
+				<< ",areaM2=" << m_handArea[i]
+
+				<< ",suruAddr="
+				<< static_cast<const void*>(&m_sr[i])
+
+				<< ",areaAddr="
+				<< static_cast<const void*>(&m_handArea[i])
+
+				<< endl;
+		}
+	}
+
+	cout.flush();
+}
+#endif
+
+
     return true;
 }
 

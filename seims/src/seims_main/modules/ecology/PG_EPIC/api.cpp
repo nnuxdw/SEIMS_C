@@ -69,6 +69,13 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_T_BASE, UNIT_TEMP_DEG, DESC_T_BASE, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_T_OPT, UNIT_TEMP_DEG, DESC_T_OPT, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_WAVP, UNIT_RAD_USE_EFFI, DESC_WAVP, Source_ParameterDB, DT_Raster1D);
+    // for GPP,NPP
+    mdi.AddParameter("ACM_CE", UNIT_NON_DIM,
+                     "Canopy efficiency parameter for ACM (default 12.0; suggested range 8.0-16.0)",
+                     Source_ParameterDB_Optional, DT_Raster1D);
+    mdi.AddParameter("F_AUTO", UNIT_NON_DIM,
+                     "Autotrophic respiration fraction for ACM (default 0.50; suggested range 0.45-0.55)",
+                     Source_ParameterDB_Optional, DT_Raster1D);
     mdi.AddParameter(VAR_SOL_RSDIN, UNIT_CONT_KGHA, DESC_SOL_RSDIN, Source_ParameterDB, DT_Raster1D);
     /// Management related parameters, may saved as DT_Array2D with ICNUM as index. IF not provided, these should be initialized in intialOutputs()
     mdi.AddParameter(VAR_IGRO, UNIT_NON_DIM, DESC_IGRO, Source_ParameterDB, DT_Raster1D);
@@ -82,10 +89,13 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     /// nutrient
     mdi.AddParameter(VAR_SOL_NO3, UNIT_CONT_KGHA, DESC_SOL_NO3, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_SOL_SOLP, UNIT_CONT_KGHA, DESC_SOL_SOLP, Source_ParameterDB, DT_Raster2D);
+    // for GPP,NPP
+    mdi.AddParameter(VAR_SOL_WPMM, UNIT_DEPTH_MM, DESC_SOL_WPMM, Source_ParameterDB, DT_Raster2D);
 
     /// climate parameters INPUT
     mdi.AddInput(VAR_TMEAN, UNIT_TEMP_DEG, DESC_TMEAN, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_TMIN, UNIT_TEMP_DEG, DESC_TMIN, Source_Module, DT_Raster1D);
+    mdi.AddInput(VAR_TMAX, UNIT_TEMP_DEG, DESC_TMAX, Source_Module, DT_Raster1D);
     mdi.AddInput(DataType_SolarRadiation, UNIT_SR, DESC_SR, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_DAYLEN, UNIT_HOUR, DESC_DAYLEN, Source_Module, DT_Raster1D); /// from PET modules
     /// water related INPUT
@@ -131,12 +141,16 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_FR_ROOT, UNIT_NON_DIM, DESC_FR_ROOT, DT_Raster1D);
     mdi.AddOutput(VAR_FR_STRSWTR, UNIT_NON_DIM, DESC_FR_STRSWTR, DT_Raster1D);
     mdi.AddOutput(VAR_BIOMASS, UNIT_CONT_KGHA, DESC_BIOMASS, DT_Raster1D);
+    // for GPP,NPP
+    mdi.AddOutput("GPP", UNIT_NON_DIM, "DESC_GPP", DT_Array1D);
+    mdi.AddOutput("RA", UNIT_NON_DIM, "Autotrophic respiration (gC/m2/day)", DT_Array1D);
+    mdi.AddOutput("NPP", UNIT_NON_DIM, "DESC_NPP", DT_Array1D);
 
     //ljj++
     mdi.AddParameter(VAR_BM_DIEOFF, UNIT_NON_DIM, DESC_BM_DIEOFF, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_SOL_NH4, UNIT_CONT_KGHA, DESC_SOL_NH4, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_LANDUSE, UNIT_NON_DIM, DESC_LANDUSE, Source_ParameterDB, DT_Raster1D);
-    
+
     mdi.AddInput(VAR_SOL_HSN, UNIT_CONT_KGHA, DESC_SOL_HSN, Source_Module_Optional, DT_Raster2D);
     mdi.AddInput(VAR_SOL_FORGN, UNIT_CONT_KGHA, DESC_SOL_FORGN, Source_Module, DT_Raster2D);
     mdi.AddInput(VAR_SOL_FORGP, UNIT_CONT_KGHA, DESC_SOL_FORGP, Source_Module, DT_Raster2D);

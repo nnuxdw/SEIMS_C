@@ -49,7 +49,6 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_SOL_UL, UNIT_DEPTH_MM, DESC_SOL_UL, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_POROST, UNIT_VOL_FRA_M3M3, DESC_POROST, Source_ParameterDB, DT_Raster2D);
     mdi.AddParameter(VAR_SAND, UNIT_PERCENT, DESC_SAND, Source_ParameterDB, DT_Raster2D);
-    mdi.AddParameter(VAR_SOL_UL, UNIT_DEPTH_MM, DESC_SOL_UL, Source_ParameterDB, DT_Raster2D);
 
     mdi.AddInput(VAR_SOL_COV, UNIT_CONT_KGHA, DESC_SOL_COV, Source_Module_Optional, DT_Raster1D);
     mdi.AddInput(VAR_SOL_RSD, UNIT_CONT_KGHA, DESC_SOL_RSD, Source_Module_Optional, DT_Raster2D);
@@ -131,32 +130,32 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_LANDUSE, UNIT_NON_DIM, DESC_LANDUSE, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_DEM, UNIT_LEN_M, DESC_DEM, Source_ParameterDB_Optional, DT_Raster1D);
     mdi.AddParameter(VAR_BM_DIEOFF, UNIT_NON_DIM, DESC_BM_DIEOFF, Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("POC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("DOC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("MAOC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("MBC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("POC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("DOC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("MAOC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("MBC", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
     
-    // mdi.AddParameter("KAFF_PL", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("VPL0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("KAFF_ML", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("VML0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("KAFF_LB", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("VLB0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("PARAM_FPL", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("PARAM_P2", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("KAFF_DES", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("CUE_T", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("RATE_BD", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("RATE_KBD", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("cue_ref", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("param_pb", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("param_pc", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("r0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("Ma", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("beta", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("acue", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("param_pi", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
-    // mdi.AddParameter("param_leach", "TODO", "TODO", Source_ParameterDB, DT_Single);
+    mdi.AddParameter("KAFF_PL", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("VPL0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("KAFF_ML", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("VML0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("KAFF_LB", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("VLB0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("PARAM_FPL", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("PARAM_P2", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("KAFF_DES", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("CUE_T", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("RATE_BD", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("RATE_KBD", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("cue_ref", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("param_pb", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("param_pc", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("r0", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("Ma", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("beta", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("acue", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("param_pi", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter("param_leach", "TODO", "TODO", Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_AHRU, UNIT_AREA_M2, DESC_AHRU, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(Tag_FLOWOUT_INDEX_D8, UNIT_NON_DIM, DESC_FLOWOUT_INDEX_D8, Source_ParameterDB, DT_Array1D);
     
@@ -177,16 +176,25 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_HSC, UNIT_NON_DIM, DESC_SOL_HSC, DT_Array2D);
     mdi.AddOutput(VAR_HPC, UNIT_NON_DIM, DESC_SOL_HPC, DT_Array2D);
 
+    // Millennial carbon-pool outputs. Internal pool units are g C/m2.
+    mdi.AddOutput("MIC",  "g C/m2", "Millennial microbial biomass carbon pool", DT_Raster2D);
+    mdi.AddOutput("LMWC", "g C/m2", "Millennial low-molecular-weight carbon pool", DT_Raster2D);
+    mdi.AddOutput("POM",  "g C/m2", "Millennial particulate organic matter carbon pool", DT_Raster2D);
+    mdi.AddOutput("MAOM", "g C/m2", "Millennial mineral-associated organic carbon pool", DT_Raster2D);
+	mdi.AddOutput("SOILCO2", "g C/m2/d", "Daily heterotrophic respiration CO2-C from Modified Millennial", DT_Raster2D);
+    mdi.AddOutput("SOC",  "g C/m2", "Total SOC: MIC + LMWC + POM + MAOM", DT_Raster2D);
+
+    // Retain the existing diagnostic output for backward compatibility.
     mdi.AddOutput("SOC_OUT", UNIT_NON_DIM, DESC_CONV_WT, DT_Array2D);
-    // mdi.AddOutput("DOC", "TODO", "TODO", DT_Raster2D);
-    // mdi.AddOutput("POM1", "TODO", "TODO", DT_Raster1D);
-    // mdi.AddOutput("LMWC1", "TODO", "TODO", DT_Raster1D);
-    // mdi.AddOutput("MIC1", "TODO", "TODO", DT_Raster1D);
-    // mdi.AddOutput("MAOM1", "TODO", "TODO", DT_Raster1D);
-    // mdi.AddOutput("SURFDOC", "TODO", "TODO", DT_Raster1D);
-    // mdi.AddOutput("SURFPOC", "TODO", "TODO", DT_Raster1D);
-    // mdi.AddOutput("SUBSURFDOC", "TODO", "TODO", DT_Raster2D);
-    //mdi.AddOutput(VAR_PERC_LOWEST_DOC, UNIT_KG, DESC_PERC_LOWEST_DOC, DT_Array1D);
+    mdi.AddOutput("DOC", "TODO", "TODO", DT_Raster2D);
+    mdi.AddOutput("POM1", "TODO", "TODO", DT_Raster1D);
+    mdi.AddOutput("LMWC1", "TODO", "TODO", DT_Raster1D);
+    mdi.AddOutput("MIC1", "TODO", "TODO", DT_Raster1D);
+    mdi.AddOutput("MAOM1", "TODO", "TODO", DT_Raster1D);
+    mdi.AddOutput("SURFDOC", "TODO", "TODO", DT_Raster1D);
+    mdi.AddOutput("SURFPOC", "TODO", "TODO", DT_Raster1D);
+    mdi.AddOutput("SUBSURFDOC", "TODO", "TODO", DT_Raster2D);
+    mdi.AddOutput(VAR_PERC_LOWEST_DOC, UNIT_KG, DESC_PERC_LOWEST_DOC, DT_Array1D);
 
     string res = mdi.GetXMLDocument();
     char* tmp = new char[res.size() + 1];

@@ -76,6 +76,8 @@ private:
     int m_dt;
     /// Interflow scale factor
     float m_ki;
+	/// Bottom soil layer percolation coefficient  
+	float m_K1;   // lj++
     /// soil freezing temperature threshold, deg C
     float m_soilFrozenTemp;
     float* m_ki_1d;
@@ -108,7 +110,6 @@ private:
     float *m_chWidth;
     /// stream link
     float *m_rchID;
-
     /**
     *	@brief 2d array of flow in cells
     *

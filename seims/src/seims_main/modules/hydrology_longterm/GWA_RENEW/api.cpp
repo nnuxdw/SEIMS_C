@@ -57,7 +57,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 
 
     mdi.AddOutput(VAR_GWWB, UNIT_NON_DIM, DESC_NONE, DT_Array2D);
-    mdi.AddOutput(VAR_REVAP, UNIT_DEPTH_MM, DESC_REVAP, DT_Raster1D);              //used by soil water balance module
+    mdi.AddOutput(VAR_REVAP, UNIT_DEPTH_MM, DESC_REVAP, DT_Array1D);              //used by soil water balance module
     mdi.AddOutput(VAR_RG, UNIT_DEPTH_MM, DESC_RG, DT_Array1D);     //used by soil water balance module
     mdi.AddOutput(VAR_SBQG, UNIT_FLOW_CMS, DESC_SBQG, DT_Array1D); //used by channel flow routing module
     //mdi.AddOutput(VAR_SBQGSUBAREA, UNIT_FLOW_CMS, DESC_SBQG, DT_Array1D); //used to expression

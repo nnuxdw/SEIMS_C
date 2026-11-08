@@ -30,26 +30,38 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddParameter(VAR_CO2, UNIT_GAS_PPMV, DESC_CO2, Source_ParameterDB, DT_Single);                    // 大气CO2浓度
 	mdi.AddParameter(VAR_BLAI, UNIT_AREA_RATIO, DESC_BLAI, Source_ParameterDB, DT_Raster1D);
 	mdi.AddParameter(VAR_LANDUSE, UNIT_NON_DIM, DESC_LANDUSE, Source_ParameterDB, DT_Raster1D);
+	mdi.AddParameter(VAR_CH4_TVEG, UNIT_NON_DIM, DESC_CH4_TVEG, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_CH4_POX, UNIT_NON_DIM, DESC_CH4_POX, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_CH4_CO2_RATIO, UNIT_NON_DIM, DESC_CH4_CO2_RATIO, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_CH4_FGAS, UNIT_NON_DIM, DESC_CH4_FGAS, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_CH4_OXID_FRAC, UNIT_NON_DIM, DESC_CH4_OXID_FRAC, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_CH4_TGR, UNIT_TEMP_DEG, DESC_CH4_TGR, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_CELL_LAT, UNIT_LONLAT_DEG, DESC_CELL_LAT, Source_ParameterDB, DT_Raster1D);
 
 	/// lookup table as 2D array, such as crop, management, landuse, tillage, etc.
-	mdi.AddParameter(VAR_CROP_LOOKUP, UNIT_NON_DIM, DESC_CROP_LOOKUP, Source_ParameterDB, DT_Array2D);
+	/*mdi.AddParameter(VAR_CROP_LOOKUP, UNIT_NON_DIM, DESC_CROP_LOOKUP, Source_ParameterDB, DT_Array2D);*/
 
 	/// Set input from other modules
-	mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);         // 温度
-	mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);      // 当前水位
+	mdi.AddInput(VAR_SOILT, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Array2D);                      // 温度
+	mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);                   // 当前水位
 	mdi.AddInput(VAR_SOLICE, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module_Optional, DT_Array2D);
-	mdi.AddInput(VAR_SOL_RSPC, UNIT_CONT_KGHA, DESC_SOL_RSPC, Source_Module_Optional, DT_Raster2D);   // 异养呼吸
-	mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Raster1D);            // hand水深(m)
+	mdi.AddInput(VAR_SOL_RSPC, UNIT_CONT_KGHA, DESC_SOL_RSPC, Source_Module_Optional, DT_Raster2D);      // 异养呼吸
+	//mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Array1D);              // hand水深(m)
+	mdi.AddInput(VAR_OL_HAND_WTRDEP_AFT_DEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module,DT_Raster1D);
+	/*mdi.AddInput(VAR_OL_HAND_WTRDEP_AFT_INFIL, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Raster1D);*/
 	mdi.AddInput(VAR_LAIDAY, UNIT_AREA_RATIO, DESC_LAIDAY, Source_Module, DT_Raster1D);
 	mdi.AddInput(VAR_BIOMASS, UNIT_CONT_KGHA, DESC_BIOMASS, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_ROOTDEPTH, UNIT_DEPTH_MM, DESC_ROOTDEPTH, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_SNAC, UNIT_DEPTH_MM, DESC_SNAC, Source_Module, DT_Raster1D);
 
 
     /// Set the output variables
-	mdi.AddOutput(VAR_CH4_PROD, UNIT_G_M2_HOUR, DESC_CH4_PROD, DT_Raster1D);
-	mdi.AddOutput(VAR_CH4_OXID, UNIT_G_M2_HOUR, DESC_CH4_OXID, DT_Raster1D);
-	mdi.AddOutput(VAR_CH4_DIFF, UNIT_G_M2_HOUR, DESC_CH4_DIFF, DT_Raster1D);
-	mdi.AddOutput(VAR_CH4_EBUL, UNIT_G_M2_HOUR, DESC_CH4_EBUL, DT_Raster1D);
-	mdi.AddOutput(VAR_CH4_FLUX, UNIT_G_M2_HOUR, DESC_CH4_FLUX, DT_Raster1D);
+	mdi.AddOutput(VAR_CH4_PROD, UNIT_MG_CH4_M2_HOUR, DESC_CH4_PROD, DT_Array1D);    // mg CH4 m-2 h-1
+	mdi.AddOutput(VAR_CH4_OXID, UNIT_MG_CH4_M2_HOUR, DESC_CH4_OXID, DT_Array1D);    // mg CH4 m-2 h-1
+	mdi.AddOutput(VAR_CH4_DIFF, UNIT_MG_CH4_M2_HOUR, DESC_CH4_DIFF, DT_Array1D);    // mg CH4 m-2 h-1
+	mdi.AddOutput(VAR_CH4_EBUL, UNIT_MG_CH4_M2_HOUR, DESC_CH4_EBUL, DT_Array1D);    // mg CH4 m-2 h-1
+	mdi.AddOutput(VAR_CH4_FLUX, UNIT_MG_CH4_M2_HOUR, DESC_CH4_FLUX, DT_Array1D);    // mg CH4 m-2 h-1
+	mdi.AddOutput(VAR_CH4_PLANT, UNIT_MG_CH4_M2_HOUR, DESC_CH4_PLANT, DT_Array1D);  // mg CH4 m-2 h-1
 
 
 

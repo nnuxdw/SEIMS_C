@@ -7,7 +7,7 @@ DepressionFSDaily::DepressionFSDaily() :
     m_potVol(nullptr),
     m_depCo(NODATA_VALUE), m_depCap(nullptr), m_pet(nullptr),
     m_ei(nullptr), m_pe(nullptr), m_sd(nullptr),
-    m_ed(nullptr), m_sr(nullptr), m_subbsnID(nullptr), m_chSto(nullptr), m_handArea(nullptr), m_hand_eavp(nullptr){
+    m_ed(nullptr), m_sr(nullptr), m_handWtrDep(nullptr), m_subbsnID(nullptr), m_chSto(nullptr), m_handArea(nullptr), m_hand_eavp(nullptr){
 }
 
 DepressionFSDaily::~DepressionFSDaily() {
@@ -33,6 +33,10 @@ void DepressionFSDaily::InitialOutputs() {
         Initialize1DArray(m_nCells, m_sd, 0.f);
         Initialize1DArray(m_nCells, m_ed, 0.f);
         Initialize1DArray(m_nCells, m_sr, 0.f);
+		if (m_handWtrDep == nullptr)
+		{
+			Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
+		}
 #pragma omp parallel for
         for (int i = 0; i < m_nCells; i++) {
             m_sd[i] = m_depCo * m_depCap[i];
@@ -65,7 +69,7 @@ int DepressionFSDaily::Execute() {
 			m_sd[i] = m_depCap[i];
 			m_sr[i] = m_pe[i];
 		}
-		else if (m_pe[i] > 0.f ) {   
+		else if (m_pe[i] > 0.f ) {
 			float pc = m_pe[i] - m_depCap[i] * log(1.f - m_sd[i] / m_depCap[i]);
 			float deltaSd = m_pe[i] * exp(-pc / m_depCap[i]);
 			if (deltaSd > m_depCap[i] - m_sd[i]) {
@@ -123,7 +127,7 @@ int DepressionFSDaily::Execute() {
 					<< " eavp=" << m_hand_eavp[i] << "   "
 					<< endl;
 			}
-			
+
 		}
 #endif
     }
@@ -140,7 +144,7 @@ void DepressionFSDaily::SetValue(const char* key, const float value) {
 }
 
 void DepressionFSDaily::Set1DData(const char* key, const int n, float* data) {
-    
+
     string sk(key);
     if (StringMatch(sk, VAR_DEPRESSION)) {
 		CheckInputSize(MID_DEP_LINSLEY, key, n, m_nCells);
@@ -160,7 +164,10 @@ void DepressionFSDaily::Set1DData(const char* key, const int n, float* data) {
     } else if (StringMatch(sk, VAR_POT_VOL)) {
 		CheckInputSize(MID_DEP_LINSLEY, key, n, m_nCells);
         m_potVol = data;
-    } else if (StringMatch(sk, VAR_SUBBSN)) {
+    }else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
+		CheckInputSize(MID_DEP_LINSLEY, key, n, m_nCells);
+		m_handWtrDep = data;
+	} else if (StringMatch(sk, VAR_SUBBSN)) {
 		CheckInputSize(MID_DEP_LINSLEY, key, n, m_nCells);
 		m_subbsnID = data;
 	} else if (StringMatch(sk, VAR_CHST)) {
@@ -191,7 +198,9 @@ void DepressionFSDaily::Get1DData(const char* key, int* n, float** data) {
         *data = m_ed;
     } else if (StringMatch(sk, VAR_SURU)) {
         *data = m_sr;
-    } else if (StringMatch(sk, VAR_CHST)) {
+    } else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
+		*data = m_handWtrDep;
+	}else if (StringMatch(sk, VAR_CHST)) {
 		m_chSto[0] = m_chSto[m_outletID];
 		*data = m_chSto;
 	}

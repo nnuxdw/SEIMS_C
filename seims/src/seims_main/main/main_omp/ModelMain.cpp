@@ -76,7 +76,7 @@ void ModelMain::StepHillSlope(const time_t t, const int year_idx, const int sub_
     }
     for (auto it = m_hillslopeModules.begin(); it != m_hillslopeModules.end(); ++it) {
         SimulationModule* p_module = m_simulationModules[*it];
-         //cout << "Executing " << m_moduleIDs[*it] << endl; // for debug
+        // cout << "Executing " << m_moduleIDs[*it] << endl; // for debug
         double sub_t1 = TimeCounting();
         if (m_firstRunOverland) {
             m_factory->GetValueFromDependencyModule(*it, m_simulationModules);
@@ -140,7 +140,7 @@ void ModelMain::Execute() {
             cout << "Simulation year: " << startYear + yearIdx << endl;
         }
 
-		cout <<  ConvertToString2(t).c_str() << endl;
+		//cout <<  ConvertToString2(t).c_str() << endl;
         StatusMessage(ConvertToString2(t).c_str());
         for (int i = 0; i < nHs; i++) {
             StepHillSlope(t + i * m_dtHs, yearIdx, i);
@@ -270,7 +270,7 @@ void ModelMain::AppendOutputData(const time_t time) {
 						item->TimeSeriesDataForSubbasinCount = n;*/
 						//item->AggregateData(time, n, data);
 					}
-					// xiaodw, I aimed to let it support outputing monthly or yearly average value for each subbasin, but failed because it can't add a type 
+					// xiaodw, I aimed to let it support outputing monthly or yearly average value for each subbasin, but failed because it can't add a type
 					//else if (StringMatch(item->AggType, Tag_TimeSeriesAvg)){
 					//	item->Aggregate1DArrayDataAvg(time, n, data);
 					//}
@@ -290,18 +290,18 @@ void ModelMain::AppendOutputData(const time_t time) {
                         StringMatch(param->BasicName, "CHSB") ||
                         StringMatch(param->BasicName, VAR_GWWB) || // groundwater water balance
                         //ljj++
-                        StringMatch(param->BasicName, VAR_LMC) || 
-                        StringMatch(param->BasicName, VAR_LSC) || 
-                        StringMatch(param->BasicName, VAR_WOC) || 
-                        StringMatch(param->BasicName, VAR_BMC) || 
-                        StringMatch(param->BasicName, VAR_HPC) || 
-                        StringMatch(param->BasicName, VAR_HSC) || 
+                        StringMatch(param->BasicName, VAR_LMC) ||
+                        StringMatch(param->BasicName, VAR_LSC) ||
+                        StringMatch(param->BasicName, VAR_WOC) ||
+                        StringMatch(param->BasicName, VAR_BMC) ||
+                        StringMatch(param->BasicName, VAR_HPC) ||
+                        StringMatch(param->BasicName, VAR_HSC) ||
                         StringMatch(param->BasicName, "SOC_OUT") || // groundwater water balance
-                        StringMatch(param->BasicName, "lake_wb") || 
-                        StringMatch(param->BasicName, "lake_ocwb") || 
-                        StringMatch(param->BasicName, VAR_SOILT) || 
-                        StringMatch(param->BasicName, VAR_SOLICE) || 
-                        StringMatch(param->BasicName, VAR_SOLWC) || 
+                        StringMatch(param->BasicName, "lake_wb") ||
+                        StringMatch(param->BasicName, "lake_ocwb") ||
+                        StringMatch(param->BasicName, VAR_SOILT) ||
+                        StringMatch(param->BasicName, VAR_SOLICE) ||
+                        StringMatch(param->BasicName, VAR_SOLWC) ||
                         StringMatch(param->BasicName, VAR_SOWB) || // soil water balance
 						//xdw++
 						StringMatch(param->BasicName, VAR_SOL_ST) ||// soil water balance

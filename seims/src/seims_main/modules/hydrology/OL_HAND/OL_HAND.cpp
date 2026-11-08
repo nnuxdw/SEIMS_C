@@ -1,10 +1,14 @@
-#include "OL_HAND.h"
+ï»¿#include "OL_HAND.h"
 #include <map>
-#include <set> 
+#include <set>
 #include "text.h"
 #include <string>
 #include <cctype>
 #include <algorithm>
+<<<<<<< HEAD
+=======
+//#define DEBUG_WB19
+>>>>>>> origin/hand_dev_lj
 
 
 OL_HAND::OL_HAND() :
@@ -24,12 +28,12 @@ OL_HAND::~OL_HAND() {
 }
 
 static inline std::string trim(std::string s) {
-	// È¥µôÇ°µ¼¿Õ¸ñ
+	// È¥ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Õ¸ï¿½
 	s.erase(s.begin(),
 		std::find_if(s.begin(), s.end(),
 			[](int ch) { return !std::isspace(ch); }));
 
-	// È¥µôÎ²Ëæ¿Õ¸ñ
+	// È¥ï¿½ï¿½Î²ï¿½ï¿½Õ¸ï¿½
 	s.erase(std::find_if(s.rbegin(), s.rend(),
 		[](int ch) { return !std::isspace(ch); }).base(),
 		s.end());
@@ -48,7 +52,7 @@ static inline std::string trim(std::string s) {
 #include <new>
 
 static inline bool IsNoData(float v, float nodata) {
-	// nodata Ô¼¶¨Îª -9999£¬Ò»°ã²»»á³öÏÖ NaN£¬µ«Ò»Æð¶µµ×
+	// nodata Ô¼ï¿½ï¿½Îª -9999ï¿½ï¿½Ò»ï¿½ã²»ï¿½ï¿½ï¿½ï¿½ï¿½ NaNï¿½ï¿½ï¿½ï¿½Ò»ï¿½ð¶µµï¿½
 	return std::isnan(v) || std::fabs(v - nodata) < 1e-6f;
 }
 
@@ -59,7 +63,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 	float nodata /*= -9999.0f*/,
 	bool buildHandIds /*= false*/
 ) {
-	// 1) Ö¸ÕëÐ£Ñé
+	// 1) Ö¸ï¿½ï¿½Ð£ï¿½ï¿½
 	if (!m_HAND_Subbasin || !m_HAND_Flood_Level || !m_HAND_LevelDepth ||
 		!m_HAND_SumArea || !m_HAND_SumVolume || !m_HAND_AvgDepth ||
 		!m_HAND_AccVolume || !m_HAND_LowerAccDepthFlat || !m_HAND_LowerAccDepthLen) {
@@ -71,7 +75,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 		return;
 	}
 
-	// 2) µÚÒ»±é£ºÍ³¼Æ max_sbid¡¢Ã¿¸ö sbid ÓÐÄÄÐ© level£¨ÓÃÓÚ n_levels£©
+	// 2) ï¿½ï¿½Ò»ï¿½é£ºÍ³ï¿½ï¿½ max_sbidï¿½ï¿½Ã¿ï¿½ï¿½ sbid ï¿½ï¿½ï¿½ï¿½Ð© levelï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ n_levelsï¿½ï¿½
 	int max_sbid = -1;
 	std::map<int, std::set<int>> subbasinLevels; // sbid -> unique levels
 
@@ -98,7 +102,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 		m_Hands.resize(max_sbid + 1);
 	}
 
-	// 4) ³õÊ¼»¯Ã¿¸ö subbasin µÄ n_levels£¬²¢È·±£ levels vector ÖÁÉÙÄÜ×°ÏÂ×î´ó level
+	// 4) ï¿½ï¿½Ê¼ï¿½ï¿½Ã¿ï¿½ï¿½ subbasin ï¿½ï¿½ n_levelsï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½ levels vector ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½ï¿½ level
 	for (const auto& kv : subbasinLevels) {
 		int sbid = kv.first;
 		const auto& levSet = kv.second;
@@ -111,10 +115,10 @@ void OL_HAND::LoadHandLevelsFromArrays(
 		}
 	}
 
-	// 5) µÚ¶þ±é£ºÖðÌõÐ´Èë level ×Ö¶Î£¬²¢»¹Ô­ LowerAccDepth
+	// 5) ï¿½Ú¶ï¿½ï¿½é£ºï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ level ï¿½Ö¶Î£ï¿½ï¿½ï¿½ï¿½ï¿½Ô­ LowerAccDepth
 	int flatPos = 0;
 
-	// Èç¹ûÄãÒª¹¹Ôì handIds£ºÏÈÊÕ¼¯£¬ÔÙÒ»´ÎÐÔ new
+	// ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ handIdsï¿½ï¿½ï¿½ï¿½ï¿½Õ¼ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ new
 	std::map<std::pair<int, int>, std::vector<int>> idsTmp;
 
 	for (int i = 0; i < cellsNum; ++i) {
@@ -132,14 +136,14 @@ void OL_HAND::LoadHandLevelsFromArrays(
 		}
 		Level& level = hand.levels[lev];
 
-		// ---- »ù±¾×Ö¶Î£¨°´ nodata ±£»¤£©----
+		// ---- ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶Î£ï¿½ï¿½ï¿½ nodata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----
 		if (!IsNoData(m_HAND_LevelDepth[i], nodata))  level.m_levelDepth = m_HAND_LevelDepth[i];
 		if (!IsNoData(m_HAND_SumArea[i], nodata))     level.m_levelSumArea = m_HAND_SumArea[i];
 		if (!IsNoData(m_HAND_SumVolume[i], nodata))   level.m_levelSumVol = static_cast<double>(m_HAND_SumVolume[i]);
 		if (!IsNoData(m_HAND_AvgDepth[i], nodata))    level.m_levelAvgDepth = m_HAND_AvgDepth[i];
 		if (!IsNoData(m_HAND_AccVolume[i], nodata))   level.m_levelAccVol = static_cast<double>(m_HAND_AccVolume[i]);
 
-		// ---- LowerAccDepth£ºÓÃ Len + Flat »¹Ô­ ----
+		// ---- LowerAccDepthï¿½ï¿½ï¿½ï¿½ Len + Flat ï¿½ï¿½Ô­ ----
 		float lenf = m_HAND_LowerAccDepthLen[i];
 		int L = 0;
 		if (!IsNoData(lenf, nodata) && lenf > 0.0f) {
@@ -153,7 +157,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 				return;
 			}
 
-			// ÊÍ·Å¾ÉÄÚ´æ£¨±ÜÃâÖØ¸´¼ÓÔØÊ±Ð¹Â©£©
+			// ï¿½Í·Å¾ï¿½ï¿½Ú´æ£¨ï¿½ï¿½ï¿½ï¿½ï¿½Ø¸ï¿½ï¿½ï¿½ï¿½ï¿½Ê±Ð¹Â©ï¿½ï¿½
 			if (level.m_levelLowerAccDepth != nullptr) {
 				delete[] level.m_levelLowerAccDepth;
 				level.m_levelLowerAccDepth = nullptr;
@@ -170,18 +174,18 @@ void OL_HAND::LoadHandLevelsFromArrays(
 			}
 			flatPos += L;
 
-			// Ç¿ÁÒ½¨Òé£ºÔÚ Level Àï±£´æ³¤¶È£¨ÄãÈç¹ûÃ»ÓÐÕâ¸ö×Ö¶Î£¬Çë¼ÓÉÏ£©
+			// Ç¿ï¿½Ò½ï¿½ï¿½é£ºï¿½ï¿½ Level ï¿½ï±£ï¿½æ³¤ï¿½È£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶Î£ï¿½ï¿½ï¿½ï¿½ï¿½Ï£ï¿½
 			// level.m_levelLowerAccDepthLen = L;
 		}
 
-		// ---- (¿ÉÑ¡) ¹¹Ôì handIds£ºÕâÀïÓÃ ¡°Êý×éÏÂ±ê i¡± µ±×÷ ID ----
-		// Èç¹ûÄãÓÐÕæÊµ HRU_ID Êý×é£¨ÀýÈç m_HAND_HRU_ID[i]£©£¬°Ñ i »»³ÉÕæÊµÖµ¼´¿É¡£
+		// ---- (ï¿½ï¿½Ñ¡) ï¿½ï¿½ï¿½ï¿½ handIdsï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â±ï¿½ iï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ID ----
+		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµ HRU_ID ï¿½ï¿½ï¿½é£¨ï¿½ï¿½ï¿½ï¿½ m_HAND_HRU_ID[i]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ i ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÊµÖµï¿½ï¿½ï¿½É¡ï¿½
 		if (buildHandIds) {
 			idsTmp[{sbid, lev}].push_back(i);
 		}
 	}
 
-	// 6) Èç¹ûÐèÒª handIds£ºÍ³Ò»·ÖÅä¡¢Ð´Èë
+	// 6) ï¿½ï¿½ï¿½ï¿½ï¿½Òª handIdsï¿½ï¿½Í³Ò»ï¿½ï¿½ï¿½ä¡¢Ð´ï¿½ï¿½
 	if (buildHandIds) {
 		for (auto& kv : idsTmp) {
 			int sbid = kv.first.first;
@@ -190,7 +194,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 
 			Level& level = m_Hands[sbid].levels[lev];
 
-			// ÊÍ·Å¾É handIds
+			// ï¿½Í·Å¾ï¿½ handIds
 			if (level.handIds != nullptr) {
 				delete[] level.handIds;
 				level.handIds = nullptr;
@@ -210,7 +214,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 		}
 	}
 
-	// 7) flatPos Ð£Ñé£¨¿ÉÑ¡µ«ºÜÓÐÓÃ£©
+	// 7) flatPos Ð£ï¿½é£¨ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã£ï¿½
 	if (flatPos != flatLen) {
 		std::cerr << "[WARN] LowerAccDepthFlat not fully consumed: flatPos="
 			<< flatPos << ", flatLen=" << flatLen << std::endl;
@@ -234,7 +238,7 @@ void OL_HAND::SetValue(const char* key, const float value) {
 }
 
 void OL_HAND::Set1DData(const char* key, const int n, float* data) {
-	
+
 	string sk(key);
 
     //if (StringMatch(sk, VAR_CN2)) m_raster1D = data;
@@ -286,10 +290,10 @@ void OL_HAND::Set1DData(const char* key, const int n, float* data) {
 		CheckInputSize(MID_MUSK_CH_HAND, key, n, m_nCells);
 		m_HAND_LowerAccDepthLen = data;
 	}
-	//else if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
-	//	CheckInputSize(MID_SUR_MR_HAND, key, n, m_nCells);
-	//	m_handWtrDep = data;
-	//}
+	/*else if (StringMatch(sk, VAR_OL_HAND_WTRDEP_AFT_DEP)) {
+		CheckInputSize(MID_SUR_MR_HAND, key, n, m_nCells);
+		m_handWtrDep = data;
+	}*/
 	else {
 		throw ModelException(MID_OL_HAND, "Set1DData", "Parameter " + sk + " does not exist.");
 	}
@@ -322,7 +326,7 @@ void OL_HAND::SetReaches(clsReaches* reaches) {
 	if (nullptr == m_islake) reaches->GetReachesSingleProperty(REACH_ISLAKE, &m_islake);
 	if (nullptr == m_isres) reaches->GetReachesSingleProperty(REACH_ISRES, &m_isres);
 	if (nullptr == m_chBedMeanElev) reaches->GetReachesSingleProperty(REACH_BED_MEAN_ELEV, &m_chBedMeanElev);
-	
+
 }
 
 bool OL_HAND::CheckInputData() {
@@ -360,7 +364,7 @@ void OL_HAND::InitialOutputs() {
 		{
 			Initialize1DArray(m_nreach + 1, m_subbasinWtrDep, 0.f);
 		}
-		// XDW£¬ this method, read inundationmap from csv and txt, is deperated. insteadly, read it from database
+		// XDWï¿½ï¿½ this method, read inundationmap from csv and txt, is deperated. insteadly, read it from database
 //#ifdef _WIN32
 //		string txt_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/FloodStep.txt";
 //		string csv_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/InundationMap.csv";
@@ -370,7 +374,7 @@ void OL_HAND::InitialOutputs() {
 //#endif
 //		// load floodstep
 //		LoadHandIdsToChHandLevels(txt_filename, m_Hands);
-//		// load 
+//		// load
 //		loadHandFromCSVIntoVector(csv_filename,m_Hands);
 		int lower_flat_len = 0;
 		for (int i = 0; i < m_nCells; i++)
@@ -378,21 +382,56 @@ void OL_HAND::InitialOutputs() {
 			lower_flat_len += (int)m_HAND_LowerAccDepthLen[i];
 		}
 		LoadHandLevelsFromArrays(m_nCells, lower_flat_len, m_Hands, NODATA_VALUE, TRUE);
-		
+
+
+		//// initialize water depth of each level
+		//// don't need to initialize water depth if use the new HandInundation function?
+		//for (int sbid = 1; sbid <= m_nreach; ++sbid) {
+		//	//HandInundation(sbid, m_bankSto[sbid]);
+		//	m_Hands[sbid].m_CurInundationLevel = 1;
+
+		//	for (int i = 1; i <= m_Hands[sbid].n_levels; ++i) {
+		//		m_Hands[sbid].levels[i].m_levelWtrDep = 0.0;
+		//		//cout << "sbid: " << sbid << " level: " << i << endl;
+		//	}
+		//}
+		//for (int sbid = 1; sbid <= m_nreach; ++sbid) {
+		//	updateAllHandsWtrDep(sbid);
+		//}
+
 		// initialize water depth of each level
-		// don't need to initialize water depth if use the new HandInundation function?
 		for (int sbid = 1; sbid <= m_nreach; ++sbid) {
-			//HandInundation(sbid, m_bankSto[sbid]);
 			m_Hands[sbid].m_CurInundationLevel = 1;
 
-			for (int i = 1; i <= m_Hands[sbid].n_levels; ++i) {
-				m_Hands[sbid].levels[i].m_levelWtrDep = 0.0;
-				//cout << "sbid: " << sbid << " level: " << i << endl;
+			for (int lev = 1; lev <= m_Hands[sbid].n_levels; ++lev) {
+				m_Hands[sbid].levels[lev].m_levelWtrDep = 0.0f;
 			}
 		}
-		for (int sbid = 1; sbid <= m_nreach; ++sbid) {
-			updateAllHandsWtrDep(sbid);
+
+		// =======================================================
+		// ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½×¶Î£ï¿½ï¿½ï¿½ï¿½ OL_HAND ï¿½Ñ¾ï¿½ï¿½Ãµï¿½ï¿½ï¿½ MUSK_CH_HAND ï¿½Ä³ï¿½Ê¼ m_chStoï¿½ï¿½
+		// ï¿½ï¿½ï¿½Ã³ï¿½Ê¼ m_chSto ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ HAND Ë®ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½
+		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ SUR_MR_HAND / MUSK_CH_HAND ï¿½Í²ï¿½ï¿½ï¿½ï¿½Ãµï¿½ 0ï¿½ï¿½
+		// =======================================================
+		if (m_chSto != nullptr) {
+			for (int sbid = 1; sbid <= m_nreach; ++sbid) {
+				HandInundation_BinarySearch(sbid, Max(m_chSto[sbid], 0.f));
+			}
+
+			/*cout << "[OL_HAND INIT FROM CHST] reach=19"
+				<< ", chSto19=" << m_chSto[19]
+				<< ", subWtrDep19=" << m_subbasinWtrDep[19]
+				<< ", subArea19=" << m_subbasinInundationArea[19]
+				<< endl;
+			cout.flush();*/
 		}
+		else {
+			// ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Ãµï¿½ chStoï¿½ï¿½ï¿½Å³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ 0
+			for (int sbid = 1; sbid <= m_nreach; ++sbid) {
+				updateAllHandsWtrDep(sbid);
+			}
+		}
+
 		for (int sbid = 1; sbid <= m_nreach; ++sbid) {
 			float subbasinArea = 0.0;
 			//cout << endl;
@@ -408,15 +447,16 @@ void OL_HAND::InitialOutputs() {
 				}
 			}
 			//cout << "sb area: " << subbasinArea * 0.000001 << endl;
-			
+
 		}
-		// todo: m_handOvFlow ºÍm_Hands[sbid].levels[lev].m_levelWtrDep³õÊ¼ÖµÊÇ·ñÏàµÈ£¿¹Ø¼üÊÇVAR_OLFLOWÔÚÆäËüÄ£¿éËã³öÀ´µÄÒâÒå£¬ÊÇ·ñº­¸ÇÁËºÓµÀ·ºÀÄµÄÑÍË®£¿
+		// todo: m_handOvFlow ï¿½ï¿½m_Hands[sbid].levels[lev].m_levelWtrDepï¿½ï¿½Ê¼Öµï¿½Ç·ï¿½ï¿½ï¿½È£ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½VAR_OLFLOWï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å£¬ï¿½Ç·ñº­¸ï¿½ï¿½ËºÓµï¿½ï¿½ï¿½ï¿½Äµï¿½ï¿½ï¿½Ë®ï¿½ï¿½
 
 
 	}
 }
 
 int OL_HAND::Execute() {
+
 	//check the data
 	CheckInputData();
 
@@ -433,6 +473,43 @@ int OL_HAND::Execute() {
 
 			if (m_inputSubbsnID == 0 || m_inputSubbsnID == reachIndex) {
 
+//				float chSto_before_OL = m_chSto[reachIndex];
+//
+//				float dep_before = -9999.f;
+//				float area_before = -9999.f;
+//				int level_before = -9999;
+//
+//				if (reachIndex <= m_nreach) {
+//					dep_before = m_subbasinWtrDep[reachIndex];
+//					area_before = m_subbasinInundationArea[reachIndex];
+//					level_before = m_Hands[reachIndex].m_CurInundationLevel;
+//				}
+//
+//				if (m_islake[reachIndex] == 1 || m_isres[reachIndex] == 1) {
+//					HandInundation_BinarySearch(reachIndex, m_chSto[reachIndex]);
+//				}
+//				else {
+//					HandInundation_BinarySearch(reachIndex, m_chSto[reachIndex]);
+//				}
+//
+//				if (reachIndex == 19) {
+//#pragma omp critical
+//					{
+//						cout << "[OL_HAND EXECUTE] date=" << m_date
+//							<< ", reach=" << reachIndex
+//							<< ", islake=" << m_islake[reachIndex]
+//							<< ", isres=" << m_isres[reachIndex]
+//							<< ", chSto_input=" << chSto_before_OL
+//							<< ", level_before=" << level_before
+//							<< ", level_after=" << m_Hands[reachIndex].m_CurInundationLevel
+//							<< ", subWtrDep_before=" << dep_before
+//							<< ", subWtrDep_after=" << m_subbasinWtrDep[reachIndex]
+//							<< ", subArea_before=" << area_before
+//							<< ", subArea_after=" << m_subbasinInundationArea[reachIndex]
+//							<< endl;
+//					}
+//				}
+
 				if (m_islake[reachIndex] == 1 || m_isres[reachIndex] == 1) {
 					//m_chSto[reachIndex] = m_Hands[reachIndex].volToAdd;
 					HandInundation_BinarySearch(reachIndex, m_chSto[reachIndex]);
@@ -441,17 +518,201 @@ int OL_HAND::Execute() {
 					//m_bankSto[reachIndex] = m_Hands[reachIndex].volToAdd;
 					HandInundation_BinarySearch(reachIndex, m_chSto[reachIndex]);
 				}
-				
 			}
 		}
 	}
+
+#ifdef DEBUG_WB19
+	{
+		const int sbid = 18;
+
+		// =====================================================
+		// 1. Ô­ï¿½Ðµï¿½19ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½Ó¡
+		// =====================================================
+		std::cout
+			<< "[WB19_OL]"
+			<< ",date=" << m_date
+			<< ",chSto=" << m_chSto[sbid]
+			<< ",level=" << m_Hands[sbid].m_CurInundationLevel
+			<< ",subDepth=" << m_subbasinWtrDep[sbid]
+			<< ",floodArea_km2=" << m_subbasinInundationArea[sbid];
+
+		const int debugCellIds[] =
+		{ 1366, 1367, 1368, 1370, 1375 };
+
+		for (int k = 0; k < 5; ++k)
+		{
+			const int id = debugCellIds[k];
+
+			if (id >= 0 && id < m_nCells)
+			{
+				std::cout
+					<< ",D_" << id
+					<< "=" << m_handWtrDep[id];
+			}
+		}
+
+		std::cout << std::endl;
+
+
+		// =====================================================
+		// 2. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½HANDï¿½ï¿½ÔªË®ï¿½î·´ï¿½ï¿½Ë®ï¿½ï¿½
+		// =====================================================
+		double gridWaterVolume = 0.0;
+
+		int wetCellCount = 0;
+		int totalCellCount = 0;
+		int invalidAreaCount = 0;
+
+		std::set<int> visitedIds;
+
+		for (int ll = 1;
+			ll <= m_Hands[sbid].n_levels;
+			++ll)
+		{
+			for (int idx = 0;
+				idx <
+				m_Hands[sbid].levels[ll].m_levelHandNum;
+				++idx)
+			{
+				const int handId =
+					m_Hands[sbid].levels[ll].handIds[idx];
+
+				if (handId < 0 || handId >= m_nCells)
+				{
+					continue;
+				}
+
+				// ï¿½ï¿½ï¿½ï¿½Í¬Ò»ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½Ø¸ï¿½Í³ï¿½ï¿½
+				if (!visitedIds.insert(handId).second)
+				{
+					continue;
+				}
+
+				const double area =
+					static_cast<double>(
+						m_handArea[handId]
+						);
+
+				if (!std::isfinite(area) || area <= 0.0)
+				{
+					++invalidAreaCount;
+					continue;
+				}
+
+				++totalCellCount;
+
+				double depth =
+					static_cast<double>(
+						m_handWtrDep[handId]
+						);
+
+				if (depth < 0.0)
+				{
+					depth = 0.0;
+				}
+
+				// Ë®ï¿½ï¿½m ï¿½ï¿½ ï¿½ï¿½ï¿½m2 = ï¿½ï¿½ï¿½m3
+				gridWaterVolume += depth * area;
+
+				if (depth > 1.0e-10)
+				{
+					++wetCellCount;
+				}
+			}
+		}
+
+		const double chStoVolume =
+			static_cast<double>(m_chSto[sbid]);
+
+		const double excessWaterVolume =
+			static_cast<double>(
+				m_Hands[sbid].excessWtrVol
+				);
+
+		// Ö»ï¿½ï¿½ï¿½ï¿½Õ¤ï¿½ï¿½Ë®ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½
+		const double gridVolumeError =
+			gridWaterVolume - chStoVolume;
+
+		// Õ¤ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Í³ï¿½ï¿½ï¿½Ë®ï¿½ï¿½ï¿½ï¿½Í¬ï¿½ï¿½Ê¾ï¿½ï¿½Ë®ï¿½ï¿½
+		const double representedVolume =
+			gridWaterVolume + excessWaterVolume;
+
+		const double representedVolumeError =
+			representedVolume - chStoVolume;
+
+		double denominator =
+			std::fabs(chStoVolume);
+
+		if (denominator < 1.0)
+		{
+			denominator = 1.0;
+		}
+
+		const double gridRelativeError =
+			gridVolumeError / denominator;
+
+		const double representedRelativeError =
+			representedVolumeError / denominator;
+
+		std::cout
+			<< "[WB19_OL_VOLUME]"
+			<< ",date=" << m_date
+
+			<< ",chSto_m3="
+			<< chStoVolume
+
+			<< ",gridWaterVolume_m3="
+			<< gridWaterVolume
+
+			<< ",gridVolumeError_m3="
+			<< gridVolumeError
+
+			<< ",gridRelativeError="
+			<< gridRelativeError
+
+			<< ",excessWaterVolume_m3="
+			<< excessWaterVolume
+
+			<< ",representedVolume_m3="
+			<< representedVolume
+
+			<< ",representedVolumeError_m3="
+			<< representedVolumeError
+
+			<< ",representedRelativeError="
+			<< representedRelativeError
+
+			<< ",currentLevel="
+			<< m_Hands[sbid].m_CurInundationLevel
+
+			<< ",subbasinDepth_m="
+			<< m_subbasinWtrDep[sbid]
+
+			<< ",floodArea_km2="
+			<< m_subbasinInundationArea[sbid]
+
+			<< ",wetCellCount="
+			<< wetCellCount
+
+			<< ",totalCellCount="
+			<< totalCellCount
+
+			<< ",invalidAreaCount="
+			<< invalidAreaCount
+
+			<< std::endl;
+
+		std::cout.flush();
+	}
+#endif
 
     return 0;
 }
 
 void OL_HAND::Get1DData(const char* key, int* n, float** data) {
-    string sk(key);
 	InitialOutputs();
+    string sk(key);
 	if (StringMatch(sk, VAR_OL_HAND_WTRDEP)) {
 		*data = m_handWtrDep;
 		*n = m_nCells;
@@ -464,21 +725,19 @@ void OL_HAND::Get1DData(const char* key, int* n, float** data) {
 			m_subbasinInundationArea[0] = m_subbasinInundationArea[m_outletID];
 		}
 		*data = m_subbasinInundationArea;
+		*n = m_nreach + 1;
 	}
 	else if (StringMatch(sk, VAR_SUBBASIN_WTR_DEPTH)) {
 		*data = m_subbasinWtrDep;
+		*n = m_nreach + 1;
 	}
 
-	
+
 
 	//else if (StringMatch(sk, VAR_CHWTRDEPTH)) {
 	//	m_chWtrDepth[0] = m_chWtrDepth[m_outletID];
 	//	*data = m_chWtrDepth;
-
 	//}
-
-
-	
 }
 
 void OL_HAND::Get2DData(const char* key, int* n, int* col, float*** data) {
@@ -515,22 +774,17 @@ void OL_HAND::updateAllHandsWtrDep(const int reachId) {
 
 		}
 	}
+
 	m_subbasinInundationArea[reachId] = inundationArea * 0.000001;
+	/*m_subbasinInundationArea[reachId] = inundationArea * 0.000001;*/
 	m_subbasinArea[reachId] = subbasinArea * 0.000001;
-	if (m_Hands[reachId].levels.size() >= 1)
-	{
-		m_subbasinWtrDep[reachId] = m_Hands[reachId].levels[1].m_levelWtrDep;
-	}
-	else {
-		m_subbasinWtrDep[reachId] = 0.0;
-		cout << "Warning: the count of HRU (reach " << reachId << ") is less than 1. Please check InundationMap.csv." << endl;
-	}
+	m_subbasinWtrDep[reachId] = m_Hands[reachId].levels[1].m_levelWtrDep;
 	//m_chWtrDepth[reachId] = m_Hands[reachId].levels[1].m_levelWtrDep;
 	return;
 }
 
 
-/// process water which excess subbasin's full volume 
+/// process water which excess subbasin's full volume
 void OL_HAND::updateSbExcessWater(const int reachId,  float* vol) {
 	m_Hands[reachId].excessWtrVol = *vol;
 	*vol = 0.0;
@@ -540,7 +794,7 @@ void OL_HAND::updateSbExcessWater(const int reachId,  float* vol) {
 
 
 bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
-	if (sto <= 0.000001f)
+	/*if (sto <= 0.000001f)
 	{
 		for (int ll = 1; ll <= m_Hands[reachId].n_levels; ll++)
 		{
@@ -548,7 +802,7 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 			{
 				int handId = m_Hands[reachId].levels[ll].handIds[idx];
 				m_handWtrDep[handId] = 0.f;
-				
+
 			}
 			m_chSto[reachId] = 0.f;
 
@@ -577,6 +831,26 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 		}
 
 #endif
+
+		return true;
+	}*/
+
+	if (sto <= 0.000001f)
+	{
+		for (int ll = 1; ll <= m_Hands[reachId].n_levels; ll++)
+		{
+			m_Hands[reachId].levels[ll].m_levelWtrDep = 0.f;
+		}
+
+		m_chSto[reachId] = 0.f;
+		m_Hands[reachId].excessWtrVol = 0.f;
+
+		// ï¿½ï¿½ï¿½ HAND level ï¿½ï¿½ 1 ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª 1 ï¿½ï¿½ï¿½ï¿½È«
+		m_Hands[reachId].m_CurInundationLevel = 1;
+
+		// Í³Ò»ï¿½ï¿½ï¿½ï¿½ hand Ë®ï¿½î¡¢ï¿½ï¿½Ã»ï¿½ï¿½Ç¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë®ï¿½ï¿½
+		updateAllHandsWtrDep(reachId);
+
 		return true;
 	}
 
@@ -584,7 +858,7 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 	const int n = hand.n_levels;
 	vector<Level>& levels = hand.levels;
 
-	// ¶þ·Ö²éÕÒ£ºÕÒµ½ sto ÂäÔÚÄÄÒ»²ã£¨µÚÒ»¸ö AccVol >= sto£©
+	// ï¿½ï¿½ï¿½Ö²ï¿½ï¿½Ò£ï¿½ï¿½Òµï¿½ sto ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ã£¨ï¿½ï¿½Ò»ï¿½ï¿½ AccVol >= stoï¿½ï¿½
 	int left = 1, right = n, target_level = n;
 
 	while (left <= right) {
@@ -598,7 +872,7 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 		}
 	}
 
-	hand.m_CurInundationLevel = target_level;  // ²ã±àºÅ´Ó 1 ¿ªÊ¼
+	hand.m_CurInundationLevel = target_level;  // ï¿½ï¿½ï¿½Å´ï¿½ 1 ï¿½ï¿½Ê¼
 	float remaining = 0.0;
 	if (target_level == 1)
 	{
@@ -613,25 +887,26 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 		exit(0);
 	}
 
-	//  target_level ²ãÖ®ÏÂµÄË®Éî  ¼ÓÉÏ target_level ²ãÖÐµ±Ç°Î´ÌîÂúµÄÄÇÒ»Ð¡½ØË®Éî
+	//  target_level ï¿½ï¿½Ö®ï¿½Âµï¿½Ë®ï¿½ï¿½  ï¿½ï¿½ï¿½ï¿½ target_level ï¿½ï¿½ï¿½Ðµï¿½Ç°Î´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»Ð¡ï¿½ï¿½Ë®ï¿½ï¿½
 	float partial_depth = (levels[target_level].m_levelSumArea > 0.0f) ? remaining / levels[target_level].m_levelSumArea : 0.0f;
 	for (int i = 1; i <= target_level; ++i) {
 		levels[i].m_levelWtrDep = levels[i].m_levelLowerAccDepth[target_level] + partial_depth;
 	}
 
-	// ºóÃæËùÓÐ²ãË®ÉîÎª 0
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð²ï¿½Ë®ï¿½ï¿½Îª 0
 	for (int i = target_level + 1; i <= n; ++i) {
 		levels[i].m_levelWtrDep = 0.0f;
 	}
 
-	// Èô³¬³ö×î´óÌå»ý£¬ÔòÊ£Óà²¿·Ö×÷Îª³¬¶îË®
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê£ï¿½à²¿ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½Ë®
 	float maxVolume = levels[n].m_levelAccVol;
 	if (sto > maxVolume) {
 		hand.excessWtrVol = sto - maxVolume;
 	}
-	
+
 	updateAllHandsWtrDep(reachId);
-	
+
+
 #ifdef DEBUG_OL_HAND
 	int SPECIFIED_SBID = 2;
 	if (reachId == SPECIFIED_SBID)
@@ -654,7 +929,7 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 		cout << "====================================\n\n";
 		cout.flush();
 	}
-	
+
 #endif
 	return true;
 }
@@ -666,9 +941,9 @@ vector<float> OL_HAND::parseAccDepthArray(const std::string& str) {
 	std::vector<float> values;
 	std::string s = str;
 
-	// È¥µôÇ°ºóÖÐÀ¨ºÅ
-	if (!s.empty() && s.front() == '[') s.erase(0, 1);              // É¾³ýµÚÒ»¸ö×Ö·û
-	if (!s.empty() && s.back() == ']') s.erase(s.size() - 1);       // É¾³ý×îºóÒ»¸ö×Ö·û
+	// È¥ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	if (!s.empty() && s.front() == '[') s.erase(0, 1);              // É¾ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö·ï¿½
+	if (!s.empty() && s.back() == ']') s.erase(s.size() - 1);       // É¾ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö·ï¿½
 
 
 	std::stringstream ss(s);
@@ -679,7 +954,7 @@ vector<float> OL_HAND::parseAccDepthArray(const std::string& str) {
 			values.push_back(std::stof(token));
 		}
 		catch (...) {
-			values.push_back(0.0f); // ·ÀÓù´íÎó
+			values.push_back(0.0f); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		}
 	}
 	return values;
@@ -693,14 +968,14 @@ void OL_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 	}
 
 	string line;
-	getline(file, line);  // Ìø¹ý±íÍ·
+	getline(file, line);  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·
 
 	while (getline(file, line)) {
 		stringstream ss(line);
 		string token;
 		vector<string> tokens;
 
-		// È¡Ç° 7 ¸ö×Ö¶Î:
+		// È¡Ç° 7 ï¿½ï¿½ï¿½Ö¶ï¿½:
 		// 0 Subbasin
 		// 1 Flood_Level
 		// 2 LevelDepth
@@ -712,16 +987,16 @@ void OL_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 			tokens.push_back(token);
 		}
 
-		// µÚ 8 ÁÐ£ºLowerAccDepth£¬ÐÎÈç "[0.0, ...]"£¬±»Ë«ÒýºÅ°ü×Å
+		// ï¿½ï¿½ 8 ï¿½Ð£ï¿½LowerAccDepthï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ "[0.0, ...]"ï¿½ï¿½ï¿½ï¿½Ë«ï¿½ï¿½ï¿½Å°ï¿½ï¿½ï¿½
 		std::string accDepthStr;
-		std::getline(ss, accDepthStr, '"');  // Ìø¹ýÇ°Ò»¸öÒýºÅ£¨¿ÉÄÜÊÇ¿Õ´®£©
-		std::getline(ss, accDepthStr, '"');  // È¡ÖÐ¼äÊý×é×Ö·û´®
+		std::getline(ss, accDepthStr, '"');  // ï¿½ï¿½ï¿½ï¿½Ç°Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Å£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¿Õ´ï¿½ï¿½ï¿½
+		std::getline(ss, accDepthStr, '"');  // È¡ï¿½Ð¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½
 
-		// ---- ½âÎö»ù±¾×Ö¶Î ----
+		// ---- ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½ ----
 		int subbasin = std::stoi(tokens[0]);
 		int lev = std::stoi(tokens[1]);
 
-		// ½á¹¹Ð£Ñé & »ñÈ¡ Hand
+		// ï¿½á¹¹Ð£ï¿½ï¿½ & ï¿½ï¿½È¡ Hand
 		Hand& hand = m_Hands[subbasin];
 		if (lev >= static_cast<int>(hand.levels.size())) {
 			hand.levels.resize(lev + 1);
@@ -734,7 +1009,7 @@ void OL_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 		level.m_levelAvgDepth = std::stof(tokens[5]);
 		level.m_levelAccVol = std::stod(tokens[6]);
 
-		// ---- ½âÎö LowerAccDepth Êý×é ----
+		// ---- ï¿½ï¿½ï¿½ï¿½ LowerAccDepth ï¿½ï¿½ï¿½ï¿½ ----
 		std::vector<float> accDepthVec = parseAccDepthArray(accDepthStr);
 		level.m_levelLowerAccDepth = new float[accDepthVec.size()];
 		for (size_t i = 0; i < accDepthVec.size(); ++i) {
@@ -764,7 +1039,7 @@ void OL_HAND::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_
 	map<pair<int, int>, int> handCounts;
 	map<int, set<int> > subbasinLevels; // <sbid, set of levels>
 
-	// µÚÒ»´Î±éÀú£ºÍ³¼Æ hand ÊýºÍ level Êý
+	// ï¿½ï¿½Ò»ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½Í³ï¿½ï¿½ hand ï¿½ï¿½ï¿½ï¿½ level ï¿½ï¿½
 	while (getline(infile, line)) {
 		istringstream iss(line);
 		string hru_id_str, subbasin_str, level_str, interval_str, depth_str;
@@ -778,7 +1053,7 @@ void OL_HAND::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_
 		if (level > max_level) max_level = level;
 
 		handCounts[make_pair(sbid, level)]++;
-		subbasinLevels[sbid].insert(level); // Í³¼Æ level Êý
+		subbasinLevels[sbid].insert(level); // Í³ï¿½ï¿½ level ï¿½ï¿½
 	}
 
 	if ((int)m_Hands.size() <= max_sbid) {

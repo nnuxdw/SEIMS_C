@@ -4,6 +4,8 @@
 #include "ClimateParams.h"
 #include "text.h"
 
+//#define DEBUG_PET_H
+
 PETHargreaves::PETHargreaves() :
     m_nCells(-1), m_HCoef_pet(0.0023f), m_petFactor(1.f),
     m_cellLat(nullptr), m_phuAnn(nullptr),

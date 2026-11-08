@@ -64,6 +64,8 @@ public:
 
     int Execute() OVERRIDE;
 
+	TimeStepType GetTimeStepType() OVERRIDE { return TIMESTEP_CHANNEL; }
+
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
 
     void Get2DData(const char* key, int* n, int* col, float*** data) OVERRIDE;

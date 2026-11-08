@@ -66,7 +66,7 @@ public:
     map<time_t, float *> TimeSeriesDataForSubbasin;
     //! Count of #TimeSeriesDataForSubbasin
     int TimeSeriesDataForSubbasinCount;
-	//! For time series data of DT_Raster1D(output some .tif files. Distinct from TimeSeriesDataForSubbasin,which output some .txt files)
+	//! For time series data of DT_Raster1D(output some .tif files. Distinct from TimeSeriesDataForSubbasin,which output some .txt files) 
 	map<time_t, float *> TimeSeriesDataForRaster;
 	//! Count of #TimeSeriesDataForRaster
 	int TimeSeriesDataForRasterCount;

@@ -2,6 +2,32 @@
 
 #include "text.h"
 
+#include <cmath>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <ctime>
+#include <algorithm>
+#include <vector>
+#include <string>
+
+namespace {
+inline bool IsFinitePositive(const float value) {
+    return std::isfinite(value) && value > UTIL_ZERO;
+}
+
+inline float SafePositiveDivide(const float numerator,
+                                const float denominator,
+                                const float fallback = 0.f) {
+    if (!std::isfinite(numerator) || !std::isfinite(denominator) ||
+        denominator <= UTIL_ZERO) {
+        return fallback;
+    }
+    const float result = numerator / denominator;
+    return std::isfinite(result) ? result : fallback;
+}
+}  // namespace
+
 Nutrient_Transformation::Nutrient_Transformation() :
     m_cellWth(-1.f), m_nCells(-1), m_cellAreaFr(NODATA_VALUE),
     m_nSoilLyrs(nullptr), m_maxSoilLyrs(-1), m_cbnModel(0), m_solP_model(0),
@@ -34,11 +60,12 @@ Nutrient_Transformation::Nutrient_Transformation() :
     m_wshd_pal(-1.f), m_wshd_pas(-1.f),m_phpSorpIdxBsn_temp(nullptr),
     m_conv_wt(nullptr),m_soil_carbon(nullptr),m_dem(nullptr),m_landUse(nullptr),
     m_soilTempprofile(nullptr),m_soilAWC(nullptr),m_surfrunoff(nullptr),m_subSurfRf(nullptr),m_soilPerco(nullptr),
-    m_soilpH(nullptr),MA(nullptr),MD(nullptr),MIC(nullptr),MAOM(nullptr),
+    // m_soilpH(nullptr),MA(nullptr),MD(nullptr),MIC(nullptr),MAOM(nullptr),
+    m_soilpH(nullptr),MIC(nullptr),MAOM(nullptr),
     m_forc_npp(nullptr),m_forc_litter(nullptr),POM(nullptr),LMWC(nullptr),
     MIC1(nullptr),MAOM1(nullptr),POM1(nullptr),LMWC1(nullptr),m_biomassDelta(nullptr),
     SOM(nullptr),soilCO2(nullptr),SOL_OUT(nullptr),DOC(nullptr),f_LM_leach(nullptr),
-    m_poc_1st(nullptr),m_doc_1st(nullptr),m_maoc_1st(nullptr),m_mbc_1st(nullptr),m_leach(-1.f),
+    m_poc_1st(nullptr),m_doc_1st(nullptr),m_maoc_1st(nullptr),m_mbc_1st(nullptr),m_leach(nullptr),
     m_bmdieoff(nullptr),m_biomass(nullptr),m_frRoot(nullptr),tmp_rtfr(nullptr),m_stoSoilRootD(nullptr),
     kaff_pl(nullptr),Vpl0(nullptr),kaff_ml(nullptr),Vml0(nullptr),kaff_lb(nullptr),Vlb0(nullptr),param_fpl(nullptr),
     param_p2(nullptr),kaff_des(nullptr),cue_t(nullptr),rate_bd(nullptr),rate_Kbd(nullptr),cue_ref(nullptr),param_pb(nullptr),
@@ -91,8 +118,8 @@ Nutrient_Transformation::~Nutrient_Transformation() {
     if (m_forc_litter != nullptr) Release2DArray(m_nCells,m_forc_litter);
     if (m_forc_npp != nullptr) Release2DArray(m_nCells,m_forc_npp);
     if (m_soilpH != nullptr) Release2DArray(m_nCells, m_soilpH);
-    if (MA != nullptr) Release2DArray(m_nCells, MA);
-    if (MD != nullptr) Release2DArray(m_nCells, MD);
+    // if (MA != nullptr) Release2DArray(m_nCells, MA);
+    // if (MD != nullptr) Release2DArray(m_nCells, MD);
     if (MIC != nullptr) Release2DArray(m_nCells, MIC);
     if (MAOM != nullptr) Release2DArray(m_nCells, MAOM);
     if (POM != nullptr) Release2DArray(m_nCells, POM);
@@ -168,8 +195,8 @@ void Nutrient_Transformation::SetValue(const char* key, const float value) {
         m_phpSorpIdxBsn = value;
     } else if (StringMatch(sk, VAR_CSWAT)) {
         m_cbnModel = CVT_INT(value);
-    } else if (StringMatch(sk, "param_leach")) {
-        m_leach = value;
+    // } else if (StringMatch(sk, "param_leach")) {
+    //     m_leach = value;
     } else {
         throw ModelException(MID_NUTR_TF, "SetValue", "Parameter " + sk + " does not exist.");
     }
@@ -262,6 +289,8 @@ void Nutrient_Transformation::Set1DData(const char* key, const int n, float* dat
         acue = data;
     }else if (StringMatch(sk, "param_pi")) {
         param_pi = data;
+    }else if (StringMatch(sk, "param_leach")) {
+        m_leach = data;
     }else if (StringMatch(sk, VAR_SOER)) {
         m_olWtrEroSed = data;
     }
@@ -301,6 +330,7 @@ void Nutrient_Transformation::Set2DData(const char* key, const int nrows, const 
     } else if (StringMatch(sk, VAR_SOILDEPTH)) {
         m_soilDepth = data;
     } else if (StringMatch(sk, VAR_SOILTHICK)) {
+        // Soil-layer thickness, mm.
         m_soilThk = data;
     } else if (StringMatch(sk, VAR_SOL_RSD)) {
         m_soilRsd = data;
@@ -347,49 +377,67 @@ void Nutrient_Transformation::InitialOutputs() {
     if (m_soilPercoCbnLowest == nullptr) Initialize1DArray(m_nCells, m_soilPercoCbnLowest, 0.f);
     if (m_soilIfluCbn == nullptr) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilIfluCbn, 0.f);
     if (m_soilPercoCbn == nullptr) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_soilPercoCbn, 0.f);
-//     if (MIC == nullptr) {
-//         Initialize2DArray(m_nCells, m_maxSoilLyrs, MIC, 0.f);
-//         Initialize2DArray(m_nCells, m_maxSoilLyrs, MA, 0.f);
-//         Initialize2DArray(m_nCells, m_maxSoilLyrs, MD, 0.f);
-//         float r0 = 0.8270435;
-// #pragma omp parallel for
-//         for (int i = 0; i < m_nCells; i++) {
-//             for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
-//                 if(m_soilDepth[i][k]>300.f){
-//                     MIC[i][k] = MIC[i][0]*exp(-m_soilDepth[i][k]/0.3f/1000.f)/m_soilThk[i][0]*m_soilThk[i][k];
-//                     MA[i][k] = MIC[i][k] * r0;
-//                     MD[i][k] = MIC[i][k] * (1 - r0);
-//                 }else{
-//                     MIC[i][k] = m_mbc_1st[i]/1000.f*m_soilBD[i][k] *m_soilThk[i][k]/10.f/300.f *m_soilThk[i][k];
-//                     MA[i][k] = MIC[i][k] * r0;
-//                     MD[i][k] = MIC[i][k] * (1 - r0);
-//                 }
-//             }
-            
-//         }
-//     }
-//     if (MAOM == nullptr) {
-//         Initialize2DArray(m_nCells, m_maxSoilLyrs, MAOM, 0.f);
-//         Initialize2DArray(m_nCells, m_maxSoilLyrs, POM, 0.f);
-//         Initialize2DArray(m_nCells, m_maxSoilLyrs, LMWC, 0.f);
-// #pragma omp parallel for
-//         for (int i = 0; i < m_nCells; i++) {
-//             for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
-//                 if(m_soilDepth[i][k]>200.f){
-//                     POM[i][k] = POM[i][0]*exp(-m_soilDepth[i][k]/0.3f/1000.f)/m_soilThk[i][0]*m_soilThk[i][k];
-//                     MAOM[i][k] = MAOM[i][0]*exp(-m_soilDepth[i][k]/0.3f/1000.f)/m_soilThk[i][0]*m_soilThk[i][k];
-//                 }else{
-//                     POM[i][k] = m_poc_1st[i]/200.f *m_soilThk[i][k];
-//                     MAOM[i][k] = m_maoc_1st[i]/200.f *m_soilThk[i][k];
-//                 }
-//                 if(m_soilDepth[i][k]>300.f){
-//                     LMWC[i][k] = LMWC[i][0]*exp(-m_soilDepth[i][k]/0.3f/1000.f)/m_soilThk[i][0]*m_soilThk[i][k];
-//                 }else{
-//                     LMWC[i][k] = m_doc_1st[i]/300.f *m_soilThk[i][k];
-//                 }
-//             }
-//         }
-//     }
+    if (MIC == nullptr) {
+        Initialize2DArray(m_nCells, m_maxSoilLyrs, MIC, 0.f);
+        // Initialize2DArray(m_nCells, m_maxSoilLyrs, MA, 0.f);
+        // Initialize2DArray(m_nCells, m_maxSoilLyrs, MD, 0.f);
+        float r0 = 0.8270435;
+#pragma omp parallel for
+		for (int i = 0; i < m_nCells; i++) {
+			for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
+				float mbcConcentration;  // mg C/kg soil
+				if (m_soilDepth[i][k] <= 300.f) {
+					mbcConcentration = m_mbc_1st[i];
+				}
+				else {
+					mbcConcentration = m_mbc_1st[i] * exp(-(m_soilDepth[i][k] - 300.f) / 300.f);
+				}
+
+				// mg C/kg * Mg soil/m3 * mm / 1000 = g C/m2.
+				MIC[i][k] = mbcConcentration / 1000.f * m_soilBD[i][k] * m_soilThk[i][k];  // g C/m²
+			}
+
+		}
+	}
+    if (MAOM == nullptr) {
+        Initialize2DArray(m_nCells, m_maxSoilLyrs, MAOM, 0.f);
+        Initialize2DArray(m_nCells, m_maxSoilLyrs, POM, 0.f);
+        Initialize2DArray(m_nCells, m_maxSoilLyrs, LMWC, 0.f);
+#pragma omp parallel for
+		for (int i = 0; i < m_nCells; i++) {
+			for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
+				if (m_soilDepth[i][k] > 1000.f) {
+                    // Protect against a zero first-layer thickness.
+                    const float thicknessRatio = SafePositiveDivide(
+                        m_soilThk[i][k], m_soilThk[i][0], 0.f);
+                    const float depthDecay = exp(-m_soilDepth[i][k] / 1000.f);
+					POM[i][k] = POM[i][0] * depthDecay * thicknessRatio;
+					MAOM[i][k] = MAOM[i][0] * depthDecay * thicknessRatio;
+				}
+				else {
+					// m_poc_1st and m_maoc_1st: mg C/kg soil.
+					// m_soilBD: Mg/m3; m_soilThk: mm.
+					// concentration / 1000 * BD * thickness = g C/m2.
+					POM[i][k] = m_poc_1st[i] / 1000.f
+					            * m_soilBD[i][k]
+					            * m_soilThk[i][k];
+					MAOM[i][k] = m_maoc_1st[i] / 1000.f
+					             * m_soilBD[i][k]
+					             * m_soilThk[i][k];
+				}
+				float docConcentration;  // mg C/kg soil
+				if (m_soilDepth[i][k] <= 300.f) {
+					docConcentration = m_doc_1st[i];
+				}
+				else {
+					docConcentration = m_doc_1st[i] * exp(-(m_soilDepth[i][k] - 300.f) / 300.f);
+				}
+
+				LMWC[i][k] = docConcentration / 1000.f * m_soilBD[i][k] * m_soilThk[i][k];  // g C/m²
+				DOC[i][k] = docConcentration;  // mg C/kg soil
+			}
+		}
+	}
 
     if (m_hmntl == nullptr) Initialize1DArray(m_nCells, m_hmntl, 0.f);
     if (m_hmptl == nullptr) Initialize1DArray(m_nCells, m_hmptl, 0.f);
@@ -417,8 +465,10 @@ void Nutrient_Transformation::InitialOutputs() {
             for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
                 float wt1 = 0.f;
                 float conv_wt = 0.f;
-                wt1 = m_soilBD[i][k] * m_soilThk[i][k] * 0.01f; // mg/kg => kg/ha
-                conv_wt = 1.e6f * wt1;                          // kg/kg => kg/ha
+                // BD (Mg/m3) * thickness (mm) * 10000 = kg soil/ha.
+                // Keep the original two-step expression; numerically it is BD * thickness * 10000.
+                wt1 = m_soilBD[i][k] * m_soilThk[i][k] * 0.01f;
+                conv_wt = 1.e6f * wt1;
                 m_conv_wt[i][k] = conv_wt;
             }
         }
@@ -429,6 +479,7 @@ void Nutrient_Transformation::InitialOutputs() {
 #pragma omp parallel for
         for (int i = 0; i < m_nCells; i++) {
             for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
+                // m_soilThk is mm and m_soilBD is Mg/m3; result is kg soil/ha.
                 m_soilMass[i][k] = 10000.f * m_soilThk[i][k] * m_soilBD[i][k] * (1.f - m_soilRock[i][k] * 0.01f);
             }
         }
@@ -596,7 +647,7 @@ void Nutrient_Transformation::InitialOutputs() {
                     m_sol_HSC[i][k] = m_sol_HS[i][k];
                     m_sol_HSN[i][k] = RTO * m_sol_HSC[i][k];
                     m_sol_HPC[i][k] = m_sol_HP[i][k];        /// same as sol_aorgn
-                    m_sol_HPN[i][k] = RTO * m_sol_HPC[i][k]; // same as sol_orgn
+                    m_sol_HPN[i][k] = RTO * m_sol_HPC[i][k];  // same as sol_orgn
                     x1 = m_soilRsd[i][k] * 0.001f;
                     m_sol_LM[i][k] = 500.f * x1;
                     m_sol_LS[i][k] = m_sol_LM[i][k];
@@ -637,10 +688,23 @@ void Nutrient_Transformation::InitialOutputs() {
 int Nutrient_Transformation::Execute() {
     CheckInputData();
     InitialOutputs();
+
+    // Phase 1: calculate the local carbon transformations and DOC export fluxes.
+    // Do not write to downstream cells in this parallel section, otherwise several
+    // upstream cells may modify the same downstream LMWC value simultaneously.
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
-        if(m_landUse[i] == LANDUSE_ID_WATR || m_landUse[i] == LANDUSE_ID_GLC) continue;
-        // compute nitrogen and phosphorus mineralization
+        // Execute() is called once per model time step (daily in the current setup).
+        // Clear the previous day's values so soilCO2 stores the current daily flux,
+        // rather than the cumulative flux since the beginning of the simulation.
+        const int nSoilLyrs = CVT_INT(m_nSoilLyrs[i]);
+        for (int k = 0; k < nSoilLyrs; ++k) {
+            soilCO2[i][k] = 0.f;
+        }
+
+        if (m_landUse[i] == LANDUSE_ID_WATR || m_landUse[i] == LANDUSE_ID_GLC) continue;
+
+        // Compute nitrogen and phosphorus mineralization.
         if (m_cbnModel == 0) {
             MineralizationStaticCarbonMethod(i);
         } else if (m_cbnModel == 1) {
@@ -648,58 +712,1466 @@ int Nutrient_Transformation::Execute() {
         } else if (m_cbnModel == 2) {
             MineralizationCenturyModel(i);
         }
-        // for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) tmp_rtfr[i][j] = 0.f;
-        // RootFraction(i, tmp_rtfr[i]);
-        
-        // ModifiedMillennial(i);
-        //Calculate daily mineralization (NH3 to NO3) and volatilization of NH3
+
+        for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
+            tmp_rtfr[i][j] = 0.f;
+        }
+        RootFraction(i, tmp_rtfr[i]);
+
+        /*ModifiedMillennial(i);*/
+
+        // Calculate daily mineralization (NH3 to NO3) and volatilization of NH3.
         Volatilization(i);
-        //Calculate P flux between the labile, active mineral and stable mineral P pools
+        // Calculate P flux between the labile, active mineral and stable mineral P pools.
         CalculatePflux(i);
     }
+
+	// ============================================================================
+	// SAVE: Daily CENTURY heterotrophic respiration for ALL cells
+	// Period: 2009-05-19 ~ 2015-12-31
+	// One row = one date + one cell
+	// Each soil layer is stored in a separate column.
+	// ============================================================================
+	{
+		const bool DEBUG_WRITE_RH_CSV = false;
+
+		if (DEBUG_WRITE_RH_CSV && m_cbnModel == 2) {
+
+			// ------------------------------------------------------------
+			// Convert model time to calendar date
+			// ------------------------------------------------------------
+			const std::time_t currentDate =
+				static_cast<std::time_t>(m_date);
+
+			std::tm dateInfo = {};
+
+#ifdef _WIN32
+			localtime_s(&dateInfo, &currentDate);
+#else
+			localtime_r(&currentDate, &dateInfo);
+#endif
+
+			const int year = dateInfo.tm_year + 1900;
+			const int month = dateInfo.tm_mon + 1;
+			const int day = dateInfo.tm_mday;
+
+			// YYYYMMDD integer
+			const int dateKey =
+				year * 10000 +
+				month * 100 +
+				day;
+
+			// ------------------------------------------------------------
+			// Only save:
+			// 2009-05-19 ~ 2015-12-31
+			// ------------------------------------------------------------
+			const int START_DATE = 20090519;
+			const int END_DATE = 20151231;
+
+			if (dateKey >= START_DATE &&
+				dateKey <= END_DATE) {
+
+				static std::ofstream rhFile;
+				static bool rhFileInitialized = false;
+				static int outputDayCounter = 0;
+
+				// --------------------------------------------------------
+				// Initialize CSV only once
+				// --------------------------------------------------------
+				if (!rhFileInitialized) {
+
+#ifdef _WIN32
+					const char* outputPath = "D:/SEIMS_C/data/CW_2/CENTURY_daily_Rh_allcells_2009_2015-2.csv";
+#else
+					const char* outputPath = "/data/user/lijing/software/SEIMS_C/data/CW_2/CENTURY_daily_Rh_allcells_2009_2015-2.csv";
+#endif
+
+					rhFile.open(
+						outputPath,
+						std::ios::out | std::ios::trunc
+					);
+
+					if (!rhFile.is_open()) {
+
+						std::cerr
+							<< "[RH_CSV_ERROR] Cannot open: "
+							<< outputPath
+							<< '\n';
+
+				}
+					else {
+
+						rhFile
+							<< "DATE,"
+							<< "CELL,"
+							<< "RSPC_L1_kgCha_d,"
+							<< "RSPC_L2_kgCha_d,"
+							<< "RSPC_L3_kgCha_d,"
+							<< "RSPC_L4_kgCha_d,"
+							<< "RSPC_L5_kgCha_d,"
+							<< "RSPC_L6_kgCha_d,"
+							<< "RSPC_L7_kgCha_d,"
+							<< "RSPC_PROFILE_kgCha_d,"
+							<< "Rh_PROFILE_gCm2d"
+							<< '\n';
+					}
+
+					rhFileInitialized = true;
+			}
+
+				// --------------------------------------------------------
+				// Write current date
+				// --------------------------------------------------------
+				if (rhFile.is_open()) {
+
+					char dateText[16] = {};
+
+					std::strftime(
+						dateText,
+						sizeof(dateText),
+						"%Y-%m-%d",
+						&dateInfo
+					);
+
+					rhFile
+						<< std::fixed
+						<< std::setprecision(8);
+
+					// ====================================================
+					// ALL cells
+					// ====================================================
+					for (int i = 0; i < m_nCells; ++i) {
+
+						const int nLayers =
+							CVT_INT(m_nSoilLyrs[i]);
+
+						double rspcProfile = 0.0;
+
+						// ------------------------------------------------
+						// Sum whole-profile RSPC
+						// ------------------------------------------------
+						for (int k = 0; k < nLayers; ++k) {
+
+							if (std::isfinite(m_sol_RSPC[i][k])) {
+								rspcProfile +=
+									static_cast<double>(
+										m_sol_RSPC[i][k]
+										);
+							}
+						}
+
+						rhFile
+							<< dateText << ','
+							<< i << ',';
+
+						// ------------------------------------------------
+						// Save seven soil layers
+						//
+						// Unit:
+						// kg C ha-1 d-1
+						// ------------------------------------------------
+						for (int k = 0; k < 7; ++k) {
+
+							if (k < nLayers &&
+								std::isfinite(m_sol_RSPC[i][k])) {
+
+								rhFile
+									<< m_sol_RSPC[i][k]
+									<< ',';
+
+							}
+							else {
+
+								rhFile
+									<< "0,";
+							}
+						}
+
+						// ------------------------------------------------
+						// Whole-profile RSPC
+						// kg C ha-1 d-1
+						// ------------------------------------------------
+						rhFile
+							<< rspcProfile
+							<< ',';
+
+						// ------------------------------------------------
+						// Convert:
+						//
+						// kg C ha-1 d-1
+						// -> g C m-2 d-1
+						//
+						// 1 kg/ha = 0.1 g/m2
+						// ------------------------------------------------
+						rhFile
+							<< rspcProfile / 10.0
+							<< '\n';
+					}
+
+					++outputDayCounter;
+
+					// ----------------------------------------------------
+					// Do NOT flush every day.
+					// All-cell output is large.
+					// Flush every 30 days for better performance.
+					// ----------------------------------------------------
+					if (outputDayCounter % 30 == 0 ||
+						dateKey == END_DATE) {
+
+						rhFile.flush();
+					}
+				}
+		}
+	}
+}
+
+	// ============================================================================
+    // DEBUG: Annual CENTURY carbon-pool stability
+    // Sum LSC + LMC + BMC + HSC + HPC over ALL soil layers.
+    // Compare Dec. 31 of current year with Dec. 31 of previous year.
+    // ============================================================================
+{
+const bool DEBUG_WRITE_CENTURY_STABILITY = false;
+
+if (DEBUG_WRITE_CENTURY_STABILITY && m_cbnModel == 2) {
+
+	// --------------------------------------------------------------------
+	// Convert model time to calendar date
+	// --------------------------------------------------------------------
+	const std::time_t currentDate =
+		static_cast<std::time_t>(m_date);
+
+	std::tm dateInfo = {};
+
+#ifdef _WIN32
+	localtime_s(&dateInfo, &currentDate);
+#else
+	localtime_r(&currentDate, &dateInfo);
+#endif
+
+	const int year =
+		dateInfo.tm_year + 1900;
+
+	const int month =
+		dateInfo.tm_mon + 1;
+
+	const int day =
+		dateInfo.tm_mday;
+
+	// --------------------------------------------------------------------
+	// Only record once every year: December 31
+	// --------------------------------------------------------------------
+	if (month == 12 && day == 31) {
+
+		// ================================================================
+		// Five wetland cells used for CH4
+		// ================================================================
+		const int debugCells[] = {
+			1366,
+			1367,
+			1368,
+			1370,
+			1375
+		};
+
+		const int nDebugCells =
+			sizeof(debugCells) / sizeof(debugCells[0]);
+
+		// ----------------------------------------------------------------
+		// Previous year's total C for these five cells
+		// ----------------------------------------------------------------
+		static std::vector<double> previousTotalC(
+			nDebugCells,
+			-1.0
+		);
+
+		// Number of consecutive years with change < 1%
+		static std::vector<int> stableYears(
+			nDebugCells,
+			0
+		);
+
+		// ----------------------------------------------------------------
+		// Open CSV only once
+		// ----------------------------------------------------------------
+		static std::ofstream stabilityFile;
+		static bool stabilityFileInitialized = false;
+
+		if (!stabilityFileInitialized) {
+
+#ifdef _WIN32
+			const char* outputPath = "D:/SEIMS_C/data/CW_2/CENTURY_carbon_stability.csv";
+#else
+			const char* outputPath = "/data/user/lijing/software/SEIMS_C/data/CW_2/CENTURY_carbon_stability.csv";
+#endif
+
+			stabilityFile.open(
+				outputPath,
+				std::ios::out | std::ios::trunc
+			);
+
+			if (!stabilityFile.is_open()) {
+
+				std::cerr
+					<< "[CENTURY_STABILITY_ERROR] Cannot open: "
+					<< outputPath
+					<< '\n';
+
+			}
+			else {
+
+				stabilityFile
+					<< "YEAR,"
+					<< "CELL,"
+					<< "LSC_PROFILE_kgCha,"
+					<< "LMC_PROFILE_kgCha,"
+					<< "BMC_PROFILE_kgCha,"
+					<< "HSC_PROFILE_kgCha,"
+					<< "HPC_PROFILE_kgCha,"
+					<< "TOTAL_C_PROFILE_kgCha,"
+					<< "CHANGE_PERCENT,"
+					<< "STABLE_LT_1PCT,"
+					<< "CONSECUTIVE_STABLE_YEARS"
+					<< '\n';
+			}
+
+			stabilityFileInitialized = true;
+		}
+
+		// ----------------------------------------------------------------
+		// Calculate whole-profile C
+		// ----------------------------------------------------------------
+		if (stabilityFile.is_open()) {
+
+			stabilityFile
+				<< std::fixed
+				<< std::setprecision(8);
+
+			for (int p = 0; p < nDebugCells; ++p) {
+
+				const int i = debugCells[p];
+
+				if (i < 0 || i >= m_nCells) {
+					continue;
+				}
+
+				const int nLayers =
+					CVT_INT(m_nSoilLyrs[i]);
+
+				double totalLSC = 0.0;
+				double totalLMC = 0.0;
+				double totalBMC = 0.0;
+				double totalHSC = 0.0;
+				double totalHPC = 0.0;
+
+				// =========================================================
+				// Sum each CENTURY carbon pool across ALL soil layers
+				// =========================================================
+				for (int k = 0; k < nLayers; ++k) {
+
+					if (std::isfinite(m_sol_LSC[i][k])) {
+						totalLSC +=
+							static_cast<double>(
+								m_sol_LSC[i][k]
+								);
+					}
+
+					if (std::isfinite(m_sol_LMC[i][k])) {
+						totalLMC +=
+							static_cast<double>(
+								m_sol_LMC[i][k]
+								);
+					}
+
+					if (std::isfinite(m_sol_BMC[i][k])) {
+						totalBMC +=
+							static_cast<double>(
+								m_sol_BMC[i][k]
+								);
+					}
+
+					if (std::isfinite(m_sol_HSC[i][k])) {
+						totalHSC +=
+							static_cast<double>(
+								m_sol_HSC[i][k]
+								);
+					}
+
+					if (std::isfinite(m_sol_HPC[i][k])) {
+						totalHPC +=
+							static_cast<double>(
+								m_sol_HPC[i][k]
+								);
+					}
+				}
+
+				// =========================================================
+				// Total CENTURY carbon pool
+				// =========================================================
+				const double totalC =
+					totalLSC
+					+ totalLMC
+					+ totalBMC
+					+ totalHSC
+					+ totalHPC;
+
+				// =========================================================
+				// Compare with previous year's Dec. 31
+				// =========================================================
+				double changePercent = -9999.0;
+
+				int stable = 0;
+
+				if (previousTotalC[p] > 0.0) {
+
+					changePercent =
+						std::fabs(
+							totalC
+							- previousTotalC[p]
+						)
+						/ previousTotalC[p]
+						* 100.0;
+
+					if (changePercent < 1.0) {
+
+						stable = 1;
+
+						stableYears[p] += 1;
+
+					}
+					else {
+
+						stable = 0;
+
+						stableYears[p] = 0;
+					}
+				}
+
+				// =========================================================
+				// Write one row
+				// =========================================================
+				stabilityFile
+					<< year << ','
+					<< i << ','
+					<< totalLSC << ','
+					<< totalLMC << ','
+					<< totalBMC << ','
+					<< totalHSC << ','
+					<< totalHPC << ','
+					<< totalC << ',';
+
+				// First year has no previous year
+				if (changePercent < 0.0) {
+
+					stabilityFile
+						<< "NA,"
+						<< 0 << ','
+						<< 0
+						<< '\n';
+
+				}
+				else {
+
+					stabilityFile
+						<< changePercent << ','
+						<< stable << ','
+						<< stableYears[p]
+						<< '\n';
+				}
+
+				// =========================================================
+				// Save this year's state for next year's comparison
+				// =========================================================
+				previousTotalC[p] = totalC;
+			}
+
+			// Flush immediately, so you can inspect while SEIMS is running
+			stabilityFile.flush();
+		}
+	}
+}
+}
+
+
+// ============================================================================
+// DEBUG: CENTURY carbon-pool stability between 40-year climate cycles
+//
+// Climate mapping:
+//
+//   1980-2019  = original climate data
+//   2020-2059  = exact copy of 1980-2019
+//
+// Compare carbon pools at:
+//   2019 -> 2059
+//
+// This is separate from CENTURY_carbon_stability.csv,
+// which keeps annual Dec.31 values.
+// ============================================================================
+{
+const bool DEBUG_WRITE_CENTURY_CYCLE_STABILITY = false;
+
+if (DEBUG_WRITE_CENTURY_CYCLE_STABILITY &&
+	m_cbnModel == 2) {
+
+	// ------------------------------------------------------------
+	// Convert model time to calendar date
+	// ------------------------------------------------------------
+	const std::time_t currentDate =
+		static_cast<std::time_t>(m_date);
+
+	std::tm dateInfo = {};
+
+#ifdef _WIN32
+	localtime_s(
+		&dateInfo,
+		&currentDate
+	);
+#else
+	localtime_r(
+		&currentDate,
+		&dateInfo
+	);
+#endif
+
+	const int year =
+		dateInfo.tm_year + 1900;
+
+	const int month =
+		dateInfo.tm_mon + 1;
+
+	const int day =
+		dateInfo.tm_mday;
+
+	// First complete 40-year climate cycle:
+    //   1980-2019 = original climate
+    //
+    // Second complete 40-year climate cycle:
+    // 2020-2059 = exact copy of 1980-2019
+    //
+    // Therefore:
+    // 2019 = end of cycle 1
+    // 2059 = end of cycle 2
+	const int FIRST_COMPARE_YEAR = 2019;
+	const int CLIMATE_CYCLE_YEARS = 40;
+
+	const bool isCycleEnd =
+		year >= FIRST_COMPARE_YEAR &&
+		((year - FIRST_COMPARE_YEAR)
+			% CLIMATE_CYCLE_YEARS == 0);
+
+	// ------------------------------------------------------------
+	// Only execute on Dec.31 at the end of each 40-year cycle
+	// ------------------------------------------------------------
+	if (month == 12 &&
+		day == 31 &&
+		isCycleEnd) {
+
+		// --------------------------------------------------------
+		// Five wetland cells
+		// --------------------------------------------------------
+		const int debugCells[] = {
+			1366,
+			1367,
+			1368,
+			1370,
+			1375
+		};
+
+		const int nDebugCells =
+			sizeof(debugCells) /
+			sizeof(debugCells[0]);
+
+		// --------------------------------------------------------
+		// Save the previous cycle-end total carbon
+		//
+		// Example:
+		// 2019 stores the end-of-cycle-1 carbon state.
+        // 2059 compares the end-of-cycle-2 state with 2019.
+		// --------------------------------------------------------
+		static std::vector<double>
+			previousCycleTotalC(
+				nDebugCells,
+				-1.0
+			);
+
+		// Number of consecutive cycles with change < 1%
+		static std::vector<int>
+			stableCycleCount(
+				nDebugCells,
+				0
+			);
+
+		// --------------------------------------------------------
+		// Open output CSV only once
+		// --------------------------------------------------------
+		static std::ofstream cycleFile;
+		static bool cycleFileInitialized = false;
+
+		if (!cycleFileInitialized) {
+
+#ifdef _WIN32
+			const char* outputPath = "D:/SEIMS_C/data/CW_2/CENTURY_cycle_stability.csv";
+#else
+			const char* outputPath = "/data/user/lijing/software/SEIMS_C/data/CW_2/CENTURY_cycle_stability.csv";
+#endif
+
+			cycleFile.open(
+				outputPath,
+				std::ios::out |
+				std::ios::trunc
+			);
+
+			if (!cycleFile.is_open()) {
+
+				std::cerr
+					<< "[CENTURY_CYCLE_ERROR] Cannot open: "
+					<< outputPath
+					<< '\n';
+
+			}
+			else {
+
+				cycleFile
+					<< "YEAR,"
+					<< "CYCLE,"
+					<< "CELL,"
+					<< "LSC_PROFILE_kgCha,"
+					<< "LMC_PROFILE_kgCha,"
+					<< "BMC_PROFILE_kgCha,"
+					<< "HSC_PROFILE_kgCha,"
+					<< "HPC_PROFILE_kgCha,"
+					<< "TOTAL_C_PROFILE_kgCha,"
+					<< "CHANGE_FROM_PREVIOUS_CYCLE_PERCENT,"
+					<< "STABLE_LT_1PCT,"
+					<< "CONSECUTIVE_STABLE_CYCLES"
+					<< '\n';
+			}
+
+			cycleFileInitialized = true;
+		}
+
+		// --------------------------------------------------------
+		// Calculate carbon pools
+		// --------------------------------------------------------
+		if (cycleFile.is_open()) {
+
+			cycleFile
+				<< std::fixed
+				<< std::setprecision(8);
+
+			const int cycleNumber =
+				(year - FIRST_COMPARE_YEAR)
+				/ CLIMATE_CYCLE_YEARS
+				+ 1;
+
+			for (int p = 0;
+				p < nDebugCells;
+				++p) {
+
+				const int i =
+					debugCells[p];
+
+				if (i < 0 ||
+					i >= m_nCells) {
+					continue;
+				}
+
+				const int nLayers =
+					CVT_INT(
+						m_nSoilLyrs[i]
+					);
+
+				double totalLSC = 0.0;
+				double totalLMC = 0.0;
+				double totalBMC = 0.0;
+				double totalHSC = 0.0;
+				double totalHPC = 0.0;
+
+				bool valid = true;
+
+				// ------------------------------------------------
+				// Sum all valid soil layers
+				// ------------------------------------------------
+				for (int k = 0;
+					k < nLayers;
+					++k) {
+
+					if (
+						!std::isfinite(
+							m_sol_LSC[i][k]
+						) ||
+						!std::isfinite(
+							m_sol_LMC[i][k]
+						) ||
+						!std::isfinite(
+							m_sol_BMC[i][k]
+						) ||
+						!std::isfinite(
+							m_sol_HSC[i][k]
+						) ||
+						!std::isfinite(
+							m_sol_HPC[i][k]
+						)
+						) {
+
+						valid = false;
+						break;
+					}
+
+					totalLSC +=
+						static_cast<double>(
+							m_sol_LSC[i][k]
+							);
+
+					totalLMC +=
+						static_cast<double>(
+							m_sol_LMC[i][k]
+							);
+
+					totalBMC +=
+						static_cast<double>(
+							m_sol_BMC[i][k]
+							);
+
+					totalHSC +=
+						static_cast<double>(
+							m_sol_HSC[i][k]
+							);
+
+					totalHPC +=
+						static_cast<double>(
+							m_sol_HPC[i][k]
+							);
+				}
+
+				if (!valid) {
+
+					std::cerr
+						<< "[CENTURY_CYCLE_WARNING] "
+						<< "Invalid carbon pool: "
+						<< "YEAR=" << year
+						<< ", CELL=" << i
+						<< '\n';
+
+					continue;
+				}
+
+				// ------------------------------------------------
+				// Total whole-profile CENTURY carbon
+				// ------------------------------------------------
+				const double totalC =
+					totalLSC
+					+ totalLMC
+					+ totalBMC
+					+ totalHSC
+					+ totalHPC;
+
+				// ------------------------------------------------
+				// Compare with previous 40-year cycle
+				// ------------------------------------------------
+				double changePercent =
+					-9999.0;
+
+				int stable = 0;
+
+				if (
+					previousCycleTotalC[p] >
+					0.0
+					) {
+
+					changePercent =
+						std::fabs(
+							totalC
+							-
+							previousCycleTotalC[p]
+						)
+						/
+						previousCycleTotalC[p]
+						*
+						100.0;
+
+					if (changePercent < 1.0) {
+
+						stable = 1;
+
+						stableCycleCount[p] += 1;
+
+					}
+					else {
+
+						stable = 0;
+
+						stableCycleCount[p] = 0;
+					}
+				}
+
+				// ------------------------------------------------
+				// Write CSV
+				// ------------------------------------------------
+				cycleFile
+					<< year << ','
+					<< cycleNumber << ','
+					<< i << ','
+					<< totalLSC << ','
+					<< totalLMC << ','
+					<< totalBMC << ','
+					<< totalHSC << ','
+					<< totalHPC << ','
+					<< totalC << ',';
+
+				// First cycle has no previous cycle
+				if (changePercent < 0.0) {
+
+					cycleFile
+						<< "NA,"
+						<< 0 << ','
+						<< 0
+						<< '\n';
+
+				}
+				else {
+
+					cycleFile
+						<< changePercent
+						<< ','
+						<< stable
+						<< ','
+						<< stableCycleCount[p]
+						<< '\n';
+				}
+
+				// ------------------------------------------------
+				// Save current cycle state
+				// ------------------------------------------------
+				previousCycleTotalC[p] =
+					totalC;
+			}
+
+			cycleFile.flush();
+		}
+	}
+}
+}
+
+
+// ============================================================================
+// Save CENTURY state at the end of one 2009-2015 spin-up cycle
+// ============================================================================
+{
+const bool WRITE_CENTURY_RESTART = false;
+
+if (WRITE_CENTURY_RESTART && m_cbnModel == 2) {
+
+	const std::time_t currentDate =
+		static_cast<std::time_t>(m_date);
+
+	std::tm dateInfo = {};
+
+#ifdef _WIN32
+	localtime_s(&dateInfo, &currentDate);
+#else
+	localtime_r(&currentDate, &dateInfo);
+#endif
+
+	const int year = dateInfo.tm_year + 1900;
+	const int month = dateInfo.tm_mon + 1;
+	const int day = dateInfo.tm_mday;
+
+	// ------------------------------------------------------------
+	// Save the end-of-cycle CENTURY state on 2015-05-18.
+    //
+    // The next spin-up cycle starts again at 2009-05-19.
+    // Hydrology is reinitialized at 2009-05-19,
+    // while CENTURY C/N pools are inherited from this restart.
+	// ------------------------------------------------------------
+	const bool saveRestartDate =
+		(year == 2015 &&
+			month == 5 &&
+			day == 18);
+
+	if (saveRestartDate) {
+
+#ifdef _WIN32
+		const char* outputPath = "D:/SEIMS_C/data/CW_2/CENTURY_spinup_out.csv";
+#else
+		const char* outputPath = "/data/user/lijing/software/SEIMS_C/data/CW_2/CENTURY_spinup_out.csv";
+#endif
+
+		std::ofstream stateFile(
+			outputPath,
+			std::ios::out | std::ios::trunc
+		);
+
+		if (!stateFile.is_open()) {
+
+			std::cerr
+				<< "[CENTURY_RESTART_ERROR] Cannot open: "
+				<< outputPath
+				<< '\n';
+
+		}
+		else {
+
+			// ====================================================
+			// Header
+			// ====================================================
+			stateFile
+				<< "YEAR,"
+				<< "CELL,"
+				<< "LAYER,"
+
+				// C pools
+				<< "LSC,"
+				<< "LMC,"
+				<< "BMC,"
+				<< "HSC,"
+				<< "HPC,"
+
+				// N pools
+				<< "LSN,"
+				<< "LMN,"
+				<< "BMN,"
+				<< "HSN,"
+				<< "HPN,"
+
+				// litter / structural states
+				<< "LM,"
+				<< "LS,"
+				<< "LSL,"
+				<< "LSLC,"
+				<< "LSLNC,"
+
+				// mineral N
+				<< "NO3,"
+				<< "NH4"
+				<< '\n';
+
+			stateFile
+				<< std::fixed
+				<< std::setprecision(8);
+
+			long savedRows = 0;
+
+			for (int i = 0; i < m_nCells; ++i) {
+
+				const int nLayers =
+					CVT_INT(m_nSoilLyrs[i]);
+
+				for (int k = 0; k < nLayers; ++k) {
+
+					// --------------------------------------------
+					// Make sure all restart states are finite.
+					// --------------------------------------------
+					const bool valid =
+						std::isfinite(m_sol_LSC[i][k]) &&
+						std::isfinite(m_sol_LMC[i][k]) &&
+						std::isfinite(m_sol_BMC[i][k]) &&
+						std::isfinite(m_sol_HSC[i][k]) &&
+						std::isfinite(m_sol_HPC[i][k]) &&
+
+						std::isfinite(m_sol_LSN[i][k]) &&
+						std::isfinite(m_sol_LMN[i][k]) &&
+						std::isfinite(m_sol_BMN[i][k]) &&
+						std::isfinite(m_sol_HSN[i][k]) &&
+						std::isfinite(m_sol_HPN[i][k]) &&
+
+						std::isfinite(m_sol_LM[i][k]) &&
+						std::isfinite(m_sol_LS[i][k]) &&
+						std::isfinite(m_sol_LSL[i][k]) &&
+						std::isfinite(m_sol_LSLC[i][k]) &&
+						std::isfinite(m_sol_LSLNC[i][k]) &&
+
+						std::isfinite(m_soilNO3[i][k]) &&
+						std::isfinite(m_soilNH4[i][k]);
+
+					if (!valid) {
+
+						std::cerr
+							<< "\n============================================================"
+							<< "\n[CENTURY_RESTART_WARNING] INVALID STATE"
+							<< "\nCELL=" << i
+							<< ", LAYER=" << k
+
+							<< "\n---------------- CARBON ----------------"
+							<< "\nLSC=" << m_sol_LSC[i][k]
+							<< "\nLMC=" << m_sol_LMC[i][k]
+							<< "\nBMC=" << m_sol_BMC[i][k]
+							<< "\nHSC=" << m_sol_HSC[i][k]
+							<< "\nHPC=" << m_sol_HPC[i][k]
+
+							<< "\n---------------- NITROGEN ----------------"
+							<< "\nLSN=" << m_sol_LSN[i][k]
+							<< "\nLMN=" << m_sol_LMN[i][k]
+							<< "\nBMN=" << m_sol_BMN[i][k]
+							<< "\nHSN=" << m_sol_HSN[i][k]
+							<< "\nHPN=" << m_sol_HPN[i][k]
+
+							<< "\n---------------- LITTER ----------------"
+							<< "\nLM=" << m_sol_LM[i][k]
+							<< "\nLS=" << m_sol_LS[i][k]
+							<< "\nLSL=" << m_sol_LSL[i][k]
+							<< "\nLSLC=" << m_sol_LSLC[i][k]
+							<< "\nLSLNC=" << m_sol_LSLNC[i][k]
+
+							<< "\n---------------- MINERAL N ----------------"
+							<< "\nNO3=" << m_soilNO3[i][k]
+							<< "\nNH4=" << m_soilNH4[i][k]
+
+							<< "\n============================================================"
+							<< std::endl;
+
+						continue;
+					}
+
+					stateFile
+						<< year << ','
+						<< i << ','
+						<< k << ','
+
+						<< m_sol_LSC[i][k] << ','
+						<< m_sol_LMC[i][k] << ','
+						<< m_sol_BMC[i][k] << ','
+						<< m_sol_HSC[i][k] << ','
+						<< m_sol_HPC[i][k] << ','
+
+						<< m_sol_LSN[i][k] << ','
+						<< m_sol_LMN[i][k] << ','
+						<< m_sol_BMN[i][k] << ','
+						<< m_sol_HSN[i][k] << ','
+						<< m_sol_HPN[i][k] << ','
+
+						<< m_sol_LM[i][k] << ','
+						<< m_sol_LS[i][k] << ','
+						<< m_sol_LSL[i][k] << ','
+						<< m_sol_LSLC[i][k] << ','
+						<< m_sol_LSLNC[i][k] << ','
+
+						<< m_soilNO3[i][k] << ','
+						<< m_soilNH4[i][k]
+						<< '\n';
+
+					++savedRows;
+				}
+			}
+
+			stateFile.close();
+
+			std::cout
+				<< "[CENTURY_RESTART] Saved "
+				<< savedRows
+				<< " cell-layer states to "
+				<< outputPath
+				<< std::endl;
+		}
+	}
+}
+}
+
+    // Phase 2: route lateral DOC after all cells have completed their local updates.
+    // m_soilIfluCbn is kg C/ha, while LMWC is g C/m2, so divide by 10.
+    // This serial pass avoids OpenMP race conditions and cell-order dependence.
+    for (int i = 0; i < m_nCells; i++) {
+        if (m_landUse[i] == LANDUSE_ID_WATR || m_landUse[i] == LANDUSE_ID_GLC) continue;
+
+        const int id_downstream = CVT_INT(m_flowOutIdxD8[i]);
+        if (id_downstream < 0 || id_downstream >= m_nCells) continue;
+        if (m_area[i] <= UTIL_ZERO || m_area[id_downstream] <= UTIL_ZERO) continue;
+
+        const int nRouteLyrs = Min(CVT_INT(m_nSoilLyrs[i]),
+                                   CVT_INT(m_nSoilLyrs[id_downstream]));
+
+        for (int k = 0; k < nRouteLyrs; k++) {
+            const float routedLMWC =
+                (m_soilIfluCbn[i][k] / 10.f) *
+                m_area[i] / m_area[id_downstream];
+
+            if (routedLMWC > 0.f) {
+                LMWC[id_downstream][k] += routedLMWC;
+            }
+        }
+    }
+
+    // Synchronize the final carbon pools and first-layer outputs after routing.
+#pragma omp parallel for
+    for (int i = 0; i < m_nCells; i++) {
+        const int nSoilLyrs = CVT_INT(m_nSoilLyrs[i]);
+        for (int k = 0; k < nSoilLyrs; k++) {
+            SOM[i][k] = POM[i][k] + LMWC[i][k] + MAOM[i][k] + MIC[i][k];
+
+            // LMWC is the dynamic dissolved/low-molecular-weight C pool in g C/m2.
+            // Convert it back to DOC concentration (mg C/kg soil).
+            // DOC = LMWC * 1000 / [BD(Mg/m3) * thickness(mm)].
+            const float soilMassFactor = m_soilBD[i][k] * m_soilThk[i][k];
+            if (soilMassFactor > UTIL_ZERO) {
+                DOC[i][k] = Max(0.f, LMWC[i][k]) * 1000.f / soilMassFactor;
+            } else {
+                DOC[i][k] = 0.f;
+            }
+        }
+
+        if (nSoilLyrs > 0) {
+            MIC1[i] = MIC[i][0];
+            LMWC1[i] = LMWC[i][0];
+            POM1[i] = POM[i][0];
+            MAOM1[i] = MAOM[i][0];
+        }
+    }
+
+//	// =============================================================
+//    // Daily LMWC, whole-profile SOC, and daily SOILCO2 diagnostics
+//    // =============================================================
+//	{
+//		static std::ofstream lmwcFile;
+//		static bool lmwcFileInitialized = false;
+//		static long outputDays = 0;
+//
+//		if (!lmwcFileInitialized) {
+//			const char* outputPath =
+//				R"(D:\SEIMS_C\data\CW_2\LMWC_seasonality.csv)";
+//
+//			lmwcFile.open(
+//				outputPath,
+//				std::ios::out | std::ios::trunc
+//			);
+//
+//			if (!lmwcFile.is_open()) {
+//				std::cerr
+//					<< "[LMWC_CSV_ERROR] Cannot open: "
+//					<< outputPath
+//					<< '\n';
+//			}
+//			else {
+//				lmwcFile
+//					<< "DATE,CELL,"
+//					<< "POM_PROFILE_gCm2,"
+//					<< "LMWC_PROFILE_gCm2,"
+//					<< "LMWC_0_300_gCm2,"
+//					<< "LMWC_SAT90_gCm2,"
+//					<< "LMWC_SAT_WEIGHTED_gCm2,"
+//					<< "SOC_PROFILE_gCm2,"
+//					<< "MIC_PROFILE_gCm2,"
+//					<< "MAOM_PROFILE_gCm2,"
+//					<< "HETERO_RESP_PROFILE_gCm2d,"
+//					<< "RSPC_PROFILE_kgCha_d,"
+//					<< "MEAN_SOIL_TEMP_C,"
+//					<< "MEAN_SAT_RATIO,"
+//					<< "LMWC_LAYER0_gCm2,"
+//					<< "DOC_LAYER0_mgkg"
+//					<< '\n';
+//			}
+//
+//			lmwcFileInitialized = true;
+//		}
+//
+//		if (lmwcFile.is_open()) {
+//			const std::time_t currentDate =
+//				static_cast<std::time_t>(m_date);
+//
+//			std::tm dateInfo = {};
+//
+//#ifdef _WIN32
+//			localtime_s(&dateInfo, &currentDate);
+//#else
+//			localtime_r(&currentDate, &dateInfo);
+//#endif
+//
+//			char dateText[16] = {};
+//
+//			std::strftime(
+//				dateText,
+//				sizeof(dateText),
+//				"%Y-%m-%d",
+//				&dateInfo
+//			);
+//
+//			const int debugCells[] = {
+//				1304, 1305, 1306, 1309, 1310
+//			};
+//
+//			const int nDebugCells =
+//				sizeof(debugCells) /
+//				sizeof(debugCells[0]);
+//
+//			for (int p = 0; p < nDebugCells; ++p) {
+//				const int i = debugCells[p];
+//
+//				if (i < 0 || i >= m_nCells) {
+//					continue;
+//				}
+//
+//				const int nLayers =
+//					CVT_INT(m_nSoilLyrs[i]);
+//
+//				if (nLayers <= 0) {
+//					continue;
+//				}
+//
+//				// 整个剖面的POM，g C m-2
+//				double pomProfile = 0.0;
+//
+//				double lmwcProfile = 0.0;
+//				double lmwc0To300 = 0.0;
+//				double lmwcSat90 = 0.0;
+//				double lmwcSatWeighted = 0.0;
+//
+//				// 整个土壤剖面所有土层的SOC总量
+//				double socProfile = 0.0;
+//
+//				// 整个土壤剖面所有土层的微生物生物量碳
+//                // 单位：g C m-2
+//				double micProfile = 0.0;
+//
+//				// 整个剖面的MAOM，g C m-2
+//				double maomProfile = 0.0;
+//
+//				// 当天整个土壤剖面所有土层的CO2通量总和
+//				// Unit: g C m-2 d-1.
+//				double soilCO2Profile = 0.0;
+//
+//				// CENTURY当天整个土壤剖面的异养呼吸总量
+//                // m_sol_RSPC原始单位：kg C ha-1 d-1
+//				double rspcProfile = 0.0;
+//
+//				double tempThicknessSum = 0.0;
+//				double satThicknessSum = 0.0;
+//				double totalThickness = 0.0;
+//
+//				for (int k = 0; k < nLayers; ++k) {
+//					const float layerPOM =
+//						Max(0.f, POM[i][k]);
+//					const float layerLMWC =
+//						Max(0.f, LMWC[i][k]);
+//
+//					const float layerSOC =
+//						Max(0.f, SOM[i][k]);
+//
+//					const float layerMIC =
+//						Max(0.f, MIC[i][k]);
+//
+//
+//					const float layerMAOM =
+//						Max(0.f, MAOM[i][k]);
+//
+//					const float layerSoilCO2 =
+//						Max(0.f, soilCO2[i][k]);
+//
+//					const float thickness =
+//						Max(0.f, m_soilThk[i][k]);
+//
+//					float satRatio = 0.f;
+//
+//					if (m_soilSat[i][k] > UTIL_ZERO) {
+//						satRatio =
+//							m_soilWtrSto[i][k] /
+//							m_soilSat[i][k];
+//
+//						satRatio =
+//							Max(
+//								0.f,
+//								Min(1.f, satRatio)
+//							);
+//					}
+//
+//					// 所有土层POM总量
+//					pomProfile += layerPOM;
+//
+//					// 所有土层LMWC总量
+//					lmwcProfile += layerLMWC;
+//
+//					// 所有土层SOC总量
+//					// SOM = POM + LMWC + MAOM + MIC
+//					socProfile += layerSOC;
+//
+//					// 各土层MIC直接求和
+//					micProfile += layerMIC;
+//
+//					// 所有土层MAOM总量
+//					maomProfile += layerMAOM;
+//
+//					// 当天整个土层剖面的SOILCO2通量
+//					soilCO2Profile += layerSoilCO2;
+//
+//					// 当天整个土壤剖面的CENTURY异养呼吸
+//					if (m_cbnModel == 2 && m_sol_RSPC != nullptr) {
+//						const float layerRspc = m_sol_RSPC[i][k];
+//
+//						if (std::isfinite(layerRspc)) {
+//							rspcProfile += layerRspc;
+//						}
+//					}
+//
+//					const float upperDepth =
+//						k == 0
+//						? 0.f
+//						: m_soilDepth[i][k - 1];
+//
+//					const float lowerDepth =
+//						m_soilDepth[i][k];
+//
+//					const float overlapThickness =
+//						Max(
+//							0.f,
+//							Min(lowerDepth, 300.f) -
+//							upperDepth
+//						);
+//
+//					float shallowFraction = 0.f;
+//
+//					if (thickness > UTIL_ZERO) {
+//						shallowFraction =
+//							Min(
+//								1.f,
+//								overlapThickness / thickness
+//							);
+//					}
+//
+//					lmwc0To300 +=
+//						layerLMWC * shallowFraction;
+//
+//					if (satRatio >= 0.9f) {
+//						lmwcSat90 += layerLMWC;
+//					}
+//
+//					lmwcSatWeighted +=
+//						layerLMWC * satRatio;
+//
+//					tempThicknessSum +=
+//						m_soilTempprofile[i][k] *
+//						thickness;
+//
+//					satThicknessSum +=
+//						satRatio *
+//						thickness;
+//
+//					totalThickness += thickness;
+//				}
+//
+//				float meanSoilTemp = NODATA_VALUE;
+//				float meanSatRatio = NODATA_VALUE;
+//
+//				if (totalThickness > UTIL_ZERO) {
+//					meanSoilTemp =
+//						static_cast<float>(
+//							tempThicknessSum /
+//							totalThickness
+//							);
+//
+//					meanSatRatio =
+//						static_cast<float>(
+//							satThicknessSum /
+//							totalThickness
+//							);
+//				}
+//
+//				float docLayer0MgKg = NODATA_VALUE;
+//
+//				const float layer0SoilMassFactor =
+//					m_soilBD[i][0] *
+//					m_soilThk[i][0];
+//
+//				if (layer0SoilMassFactor > UTIL_ZERO) {
+//					docLayer0MgKg =
+//						LMWC[i][0] *
+//						1000.f /
+//						layer0SoilMassFactor;
+//				}
+//
+//				lmwcFile
+//					<< dateText << ','
+//					<< i << ','
+//					<< std::fixed
+//					<< std::setprecision(6)
+//					<< pomProfile << ','
+//					<< lmwcProfile << ','
+//					<< lmwc0To300 << ','
+//					<< lmwcSat90 << ','
+//					<< lmwcSatWeighted << ','
+//					<< socProfile << ','
+//					<< micProfile << ','
+//					<< maomProfile << ','
+//					<< soilCO2Profile << ','
+//					<< rspcProfile << ','
+//					<< meanSoilTemp << ','
+//					<< meanSatRatio << ','
+//					<< LMWC[i][0] << ','
+//					<< docLayer0MgKg
+//					<< '\n';
+//			}
+//
+//			++outputDays;
+//
+//			if (outputDays % 365 == 0) {
+//				lmwcFile.flush();
+//			}
+//		}
+//	}
+
+
     return 0;
 }
 float Nutrient_Transformation::fSWC2SWP(float SWC0, float SWCsat) {
-  const double const_cm2MPa = 98e-6;  // 1cm water column
-  const float rlim = 1.01;
-  
-  // VG parameters
-  float SWCres = 0.067;
-  // SWCsat input
-  float alpha = 0.021;
-  float n = 1.61;
-  float m = 1 - 1 / n;
-  
-  float SWC = (SWC0 <= SWCres * rlim) ? SWCres * rlim : SWC0;
-  float fSWC2SWP;
-  
-  if (SWC < SWCsat) {
-    float eff_sat = (SWC - SWCres) / (SWCsat - SWCres);  // Effective saturation
-    fSWC2SWP = pow(pow(1 / eff_sat, 1 / m) - 1, 1 / n) / alpha;
-    fSWC2SWP = -1 * fSWC2SWP * const_cm2MPa;  // to MPa
-  } else {
-    fSWC2SWP = 0;
-  }
-  
-  return fSWC2SWP;
+    const double const_cm2MPa = 98e-6;  // 1 cm water column
+    const float rlim = 1.01f;
+
+    // van Genuchten parameters
+    const float SWCres = 0.067f;
+    const float alpha = 0.021f;
+    const float n = 1.61f;
+    const float m = 1.f - 1.f / n;
+
+    // Invalid or degenerate hydraulic parameters: return saturation potential.
+    if (!IsFinitePositive(SWCsat) ||
+        SWCsat <= SWCres * rlim ||
+        !IsFinitePositive(alpha) ||
+        !IsFinitePositive(m) ||
+        !IsFinitePositive(n)) {
+        return 0.f;
+    }
+
+    const float SWC = Max(SWC0, SWCres * rlim);
+    if (SWC >= SWCsat) {
+        return 0.f;
+    }
+
+    float eff_sat = SafePositiveDivide(SWC - SWCres,
+                                       SWCsat - SWCres,
+                                       0.f);
+    // Keep effective saturation strictly inside (0, 1] to avoid 1/0.
+    eff_sat = Min(1.f, Max(eff_sat, UTIL_ZERO));
+
+    const float inner = Max(
+        pow(SafePositiveDivide(1.f, eff_sat, 1.f), 1.f / m) - 1.f,
+        0.f);
+    const float suctionCm = SafePositiveDivide(pow(inner, 1.f / n), alpha, 0.f);
+    const float swp = -suctionCm * static_cast<float>(const_cm2MPa);
+    return std::isfinite(swp) ? swp : 0.f;
 }
 //Compute effect factor of soil temperature with Arrhenius 
 float Nutrient_Transformation:: tp_scalar(string sCase, float T0, float Tref) {
-	T0 = T0 + 273.15; //(K)
-	Tref = Tref + 273.15; //(K)
-    float gas_const = 8.31446;
-    float Ea = 0;
-    
-    if (sCase == "MR") Ea = 20e3;
-    else if (sCase == "LIG") Ea = 53e3;
-    else if (sCase == "CEL") Ea = 36.3e3;
-    else if (sCase == "POM") Ea = 63909;
-    else if (sCase == "LMWC") Ea = 57865;
-    else if (sCase == "MAOM") Ea = 67e3;
-    else if (sCase == "MD") Ea = 47e3;
-    else if (sCase == "KM") Ea = 30e3;
+    T0 += 273.15f;   // K
+    Tref += 273.15f; // K
+    const float gas_const = 8.31446f;
+    float Ea = 0.f;
 
-    return exp(-Ea / gas_const * (1 / T0 - 1 / Tref));
+    if (sCase == "MR") Ea = 20e3f;
+    else if (sCase == "LIG") Ea = 53e3f;
+    else if (sCase == "CEL") Ea = 36.3e3f;
+    else if (sCase == "POM") Ea = 63909.f;
+    else if (sCase == "LMWC") Ea = 57865.f;
+    else if (sCase == "MAOM") Ea = 67e3f;
+    else if (sCase == "MD") Ea = 47e3f;
+    else if (sCase == "KM") Ea = 30e3f;
+
+    if (!IsFinitePositive(T0) || !IsFinitePositive(Tref) ||
+        !IsFinitePositive(gas_const)) {
+        return 0.f;
+    }
+
+    const float exponent = -Ea / gas_const *
+        (SafePositiveDivide(1.f, T0, 0.f) -
+         SafePositiveDivide(1.f, Tref, 0.f));
+    const float scalar = exp(exponent);
+    return std::isfinite(scalar) ? scalar : 0.f;
 }
 void Nutrient_Transformation::ModifiedMillennial(const int i) {
     m_soilSurfCbn[i] = 0.f;
@@ -707,8 +2179,9 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
 
     float Vg0 = 0.2493207, param_em = 0.9234062;
     //derivs_V2_MM_AD_CO2_Clab
+    // float fexud = 0.1f, fexud_oa = 0.5f;
     float fexud = 0.1f, fexud_oa = 0.5f;
-	int Tref = 20; 
+	int Tref = 20;
     //constant parameters
     int rootExu = 1;
     int maRco2 = 0; //0-(1-cue)
@@ -719,40 +2192,63 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
     float param_p1 = 0.12f; ///< Coefficient for estimating the binding affinity for LMWC sorption (-)
 
     for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
-        m_soilIfluCbn[i][k]=0.f;
-        m_soilPercoCbn[i][k]=0.f;
+        // Reset first so SOILCO2 always represents the current day's flux.
+        // If this layer is skipped by any validity check below, today's value remains zero
+        // instead of retaining the previous day's result.
+        soilCO2[i][k] = 0.f;
 
+        m_soilIfluCbn[i][k] = 0.f;
+        m_soilPercoCbn[i][k] = 0.f;
+
+        // These quantities appear repeatedly in denominators.
+        if (!IsFinitePositive(m_soilThk[i][k]) ||
+            !IsFinitePositive(m_soilPor[i][k]) ||
+            !IsFinitePositive(m_soilBD[i][k])) {
+            continue;
+        }
 
         float kaff_lm = exp(-param_p1 * m_soilpH[i][k] - param_p2[i]) * kaff_des[i];
 
-        // Equation 11 
-    	float param_qmax = m_soilThk[i][k]/1000.f * m_soilBD[i][k]*1.e3 * (100.f - m_soilSand[i][k]) * param_pc[i];
+        // Equation 11. Convert thickness from mm to m and BD from Mg/m3
+        // to kg/m3. The /1000 and *1.e3 factors cancel numerically.
+        const float param_qmax =
+            m_soilThk[i][k] / 1000.f * m_soilBD[i][k] * 1.e3f *
+            (100.f - m_soilSand[i][k]) * param_pc[i];
 
-    	if (param_qmax < MAOM[i][k]) {
-            //param_qmax = MAOM[i][k] *10.f;
-    		// cout << "ERROR EXIT: Qmax is less than MAOM!" << "\n"<<endl;
-        	continue;
-		}
+         //if (!IsFinitePositive(param_qmax) || param_qmax < MAOM[i][k]) {
+           // continue;
+         //   }
 
-        //NOTE: WTAERSTO is not contains wiltingpoint
-        // Hydrological properties
-        float forc_sw0 = Min((m_soilWtrSto[i][k]+m_soilWP[i][k])/m_soilThk[i][k], m_soilPor[i][k]);
+         if (!IsFinitePositive(param_qmax)) {
+            continue;
+            }
+
+        // NOTE: WTAERSTO does not contain wilting point.
+        const float soilWaterDepth = m_soilWtrSto[i][k] + m_soilWP[i][k];
+        float forc_sw0 = Min(
+            SafePositiveDivide(soilWaterDepth, m_soilThk[i][k], 0.f),
+            m_soilPor[i][k]);
+        forc_sw0 = Max(0.f, forc_sw0);
 
         // Equation 4: scalar_wd
-	    float scalar_wd = pow(forc_sw0 / m_soilPor[i][k], 0.5);
-        
+        const float relativeWater = Max(
+            0.f, SafePositiveDivide(forc_sw0, m_soilPor[i][k], 0.f));
+        float scalar_wd = sqrt(relativeWater);
+
         // Equation 15: scalar_wb
-	    float SWP = fSWC2SWP(forc_sw0, m_soilPor[i][k]); // Placeholder for actual SWP calculation
-	    float matpot = abs(SWP * 1e3);
-	    float scalar_wb = exp(lambda * -matpot) * (kamin + (1 - kamin) * pow((m_soilPor[i][k] - forc_sw0) / m_soilPor[i][k], 0.5)) * scalar_wd;
-        //cout << "scalar_wb = " << scalar_wb << "\n";
+        const float SWP = fSWC2SWP(forc_sw0, m_soilPor[i][k]);
+        const float matpot = abs(SWP * 1.e3f);
+        const float airFilledFraction = Max(0.f,SafePositiveDivide(m_soilPor[i][k] - forc_sw0,m_soilPor[i][k],0.f));
+        float scalar_wb = exp(lambda * -matpot) *(kamin + (1.f - kamin) * sqrt(airFilledFraction)) * scalar_wd;
+        // cout << "scalar_wb = " << scalar_wb << "\n";
         
         //ljj++
         float rtresnew =0.f;
         m_forc_litter[i][k] = 0.f;
         if (FloatEqual(m_dormFlag[i], 1.f)){
             if (m_biomass[i] > 0.f) {
-                rtresnew = m_biomass[i]/10.f * m_frRoot[i];
+                 //rtresnew = m_biomass[i]/10.f * m_frRoot[i];
+                rtresnew = m_biomass[i] * m_frRoot[i];
                 m_soilRsd[i][k] += rtresnew*tmp_rtfr[i][k];
             }
             if(k==CVT_INT(m_nSoilLyrs[i])-1) m_biomass[i] -= m_biomass[i] * m_frRoot[i] ;
@@ -784,8 +2280,11 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
 		
          // Example decomposition of POM to LMWC
 	    float f_PO;
-	    if (POM[i][k] > 0.f && MA[i][k] > 0.f) {
-	        f_PO = Max(vmax_pl * POM[i][k] * MA[i][k] / (kaff_pl0 + MA[i][k]), 0.f);
+	    const float pomDenom = kaff_pl0 + MIC[i][k];
+	    if (POM[i][k] > 0.f && MIC[i][k] > 0.f && pomDenom > UTIL_ZERO) {
+	        f_PO = Max(SafePositiveDivide(vmax_pl * POM[i][k] * MIC[i][k],
+                                       pomDenom,
+                                       0.f), 0.f);
 	        f_PO = Min(POM[i][k], f_PO);
 	    }else{
       		f_PO = 0.f;
@@ -795,12 +2294,58 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
 	    //cout << "f_PO_LM = " << f_PO_LM << "  f_PO_MA = " << f_PO_MA << "\n";
 
         //MAOC finish desorption within a few minutes after organic acid input
-	    float unit_kgTom2 = m_soilThk[i][k]/1e3 * m_soilBD[i][k]; //(mgC/kg soil) to (gC/m2)
-	    float acid_des;
-	    if( MAOM[i][k] > 0.f ){
-	      acid_des = (pow(MAOM[i][k]/unit_kgTom2 *1e-3,0.04f) *pow(forc_acid/unit_kgTom2, 0.86f)
-	                  * pow(m_soilClay[i][k],-0.24f) * pow(m_soilpH[i][k],-2.14f) * exp(3.52f)) * unit_kgTom2;
-	      acid_des = Min(Max(acid_des,0.f),MAOM[i][k]);
+	    // Conversion factor from mg C/kg soil to g C/m2:
+	    // thickness(mm)/1000 * BD(Mg/m3).
+	    const float unit_kgTom2 = m_soilThk[i][k] / 1.e3f * m_soilBD[i][k];
+	    float acid_des = 0.f;
+	    if (MAOM[i][k] > 0.f &&
+            IsFinitePositive(unit_kgTom2) &&
+            IsFinitePositive(m_soilClay[i][k]) &&
+            IsFinitePositive(m_soilpH[i][k])) {
+	    //   acid_des = (pow(MAOM[i][k]/unit_kgTom2 *1e-3,0.04f) *pow(forc_acid/unit_kgTom2, 0.86f)
+	    //               * pow(m_soilClay[i][k],-0.24f) * pow(m_soilpH[i][k],-2.14f) * exp(3.52f)) * unit_kgTom2;
+	    //   acid_des = Min(Max(acid_des,0.f),MAOM[i][k]);
+	       float forc_acid_total = fmax(forc_acid, 0.f);
+        
+	       // Equal-weight assumption for four organic acids
+	       float forc_oxalic = forc_acid_total * 0.25f;
+	       float forc_citric = forc_acid_total * 0.25f;
+	       float forc_malic  = forc_acid_total * 0.25f;
+	       float forc_acetic = forc_acid_total * 0.25f;
+	       
+	       // Relative desorption ability normalized by oxalic acid
+	       float fac_oxalic = 1.0f;
+	       float fac_citric = 12.11f / 17.3f;
+	       float fac_malic  = 6.33f / 17.3f;
+	       float fac_acetic = 1.0f / 17.3f;
+        
+           const float maomConcentration = Max(
+               SafePositiveDivide(MAOM[i][k], unit_kgTom2, 0.f) * 1.e-3f,
+               0.f);
+           const float oxalicConcentration = Max(
+               SafePositiveDivide(forc_oxalic, unit_kgTom2, 0.f), 0.f);
+           const float citricConcentration = Max(
+               SafePositiveDivide(forc_citric, unit_kgTom2, 0.f), 0.f);
+           const float malicConcentration = Max(
+               SafePositiveDivide(forc_malic, unit_kgTom2, 0.f), 0.f);
+           const float aceticConcentration = Max(
+               SafePositiveDivide(forc_acetic, unit_kgTom2, 0.f), 0.f);
+
+	       float common_part = fmax((pow(maomConcentration, 0.04f) *
+                                 pow(m_soilClay[i][k], -0.24f) *
+                                 pow(m_soilpH[i][k], -2.15f) * 34.0f) * unit_kgTom2, 0.f);
+	       
+	       float acid_des_oxalic = fmax(common_part * fac_oxalic * pow(oxalicConcentration, 0.87f), 0.f);
+	       
+	       float acid_des_citric = fmax(common_part * fac_citric * pow(citricConcentration, 0.87f), 0.f);
+	       
+	       float acid_des_malic = fmax(common_part * fac_malic * pow(malicConcentration, 0.87f), 0.f);
+	       
+	       float acid_des_acetic = fmax(common_part * fac_acetic * pow(aceticConcentration, 0.87f), 0.f);
+	       
+	       acid_des = acid_des_oxalic + acid_des_citric + acid_des_malic + acid_des_acetic;
+	       
+	       acid_des = fmin(acid_des, MAOM[i][k]);
 	    }else{
 	      acid_des = 0.f;
 	    }
@@ -814,9 +2359,12 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
 	    float vmax_ml = Vml0[i] * tp_scalar("MAOM", m_soilTempprofile[i][k], Tref) * scalar_wd;
 	    float kaff_ml0 = kaff_ml[i] * km_TPscalar;
 	    float f_MA_LMe;
-	    if(MAOM[i][k]>0.f && MA[i][k]>0.f){
-	      f_MA_LMe = Max(vmax_ml * MAOM[i][k] * MA[i][k] / (kaff_ml0 + MA[i][k]),0.f);
-	      f_MA_LMe = Min(MAOM[i][k], f_MA_LMe);
+	    const float maomDenom = kaff_ml0 + MIC[i][k];
+	    if(MAOM[i][k]>0.f && MIC[i][k]>0.f && maomDenom > UTIL_ZERO){
+	      f_MA_LMe = Max(SafePositiveDivide(vmax_ml * MAOM[i][k] * MIC[i][k],
+                                         maomDenom,
+                                         0.f), 0.f);
+          f_MA_LMe = Min(MAOM[i][k], f_MA_LMe);
 	    }else{
 	      f_MA_LMe=0.f;
 	    }
@@ -836,15 +2384,18 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
         
         //Equation 14: respiration of MA and MD and CUE process
         //Vg0 = Vlb0; 
-	    float Vg = Vg0 * tp_scalar("LMWC", m_soilTempprofile[i][k], Tref)* scalar_wb; // * scalar_wb //the growth respiration of MA is similar to Vd in MEND model
-	    float Vm = Vg0 * Ma[i]/(1-Ma[i]) * tp_scalar("MR", m_soilTempprofile[i][k], Tref)* scalar_wb; //the maintenance respiration of MA£º¦Á/(1-¦Á) means the propotion of maintenance to growth
-	    float VmD = Vm * beta[i]; //the maintenance respiration of MD
-	
-		float CUE_max = 0.95f , CUE_min = 0.01f;
-		float CUE = cue_ref[i] - cue_t[i] * (m_soilTempprofile[i][k] - Tref) ;
-	    CUE = CUE - acue[i] * forc_acid;     //CUE decline after organic acid input
-        CUE = Min(CUE_max,CUE);
-        CUE = Max(CUE_min,CUE);
+	    float Vg = Vlb0[i] * tp_scalar("LMWC", m_soilTempprofile[i][k], Tref)* scalar_wb; // * scalar_wb //the growth respiration of MA is similar to Vd in MEND model
+        // Ma must be below 1 because it appears in Ma / (1 - Ma).
+        const float maFraction = Min(Max(Ma[i], 0.f), 1.f - 1.e-6f);
+	    float Vm = Vlb0[i] * SafePositiveDivide(maFraction,1.f - maFraction,0.f) *
+                   tp_scalar("MR", m_soilTempprofile[i][k], Tref) * scalar_wb;
+	    // float VmD = Vm * beta[i]; //the maintenance respiration of MD
+	  
+	    float CUE_max = 0.95f , CUE_min = 0.01f;
+	  	float CUE = cue_ref[i] - cue_t[i] * (m_soilTempprofile[i][k] - Tref) ;
+// 	    CUE = CUE - acue[i] * forc_acid;     //CUE decline after organic acid input
+//         CUE = Min(CUE_max,CUE);
+//         CUE = Max(CUE_min,CUE);
 	    // if(CUE<CUE_min | CUE>CUE_max){
 	    //   //cout << "CUE ERROR EXIT: CUE = " << CUE<<"     ,"<<m_soilTempprofile[i][k] << "\n";
 	    //   //return;
@@ -854,36 +2405,37 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
 	    //Equation 22
 	    //microbial growth flux, but is not used in mass balance
 	    // Equation 14.1: MA <--> MD,
-	    float VmA2D = Vm; // * tp_scalar("MR") #* scalar_wd #* wp_scalar_low
-	    float VmD2A = Vm; // * tp_scalar("MR") #* scalar_wd #* wp_scalar
+	    // float VmA2D = Vm; // * tp_scalar("MR") #* scalar_wd #* wp_scalar_low
+	    // float VmD2A = Vm; // * tp_scalar("MR") #* scalar_wd #* wp_scalar
 	    float vmax_lb = (Vg + Vm) / CUE;
 	    float kaff_lb0 = kaff_lb[i] * km_TPscalar;
-	    float sat = LMWC[i][k]/(kaff_lb[i] + LMWC[i][k]); //Wang 2015
-	    // float sat = pow(f_MA_growth/(f_MA_growth + f_MA_maint_co2 + f_MB_turn), 2); //Huang2022
-	    float f_MA_MD, f_MD_MA;
-	    if(LMWC[i][k] >0.f & MA[i][k] > 0.f){
-	      f_MA_MD = Max((1-sat) * VmA2D * MA[i][k],0.f);
-	      f_MA_MD = Min(MA[i][k], f_MA_MD);
-	    }else{
-	      f_MA_MD = 0.f;
-	    }
-	    if(LMWC[i][k] >0.f & MD[i][k]>0.f){
-	      f_MD_MA = Max(sat * VmD2A * MD[i][k],0.f);
-	      f_MD_MA = Min(MD[i][k], f_MD_MA);
-	    }else{
-	      f_MD_MA = 0;
-	    }
+	    //float sat = LMWC[i][k]/(kaff_lb[i] + LMWC[i][k]); //Wang 2015
+	    //// float sat = pow(f_MA_growth/(f_MA_growth + f_MA_maint_co2 + f_MB_turn), 2); //Huang2022
+	    // float f_MA_MD, f_MD_MA;
+	    // if(LMWC[i][k] >0.f & MA[i][k] > 0.f){
+	    //   f_MA_MD = Max((1-sat) * VmA2D * MA[i][k],0.f);
+	    //   f_MA_MD = Min(MA[i][k], f_MA_MD);
+	    // }else{
+	    //   f_MA_MD = 0.f;
+	    // }
+	    // if(LMWC[i][k] >0.f & MD[i][k]>0.f){
+	    //   f_MD_MA = Max(sat * VmD2A * MD[i][k],0.f);
+	    //   f_MD_MA = Min(MD[i][k], f_MD_MA);
+	    // }else{
+	    //   f_MD_MA = 0;
+	    // }
 	    //cout << "f_MA_MD = " << f_MA_MD << "  f_MD_MA = " << f_MD_MA  << "\n";
 	    
-        MA[i][k] = MA[i][k] + f_MD_MA - f_MA_MD; //MA and MD update immediately£¬because of reacting so quickly£¡
-        MD[i][k] = MD[i][k] + f_MA_MD - f_MD_MA;  
-        MA[i][k] = Max(MA[i][k], 0.f);
-        MD[i][k] = Max(MD[i][k], 0.f);     
+        // MA[i][k] = MA[i][k] + f_MD_MA - f_MA_MD; //MA and MD update immediately£¬because of reacting so quickly£¡
+        // MD[i][k] = MD[i][k] + f_MA_MD - f_MD_MA;  
+        // MA[i][k] = Max(MA[i][k], 0.f);
+        // MD[i][k] = Max(MD[i][k], 0.f);     
 
 	    //Equation 13: MA utilizes LMWC for growth and respiration
 	    float f_LM_MB;
-	    if(LMWC[i][k]>0.f && MA[i][k]>0.f){
-	      f_LM_MB = Max(vmax_lb * MA[i][k] * LMWC[i][k] / (kaff_lb0 + LMWC[i][k]),0.f);
+	    const float lmwcDenom = kaff_lb0 + LMWC[i][k];
+	    if(LMWC[i][k]>0.f && MIC[i][k]>0.f && lmwcDenom > UTIL_ZERO){
+	      f_LM_MB = Max(SafePositiveDivide(vmax_lb * MIC[i][k] * LMWC[i][k],lmwcDenom,0.f), 0.f);
 	      f_LM_MB = Min(LMWC[i][k], f_LM_MB);
 	    }else{
 	      f_LM_MB=0.f;
@@ -892,49 +2444,61 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
 	    //cout << "f_LM_MB = " << f_LM_MB  << "\n";
 
 	    //Equation 21: MIC -> atmosphere
-	    float f_MA_co2;
+	    float f_MIC_co2;
 	    if(maRco2 == 0){
-	    	f_MA_co2 = f_LM_MB * (1.f - CUE); //method1
+	    	f_MIC_co2 = f_LM_MB * (1.f - CUE);
 		}else{
-			float f_MA_growth_co2 = Max( Vg * (1/CUE - 1) * MA[i][k] * LMWC[i][k] / (kaff_lb0 + LMWC[i][k]),0.f);
-		    float f_MA_maint_co2 = Max( Vm * (1/CUE - 1) * MA[i][k] * LMWC[i][k] / (kaff_lb0 + LMWC[i][k]),0.f);
-		    f_MA_co2 = f_MA_growth_co2 + f_MA_maint_co2;
+            const float cueInverseMinusOne = SafePositiveDivide(1.f, CUE, 1.f) - 1.f;
+			float f_MIC_growth_co2 = Max(
+                SafePositiveDivide(Vg * cueInverseMinusOne * MIC[i][k] * LMWC[i][k],
+                                   lmwcDenom,
+                                   0.f), 0.f);
+		    float f_MIC_maint_co2 = Max(
+                SafePositiveDivide(Vm * cueInverseMinusOne * MIC[i][k] * LMWC[i][k],
+                                   lmwcDenom,
+                                   0.f), 0.f);
+		    f_MIC_co2 = f_MIC_growth_co2 + f_MIC_maint_co2;
 		}
-	    // MA = MA + f_MA_growth
 	    LMWC[i][k] = LMWC[i][k] - f_LM_MB; //Update LMWC immediately for adsorption calculations
-        LMWC[i][k] = Max(LMWC[i][k], 0.f);     
-	    float f_MA_growth = f_LM_MB * CUE; 
-	    //cout << "f_MA_co2 = " << f_MA_co2 << "  f_MA_growth = " << f_MA_growth << "  LMWC = " << LMWC[i][k] << "\n";
 
-		//the maintenance respiration of MD
-		float f_MD_co2;
-	    if(MD[i][k] > 0.f){
-	      f_MD_co2 = Max(VmD * MD[i][k],0.f); //0.001 
-	      f_MD_co2 = Min(MD[i][k], f_MD_co2);
-	    }else{
-	      f_MD_co2 = 0.f;
-	    }
-	    float Tco2 = f_MA_co2 + f_MD_co2;
+        float f_MIC_growth = f_LM_MB * CUE;
+	    float Tco2 = f_MIC_co2;
+        // LMWC[i][k] = Max(LMWC[i][k], 0.f);     
+	    // float f_MA_growth = f_LM_MB * CUE; 
+	    // //cout << "f_MA_co2 = " << f_MA_co2 << "  f_MA_growth = " << f_MA_growth << "  LMWC = " << LMWC[i][k] << "\n";
+
+		// //the maintenance respiration of MD
+		// float f_MD_co2;
+	    // if(MD[i][k] > 0.f){
+	    //   f_MD_co2 = Max(VmD * MD[i][k],0.f); //0.001 
+	    //   f_MD_co2 = Min(MD[i][k], f_MD_co2);
+	    // }else{
+	    //   f_MD_co2 = 0.f;
+	    // }
+	    // float Tco2 = f_MA_co2 + f_MD_co2;
 	    //cout << "f_MD_co2 = " << f_MD_co2 << "  Tco2 = " << Tco2 << "\n";
 	    
         // Equation 8: LMWC -> out of system leaching
         float V = m_surfrunoff[i] + m_soilPerco[i][k] + m_subSurfRf[i][k];
         if(k>0) V = m_soilPerco[i][k] + m_subSurfRf[i][k];
 
-        // Equation 4: scalar_wd
-        float k_leach = m_leach;//10.f * 1.e-10 * 12 * 86400.f *0.0025f;
-	    float scalar_wd1 = (1.f - exp(-V / m_soilSat[i][k]));  
-        float FT = pow(2,(m_soilTempprofile[i][k]-10)/10);
-        float FQ = pow((1.f-(m_soilWtrSto[i][k]/m_soilSat[i][k]))/0.6f,0.7f);
-        FQ = pow((V+m_soilWtrSto[i][k])/(V+m_soilSat[i][k]),2.f);
-        if(m_soilSat[i][k]>0.f && ((V+m_soilWtrSto[i][k])/(V+m_soilSat[i][k]))<=0.7){
-            FQ = pow((V+m_soilWtrSto[i][k])/(V+m_soilSat[i][k])/0.7,2.f);
-        }else{
-            FQ = pow((1-(V+m_soilWtrSto[i][k])/(V+m_soilSat[i][k]))/0.3,2.f);
+        // Equation 4: scalar_wd. Protect the division by soil saturation storage.
+        const float k_leach = m_leach[i];
+        float scalar_wd1 = 0.f;
+        if (V > UTIL_ZERO && m_soilSat[i][k] > UTIL_ZERO) {
+            scalar_wd1 = 1.f - exp(-SafePositiveDivide(V,
+                                                       m_soilSat[i][k],
+                                                       0.f));
+            scalar_wd1 = Min(1.f, Max(0.f, scalar_wd1));
         }
 
+        // FT, FQ and DOC_export were not used by any active calculation, so they
+        // are removed here. This also removes their unnecessary division paths.
+
         //ljj++
-	    if(LMWC[i][k] > 0.f && (V+m_soilWtrSto[i][k])>UTIL_ZERO){
+	    if(LMWC[i][k] > 0.f &&
+           (V+m_soilWtrSto[i][k])>UTIL_ZERO &&
+           m_soilSat[i][k] > UTIL_ZERO){
             // //f_LM_leach = Max(rate_leach * scalar_wd * LMWC[i][k],0.f);    
             f_LM_leach[i][k] = Max(k_leach*scalar_wd1*LMWC[i][k],0.f);
             f_LM_leach[i][k] = Min(LMWC[i][k], f_LM_leach[i][k]);
@@ -949,9 +2513,6 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
         }else{
 	      f_LM_leach[i][k]=0.f;
 	    }
-        float DOC_export = f_LM_leach[i][k]/(V*0.001f);//DOC[i][k] / (m_soilThk[i][k]) * V;
-
-        if(V<=UTIL_ZERO) DOC_export=0.f;
         //DOC[i][k] -= f_LM_leach[i][k]; 
         //fDOC[i][k] = DOC[i][k] / LMWC[i][k];
         //if(i==503 && k==4) cout<<LMWC[i][k]<<"   "<<DOC[i][k]<<"  "<<FQ * FT<<"  "<<fDOC[i][k]<<"  "<<f_LM_leach[i][k]<<"  "<<V<<"  "<<m_biomassDelta[i]/10.f<<endl;
@@ -959,25 +2520,39 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
         //DOC[i][k] = Max(DOC[i][k], 0.f);
         
 	    //Equation 9: LMWC -> MAOM
-	    float f_LM_MA;
-	    if(LMWC[i][k] > 0.f && MAOM[i][k] > 0.f){
-	      f_LM_MA = Max(scalar_wd * kaff_lm * LMWC[i][k] * (1 - MAOM[i][k] / param_qmax),0.f);
-          //f_MA_LMm = Max(kaff_des[i] * MAOM[i][k] / param_qmax,0.f);
-	      f_LM_MA = Min(LMWC[i][k], f_LM_MA);
-	    }else{
-	      f_LM_MA=0.f;
-	    }	  
+	    //float f_LM_MA;
+	   // if(LMWC[i][k] > 0.f && MAOM[i][k] > 0.f){
+	    //  f_LM_MA = Max(scalar_wd * kaff_lm * LMWC[i][k] * (1 - MAOM[i][k] / param_qmax),0.f);
+       //   //f_MA_LMm = Max(kaff_des[i] * MAOM[i][k] / param_qmax,0.f);
+	   //   f_LM_MA = Min(LMWC[i][k], f_LM_MA);
+	  //  }else{
+	   //   f_LM_MA=0.f;
+	 //   }	  
+
+             const float maomCapacityFactor =
+             Max(0.f,1.f - MAOM[i][k] / param_qmax);
+
+              float f_LM_MA = 0.f;
+
+            if (LMWC[i][k] > 0.f) { f_LM_MA =Max(scalar_wd *kaff_lm *LMWC[i][k] *maomCapacityFactor,0.f);
+
+             f_LM_MA = Min(LMWC[i][k], f_LM_MA);
+              }
+
+
+
 
 	    // Equation 16: MA -> MAOM/LMWC 
-	    float rate_bd0 = Max(0.f,rate_bd[i] + rate_Kbd[i]*(m_soilTempprofile[i][k]-Tref));
+	    float rate_bd0 = Max(0.f, rate_bd[i] + rate_Kbd[i] * (m_soilTempprofile[i][k] - Tref));
 	    float f_MB_turn;
-	    if(MA[i][k] > 0.f){
+	    if(MIC[i][k] > 0.f){
 	      //f_MB_turn = rate_bd * MIC^2.0; // Millennial
-	      f_MB_turn = Max(rate_bd0 * MA[i][k],0.f); // Liucq
-	      f_MB_turn = Min(MA[i][k], f_MB_turn);
+	      f_MB_turn = Max(rate_bd0 * MIC[i][k], 0.f); // Liucq
+	      f_MB_turn = Min(MIC[i][k], f_MB_turn);
 	    }else{
-	      f_MB_turn=0.f;
+	      f_MB_turn = 0.f;
 	    }
+
 	    float f_MB_LM = f_MB_turn * (1. - param_pb[i]);
 	    float f_MB_MA = f_MB_turn * param_pb[i];
 	    
@@ -985,36 +2560,51 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
 	    if((f_MA_LMe + f_MA_LMm) > MAOM[i][k]){
 	      f_MA_LMe = f_MA_LMm = MAOM[i][k]/2;
 	    }
-	    float f_MA_LM = acid_des + f_MA_LMe + f_MA_LMm;
+	    // float f_MA_LM = acid_des + f_MA_LMe + f_MA_LMm;
 	    
-	    if((f_LM_leach[i][k] + f_LM_MA)>LMWC[i][k]){
-	      f_LM_leach[i][k] = f_LM_MA = LMWC[i][k]/2;
-	    }   
+        float total_lmwc_out = f_LM_leach[i][k] + f_LM_MA;
+	    // if((f_LM_leach[i][k] + f_LM_MA)>LMWC[i][k]){
+	    //   f_LM_leach[i][k] = f_LM_MA = LMWC[i][k]/2;
+	    // }   
+        if (total_lmwc_out > LMWC[i][k] && total_lmwc_out > UTIL_ZERO) {
+	        const float scale = LMWC[i][k] / total_lmwc_out;
+	        f_LM_leach[i][k] *= scale;
+	        f_LM_MA *= scale;
+	    } 
 
 	    //Flux each C pool
 	    float dPOM = f_Lit_PO - f_PO;
-	    float dLMWC = f_Lit_LM + f_Exud_LM + f_PO_LM + f_MB_LM + (f_MA_LMe + f_MA_LMm) - f_LM_leach[i][k]  - f_LM_MA;
-	    float dMA =  f_MA_growth + f_MD_MA - f_MA_MD - f_MB_turn ;
-	    float dMD =  f_MA_MD - f_MD_MA - f_MD_co2;   
+	    float dLMWC = f_Lit_LM + f_Exud_LM + f_PO_LM + f_MB_LM + (f_MA_LMe + f_MA_LMm) - f_LM_leach[i][k] - f_LM_MA;
+	    float dMIC = f_MIC_growth - f_MB_turn;
+	    //float dMD =  f_MA_MD - f_MD_MA - f_MD_co2;   
 	    float dMAOM = f_LM_MA + f_MB_MA + f_PO_MA - (f_MA_LMe + f_MA_LMm);
 
         // Update C pools
 	    POM[i][k] = POM[i][k] + dPOM;
 	    LMWC[i][k] = LMWC[i][k] + dLMWC;
-	    MA[i][k] = MA[i][k] + dMA;
-	    MD[i][k] = MD[i][k] + dMD;
+	    // MA[i][k] = MA[i][k] + dMA;
+	    // MD[i][k] = MD[i][k] + dMD;
 	    MAOM[i][k] = MAOM[i][k] + dMAOM;
-	    MIC[i][k] = MA[i][k] + MD[i][k];
+	    MIC[i][k] = MIC[i][k] + dMIC;
 	    SOM[i][k] = POM[i][k] + LMWC[i][k] + MAOM[i][k] + MIC[i][k];
-	    soilCO2[i][k] = soilCO2[i][k] + Tco2;
+	    // Store only the current day's CO2 flux; do not accumulate across days.
+	    soilCO2[i][k] = Tco2;
 
         //ljj++
         float YEW = 0.f;  
         float enr_poc = 1.0f;
         if(k==0){
-            YEW = Min((m_olWtrEroSed[i] / (m_area[i] * 0.0001f)) / m_soilMass[i][0], 0.9f);
-            if(m_soilMass[i][0]<=UTIL_ZERO) YEW = 0.f;
-            YEW = Max(YEW,0.f);
+            // Check both area and soil mass before calculating erosion fraction.
+            if (m_area[i] > UTIL_ZERO && m_soilMass[i][0] > UTIL_ZERO) {
+                const float sedimentPerArea = SafePositiveDivide(
+                    m_olWtrEroSed[i], m_area[i] * 0.0001f, 0.f);
+                YEW = SafePositiveDivide(sedimentPerArea,
+                                         m_soilMass[i][0],
+                                         0.f);
+                YEW = Min(0.9f, Max(0.f, YEW));
+            } else {
+                YEW = 0.f;
+            }
             m_soileroPOC[i] = (POM[i][0]) * YEW * enr_poc * 10.f; //--> kg/ha 
             if(m_surfrunoff[i]<=UTIL_ZERO) m_soileroPOC[i]=0.f;
             POM[i][0] -= m_soileroPOC[i] / 10.f;//--> g/m2
@@ -1027,40 +2617,28 @@ void Nutrient_Transformation::ModifiedMillennial(const int i) {
         }
 
         
-        //ljj++ consider routing
-        int id_downstream = CVT_INT(m_flowOutIdxD8[i]);
-        for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
-            if (id_downstream >= 0) {
-                LMWC[id_downstream][k] += m_soilIfluCbn[i][k]*m_area[i]/m_area[id_downstream];
-            }
+        // Vertical DOC transport to the next soil layer.
+        // m_soilPercoCbn is kg C/ha, while LMWC is g C/m2, so divide by 10.
+        if (m_soilPercoCbn[i][k] > 0.f &&
+            k < CVT_INT(m_nSoilLyrs[i]) - 1) {
+            LMWC[i][k + 1] += m_soilPercoCbn[i][k] / 10.f;
         }
 
-        if(m_soilPercoCbn[i][k] > 0.f && k<CVT_INT(m_nSoilLyrs[i])-1) {
-            LMWC[i][k+1] += m_soilPercoCbn[i][k];
-        }
-
-        MIC1[i] = MIC[i][0];
-        LMWC1[i] = LMWC[i][0];
-        POM1[i] = POM[i][0];
-        MAOM1[i] = MAOM[i][0];
-
-        if(i==68 && k==0){
-            SOL_OUT[i][0] = POM[i][k];
-            SOL_OUT[i][1] = LMWC[i][k];
-            SOL_OUT[i][2] = MAOM[i][k];
-            SOL_OUT[i][3] = MIC[i][k];
-            SOL_OUT[i][4] = DOC[i][k];
-            SOL_OUT[i][5] = f_LM_leach[i][k];
-        }
     }
-    m_soilPercoCbnLowest[i] = m_soilPercoCbn[i][CVT_INT(m_nSoilLyrs[i])-1];
+
+    const int nSoilLyrs = CVT_INT(m_nSoilLyrs[i]);
+    if (nSoilLyrs > 0) {
+        m_soilPercoCbnLowest[i] = m_soilPercoCbn[i][nSoilLyrs - 1];
+    } else {
+        m_soilPercoCbnLowest[i] = 0.f;
+    }
 
 }
 
 void Nutrient_Transformation::RootFraction(const int i, float*& root_fr) {
     
     float cum_rd = 0.f, cum_d = 0.f, cum_rf = 0.f, x1 = 0.f, x2 = 0.f;
-    if (m_stoSoilRootD[i] < UTIL_ZERO) {
+    if (m_stoSoilRootD[i] <= UTIL_ZERO) {
         root_fr[0] = 1.f;
         return;
     }
@@ -1076,7 +2654,8 @@ void Nutrient_Transformation::RootFraction(const int i, float*& root_fr) {
         cum_d += m_soilThk[i][l];
         if (cum_d >= m_stoSoilRootD[i]) cum_rd = m_stoSoilRootD[i];
         if (cum_d < m_stoSoilRootD[i]) cum_rd = cum_d;
-        x1 = (cum_rd - m_soilThk[i][l]) / m_stoSoilRootD[i];
+        // Use the actual upper boundary of the current layer.
+        x1 = Max(0.f, (cum_d - m_soilThk[i][l]) / m_stoSoilRootD[i]);
         x2 = cum_rd / m_stoSoilRootD[i];
         float xx1 = -b * x1;
         if (xx1 > 20.f) xx1 = 20.f;
@@ -1096,8 +2675,13 @@ void Nutrient_Transformation::RootFraction(const int i, float*& root_fr) {
     }
     
     /// ensures that cumulative fractional root distribution = 1
+    if (cum_rf <= UTIL_ZERO || !std::isfinite(cum_rf)) {
+        for (int l = 0; l < CVT_INT(m_nSoilLyrs[i]); ++l) root_fr[l] = 0.f;
+        root_fr[0] = 1.f;
+        return;
+    }
     for (int l = 0; l < CVT_INT(m_nSoilLyrs[i]); l++) {
-        root_fr[l] /= cum_rf;
+        root_fr[l] = SafePositiveDivide(root_fr[l], cum_rf, 0.f);
         if (l == k) {
             /// exits loop on the same layer as the previous loop
             break;
@@ -1106,9 +2690,10 @@ void Nutrient_Transformation::RootFraction(const int i, float*& root_fr) {
 }
 
 void Nutrient_Transformation::MineralizationStaticCarbonMethod(const int i) {
-    for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
-        //soil layer used to compute soil water and soil temperature factors
-        int kk = k == 0 ? 1 : k;
+    const int nSoilLyrs = CVT_INT(m_nSoilLyrs[i]);
+    for (int k = 0; k < nSoilLyrs; k++) {
+        // Use layer 1 for surface controls only when it exists.
+        int kk = (k == 0 && nSoilLyrs > 1) ? 1 : k;
         float sut = 0.f;
         // mineralization can occur only if temp above 0 deg
         //if (m_soilTemp[i] > 0) {
@@ -1118,7 +2703,9 @@ void Nutrient_Transformation::MineralizationStaticCarbonMethod(const int i) {
                 m_soilWtrSto[i][kk] = 0.0000001f;
             }
             //sut = 0.1f + 0.9f * sqrt(m_soilWtrSto[i][kk] / m_soilFC[i][kk]);
-            sut = 0.1f + 0.9f * sqrt(m_soilWtrSto[i][kk] / m_soilAWC[i][kk]);
+            const float awcRatio = Max(0.f, SafePositiveDivide(
+                m_soilWtrSto[i][kk], m_soilAWC[i][kk], 0.f));
+            sut = 0.1f + 0.9f * sqrt(awcRatio);
             sut = Max(0.05f, sut);
 
             //compute soil temperature factor
@@ -1128,7 +2715,8 @@ void Nutrient_Transformation::MineralizationStaticCarbonMethod(const int i) {
             float cdg = 0.f;
             //xx = m_soilTemp[i];
             xx = m_soilTempprofile[i][kk];
-            cdg = 0.9f * xx / (xx + exp(9.93f - 0.312f * xx)) + 0.1f;
+            const float cdgDenom = xx + exp(9.93f - 0.312f * xx);
+            cdg = 0.9f * SafePositiveDivide(xx, cdgDenom, 0.f) + 0.1f;
             cdg = Max(0.1f, cdg);
 
             // compute combined factor
@@ -1250,8 +2838,8 @@ void Nutrient_Transformation::MineralizationStaticCarbonMethod(const int i) {
                 m_soilSolP[i][k] = m_soilSolP[i][k] + 0.8f * rmp;
                 m_soilHumOrgP[i][k] = m_soilHumOrgP[i][k] + 0.2f * rmp;
             }
-            //  compute denitrification
-            //amount of nitrogen lost from nitrate pool in layer due to denitrification
+            // compute denitrification
+            // amount of nitrogen lost from nitrate pool in layer due to denitrification
             float wdn = 0.f;
             //Calculate wdn, equation 3:1.4.1 and 3:1.4.2 in SWAT Theory 2009, p194
             if (sut >= m_denitThres) {
@@ -1300,7 +2888,9 @@ void Nutrient_Transformation::Volatilization(const int i) {
             sw25 = m_soilWP[i][k] + 0.25f * m_soilAWC[i][k];
             swwp = m_soilWP[i][k] + m_soilWtrSto[i][k];
             if (swwp < sw25) {
-                swf = (swwp - m_soilWP[i][k]) / (sw25 - m_soilWP[i][k]);
+                swf = SafePositiveDivide(swwp - m_soilWP[i][k],
+                                         sw25 - m_soilWP[i][k],
+                                         0.f);
             } else {
                 swf = 1.f;
             }
@@ -1377,9 +2967,11 @@ void Nutrient_Transformation::CalculatePflux(const int i) {
         float solp = 0.f;
         float actp = 0.f;
         float stap = 0.f;
-        solp = m_soilSolP[i][k] / m_conv_wt[i][k] * 1000000.f;
-        actp = m_soilActvMinP[i][k] / m_conv_wt[i][k] * 1000000.f;
-        stap = m_soilStabMinP[i][k] / m_conv_wt[i][k] * 1000000.f;
+        if (m_conv_wt[i][k] > UTIL_ZERO) {
+            solp = SafePositiveDivide(m_soilSolP[i][k], m_conv_wt[i][k], 0.f) * 1000000.f;
+            actp = SafePositiveDivide(m_soilActvMinP[i][k], m_conv_wt[i][k], 0.f) * 1000000.f;
+            stap = SafePositiveDivide(m_soilStabMinP[i][k], m_conv_wt[i][k], 0.f) * 1000000.f;
+        }
 
         // ***************Soluble - Active Transformations***************
         // Dynamic PSP Ratio
@@ -1473,7 +3065,9 @@ void Nutrient_Transformation::CalculatePflux(const int i) {
         // **************** Account for Soil Water content, do not allow movement in dry soil************
         float wetness = 0.f;
         //wetness = m_soilWtrSto[i][k] / m_soilFC[i][k]; // range from 0-1 1 = field cap
-        wetness = m_soilWtrSto[i][k] / m_soilAWC[i][k]; // range from 0-1 1 = field cap
+        wetness = SafePositiveDivide(m_soilWtrSto[i][k],
+                                      m_soilAWC[i][k],
+                                      0.25f); // range from 0-1, 1 = field capacity
         if (wetness > 1.f) wetness = 1.f;
         if (wetness < 0.25f) wetness = 0.25f;
         rmn1 *= wetness;
@@ -1525,7 +3119,7 @@ void Nutrient_Transformation::MineralizationCenturyModel(const int i) {
     // BMNTP   : potential transformation of N in microbial biomass (kg ha-1 day-1)
     // CDG     : soil temperature control on biological processes
     // CNR     : C/N ratio of standing dead
-    // CS      : combined factor controlling biological processes [CS = sqrt(CDG�SUT)* 0.8*OX*X1), CS < 10; CS = 10, CS>=10 (Williams, 1995)]
+    // CS      : combined factor controlling biological processes [CS = sqrt(CDG SUT)* 0.8*OX*X1), CS < 10; CS = 10, CS>=10 (Williams, 1995)]
     // DBp     : soil bulk density of plow layer (Mg m-3) (Not used)
     // HSCTP   : potential transformation of C in slow humus (kg ha-1 day-1)
     // HSNTP   : potential transformation of N in slow humus (kg ha-1 day-1)
@@ -1564,7 +3158,7 @@ void Nutrient_Transformation::MineralizationCenturyModel(const int i) {
     float ADD = 0.f, ADF1 = 0.f, ADF2 = 0.f, ADF3 = 0.f, ADF4 = 0.f, ADF5 = 0.f;
     float TOT = 0.f, PN1 = 0.f, PN2 = 0.f, PN3 = 0.f, PN5 = 0.f, PN6 = 0.f, PN7 = 0.f, PN8 = 0.f, PN9 = 0.f;
     float SUM = 0.f, CPN1 = 0.f, CPN2 = 0.f, CPN3 = 0.f, CPN4 = 0.f, CPN5 = 0.f, RTO = 0.f;
-    float wdn = 0.f;
+    /*float wdn = 0.f;*/
     // SNMN = 0.f, PN4 = 0.f, ALMCO2 = 0.f, ALSLCO2 = 0.f, ALSLNCO2 = 0.f, LSLNCAT = 0.f . NOT used in this module
     // XBMT = 0.f, XLSLF = 0.f, LSLF = 0.f, LSF = 0.f, LMF = 0.f, x3 = 0.f
     /// calculate tillage factor using DSSAT
@@ -1575,27 +3169,36 @@ void Nutrient_Transformation::MineralizationCenturyModel(const int i) {
     }
 
     /// calculate C/N dynamics for each soil layer
-    for (int k = 0; k < CVT_INT(m_nSoilLyrs[i]); k++) {
-        //If k = 1, using temperature, soil moisture in layer 2 to calculate decomposition factor
-        int kk = k == 0 ? 1 : k;
+    const int nSoilLyrs = CVT_INT(m_nSoilLyrs[i]);
+    for (int k = 0; k < nSoilLyrs; k++) {
+		// RSPC is a daily flux, not a persistent carbon pool.
+	    // Reset first so an inactive/cold layer does not retain yesterday's RSPC.
+		m_sol_RSPC[i][k] = 0.f;
+        // If layer 0 exists alone, use itself rather than reading layer 1 out of bounds.
+        int kk = (k == 0 && nSoilLyrs > 1) ? 1 : k;
         // mineralization can occur only if temp above 0 deg
-        //check sol_st soil water content in each soil ayer mm H2O
-        //if (m_soilTemp[i] > 0.f && m_soilWtrSto[i][k] > 0.f) {
+        // check sol_st soil water content in each soil ayer mm H2O
+        // if (m_soilTemp[i] > 0.f && m_soilWtrSto[i][k] > 0.f) {
         if (m_soilTempprofile[i][k] > 0.f && m_soilWtrSto[i][k] > 0.f) {
-            //from Armen
-            //compute soil water factor - sut
+            // from Armen
+            // compute soil water factor - sut
             // float fc = m_sol_awc[i][k] + m_sol_wpmm[i][k];            // units mm
             float wc = m_soilWtrSto[i][k] + m_soilWP[i][k];    // units mm
             float sat = m_soilSat[i][k] + m_soilWP[i][k];      // units mm
-            float voidfr = m_soilPor[i][k] * (1.f - wc / sat); // fraction
+            const float wcSatRatio = SafePositiveDivide(wc, sat, 0.f);
+            float voidfr = m_soilPor[i][k] * (1.f - wcSatRatio); // fraction
 
             float sut = 0.f;
             x1 = wc - m_soilWP[i][k];
             if (x1 < 0.f) {
-                sut = .1f * pow(m_soilWtrSto[i][kk] / m_soilWP[i][k], 2.f);
+                const float wpRatio = Max(0.f, SafePositiveDivide(
+                    m_soilWtrSto[i][kk], m_soilWP[i][k], 0.f));
+                sut = .1f * pow(wpRatio, 2.f);
             } else {
                 //sut = .1f + .9f * sqrt(m_soilWtrSto[i][kk] / m_soilFC[i][k]);
-                sut = .1f + .9f * sqrt(m_soilWtrSto[i][kk] / m_soilAWC[i][k]);
+                const float awcRatio = Max(0.f, SafePositiveDivide(
+                    m_soilWtrSto[i][kk], m_soilAWC[i][k], 0.f));
+                sut = .1f + .9f * sqrt(awcRatio);
             }
             sut = Min(1.f, sut);
             sut = Max(.05f, sut);
@@ -1609,8 +3212,11 @@ void Nutrient_Transformation::MineralizationCenturyModel(const int i) {
                 } else {
                     if (m_soilDepth[i][k] >= m_tillDepth[i]) {
                         x1 = 1.6f;
-                    } else if (m_soilDepth[i][k - 1] > m_tillDepth[i]) {
-                        x1 = 1.f + 0.6f * (m_tillDepth[i] - m_soilDepth[i][k - 1]) / m_soilThk[i][k];
+                    } else if (k > 0 && m_soilDepth[i][k - 1] > m_tillDepth[i]) {
+                        x1 = 1.f + 0.6f * SafePositiveDivide(
+                            m_tillDepth[i] - m_soilDepth[i][k - 1],
+                            m_soilThk[i][k],
+                            0.f);
                     }
                 }
             } else {
@@ -1629,17 +3235,21 @@ void Nutrient_Transformation::MineralizationCenturyModel(const int i) {
 
             //compute oxygen (OX)
             float ox = 0.f;
-            // ox = 1 - (0.9* sol_z[i][k]/1000.) / (sol_z[i][k]/1000.+ exp(1.50-3.99*sol_z[i][k]/1000.))
-            // ox = 1 - (0.8* sol_z[i][k]) / (sol_z[i][k]+ exp(1.50-3.99*sol_z[i][k]))
-            ox = 1.f - 0.8f * ((m_soilDepth[i][kk] + m_soilDepth[i][kk - 1]) * 0.5f) /
-            ((m_soilDepth[i][kk] + m_soilDepth[i][kk - 1]) * 0.5f +
-                exp(18.40961f - 0.023683632f * ((m_soilDepth[i][kk] + m_soilDepth[i][kk - 1]) * 0.5f)));
+            // Use zero as the upper boundary of the first layer to avoid kk - 1.
+            const float upperDepth = kk > 0 ? m_soilDepth[i][kk - 1] : 0.f;
+            const float middleDepth = 0.5f * (m_soilDepth[i][kk] + upperDepth);
+            const float oxygenDenom = middleDepth +
+                exp(18.40961f - 0.023683632f * middleDepth);
+            ox = 1.f - 0.8f * SafePositiveDivide(
+                middleDepth, oxygenDenom, 0.f);
             // compute combined factor
             float cs = 0.f;
             cs = Min(10.f, sqrt(cdg * sut) * 0.9f * ox * x1);
             // call denitrification (to use void fraction and cdg factor)
             // repetitive computation, commented by LJ
-            //cdg = pow((m_soilTemp[i]) + 5.f, 8.f / 3.f) * (50.f - m_soilTemp[i]) / (pow(40.f, 8.f / 3.f) * 15.f);
+            // cdg = pow((m_soilTemp[i]) + 5.f, 8.f / 3.f) * (50.f - m_soilTemp[i]) / (pow(40.f, 8.f / 3.f) * 15.f);
+			// Denitrification is a current-layer flux.
+			float wdn = 0.f;
             if (cdg > 0.f && voidfr <= 0.1f) {
                 // call ndenit(k,j,cdg,wdn,void);
                 // rewrite from ndenit.f of SWAT
@@ -1647,8 +3257,8 @@ void Nutrient_Transformation::MineralizationCenturyModel(const int i) {
                 wdn = m_soilNO3[i][k] * (1.f - exp(-m_denitCoef * cdg * vof * m_soilCbn[i][k]));
                 m_soilNO3[i][k] -= wdn;
             }
-            m_wshd_dnit += wdn * m_cellAreaFr;
-            m_wdntl[i] += wdn;
+            /*m_wshd_dnit += wdn * m_cellAreaFr;
+            m_wdntl[i] += wdn;*/
 
             float sol_min_n = m_soilNO3[i][k] + m_soilNH4[i][k];
             //if(i == 100 && k == 0) cout << m_sol_LSL[i][k] << m_sol_LS[i][k] << endl;
@@ -1693,7 +3303,9 @@ void Nutrient_Transformation::MineralizationCenturyModel(const int i) {
                 LSR = .0132f;
                 XBM = .25f + .0075f * m_soilSand[i][k];
 
-                x1 = 1000.f * sol_min_n / (m_soilMass[i][k] * 0.001f);
+                x1 = SafePositiveDivide(1000.f * sol_min_n,
+                                        m_soilMass[i][k] * 0.001f,
+                                        0.f);
                 if (x1 > 7.15f) {
                     NCBM = .33f;
                     NCHS = .083f;
@@ -1748,6 +3360,13 @@ void Nutrient_Transformation::MineralizationCenturyModel(const int i) {
 
             // COMPARE SUPPLY AND DEMAND FOR N
             SUM = 0.f;
+			// Must be reset for every soil layer.
+            // Otherwise the N deficit from the previous layer is retained.
+			CPN1 = 0.f;
+			CPN2 = 0.f;
+			CPN3 = 0.f;
+			CPN4 = 0.f;
+			CPN5 = 0.f;
             x1 = PN1 + PN2;
             if (LSNTP < x1) { CPN1 = x1 - LSNTP; } else { SUM = SUM + LSNTP - x1; }
             if (LMNTP < PN3) { CPN2 = PN3 - LMNTP; } else { SUM = SUM + LMNTP - PN3; }
@@ -1765,6 +3384,56 @@ void Nutrient_Transformation::MineralizationCenturyModel(const int i) {
             // REDUCE DEMAND if SUPPLY LIMITS
             if (Wmin < DMDN) x3 = Wmin / DMDN;
 
+			// ============================================================
+            // DEBUG: Check nitrogen limitation factor x3
+            // Only print the five wetland cells when x3 < 0.99
+            // ============================================================
+			const bool DEBUG_X3 = false;
+			const bool debugX3Cell =
+				(i == 1366 ||
+					i == 1367 ||
+					i == 1368 ||
+					i == 1370 ||
+					i == 1375);
+
+			if (DEBUG_X3 && debugX3Cell && x3 < 0.99f) {
+
+#pragma omp critical(X3_DEBUG_PRINT)
+				{
+					const std::time_t currentDate =
+						static_cast<std::time_t>(m_date);
+
+					std::tm dateInfo = {};
+
+#ifdef _WIN32
+					localtime_s(&dateInfo, &currentDate);
+#else
+					localtime_r(&currentDate, &dateInfo);
+#endif
+
+					char dateText[16] = {};
+
+					std::strftime(
+						dateText,
+						sizeof(dateText),
+						"%Y-%m-%d",
+						&dateInfo
+					);
+
+					std::cout
+						<< "[X3_N_LIMIT]"
+						<< " DATE=" << dateText
+						<< " CELL=" << i
+						<< " LAYER=" << k
+						<< " x3=" << x3
+						<< " Wmin=" << Wmin
+						<< " DMDN=" << DMDN
+						<< " NO3=" << m_soilNO3[i][k]
+						<< " NH4=" << m_soilNH4[i][k]
+						<< std::endl;
+				}
+			}
+
             // ACTUAL TRANSFORMATIONS
 
             if (CPN1 > 0.f) {
@@ -1777,6 +3446,7 @@ void Nutrient_Transformation::MineralizationCenturyModel(const int i) {
                 LSNTA = LSNTP;
                 LSLCTA = LSLCTP;
                 //LSLNCAT = LSLNCTP;
+				LSLNCTA = LSLNCTP;
             }
             if (CPN2 > 0.f) {
                 LMCTA = LMCTP * x3;
@@ -1924,21 +3594,198 @@ void Nutrient_Transformation::MineralizationCenturyModel(const int i) {
             ADF5 = Abs(DF5);
             TOT = ADF1 + ADF2 + ADF3 + ADF4 + ADF5;
             xx = ADD / (TOT + 1.e-10f);
+
             m_sol_LSN[i][k] = Max(.001f, m_sol_LSN[i][k] - DF1 + xx * ADF1);
             m_sol_LMN[i][k] = Max(.001f, m_sol_LMN[i][k] - DF2 + xx * ADF2);
             m_sol_BMN[i][k] = Max(.001f, m_sol_BMN[i][k] - DF3 + xx * ADF3);
             m_sol_HSN[i][k] = Max(.001f, m_sol_HSN[i][k] - DF4 + xx * ADF4);
             m_sol_HPN[i][k] = Max(.001f, m_sol_HPN[i][k] - DF5 + xx * ADF5);
+
             m_sol_RSPC[i][k] = .3f * LSLCTA + A1CO2 * (LSLNCTA + LMCTA) +
                     ABCO2 * BMCTA + ASCO2 * HSCTA + APCO2 * HPCTA;
+
+
+			// ---------------------------------------------------------------------
+            // Temporary diagnostics for CENTURY RSPC production.
+            // This block only writes diagnostic values and does not modify the model.
+            // ---------------------------------------------------------------------
+			const bool DEBUG_RSPC_SOURCE = false;
+
+			if (DEBUG_RSPC_SOURCE) {
+
+				const bool debugCell =
+					i == 1362 ||
+					i == 1363 ||
+					i == 1364 ||
+					i == 1365 ||
+					i == 1366 ||
+					i == 1367 ||
+					i == 1368 ||
+					i == 1370 ||
+					i == 1375;
+
+				if (debugCell) {
+
+					const std::time_t currentDate =
+						static_cast<std::time_t>(m_date);
+
+					std::tm dateInfo = {};
+
+#ifdef _WIN32
+					localtime_s(&dateInfo, &currentDate);
+#else
+					localtime_r(&currentDate, &dateInfo);
+#endif
+
+					const int debugYear = dateInfo.tm_year + 1900;
+
+					// Model can run from 1980, but diagnostics are written only for 2010-2015.
+					if (debugYear >= 2010 && debugYear <= 2015) {
+
+						char dateText[16] = {};
+
+						std::strftime(
+							dateText,
+							sizeof(dateText),
+							"%Y-%m-%d",
+							&dateInfo
+						);
+
+#pragma omp critical(RSPC_SOURCE_DIAG_WRITE)
+						{
+							static std::ofstream debugFile;
+							static bool debugFileInitialized = false;
+
+							if (!debugFileInitialized) {
+
+								const char* outputPath =
+									"D:/SEIMS_C/data/CW_2/CW_2_longterm_model/"
+									"OUTPUT0/RSPC_SOURCE_DIAG.csv";
+
+								debugFile.open(
+									outputPath,
+									std::ios::out | std::ios::trunc
+								);
+
+								if (!debugFile.is_open()) {
+									std::cerr
+										<< "[RSPC_DIAG_ERROR] Cannot open: "
+										<< outputPath
+										<< std::endl;
+								}
+								else {
+									debugFile
+										<< "DATE,"
+										<< "CELL,"
+										<< "LAYER,"
+										<< "CONTROL_LAYER,"
+										<< "TEMP_LAYER_C,"
+										<< "TEMP_CONTROL_C,"
+										<< "WATER_LAYER_mm,"
+										<< "WATER_CONTROL_mm,"
+										<< "WP_mm,"
+										<< "AWC_mm,"
+										<< "SAT_PLUS_WP_mm,"
+										<< "POROSITY,"
+										<< "VOIDFR,"
+										<< "SUT,"
+										<< "CDG,"
+										<< "OX,"
+										<< "CS,"
+										<< "LSC_kgCha,"
+										<< "LMC_kgCha,"
+										<< "BMC_kgCha,"
+										<< "HSC_kgCha,"
+										<< "HPC_kgCha,"
+										<< "LSLCTA,"
+										<< "LSLNCTA,"
+										<< "LMCTA,"
+										<< "BMCTA,"
+										<< "HSCTA,"
+										<< "HPCTA,"
+										<< "RSPC_STRUCTURAL,"
+										<< "RSPC_LITTER,"
+										<< "RSPC_BIOMASS,"
+										<< "RSPC_SLOW,"
+										<< "RSPC_PASSIVE,"
+										<< "RSPC_TOTAL_kgCha_d"
+										<< '\n';
+								}
+
+								debugFileInitialized = true;
+							}
+
+							if (debugFile.is_open()) {
+
+								const float rspcStructural =
+									0.3f * LSLCTA;
+
+								const float rspcLitter =
+									A1CO2 * (LSLNCTA + LMCTA);
+
+								const float rspcBiomass =
+									ABCO2 * BMCTA;
+
+								const float rspcSlow =
+									ASCO2 * HSCTA;
+
+								const float rspcPassive =
+									APCO2 * HPCTA;
+
+								debugFile
+									<< std::fixed
+									<< std::setprecision(8)
+									<< dateText << ','
+									<< i << ','
+									<< k << ','
+									<< kk << ','
+									<< m_soilTempprofile[i][k] << ','
+									<< m_soilTempprofile[i][kk] << ','
+									<< m_soilWtrSto[i][k] << ','
+									<< m_soilWtrSto[i][kk] << ','
+									<< m_soilWP[i][k] << ','
+									<< m_soilAWC[i][k] << ','
+									<< sat << ','
+									<< m_soilPor[i][k] << ','
+									<< voidfr << ','
+									<< sut << ','
+									<< cdg << ','
+									<< ox << ','
+									<< cs << ','
+									<< m_sol_LSC[i][k] << ','
+									<< m_sol_LMC[i][k] << ','
+									<< m_sol_BMC[i][k] << ','
+									<< m_sol_HSC[i][k] << ','
+									<< m_sol_HPC[i][k] << ','
+									<< LSLCTA << ','
+									<< LSLNCTA << ','
+									<< LMCTA << ','
+									<< BMCTA << ','
+									<< HSCTA << ','
+									<< HPCTA << ','
+									<< rspcStructural << ','
+									<< rspcLitter << ','
+									<< rspcBiomass << ','
+									<< rspcSlow << ','
+									<< rspcPassive << ','
+									<< m_sol_RSPC[i][k]
+									<< '\n';
+							}
+						}
+					}
+				}
+			}
+
             
             m_soilRsd[i][k] = m_sol_LS[i][k] + m_sol_LM[i][k];   //ljj++ for new carbon module should be delete
             m_soilStabOrgN[i][k] = m_sol_HPN[i][k];
                 SOL_OUT[i][4] = m_sol_BMC[i][k];
             m_soilActvOrgN[i][k] = m_sol_HSN[i][k];
             m_soilFrshOrgN[i][k] = m_sol_LMN[i][k] + m_sol_LSN[i][k];
-            m_soilCbn[i][k] = 100.f * (m_sol_LSC[i][k] + m_sol_LMC[i][k] + m_sol_HSC[i][k] +
-                m_sol_HPC[i][k] + m_sol_BMC[i][k]) / m_soilMass[i][k];
+            const float centuryCarbon = m_sol_LSC[i][k] + m_sol_LMC[i][k] +
+                m_sol_HSC[i][k] + m_sol_HPC[i][k] + m_sol_BMC[i][k];
+            m_soilCbn[i][k] = 100.f * SafePositiveDivide(
+                centuryCarbon, m_soilMass[i][k], 0.f);
             m_soil_carbon[i][k] = (m_sol_LSC[i][k] + m_sol_LMC[i][k] + m_sol_HSC[i][k] +
                 m_sol_HPC[i][k] + m_sol_BMC[i][k]);
             if(i==17){
@@ -2140,11 +3987,33 @@ void Nutrient_Transformation::Get2DData(const char* key, int* nRows, int* nCols,
     else if (StringMatch(sk, VAR_HPC)) {
         *data = m_sol_HPC;
     } 
+    else if (StringMatch(sk, "MIC")) {
+        *data = MIC;
+    }
+    else if (StringMatch(sk, "LMWC")) {
+        *data = LMWC;
+    }
+    else if (StringMatch(sk, "POM")) {
+        *data = POM;
+    }
+    else if (StringMatch(sk, "MAOM")) {
+        *data = MAOM;
+    }
+    else if (StringMatch(sk, "SOILCO2")) {
+        *data = soilCO2;
+    }
+    else if (StringMatch(sk, "SOC")) {
+        // SOM is synchronized after all local and routed carbon updates:
+        // SOC = POM + LMWC + MAOM + MIC.
+        *data = SOM;
+    }
     else if (StringMatch(sk, "DOC")) {
+        // Dynamic DOC concentration converted from LMWC, unit: mg C/kg soil.
         *data = DOC;
     }
     else if (StringMatch(sk, "SOC_OUT")) {
         *data = SOL_OUT;
+        *nCols = 6;
     }
     else if (StringMatch(sk, "SUBSURFDOC")) {
         *data = m_soilIfluCbn;

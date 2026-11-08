@@ -2,61 +2,77 @@
 #include "text.h"
 #include <cmath>
 #include <algorithm>
+#include <limits>
+#include <fstream>
+#include <iomanip>
+#include <ctime>
 
 
 // Initialize all member variables, set pointers to nullptr, set values to 0
 CH4_LPJGUESS::CH4_LPJGUESS() :
-	m_nCells(-1),m_maxSoilLyrs(-1),m_co2Conc(NODATA_VALUE),m_area(nullptr),m_Tsoil(nullptr),m_nSoilLyrs(nullptr),m_rootFraction(nullptr), 
-	m_layer_thickness(nullptr),m_soil_water_storage(nullptr),m_soilPor(nullptr),m_soilWP(nullptr),m_Fair(nullptr),m_soilIceSto(nullptr),
-	m_anoxic(nullptr),m_CH4_prod(nullptr),m_CH4_oxid(nullptr),m_D_CH4_water(nullptr),m_D_CO2_water(nullptr),m_D_O2_water(nullptr),
-	m_D_CH4_air(nullptr),m_D_CO2_air(nullptr),m_D_O2_air(nullptr),m_dCH4(nullptr),m_dCO2(nullptr),m_dO2(nullptr),m_D_CH4(nullptr), m_sol_RSPC(nullptr),
-	m_D_CO2(nullptr),m_D_O2(nullptr),m_k_O2(nullptr),m_k_CH4(nullptr),m_k_CO2(nullptr),m_Ceq_O2(nullptr),m_Ceq_CH4(nullptr), m_CH4_vgc(nullptr),
-	m_Ceq_CO2(nullptr),m_C(nullptr),m_Cgas(nullptr),m_total_volume_water(nullptr),m_Frac_water(nullptr),m_Frac_ice(nullptr), m_CH4_gas_vol(nullptr),
-	m_Frac_water_belowpwp(nullptr),m_Dz_metre(nullptr),m_volume_liquid_water(nullptr),m_C_init(nullptr),m_C_last(nullptr), m_CH4_gas(nullptr), m_CH4_ebull_vol(nullptr),
-	m_handWtrDep(nullptr),m_CO2_soil(nullptr), m_CO2_soil_yesterday(nullptr), m_CO2_soil_prod(nullptr),m_CH4(nullptr), m_CH4_gas_yesterday(nullptr),
-	m_CH4_yesterday(nullptr), m_O2(nullptr), m_soilSaturation(nullptr), m_CH4_ebull_ind(nullptr), m_CH4_diss_yesterday(nullptr), m_CH4_diss(nullptr),
-	m_CH4_prod_hour(nullptr), m_CH4_oxid_hour(nullptr), m_CH4_diff_hour(nullptr), m_CH4_ebull_hour(nullptr), m_CH4_flux_hour(nullptr), m_landuse(nullptr), m_lai(nullptr),m_maxLai(nullptr), m_biomass(nullptr),
-	m_icnum(nullptr), m_tiller_area(nullptr)
+	m_nCells(-1),m_maxSoilLyrs(-1),m_co2Conc(NODATA_VALUE), m_walterTveg(NODATA_VALUE),m_walterPox(NODATA_VALUE),
+	m_ch4Co2Ratio(NODATA_VALUE), m_fGas(NODATA_VALUE),m_oxidFrac(NODATA_VALUE), m_walterTgr(NODATA_VALUE),
+	m_area(nullptr),m_Tsoil(nullptr),m_nSoilLyrs(nullptr),m_rootFraction(nullptr), m_peatRootFraction(nullptr),
+	m_layer_thickness(nullptr),m_soil_water_storage(nullptr),m_soilPor(nullptr),m_soilWP(nullptr),m_Fair(nullptr),
+	m_soilIceSto(nullptr),m_anoxic(nullptr),m_CH4_prod(nullptr),m_CH4_oxid(nullptr),m_D_CH4_water(nullptr),
+	m_D_CO2_water(nullptr),m_D_O2_water(nullptr),m_D_CH4_air(nullptr),m_D_CO2_air(nullptr),m_D_O2_air(nullptr),
+	m_dCH4(nullptr),m_dCO2(nullptr),m_dO2(nullptr),m_D_CH4(nullptr), m_sol_RSPC(nullptr),m_D_CO2(nullptr),
+	m_D_O2(nullptr),m_k_O2(nullptr),m_k_CH4(nullptr),m_k_CO2(nullptr),m_Ceq_O2(nullptr),m_Ceq_CH4(nullptr),
+	m_CH4_vgc(nullptr),m_Ceq_CO2(nullptr),m_C(nullptr),m_Cgas(nullptr),m_total_volume_water(nullptr),
+	m_Frac_water(nullptr),m_Frac_ice(nullptr), m_CH4_gas_vol(nullptr),m_Frac_water_belowpwp(nullptr),
+	m_Dz_metre(nullptr),m_volume_liquid_water(nullptr),m_C_init(nullptr),m_C_last(nullptr), m_CH4_gas(nullptr),
+	m_CH4_ebull_vol(nullptr),m_handWtrDep(nullptr),m_CO2_soil(nullptr), m_CO2_soil_yesterday(nullptr),
+	m_CO2_soil_prod(nullptr),m_CH4(nullptr), m_CH4_gas_yesterday(nullptr),m_CH4_yesterday(nullptr), m_O2(nullptr),
+	m_soilSaturation(nullptr), m_CH4_ebull_ind(nullptr),m_CH4_diss_yesterday(nullptr), m_CH4_diss(nullptr),
+	m_CH4_prod_hour(nullptr), m_CH4_oxid_hour(nullptr), m_CH4_diff_hour(nullptr), m_CH4_ebull_hour(nullptr),
+	m_CH4_flux_hour(nullptr), m_landuse(nullptr), m_lai(nullptr),m_maxLai(nullptr), m_biomass(nullptr),
+	m_tiller_area(nullptr), m_rootDepth(nullptr),m_CH4_plant_hour(nullptr), m_snowAccum(nullptr), m_cellLat(nullptr)
 {
 	
 }
 
 CH4_LPJGUESS::~CH4_LPJGUESS() {
 
-	if (m_area != nullptr) Release1DArray(m_area);
+	// One-dimensional arrays allocated by this module.
+	/*if (m_area != nullptr) Release1DArray(m_area);*/
 	if (m_k_O2 != nullptr) Release1DArray(m_k_O2);
 	if (m_k_CH4 != nullptr) Release1DArray(m_k_CH4);
 	if (m_k_CO2 != nullptr) Release1DArray(m_k_CO2);
 	if (m_Ceq_O2 != nullptr) Release1DArray(m_Ceq_O2);
 	if (m_Ceq_CH4 != nullptr) Release1DArray(m_Ceq_CH4);
 	if (m_Ceq_CO2 != nullptr) Release1DArray(m_Ceq_CO2);
-	if (m_nSoilLyrs != nullptr) Release1DArray(m_nSoilLyrs);
-	if (m_handWtrDep != nullptr) Release1DArray(m_handWtrDep);
+	/*if (m_nSoilLyrs != nullptr) Release1DArray(m_nSoilLyrs);*/
+	/*if (m_handWtrDep != nullptr) Release1DArray(m_handWtrDep);*/
 
-	if (m_icnum != nullptr) Release1DArray(m_icnum);
-	if (m_lai != nullptr) Release1DArray(m_lai);
+	/*if (m_icnum != nullptr) Release1DArray(m_icnum);*/
+	/*if (m_lai != nullptr) Release1DArray(m_lai);
 	if (m_maxLai != nullptr) Release1DArray(m_maxLai);
 	if (m_landuse != nullptr) Release1DArray(m_landuse);
-	if (m_biomass != nullptr) Release1DArray(m_biomass);
+	if (m_biomass != nullptr) Release1DArray(m_biomass);*/
 
 	if (m_CH4_prod_hour != nullptr) Release1DArray(m_CH4_prod_hour);
 	if (m_CH4_oxid_hour != nullptr) Release1DArray(m_CH4_oxid_hour);
 	if (m_CH4_diff_hour != nullptr) Release1DArray(m_CH4_diff_hour);
 	if (m_CH4_ebull_hour != nullptr) Release1DArray(m_CH4_ebull_hour);
 	if (m_CH4_flux_hour != nullptr) Release1DArray(m_CH4_flux_hour);
+	/*if (m_rootDepth != nullptr) Release1DArray(m_rootDepth);*/
+	/*if (m_Tveg != nullptr) Release1DArray(m_Tveg);*/
+	if (m_CH4_plant_hour != nullptr) Release1DArray(m_CH4_plant_hour);
 
-
-	if (m_Tsoil != nullptr) Release2DArray(m_nCells, m_Tsoil);
+	// Two-dimensional arrays allocated by this module.
+	/*if (m_Tsoil != nullptr) Release2DArray(m_nCells, m_Tsoil);
 	if (m_soilWP != nullptr) Release2DArray(m_nCells, m_soilWP);
 	if (m_soilPor != nullptr) Release2DArray(m_nCells, m_soilPor);
-	if (m_soilIceSto != nullptr) Release2DArray(m_nCells, m_soilIceSto);
+	if (m_soilIceSto != nullptr) Release2DArray(m_nCells, m_soilIceSto);*/
+	if (m_Fair != nullptr) Release2DArray(m_nCells, m_Fair);
 	if (m_rootFraction != nullptr) Release2DArray(m_nCells, m_rootFraction);
+	if (m_peatRootFraction != nullptr)Release2DArray(m_nCells, m_peatRootFraction);
 	if (m_soilSaturation != nullptr) Release2DArray(m_nCells, m_soilSaturation);
-	if (m_layer_thickness != nullptr) Release2DArray(m_nCells, m_layer_thickness);
+	/*if (m_layer_thickness != nullptr) Release2DArray(m_nCells, m_layer_thickness);*/
 	if (m_anoxic != nullptr) Release2DArray(m_nCells, m_anoxic);
 	if (m_CH4_prod != nullptr) Release2DArray(m_nCells, m_CH4_prod);
 	if (m_CH4_oxid != nullptr) Release2DArray(m_nCells, m_CH4_oxid);
-	if (m_soil_water_storage != nullptr) Release2DArray(m_nCells, m_soil_water_storage);
+	/*if (m_soil_water_storage != nullptr) Release2DArray(m_nCells, m_soil_water_storage);*/
 	if (m_D_CH4_water != nullptr) Release2DArray(m_nCells, m_D_CH4_water);
 	if (m_D_CO2_water != nullptr) Release2DArray(m_nCells, m_D_CO2_water);
 	if (m_D_O2_water != nullptr) Release2DArray(m_nCells, m_D_O2_water);
@@ -92,7 +108,7 @@ CH4_LPJGUESS::~CH4_LPJGUESS() {
 	if (m_CH4_gas != nullptr) Release2DArray(m_nCells, m_CH4_gas);
 	if (m_CH4_gas_vol != nullptr) Release2DArray(m_nCells, m_CH4_gas_vol);
 	if (m_CH4_vgc != nullptr) Release2DArray(m_nCells, m_CH4_vgc);
-	if (m_sol_RSPC != nullptr) Release2DArray(m_nCells, m_sol_RSPC);
+	/*if (m_sol_RSPC != nullptr) Release2DArray(m_nCells, m_sol_RSPC);*/
 
 	if (m_CH4_ebull_vol != nullptr) Release2DArray(m_nCells, m_CH4_ebull_vol);
 	if (m_tiller_area != nullptr) Release2DArray(m_nCells, m_tiller_area);
@@ -110,6 +126,7 @@ void CH4_LPJGUESS::InitialOutputs() {
 	if (m_CH4_prod == nullptr) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_CH4_prod, 0.f);
 	if (m_CH4_oxid == nullptr) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_CH4_oxid, 0.f);
 	if (m_rootFraction == nullptr) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_rootFraction, 0.f);
+	if (m_peatRootFraction == nullptr) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_peatRootFraction, 0.f);
 	if (m_D_CH4_water == nullptr) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_D_CH4_water, 0.f);
 	if (m_D_CO2_water == nullptr) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_D_CO2_water, 0.f);
 	if (m_D_O2_water == nullptr) Initialize2DArray(m_nCells, m_maxSoilLyrs, m_D_O2_water, 0.f);
@@ -174,7 +191,8 @@ void CH4_LPJGUESS::InitialOutputs() {
 		Initialize1DArray(m_nCells, m_CH4_ebull_hour, 0.f);
 	if (m_CH4_flux_hour == nullptr)
 		Initialize1DArray(m_nCells, m_CH4_flux_hour, 0.f);
-
+	if (m_CH4_plant_hour == nullptr)
+		Initialize1DArray(m_nCells, m_CH4_plant_hour, 0.f);
 	}
 
 
@@ -185,6 +203,33 @@ bool CH4_LPJGUESS::CheckInputData() {
 	}
 	if (m_maxSoilLyrs <= 0) {
 		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "The number of soil layers must be greater than 0.");
+	}
+	if (m_nSoilLyrs == nullptr) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "Soil layer number data is not set.");
+	}
+	if (!std::isfinite(m_co2Conc) || m_co2Conc <= 0.0f) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "Atmospheric CO2 concentration must be greater than 0.");
+	}
+	if (m_walterTveg < 0.0f || m_walterTveg > 15.0f) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "CH4_TVEG must be within [0, 15].");
+	}
+	if (m_walterPox < 0.0f || m_walterPox > 1.0f) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "CH4_POX must be within [0, 1].");
+	}
+	if (m_ch4Co2Ratio < 0.001f || m_ch4Co2Ratio > 1.70f) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData","CH4_CO2_RATIO must be within [0.001, 1.70].");
+	}
+	if (m_fGas < 0.0f || m_fGas > 0.08f) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "CH4_FGAS must be within [0, 0.08].");
+	}
+	if (m_oxidFrac < 0.30f || m_oxidFrac > 1.0f) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "CH4_OXID_FRAC must be within [0.30, 1.00].");
+	}
+	if (m_walterTgr != 2.0f && m_walterTgr != 7.0f) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "CH4_TGR must be either 2 or 7 deg C.");
+	}
+	if (m_cellLat == nullptr) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "Latitude data is not set.");
 	}
 
 	// Check input data pointers
@@ -209,9 +254,9 @@ bool CH4_LPJGUESS::CheckInputData() {
 	if (m_handWtrDep == nullptr) {
 		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "Depth of each hand data is not set.");
 	}
-	if (m_icnum == nullptr) {
+	/*if (m_icnum == nullptr) {
 		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "ICNUM data is not set.");
-	}
+	}*/
 	if (m_lai == nullptr) {
 		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "LAI data is not set.");
 	}
@@ -224,6 +269,18 @@ bool CH4_LPJGUESS::CheckInputData() {
 	if (m_landuse == nullptr) {
 		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "Landuse data is not set.");
 	}
+	if (m_Tsoil == nullptr) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "Soil temperature data is not set.");
+	}
+	if (m_rootDepth == nullptr) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "Plant root depth from PG_EPIC is not set.");
+	}
+	if (m_sol_RSPC == nullptr) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "Soil heterotrophic respiration data is not set.");
+	}
+	if (m_snowAccum == nullptr) {
+		throw ModelException(MID_CH4_LPJGUESS, "CheckInputData", "Snow accumulation data is not set.");
+	}
 	return true;
 }
 
@@ -232,6 +289,24 @@ void CH4_LPJGUESS::SetValue(const char* key, float value) {
 	string sk(key);
 	if (StringMatch(sk, VAR_CO2)) {
 		m_co2Conc = value;
+	}
+	else if (StringMatch(sk, VAR_CH4_TVEG)) {
+		m_walterTveg = value;
+	}
+	else if (StringMatch(sk, VAR_CH4_POX)) {
+		m_walterPox = value;
+	}
+	else if (StringMatch(sk, VAR_CH4_CO2_RATIO)) {
+		m_ch4Co2Ratio = value;
+	}
+	else if (StringMatch(sk, VAR_CH4_FGAS)) {
+		m_fGas = value;
+	}
+	else if (StringMatch(sk, VAR_CH4_OXID_FRAC)) {
+		m_oxidFrac = value;
+	}
+	else if (StringMatch(sk, VAR_CH4_TGR)) {
+		m_walterTgr = value;
 	}
 	else {
 		throw ModelException(MID_CH4_LPJGUESS, "SetValue", "Parameter " + sk + " does not exist.");
@@ -253,8 +328,14 @@ void CH4_LPJGUESS::Set1DData(const char* key, int n, float* data) {
 	else if (StringMatch(s, VAR_SOILLAYERS)) {
 		m_nSoilLyrs = data;     // Actual number of soil layers for each cell
 	}
-	else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
-		m_handWtrDep = data;    // Water depth of each hand(m)
+	//else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
+	//	m_handWtrDep = data;    // Water depth of each hand(m)
+	//}
+	else if (StringMatch(s, VAR_OL_HAND_WTRDEP_AFT_DEP)) {
+		m_handWtrDep = data;
+	}
+	else if (StringMatch(s, VAR_OL_HAND_WTRDEP_AFT_INFIL)) {
+		m_handWtrDep = data;
 	}
 	else if (StringMatch(s, VAR_BLAI)) {
 		m_maxLai = data;
@@ -268,9 +349,18 @@ void CH4_LPJGUESS::Set1DData(const char* key, int n, float* data) {
 	else if (StringMatch(s, VAR_BIOMASS)) {
 		m_biomass = data;
 	}
-	else if (StringMatch(s, VAR_ICNUM)) {
+	/*else if (StringMatch(s, VAR_ICNUM)) {
         m_icnum = data;
-	}	
+	}*/
+	else if (StringMatch(s, VAR_ROOTDEPTH)) {
+		m_rootDepth = data;
+	}
+	else if (StringMatch(s, VAR_SNAC)) {
+		m_snowAccum = data;
+	}
+	else if (StringMatch(s, VAR_CELL_LAT)) {
+		m_cellLat = data;
+	}
 	else {
 		throw ModelException(MID_CH4_LPJGUESS, "Set1DData", "Parameter " + s + " does not exist.");
 	}
@@ -321,31 +411,182 @@ TimeStepType CH4_LPJGUESS::GetTimeStepType() {
 }
 
 
-void CH4_LPJGUESS::tridiag(int n, float* a, float* b, float* c, float* r, float* u) {
+bool CH4_LPJGUESS::IsMethaneWetland(const int i) const {
 
-	// Tridiagonal system solver from Numerical Recipes.
-	float* gam = new float[n];
+	const int landuse = static_cast<int>(m_landuse[i]);
 
-	// Header Element
-	float bet = b[0];
-	u[0] = r[0] / bet;
-
-	for (int j = 1; j < n; j++) {
-		gam[j] = c[j - 1] / bet;
-		bet = b[j] - a[j] * gam[j];
-
-		u[j] = (r[j] - a[j] * u[j - 1]) / bet;
+	if (landuse == LANDUSE_ID_WATR ||
+		landuse == LANDUSE_ID_GLC) {
+		return false;
 	}
 
-	for (int j = (n - 2); j >= 0; j--) {
-		u[j] -= gam[j + 1] * u[j + 1];
+	if (landuse == 9 || landuse == 10 || landuse == 11 || landuse == 15) {
+		return true;
 	}
-	delete[] gam;
+
+	return false;
+}
+
+CH4_LPJGUESS::MethaneMethod
+CH4_LPJGUESS::SelectMethaneMethod(const int i) const {
+
+	if (!IsMethaneWetland(i)) {
+		return CH4_METHOD_NONE;
+	}
+
+	if (!std::isfinite(m_cellLat[i])) {
+		return CH4_METHOD_NONE;
+	}
+
+	if (m_cellLat[i] < 40.0f) {
+		return CH4_METHOD_SPAHNI;
+	}
+
+	return CH4_METHOD_WANIA;
 }
 
 
+bool CH4_LPJGUESS::MethaneSpahni(const int i) {
+
+	// Original LPJ-GUESS low-latitude inundated-wetland ratio.
+	const float CH4toCO2_inundated = 0.027f;
+
+	// Profile-total heterotrophic respiration.
+	// m_sol_RSPC: kg C ha-1 d-1
+	// totalRh:    g C m-2 d-1
+	float totalRh = 0.0f;
+
+	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
+
+		if (!std::isfinite(m_sol_RSPC[i][j])) {
+			throw ModelException(
+				MID_CH4_LPJGUESS,
+				"MethaneSpahni",
+				"SOL_RSPC contains a non-finite value at cell " +
+				std::to_string(i) +
+				", layer " +
+				std::to_string(j) + ".");
+		}
+
+		// Negative respiration is not used to produce methane.
+		if (m_sol_RSPC[i][j] > 0.0f) {
+			totalRh +=
+				m_sol_RSPC[i][j] *
+				KG_HA_TO_G_M2;
+		}
+	}
+
+	// Spahni simplified methane flux:
+	// a fixed fraction of daily heterotrophic respiration
+	// is emitted directly as CH4-C.
+	const float CH4_daily =
+		totalRh * CH4toCO2_inundated;
+
+	// Internal unit:
+	// g CH4-C m-2 d-1
+	//
+	// Output unit:
+	// mg CH4 m-2 h-1
+	const float CH4_hour =
+		CH4_daily /
+		24.0f *
+		GC_TO_MG_CH4;
+
+	// In the simplified Spahni method, methane is emitted directly.
+	m_CH4_prod_hour[i] = CH4_hour;
+	m_CH4_flux_hour[i] = CH4_hour;
+
+	// No explicit layered transport pathways in this method.
+	m_CH4_oxid_hour[i] = 0.0f;
+	m_CH4_diff_hour[i] = 0.0f;
+	m_CH4_ebull_hour[i] = 0.0f;
+	m_CH4_plant_hour[i] = 0.0f;
+
+	return true;
+}
+
+
+//void CH4_LPJGUESS::tridiag(int n, float* a, float* b, float* c, float* r, float* u) {
+//
+//	// Tridiagonal system solver from Numerical Recipes.
+//	float* gam = new float[n];
+//
+//	// Header Element
+//	float bet = b[0];
+//	u[0] = r[0] / bet;
+//
+//	for (int j = 1; j < n; j++) {
+//		gam[j] = c[j - 1] / bet;
+//		bet = b[j] - a[j] * gam[j];
+//
+//		u[j] = (r[j] - a[j] * u[j - 1]) / bet;
+//	}
+//
+//	for (int j = (n - 2); j >= 0; j--) {
+//		u[j] -= gam[j + 1] * u[j + 1];
+//	}
+//	delete[] gam;
+//}
+void CH4_LPJGUESS::tridiag(int n, double* a, double* b, double* c, double* r, double* u) {
+
+	if (n <= 0) {
+		return;
+	}
+
+	double* gam = new double[n];
+
+	for (int j = 0; j < n; j++) {
+		gam[j] = 0.0;
+	}
+
+	double bet = b[0];
+
+	if (!std::isfinite(bet) || fabs(bet) < 1.0e-20) {
+		delete[] gam;
+		throw ModelException(MID_CH4_LPJGUESS, "tridiag", "Invalid first diagonal element in gas diffusion solver.");
+	}
+
+	u[0] = r[0] / bet;
+
+	if (!std::isfinite(u[0])) {
+		delete[] gam;
+		throw ModelException(MID_CH4_LPJGUESS, "tridiag", "Non-finite first solution value in gas diffusion solver.");
+	}
+
+	for (int j = 1; j < n; j++) {
+
+		gam[j] = c[j - 1] / bet;
+		bet = b[j] - a[j] * gam[j];
+
+		if (!std::isfinite(bet) || fabs(bet) < 1.0e-20) {
+			delete[] gam;
+			throw ModelException(MID_CH4_LPJGUESS, "tridiag", "Zero or non-finite diagonal element in gas diffusion solver.");
+		}
+
+		u[j] = (r[j] - a[j] * u[j - 1]) / bet;
+
+		if (!std::isfinite(u[j])) {
+			delete[] gam;
+			throw ModelException(MID_CH4_LPJGUESS, "tridiag", "Non-finite solution value in gas diffusion solver.");
+		}
+	}
+
+	for (int j = n - 2; j >= 0; j--) {
+
+		u[j] -= gam[j + 1] * u[j + 1];
+
+		if (!std::isfinite(u[j])) {
+			delete[] gam;
+			throw ModelException(MID_CH4_LPJGUESS, "tridiag", "Non-finite value during tridiagonal back substitution.");
+		}
+	}
+
+	delete[] gam;
+}
+
 // Crank-Nicholson timestepper algorithm for gas diffusion equation.
-void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
+//void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
+void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di, double dt) {
 
 	// UNITS:
 	// Di         m2 d-1
@@ -355,29 +596,41 @@ void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
 	// conc       mmol m-3
 
 	// Only solve for this cell's vertical 1-D diffusion
-	int nLyr = m_nSoilLyrs[i];          // number of soil layers for cell i
-	if (nLyr <= 1) return;              // It's impossible to achieve diffusion with only one layer.
+	int nLyr = static_cast<int>(m_nSoilLyrs[i]);          // number of soil layers for cell i
+	if (nLyr <= 1) return;                                // It's impossible to achieve diffusion with only one layer.
+
+	if (!std::isfinite(dt) || dt <= 0.0) {
+		throw ModelException(MID_CH4_LPJGUESS, "Cnstepgas", "Gas diffusion timestep must be finite and greater than zero.");
+	}
 
 	// The thickness of the soil layer in this unit (m)
 	float* dz = m_Dz_metre[i];         
 
 	// Top boundary concentration
-	float surf_conc = conc[0];
+	/*float surf_conc = conc[0];*/
+	double surf_conc = conc[0];
 
 	// Diffusion time step (day)
-	float dt = Dt_gas;
+	/*float dt = Dt_gas;*/
 
 	// Layer counters: 
 	// The values used in the Crank-Nicholson solver (a vector of length active_layers)
-	int layer, lidx;
+	int layer;
 	int active_layers;
-	float dplus;
+	/*float dplus;
 	float dminus;
 	float dz_factor;
 	float Cplus;
 	float Cp_minus;
 	float dzhere, dzminus, dzplus;
-	float cohere, cominus, coplus;
+	float cohere, cominus, coplus;*/
+	double dplus;
+	double dminus;
+	double dz_factor;
+	double Cplus;
+	double Cp_minus;
+	double dzhere, dzminus, dzplus;
+	double cohere, cominus, coplus;
 
 	// Leading diagonal, left and right subdiagonals for Crank-Nicholson
 	// matrix.
@@ -385,15 +638,20 @@ void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
 	int layer0 = 0;                      // Surface index = 0
 	active_layers = nLyr - layer0;       // All the nLyr layers are involved in the diffusion process.
 
-	float* diag = new float[active_layers];
+	/*float* diag = new float[active_layers];
 	float* left = new float[active_layers];
-	float* right = new float[active_layers];
+	float* right = new float[active_layers];*/
+	double* diag = new double[active_layers];
+	double* left = new double[active_layers];
+	double* right = new double[active_layers];
 
 	// Right hand side vector for Crank-Nicholson scheme equations.
-	float* rhs = new float[active_layers];
+	/*float* rhs = new float[active_layers];*/
+	double* rhs = new double[active_layers];
 
 	// Solution vector for Crank-Nicholson scheme equations.
-	float* solution = new float[active_layers];
+	/*float* solution = new float[active_layers];*/
+	double* solution = new double[active_layers];
 
 	// initialise
 	dplus = 0.f;
@@ -409,11 +667,16 @@ void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
 	coplus = 0.f;
 
 	for (int j = 0; j < active_layers; j++) {
-		diag[j] = 0.f;
+		/*diag[j] = 0.f;
 		left[j] = 0.f;
 		right[j] = 0.f;
 		rhs[j] = 0.f;
-		solution[j] = 0.f;
+		solution[j] = 0.f;*/
+		diag[j] = 0.0;
+		left[j] = 0.0;
+		right[j] = 0.0;
+		rhs[j] = 0.0;
+		solution[j] = 0.0;
 	}
 
 	// --- CODE STARTS HERE ---
@@ -435,7 +698,7 @@ void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
 
 		// Calculate diffusion constants averaged over adjacent layers.
 		// The diffusion constant at the bottom layer is clamped to zero
-		// to enforce the no heat flow boundary condition there.  
+		// to enforce the no-gas-flux bottom boundary condition.  
 
 		// D+
 
@@ -463,10 +726,20 @@ void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
 		}
 
 		// --- PLUS ---
+		//if (layer < nLyr - 1) {
+		//	// all soil layers apart from the bottom soil layer
+		//	dzplus = dz[layer + 1];
+		//	coplus = conc[layer + 1];
+		//}
 		if (layer < nLyr - 1) {
-			// all soil layers apart from the bottom soil layer
 			dzplus = dz[layer + 1];
 			coplus = conc[layer + 1];
+		}
+		else {
+			// Bottom no-flux boundary:
+			// use the bottom-layer thickness itself as the virtual lower layer thickness.
+			dzplus = dzhere;
+			coplus = cohere;
 		}
 
 		// --- MINUS ---
@@ -481,9 +754,47 @@ void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
 		}
 
 		// Crank–Nicholson coefficient
-		dz_factor = 0.25f * (dzplus + 2.0f * dzhere + dzminus);
+		if (!std::isfinite(dzhere) || !std::isfinite(dzminus) || !std::isfinite(dzplus) || dzhere <= 0.0 || dzminus <= 0.0 || dzplus <= 0.0) {
+			throw ModelException(MID_CH4_LPJGUESS, "Cnstepgas", "Invalid soil-layer thickness in gas diffusion solver.");
+		}
+
+		if (!std::isfinite(dplus) || !std::isfinite(dminus) || dplus < 0.0 || dminus < 0.0) {
+			throw ModelException(MID_CH4_LPJGUESS, "Cnstepgas", "Invalid gas diffusivity in gas diffusion solver.");
+		}
+		/*dz_factor = 0.25f * (dzplus + 2.0f * dzhere + dzminus);*/
+		/*dz_factor = 0.25 * (dzplus + 2.0 * dzhere + dzminus);
 		Cplus = dplus * dt / dz_factor / (dzplus + dzhere);
-		Cp_minus = dminus * dt / dz_factor / (dzhere + dzminus);
+		Cp_minus = dminus * dt / dz_factor / (dzhere + dzminus);*/
+
+		// Gas-storage volume of the current layer [m3 m-2 = m]
+		const double storage_volume = static_cast<double>(m_total_volume_water[i][layer]);
+
+		if (!std::isfinite(storage_volume) || storage_volume <= 1.0e-12) {
+			throw ModelException(MID_CH4_LPJGUESS, "Cnstepgas", "Invalid gas-storage volume.");
+		}
+
+		// Distance between adjacent layer centres [m]
+		const double distance_plus = 0.5 * (dzhere + dzplus);
+
+		const double distance_minus = 0.5 * (dzhere + dzminus);
+
+		if (!std::isfinite(distance_plus) || !std::isfinite(distance_minus) || distance_plus <= 0.0 || distance_minus <= 0.0) {
+			throw ModelException(MID_CH4_LPJGUESS, "Cnstepgas", "Invalid distance between soil-layer centres.");
+		}
+
+		// Interface conductance [m d-1]
+		const double conductance_plus = dplus / distance_plus;
+
+		const double conductance_minus = dminus / distance_minus;
+
+		// Conservative Crank–Nicolson coefficients
+		Cplus = 0.5 * dt * conductance_plus / storage_volume;
+
+		Cp_minus = 0.5 * dt * conductance_minus / storage_volume;
+
+		if (!std::isfinite(Cplus) ||!std::isfinite(Cp_minus) || Cplus < 0.0 || Cp_minus < 0.0) {
+			throw ModelException(MID_CH4_LPJGUESS, "Cnstepgas", "Invalid Crank-Nicolson coefficient.");
+		}
 
 		// Fill in matrix diagonal and off-diagonal elements.
 
@@ -528,9 +839,9 @@ void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
 
 		// Test 1:                                                                                                                          
 		int testrow = active_layers / 2;
-		float checksum = left[testrow] * solution[testrow - 1] + diag[testrow] * solution[testrow] + right[testrow] * solution[testrow + 1] - rhs[testrow];
+		double checksum = left[testrow] * solution[testrow - 1] + diag[testrow] * solution[testrow] + right[testrow] * solution[testrow + 1] - rhs[testrow];
 
-		const float MAX_ERR = 0.000001;
+		const double MAX_ERR_CN = 0.000001;
 		                  
 		/*if (fabs(checksum) > MAX_ERR) {
 				std::cout << "[CH4_DIFF Test1] Bad checksum after cnstepgas - tridiag - test1\n"
@@ -544,8 +855,8 @@ void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
 		// Every entry in rowsum should == 1.0 
 		checksum = 0.0;
 		for (int j = 0; j < active_layers; j++) {
-			float rowsum = left[j] + diag[j] + right[j];
-			checksum += rowsum / float(active_layers);                             
+			double rowsum = left[j] + diag[j] + right[j];
+			checksum += rowsum / static_cast<double>(active_layers);
 		}
 
 		/*if (fabs(checksum - 1.0) > MAX_ERR) {
@@ -560,7 +871,12 @@ void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
 
 	// Transfer the solution to the concentration array.
 	for (int j = 0; j < active_layers; j++) {
-		conc[j] = solution[j];
+
+		if (!std::isfinite(solution[j])) {
+			throw ModelException(MID_CH4_LPJGUESS, "Cnstepgas", "Non-finite gas concentration after diffusion.");
+		}
+
+		conc[j] = static_cast<float>(solution[j]);
 	}
 
 	delete[] diag;
@@ -570,111 +886,277 @@ void CH4_LPJGUESS::Cnstepgas(int i, float* conc, float* Di) {
 	delete[] solution;
 }
 
+float CH4_LPJGUESS::CalculateSnowDepth(const int i) {
+
+	if (m_snowAccum == nullptr || m_snowAccum[i] <= 0.0f) {
+		return 0.0f;
+	}
+
+	// Keep consistent with the snow-density formulation in STP_FP
+	float snowDensityRatio = 0.3f + m_snowAccum[i] / 1000.0f;
+
+	if (snowDensityRatio <= 0.0f) {
+		return 0.0f;
+	}
+
+	// Physical snow depth [mm]
+	return m_snowAccum[i] / snowDensityRatio;
+}
+
 
 void CH4_LPJGUESS::InitRootFractions(int i) {
 
-	//std::cout << "开始计算根生物量比例..." << std::endl;
+	for (int l = 0; l < CVT_INT(m_nSoilLyrs[i]); l++) {
+		m_rootFraction[i][l] = 0.0f;
+	}
 
-	// Wania et al. (2010) parameters
-	float sumrootfrac = 0.f;         // cumulative root biomass ratio
-	float cumulative_depth = 0.f;    // cumulative depth (cm)
+	float cum_rd = 0.f;
+	float cum_d = 0.f;
+	float cum_rf = 0.f;
+	float x1 = 0.f;
+	float x2 = 0.f;
+
+	if (m_rootDepth[i] <= UTIL_ZERO) {
+		m_rootFraction[i][0] = 1.f;
+		return;
+	}
+
+	/// Normalized Root Density =
+	/// 1.15 * exp(-11.7 * NRD) + 0.022
+	float a = 1.15f;
+	float b = 11.7f;
+	float c = 0.022f;
+	float d = 0.12029f;
+
+	int k = 0;
+
+	for (int l = 0; l < CVT_INT(m_nSoilLyrs[i]); l++) {
+
+		cum_d += m_layer_thickness[i][l];
+
+		if (cum_d >= m_rootDepth[i]) {
+			cum_rd = m_rootDepth[i];
+		}
+
+		if (cum_d < m_rootDepth[i]) {
+			cum_rd = cum_d;
+		}
+
+		x1 = Max(0.f, (cum_d - m_layer_thickness[i][l]) / m_rootDepth[i]);
+
+		x2 = cum_rd / m_rootDepth[i];
+
+		float xx1 = -b * x1;
+
+		if (xx1 > 20.f) {
+			xx1 = 20.f;
+		}
+
+		float xx2 = -b * x2;
+
+		if (xx2 > 20.f) {
+			xx2 = 20.f;
+		}
+
+		m_rootFraction[i][l] = (a / b * (exp(xx1) - exp(xx2)) + c * (x2 - x1)) / d;
+
+		float xx = cum_rf;
+
+		cum_rf += m_rootFraction[i][l];
+
+		if (cum_rf > 1.f) {
+			m_rootFraction[i][l] = 1.f - xx;
+			cum_rf = 1.f;
+		}
+
+		k = l;
+
+		if (cum_rd >= m_rootDepth[i]) {
+			break;
+		}
+	}
+
+	if (cum_rf <= UTIL_ZERO || !std::isfinite(cum_rf)) {
+
+		for (int l = 0; l < CVT_INT(m_nSoilLyrs[i]); l++) {
+			m_rootFraction[i][l] = 0.f;
+		}
+
+		m_rootFraction[i][0] = 1.f;
+		return;
+	}
+
+	for (int l = 0; l < CVT_INT(m_nSoilLyrs[i]); l++) {
+
+		m_rootFraction[i][l] /= cum_rf;
+
+		if (l == k) {
+			break;
+		}
+	}
+}
+
+
+void CH4_LPJGUESS::InitPeatRootFractions(int i) {
+
+	float profiledepth = 0.0f;
+	float peatdepth = 0.0f;
+	float cumulative_depth = 0.0f;
+	float sumrootfrac = 0.0f;
 
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
-		// Calculate the middle depth of the current layer
-		float layer_thickness_cm = m_layer_thickness[i][j] / 10.f;      // mm to cm
-		float layermiddepth = cumulative_depth + layer_thickness_cm / 2.f;
-		//std::cout << "层 " << j << ": 厚度=" << layer_thickness_cm
-		// << "cm, 中间深度=" << layermiddepth << "cm" << std::endl;
 
-		if (j == m_nSoilLyrs[i] - 1) {
-			// The final layer: Ensure that the total equals 1
-			m_rootFraction[i][j] = 1.f - sumrootfrac;
-			//std::cout << "最后一层，根生物量比例设置为: " << m_rootFraction[i][j] << std::endl;
+		m_peatRootFraction[i][j] = 0.0f;
+
+		if (m_layer_thickness[i][j] > 0.0f) {
+			profiledepth += m_layer_thickness[i][j];
 		}
-		else {
-			// Calculation of root biomass proportion using the exponential decay model 
-			m_rootFraction[i][j] = exp(-layermiddepth / CH4_ROOT_DECAY_COEFF) / CH4_ROOT_NORM_CONST;
-			//std::cout << "根生物量比例: " << m_rootFraction[i][j] << std::endl;
+	}
+
+	if (profiledepth <= 0.0f) {
+		return;
+	}
+
+	// Use the actual WISE soil-profile depth while retaining
+    // the LPJ-GUESS exponential root-distribution function.
+	peatdepth = profiledepth;
+
+	const float decay_depth_mm = LPJ_PEAT_ROOT_DECAY_COEFF_CM * 10.0f;
+
+	const float normalization = 1.0f - exp(-peatdepth / decay_depth_mm);
+
+	if (normalization <= 1.0e-12f) {
+		return;
+	}
+
+	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
+
+		float topdepth = cumulative_depth;
+
+		float bottomdepth = cumulative_depth + m_layer_thickness[i][j];
+
+		if (topdepth < peatdepth) {
+
+			float effective_bottom = bottomdepth;
+
+			if (effective_bottom > peatdepth) {
+				effective_bottom = peatdepth;
+			}
+
+			m_peatRootFraction[i][j] = (exp(-topdepth / decay_depth_mm) -exp(-effective_bottom / decay_depth_mm)) /
+				normalization;
+
+			if (m_peatRootFraction[i][j] < 0.0f) {
+				m_peatRootFraction[i][j] = 0.0f;
+			}
+
+			sumrootfrac += m_peatRootFraction[i][j];
 		}
 
-		sumrootfrac += m_rootFraction[i][j];
-		cumulative_depth += layer_thickness_cm;   // Update cumulative depth
-		//std::cout << "单元格 " << i << " 根生物量比例总和: " << sumrootfrac << std::endl;
-	}	
+		cumulative_depth = bottomdepth;
+	}
+
+	// Remove floating-point normalization error.
+	if (sumrootfrac > 1.0e-12f) {
+
+		for (int j = 0; j < m_nSoilLyrs[i]; j++) {
+			m_peatRootFraction[i][j] /= sumrootfrac;
+		}
+	}
 }
+
+
+//void CH4_LPJGUESS::InitFracAir(int i) {
+//
+//	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
+//
+//		float porosity = m_soilPor[i][j];
+//		float water_content = m_soil_water_storage[i][j];
+//		float ice_content = m_soilIceSto[i][j];
+//		float wilting_point = m_soilWP[i][j];
+//		float layer_thickness = m_layer_thickness[i][j];
+//
+//		// SEIMS 的 SOL_ST 不包含萎蔫点以下的土壤水
+//		float liquid_below_pwp =
+//			Max(0.0f, wilting_point - ice_content);
+//
+//		// 液态水和冰占据的总体积，单位为 mm
+//		float occupied_pore_water =
+//			water_content +
+//			liquid_below_pwp +
+//			ice_content;
+//
+//		// 将水量除以土层厚度，转换为体积分数
+//		float water_volume_fraction =
+//			occupied_pore_water / layer_thickness;
+//
+//		// 空气体积分数；这里不要减 m_fGas
+//		m_Fair[i][j] =
+//			porosity - water_volume_fraction;
+//
+//		// 限制在 [0, porosity]
+//		if (m_Fair[i][j] < 0.0f) {
+//			m_Fair[i][j] = 0.0f;
+//		}
+//		else if (m_Fair[i][j] > porosity) {
+//			m_Fair[i][j] = porosity;
+//		}
+//	}
+//}
 
 
 void CH4_LPJGUESS::InitFracAir(int i) {
 
-	//std::cout << "开始计算土壤空气体积分数..." << std::endl;
-
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
 
-		// 获取土壤层参数
-		float porosity = m_soilPor[i][j];                       // Porosity mm/mm
-		float water_content = m_soil_water_storage[i][j];       // Water storage in each soil layer (mm H2O) - from VAR_SOL_ST
-		float ice_content = m_soilIceSto[i][j];
-		float wilting_point = m_soilWP[i][j];                   // water content of soil at -1.5 MPa (wilting point) (mm)
-		float layer_thickness = m_layer_thickness[i][j];        // Thickness of each soil layer (mm) - from VAR_SOILTHICK
+		float porosity = m_soilPor[i][j];
+		float water_content = Max(0.0f, m_soil_water_storage[i][j]);
+		float ice_content = Max(0.0f, m_soilIceSto[i][j]);
+		float wilting_point = m_soilWP[i][j];
+		float layer_thickness = m_layer_thickness[i][j];
 
-		/*std::cout << "  层 " << j << ": 孔隙度=" << porosity
-			<< ", 含水量=" << water_content << "mm"
-			<< ", 含冰量=" << ice_content << "mm"
-			<< ", 萎蔫点=" << wilting_point << "mm"
-			<< ", 厚度=" << layer_thickness << "mm" << std::endl;*/
+		float liquid_below_pwp = Max(0.0f, wilting_point - ice_content);
 
-		// 计算空气体积分数: m_Fair = 孔隙度 - (当前土壤含水量 + 萎蔫点含水量 + 当前土壤含冰量) / 土壤层厚度
-		float water_volume_fraction = (water_content + wilting_point + ice_content) / layer_thickness;;
+		float occupied_pore_water = water_content + liquid_below_pwp + ice_content;
+
+		float water_volume_fraction = occupied_pore_water / layer_thickness;
+
 		m_Fair[i][j] = porosity - water_volume_fraction;
 
-		// 确保结果在合理范围内 [0, porosity]
-		if (m_Fair[i][j] < 0.0) {
-			m_Fair[i][j] = 0.0;
-			//std::cout << "  警告: 空气体积分数为负，已调整为0" << std::endl;
+		if (m_Fair[i][j] < 0.0f) {
+			m_Fair[i][j] = 0.0f;
 		}
 		else if (m_Fair[i][j] > porosity) {
 			m_Fair[i][j] = porosity;
-			//std::cout << "  警告: 空气体积分数超过孔隙度，已调整为孔隙度值" << std::endl;
 		}
-		//std::cout << "  空气体积分数: " << m_Fair[i][j] << std::endl;
 	}
-	//std::cout << "单元格 " << i << " Frac_air计算完成" << std::endl;
 }
-
 
 
 void CH4_LPJGUESS::InitAnoxic(int i) {
 
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
 
-		// 获取已计算的空气体积分数
-		float Frac_air = m_Fair[i][j];
 		float porosity = m_soilPor[i][j];
+		float anoxic = 0.0f;
 
-		//std::cout << "  层 " << j << ": 空气体积分数=" << Frac_air
-			//<< ", 孔隙度=" << porosity << std::endl;
+		// anoxic = 1 - air-filled porosity / total porosity
+		// m_Fair already accounts for liquid water and soil ice.
+		if (porosity > UTIL_ZERO) {
+			anoxic = 1.0f - m_Fair[i][j] / porosity;
+		}
 
-		// 计算厌氧条件程度: anoxic = 1.0 - Frac_air - Fgas
-		float anoxic = 1.0f - Frac_air - Fgas;
-
-		// 确保结果在合理范围内 [0, 1]
+		// Limit the anaerobic fraction to [0, 1].
 		if (anoxic < 0.0f) {
 			anoxic = 0.0f;
-			//std::cout << "警告: 厌氧程度为负，已调整为0" << std::endl;
 		}
 		else if (anoxic > 1.0f) {
 			anoxic = 1.0f;
-			//std::cout << "警告: 厌氧程度超过1，已调整为1" << std::endl;
 		}
 
-		// 存储结果
 		m_anoxic[i][j] = anoxic;
-
-		//std::cout << "厌氧程度 (anoxic): " << m_anoxic[i][j]
-			//<< " (1.0 - " << Frac_air << " - " << Fgas << ")" << std::endl;
 	}
 }
-
 
 
 void CH4_LPJGUESS::Calculate_Gas_Diffusivities(int i) {
@@ -683,9 +1165,13 @@ void CH4_LPJGUESS::Calculate_Gas_Diffusivities(int i) {
     // Called each day
     // See Wania et al. (2010) - Sec 2.5
 
-	//std::cout << "开始计算气体扩散系数..." << std::endl;
+	/*float cumulative_depth = 0.0f;*/
 
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
+
+		/*float layer_bottom_depth = cumulative_depth + m_layer_thickness[i][j];
+
+		bool is_acrotelm = layer_bottom_depth <= ACROTELM_DEPTH_MM;*/
 
 		// AIR - UNITS: 10 - 4 m2 s - 1 == cm2 s - 1
 		// Lerman (1979)
@@ -695,15 +1181,14 @@ void CH4_LPJGUESS::Calculate_Gas_Diffusivities(int i) {
 		float frac_air = m_Fair[i][j];                  // 空气体积分数
 		float layer_porosity = m_soilPor[i][j];         // 当前层孔隙度
 
-		//std::cout << "  层 " << j << ": 温度=" << layerT << "°C, 空气分数=" << frac_air
-			//<< ", 厚度=" << thickness_mm << "mm (" << thickness_m << "m)" << std::endl;
+		if (!std::isfinite(layerT) || !std::isfinite(frac_air) || !std::isfinite(layer_porosity) || layer_porosity <= 0.0f) {
+			throw ModelException(MID_CH4_LPJGUESS, "Calculate_Gas_Diffusivities", "Invalid temperature, air fraction or soil porosity.");
+		}
 
 		// Wania et al. (2010), Eqn. 10
 		m_D_CH4_air[i][j] = 0.1875f + 0.00130f * layerT;
 		m_D_CO2_air[i][j] = 0.1325f + 0.00090f * layerT;
 		m_D_O2_air[i][j] = 0.1759f + 0.00117f * layerT;
-
-		//std::cout << "    空气中扩散系数 - CH4: " << m_D_CH4_air[i][j] << ", CO2: " << m_D_CO2_air[i][j] << ", O2: " << m_D_O2_air[i][j] << " cm²/s" << std::endl;
 
 		// WATER - UNITS: 10-4 m2 s-1 == cm2 s-1
 		// Wania et al. (2010), Eqn. 9 - where the diffusivities are in units of 10**-9 m2 s-1. 
@@ -712,34 +1197,23 @@ void CH4_LPJGUESS::Calculate_Gas_Diffusivities(int i) {
 		m_D_CO2_water[i][j] = (0.9390f + 0.02671f * layerT + 0.0004095f * layerT * layerT) * Scale;
 		m_D_O2_water[i][j] = (1.1720f + 0.03443f * layerT + 0.0005048f * layerT * layerT) * Scale;
 
-		//std::cout << "    水中扩散系数 - CH4: " << m_D_CH4_water[i][j] << ", CO2: " << m_D_CO2_water[i][j] << ", O2: " << m_D_O2_water[i][j] << " cm²/s" << std::endl;
+		// Apply the original LPJ-GUESS acrotelm diffusivity logic
+        // to every WISE soil layer using its actual daily air fraction.
+		if (frac_air > 0.05f) {
 
-		// 确定实际扩散系数
-		if (j < NACROTELM) {
-			// ACROTELM diffusivities 
-			if (frac_air > 0.05f) {
-				// Wania et al. (2010), Eqn. 11
-			    // 有足够空气孔隙，使用空气扩散系数并考虑孔隙度
-				float airpow = pow(frac_air, 10.0f / 3.0f) / pow(layer_porosity, 2.0f);
-				m_dCH4[i][j] = airpow * m_D_CH4_air[i][j];
-				m_dCO2[i][j] = airpow * m_D_CO2_air[i][j];
-				m_dO2[i][j] = airpow * m_D_O2_air[i][j];
-				//std::cout << "    ACROTELM层(有空气) - 孔隙度修正因子: " << airpow << std::endl;
-			}
-			else {
-				// 空气孔隙不足，使用水中扩散系数
-				m_dCH4[i][j] = m_D_CH4_water[i][j];
-				m_dCO2[i][j] = m_D_CO2_water[i][j];
-				m_dO2[i][j] = m_D_O2_water[i][j];
-				//std::cout << "    ACROTELM层(饱和) - 使用水中扩散系数" << std::endl;
-			}
-		}  
-		else {      
-			// CATOTELM - assumed to be always saturated, so use water diffusivities
+			// Wania et al. (2010), Eq. 11
+			float airpow = pow(frac_air, 10.0f / 3.0f) / pow(layer_porosity, 2.0f);
+
+			m_dCH4[i][j] = airpow * m_D_CH4_air[i][j];
+			m_dCO2[i][j] = airpow * m_D_CO2_air[i][j];
+			m_dO2[i][j] = airpow * m_D_O2_air[i][j];
+		}
+		else {
+
+			// Water diffusivities dominate
 			m_dCH4[i][j] = m_D_CH4_water[i][j];
 			m_dCO2[i][j] = m_D_CO2_water[i][j];
 			m_dO2[i][j] = m_D_O2_water[i][j];
-			//std::cout << "    CATOTELM层(饱和) - 使用水中扩散系数" << std::endl;
 		}
 
 		// Convert from cm2 s-1 to m2 d-1
@@ -747,12 +1221,17 @@ void CH4_LPJGUESS::Calculate_Gas_Diffusivities(int i) {
 		m_dCO2[i][j] *= SECS_PER_DAY / CM2_PER_M2;
 		m_dO2[i][j] *= SECS_PER_DAY / CM2_PER_M2;
 
-		// 存储结果
+		// Check the calculated diffusivities after unit conversion
+        // and before storing them in the diffusion arrays.
+		if (!std::isfinite(m_dCH4[i][j]) || !std::isfinite(m_dCO2[i][j]) || !std::isfinite(m_dO2[i][j]) ||
+			m_dCH4[i][j] < 0.0f || m_dCO2[i][j] < 0.0f || m_dO2[i][j] < 0.0f) {
+			throw ModelException(MID_CH4_LPJGUESS, "Calculate_Gas_Diffusivities", "Invalid gas diffusivity after unit conversion.");
+		}
+
+		// Store diffusivities in units of m2 d-1
 		m_D_CH4[i][j] = m_dCH4[i][j];
 		m_D_CO2[i][j] = m_dCO2[i][j];
 		m_D_O2[i][j] = m_dO2[i][j];
-
-		//std::cout << "    最终扩散系数(m²/d) - CH4: " << m_dCH4[i][j] << ", CO2: " << m_dCO2[i][j] << ", O2: " << m_dO2[i][j] << std::endl;
 	}
 }
 		
@@ -765,9 +1244,23 @@ bool CH4_LPJGUESS::Update_Daily_Gas_Parameters(int i) {
 	// Called daily by Soil::methane()
 	// See Wania et al. (2010) - Sec 2.5
 
-	//std::cout << "开始更新每日气体传输参数..." << std::endl;
-
 	float surfT = m_Tsoil[i][0];                  // The surface temperature of each unit
+
+	if (!std::isfinite(surfT)) {
+		throw ModelException(MID_CH4_LPJGUESS, "Update_Daily_Gas_Parameters", "Surface soil temperature is not finite.");
+	}
+
+	// Schmidt数和Henry系数经验公式采用的有效水温
+	// 将其限制在经验公式适用范围0—30°C。
+	// 这里只限制气体参数计算，不修改真实土壤温度。
+	float gasTemp = surfT;
+
+	if (gasTemp < 0.0f) {
+		gasTemp = 0.0f;
+	}
+	else if (gasTemp > 30.0f) {
+		gasTemp = 30.0f;
+	}
 
 	/* GAS TRANSPORT VELOCITIES */
 
@@ -777,7 +1270,12 @@ bool CH4_LPJGUESS::Update_Daily_Gas_Parameters(int i) {
 
 	// Schmidt number of O2
 	// Wania et al. (2010) - Eqn. 7
-	float ScO2 =1800.6 - 120.1 * surfT + 3.7818 * pow(surfT, 2) - 0.047608 * pow(surfT, 3);
+	/*float ScO2 =1800.6 - 120.1 * surfT + 3.7818 * pow(surfT, 2) - 0.047608 * pow(surfT, 3);*/
+	float ScO2 = 1800.6f - 120.1f * gasTemp + 3.7818f * gasTemp * gasTemp - 0.047608f * gasTemp * gasTemp * gasTemp;
+
+	if (!std::isfinite(ScO2) || ScO2 <= 0.0f) {
+		throw ModelException(MID_CH4_LPJGUESS, "Update_Daily_Gas_Parameters", "Invalid O2 Schmidt number.");
+	}
 			
 	// gas transport velocity of O2 [cm h-1]
 	// Wania et al. (2010) - Eqn. 5
@@ -786,38 +1284,31 @@ bool CH4_LPJGUESS::Update_Daily_Gas_Parameters(int i) {
 
 	// Schmidt number of CH4
 	// Wania et al. (2010) - Eqn. 7
-	float ScCH4 =1898.0 - 110.1 * surfT + 2.834 * pow(surfT, 2) - 0.02791 * pow(surfT, 3);
+	/*float ScCH4 =1898.0 - 110.1 * surfT + 2.834 * pow(surfT, 2) - 0.02791 * pow(surfT, 3);*/
+	float ScCH4 = 1898.0f - 110.1f * gasTemp + 2.834f * gasTemp * gasTemp - 0.02791f * gasTemp * gasTemp * gasTemp;
+
+	if (!std::isfinite(ScCH4) || ScCH4 <= 0.0f) {
+		throw ModelException(MID_CH4_LPJGUESS, "Update_Daily_Gas_Parameters", "Invalid CH4 Schmidt number.");
+	}
 		
 	// gas transport velocity of CH4 [cm h-1]
 	// Wania et al. (2010) - Eqn. 5
 	m_k_CH4[i] = k_600 * pow(ScCH4 / 600.0, n_coeff);
 	m_k_CH4[i] *= 24.0 / CM_PER_M;
 
-	/*if (i == 629) {
-		std::cout << " surfT=" << surfT
-			<< " U10=" << U10
-			<< " k_600(cm/h)=" << k_600
-			<< " k_CH4(m/d)=" << m_k_CH4[i]
-			<< std::endl;
-	}*/
-	
-
 	// Schmidt number of CO2
 	// Wania et al. (2010) - Eqn. 7
-	float ScCO2 =1911.0 - 113.7 * surfT + 2.967 * pow(surfT, 2) - 0.02943 * pow(surfT, 3);
+	/*float ScCO2 =1911.0 - 113.7 * surfT + 2.967 * pow(surfT, 2) - 0.02943 * pow(surfT, 3);*/
+	float ScCO2 = 1911.0f - 113.7f * gasTemp + 2.967f * gasTemp * gasTemp - 0.02943f * gasTemp * gasTemp * gasTemp;
+
+	if (!std::isfinite(ScCO2) || ScCO2 <= 0.0f) {
+		throw ModelException(MID_CH4_LPJGUESS, "Update_Daily_Gas_Parameters", "Invalid CO2 Schmidt number.");
+	}
 			
 	// gas transport velocity of CO2 [cm h-1]
 	// Wania et al. (2010) - Eqn. 5
 	m_k_CO2[i] = k_600 * pow(ScCO2 / 600.0, n_coeff);
 	m_k_CO2[i] *= 24.0 / CM_PER_M;
-
-	// 打印传输速度
-	//std::cout << "Cell " << i
-		//<< " - O2传输速度: " << m_k_O2[i] << " m d-1"
-		//<< ", CH4传输速度: " << m_k_CH4[i] << " m d-1"
-		//<< ", CO2传输速度: " << m_k_CO2[i] << " m d-1"
-		//<< ", 表层温度: " << surfT << " °C"
-		//<< std::endl;
 
 	/* EQUILIBRIUM GAS CONCENTRATIONS */
 	// See Wania et al. (2010) - Eqn. 8
@@ -825,42 +1316,34 @@ bool CH4_LPJGUESS::Update_Daily_Gas_Parameters(int i) {
 	float deg25 = K2degC + 25.0;                  // 25 degrees C
 
 	// Henry coefficient for O2
-	float henry_coeff_O2 =henry_k_O2 * exp(-1.0 * henry_C_O2 * (1.0 / (surfT + K2degC) - 1.0 / deg25));      // [L atm mol-1]
+	//float henry_coeff_O2 = henry_k_O2 * exp(-1.0 * henry_C_O2 * (1.0 / (surfT + K2degC) - 1.0 / deg25));      // [L atm mol-1]
+	float henry_coeff_O2 = henry_k_O2 * exp(-henry_C_O2 * (1.0f / (gasTemp + K2degC) - 1.0f / deg25));     // [L atm mol-1]
 			
 	// pp_gas/MM2_PER_M2 converts to atm units
 	m_Ceq_O2[i] = pp_O2 / MM2_PER_M2 / henry_coeff_O2;    // mol/L
 	m_Ceq_O2[i] *= MM2_PER_M2;                            // mol/L to mmol/m3
 
 	// Henry coefficient for CO2
-	float henry_coeff_CO2 =henry_k_CO2 * exp(-1.0 * henry_C_CO2 * (1.0 / (surfT + K2degC) - 1.0 / deg25));    // [L atm mol-1]
+	//float henry_coeff_CO2 = henry_k_CO2 * exp(-1.0 * henry_C_CO2 * (1.0 / (surfT + K2degC) - 1.0 / deg25));    // [L atm mol-1]
+	float henry_coeff_CO2 = henry_k_CO2 * exp(-henry_C_CO2 * (1.0f / (gasTemp + K2degC) - 1.0f / deg25));      // [L atm mol-1]
 			
 	// Use this gridcell's CO2 concentration, not a fixed value as in Wan  ia et al. (2010).
 	// CO₂ mixing ratio (ppmv), already stored in class variable
 	float pp_CO2 = m_co2Conc;      // ppmv → micro atm
 
-	//std::cout << "Cell " << i
-		//<< " pp_CO2(micro atm)=" << pp_CO2
-		//<< std::endl;
-
-	// Convert Pa → atm using original code style: Pa / MM2_PER_M2 = atm
+	// Convert atmospheric CO2 mixing ratio from ppmv
+    // (numerically equivalent to micro-atm) to atm 
 	m_Ceq_CO2[i] = pp_CO2 / MM2_PER_M2 / henry_coeff_CO2; // mol L-1
 
 	// mol L-1 → mmol m-3
 	m_Ceq_CO2[i] *= MM2_PER_M2;
 
 	// Henry coefficient for CH4
-	float henry_coeff_CH4 =henry_k_CH4 * exp(-1.0 * henry_C_CH4 * (1.0 / (surfT + K2degC) - 1.0 / deg25));
+	/*float henry_coeff_CH4 = henry_k_CH4 * exp(-1.0 * henry_C_CH4 * (1.0 / (surfT + K2degC) - 1.0 / deg25));*/
+	float henry_coeff_CH4 = henry_k_CH4 * exp(-henry_C_CH4 * (1.0f / (gasTemp + K2degC) - 1.0f / deg25));
 			
 	m_Ceq_CH4[i] = pp_CH4 / MM2_PER_M2 / henry_coeff_CH4;
 	m_Ceq_CH4[i] *= MM2_PER_M2;
-
-	// 打印平衡气体浓度
-	//std::cout << "Cell " << i
-		//<< " - O2平衡浓度: " << m_Ceq_O2[i] << " mmol m-3"
-		//<< ", CO2平衡浓度: " << m_Ceq_CO2[i] << " mmol m-3"
-		//<< ", CH4平衡浓度: " << m_Ceq_CH4[i] << " mmol m-3"
-		//<< ", 表层温度: " << surfT << " °C"
-		//<< std::endl;
 
 	return true;
 }
@@ -873,9 +1356,7 @@ float CH4_LPJGUESS::Diffuse_Gas(int i, Gastype gas_type, float& dailyDiff) {
 
 	// Called like this (e.g. for O2): 
 	// diffuse_gas(O2, D_O2, O2gas, Ceq_O2, k_O2, Dz_metre, dailyO2diffusion);
-	//std::cout << "开始执行每日气体扩散..." << std::endl;
 
-	//float* Cgas = m_Cgas[i];
 	float* Cgas = nullptr;
 	if (gas_type == CH4_gas) {
 		Cgas = m_CH4[i];            // gC layer-1
@@ -887,6 +1368,8 @@ float CH4_LPJGUESS::Diffuse_Gas(int i, Gastype gas_type, float& dailyDiff) {
 		Cgas = m_O2[i];             // mol layer-1
 	}
 
+	const char* gasName = (gas_type == CH4_gas) ? "CH4" : (gas_type == CO2_gas) ? "CO2" : "O2";
+
 	// Atomic mass of the gas [gC/mol]
 	float atomic_mass;              
 	if (gas_type != O2_gas)
@@ -894,69 +1377,157 @@ float CH4_LPJGUESS::Diffuse_Gas(int i, Gastype gas_type, float& dailyDiff) {
 	else
 		atomic_mass = 1.0;           // O2 already in mol layer-1
 
-	float initialAmount = 0.0;
+	double initialAmount = 0.0;
 
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
-		//initialAmount += m_Cgas[i][j];
-		initialAmount += Cgas[j];
 
-		m_Frac_water[i][j] = m_soil_water_storage[i][j] / m_layer_thickness[i][j];
-		m_Frac_ice[i][j] = m_soilIceSto[i][j] / m_layer_thickness[i][j];
-		m_Frac_water_belowpwp[i][j] = m_soilWP[i][j] / m_layer_thickness[i][j];
-		m_Dz_metre[i][j] = m_layer_thickness[i][j] / MM_PER_M;
-		m_total_volume_water[i][j] = (m_Frac_water[i][j] + m_Frac_ice[i][j] + m_Frac_water_belowpwp[i][j]) * m_Dz_metre[i][j];
-		m_volume_liquid_water[i][j] = (m_Frac_water[i][j] + m_Frac_water_belowpwp[i][j]) * m_Dz_metre[i][j];
+		if (!std::isfinite(Cgas[j]) || !std::isfinite(m_total_volume_water[i][j]) || m_total_volume_water[i][j] <= 1.0e-12f) {
+			throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas", "Invalid gas amount or total water volume.");
+		}
+
+		// Remove only tiny negative values caused by floating-point roundoff.
+		if (Cgas[j] < 0.0f) {
+
+			if (Cgas[j] >= -MAX_ERR) {
+				Cgas[j] = 0.0f;
+			}
+			else {
+				throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas",
+					std::string("Substantial negative gas pool: gas=") + gasName +
+					", cell=" + std::to_string(i) +
+					", layer=" + std::to_string(j) +
+					", pool=" + std::to_string(Cgas[j]));
+			}
+		}
+
+		// Add the corrected value to the initial total.
+		initialAmount += static_cast<double>(Cgas[j]);
 
 		// CO2 & CH4 - g layer-1 to mmol m-3 
 		// O2 - mol layer-1 to mmol m-3
 		//m_C[i][j] = m_Cgas[i][j] / atomic_mass / m_total_volume_water[i][j] * MMOL_PER_MOL;
-		m_C[i][j] = Cgas[j] / atomic_mass / m_total_volume_water[i][j] * MMOL_PER_MOL;
+		/*m_C[i][j] = Cgas[j] / atomic_mass / m_total_volume_water[i][j] * MMOL_PER_MOL;*/
+		double concentration = static_cast<double>(Cgas[j]) / static_cast<double>(atomic_mass) /static_cast<double>(m_total_volume_water[i][j]) * static_cast<double>(MMOL_PER_MOL);
 
-		//std::cout << "  Soil layer " << j
-			//<< "  Cgas=" << m_Cgas[i][j]
-			//<< "  volume=" << m_total_volume_water[i][j]
-			//<< "  C溶解(mmol/m3)=" << m_C[i][j]
-			//<< std::endl;
+		if (!std::isfinite(concentration) || concentration < 0.0 || concentration > static_cast<double>((std::numeric_limits<float>::max)())) {
+
+			throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas",
+				std::string("Invalid converted concentration: gas=") + gasName +
+				", cell=" + std::to_string(i) +
+				", layer=" + std::to_string(j) +
+				", pool=" + std::to_string(Cgas[j]) +
+				", volume=" +
+				std::to_string(m_total_volume_water[i][j]) +
+				", concentration=" + std::to_string(concentration));
+		}
+
+		m_C[i][j] = static_cast<float>(concentration);
 	}
 
 	// Set the BC, i.e. equilibrium gas concentrations in the top layer depending on atmospheric concentrations
 	// and using Henry's law. See Wania et al. (2010), Eqs. 4-8
 
 	// New surface concentration [mmol m-3]
-	float C_old = m_C[i][0];     // 原始表层浓度（mmol/m³）
-	float Cnew = C_old;          // 新浓度
-	float Ceq = 0.0f;            // Henry 平衡浓度（mmol/m³）
-	float kgas = 0.0f;           // 气体交换速度（m/d）
+    // Surface-layer gas concentration before atmospheric exchange [mmol m-3]
+	float C_old = m_C[i][0];
+	float Cnew = C_old;
+
+	// Henry equilibrium concentration [mmol m-3]
+	float Ceq = 0.0f;
+
+	// Surface gas exchange velocity [m d-1]
+	float kgas = 0.0f;
+
 	if (gas_type == CH4_gas) {
-		Ceq = m_Ceq_CH4[i];     // mmol/m³
-		kgas = m_k_CH4[i];      // m/d
+		Ceq = m_Ceq_CH4[i];
+		kgas = m_k_CH4[i];
 	}
 	else if (gas_type == CO2_gas) {
 		Ceq = m_Ceq_CO2[i];
 		kgas = m_k_CO2[i];
 	}
-	else { // O2_gas
+	else {
 		Ceq = m_Ceq_O2[i];
 		kgas = m_k_O2[i];
 	}
 
+	// Check gas parameters before using them in the boundary equation.
+	if (!std::isfinite(C_old)) {
+		throw ModelException(
+			MID_CH4_LPJGUESS,
+			"Diffuse_Gas",
+			std::string("Invalid C_old: gas=") + gasName +
+			", cell=" + std::to_string(i) +
+			", C_old=" + std::to_string(C_old) +
+			", pool=" + std::to_string(Cgas[0]) +
+			", total_volume=" +
+			std::to_string(m_total_volume_water[i][0]));
+	}
 
-	// 若是 O2 或 CH4 才需要 Henry 边界条件
-	if (gas_type == O2_gas || gas_type == CH4_gas) {     // Could also run for CH4 here below.
+	if (!std::isfinite(Ceq)) {
+		throw ModelException(
+			MID_CH4_LPJGUESS,
+			"Diffuse_Gas",
+			std::string("Invalid Ceq: gas=") + gasName +
+			", cell=" + std::to_string(i) +
+			", Ceq=" + std::to_string(Ceq) +
+			", Tsoil=" + std::to_string(m_Tsoil[i][0]));
+	}
 
-		if ((m_Frac_water[i][0] + m_Frac_water_belowpwp[i][0]) < water_min) {    // Could add a snow restriction
-		// No diffusion if there's too little liquid water in the top layer
-			Cnew = C_old;                  // Unchanged surface concentration
-			dailyDiff = 0.0f;              // dailyDiff
+	if (!std::isfinite(kgas) || kgas < 0.0f) {
+		throw ModelException(
+			MID_CH4_LPJGUESS,
+			"Diffuse_Gas",
+			std::string("Invalid kgas: gas=") + gasName +
+			", cell=" + std::to_string(i) +
+			", kgas=" + std::to_string(kgas) +
+			", Tsoil=" + std::to_string(m_Tsoil[i][0]));
+	}
+
+	// Whether surface ponding exists.
+	bool has_surface_water = m_handWtrDep[i] > 1.0e-8f;
+
+	// Whether the top soil layer contains sufficient liquid water.
+	bool has_topsoil_liquid = (m_Frac_water[i][0] + m_Frac_water_belowpwp[i][0]) >= water_min;
+
+	// Apply the atmospheric boundary condition to O2 and CH4.
+	if (gas_type == O2_gas || gas_type == CH4_gas) {
+
+		// Disable surface exchange only when both surface water
+		// and topsoil liquid water are absent.
+		if (!has_surface_water && !has_topsoil_liquid) {
+
+			Cnew = C_old;
+			dailyDiff = 0.0f;
 		}
 		else {
 
-			// Analytical solution to determine Csurf - see Wania et al. Sec 2.5
-			Cnew = Ceq + (m_C[i][0] - Ceq) * exp(-kgas / m_volume_liquid_water[i][0]); // mmol m-3
-			dailyDiff = (m_C[i][0] - Cnew) * atomic_mass * m_volume_liquid_water[i][0] / MMOL_PER_MOL; // mol layer-1 d-1 (O2)
+			if (!std::isfinite(m_volume_liquid_water[i][0]) || m_volume_liquid_water[i][0] <= 1.0e-12f) {
+
+				throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas", "Invalid top-layer liquid-water volume.");
+			}
+
+			// Calculate with double precision to reduce numerical error.
+			double boundary_exponent = -static_cast<double>(kgas) / static_cast<double>(m_volume_liquid_water[i][0]);
+
+			double Cnew_double = static_cast<double>(Ceq) + (static_cast<double>(C_old) - static_cast<double>(Ceq)) * std::exp(boundary_exponent);
+
+			// Check the result immediately after applying
+			// the atmospheric boundary condition.
+			if (!std::isfinite(Cnew_double)) {
+				throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas", "Non-finite surface gas concentration after boundary exchange.");
+			}
+
+			Cnew = static_cast<float>(Cnew_double);
+
+			dailyDiff = (C_old - Cnew) * atomic_mass * m_volume_liquid_water[i][0] / MMOL_PER_MOL;
+
+			if (!std::isfinite(dailyDiff)) {
+				throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas", "Non-finite daily surface gas diffusion flux.");
+			}
 		}
 
-		m_C[i][0] = Cnew;                  // mmol m-3 - The new surface concentration
+		m_C[i][0] = Cnew;
 	}
 
 	float surf_conc = m_C[i][0];
@@ -974,90 +1545,208 @@ float CH4_LPJGUESS::Diffuse_Gas(int i, Gastype gas_type, float& dailyDiff) {
 		else
 			m_D = m_D_O2[i];
 
-		// Determine the timestep to use
-		float maxD = -0.01f;
-		// Maximum diffusivity today below the surface layer [m2 d-1]
+		// Assume a tiny diffusivity if there is very little liquid water
+        // This must be done before determining the diffusion timestep.
+		for (int j = 0; j < m_nSoilLyrs[i]; j++) {
+
+			bool is_surface_layer_with_water = (j == 0 && has_surface_water);
+
+			bool has_layer_liquid = (m_Frac_water[i][j] + m_Frac_water_belowpwp[i][j]) >= water_min;
+
+			// Do not classify the first layer as dry when it contains
+			// HAND surface water.
+			if (!is_surface_layer_with_water && !has_layer_liquid) {
+				m_D[j] = 1.0e-9f;
+			}
+		}
+
+
+		// Determine a stable diffusion timestep using the actual
+        // WISE layer thicknesses, interface diffusivities and
+        // gas-storage volume of each layer.
+		double timestep_limit = static_cast<double>(Dt_gas);
+
 		for (int j = 1; j < m_nSoilLyrs[i]; j++) {
-			// exclude top layer as we've already considered in the top layer above
-			if (m_D[j] > maxD) {
-				maxD = m_D[j]; // [m2 d-1]
+
+			// Thickness of the current, upper and lower layers [m]
+			const double dzhere = static_cast<double>(m_Dz_metre[i][j]);
+
+			const double dzminus = static_cast<double>(m_Dz_metre[i][j - 1]);
+
+			const double dzplus = j < m_nSoilLyrs[i] - 1 ? static_cast<double>(m_Dz_metre[i][j + 1]) : dzhere;
+
+			// Interface diffusivity [m2 d-1]
+			const double dminus = 0.5 * (static_cast<double>(m_D[j]) + static_cast<double>(m_D[j - 1]));
+
+			const double dplus = j < m_nSoilLyrs[i] - 1 ? 0.5 * (static_cast<double>(m_D[j]) + static_cast<double>(m_D[j + 1])) : 0.0;
+
+			// Gas-storage volume per unit ground area
+			// [m3 m-2 = m]
+			const double storage_volume = static_cast<double>(m_total_volume_water[i][j]);
+
+			if (!std::isfinite(dzhere) ||
+				!std::isfinite(dzminus) ||
+				!std::isfinite(dzplus) ||
+				!std::isfinite(dminus) ||
+				!std::isfinite(dplus) ||
+				!std::isfinite(storage_volume) ||
+				dzhere <= 0.0 ||
+				dzminus <= 0.0 ||
+				dzplus <= 0.0 ||
+				dminus < 0.0 ||
+				dplus < 0.0 ||
+				storage_volume <= 1.0e-12) {
+
+				throw ModelException(MID_CH4_LPJGUESS,"Diffuse_Gas","Invalid layer geometry, diffusivity or ""gas-storage volume.");
+			}
+
+			// Distance between adjacent layer centres [m]
+			const double distance_minus = 0.5 * (dzhere + dzminus);
+
+			const double distance_plus = 0.5 * (dzhere + dzplus);
+
+			// Interface conductance [m d-1]
+			const double conductance_minus = dminus / distance_minus;
+
+			const double conductance_plus = dplus / distance_plus;
+
+			// Conservative diffusion rate [d-1]
+			const double rate = (conductance_minus + conductance_plus) / storage_volume;
+
+			if (!std::isfinite(rate) || rate < 0.0) {
+				throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas", "Invalid conservative diffusion rate.");
+			}
+
+			if (rate > 0.0) {
+
+				const double layer_timestep = 0.8 / rate;
+
+				if (!std::isfinite(layer_timestep) || layer_timestep <= 0.0) {
+					throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas", "Invalid conservative diffusion timestep.");
+				}
+
+				if (layer_timestep < timestep_limit) {
+					timestep_limit = layer_timestep;
+				}
 			}
 		}
 
-		float max_timestep = (0.1 * 0.1) / (2 * maxD);       // [day]
-
-		if (max_timestep < Dt_gas) {
-			std::cout << "[Warning] Max gas diffusion timestep exceeded: "
-				<< maxD << std::endl;
+		if (!std::isfinite(timestep_limit) || timestep_limit <= 0.0) {
+			throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas", "Invalid gas diffusion timestep.");
 		}
 
-		// Assume a tiny diffusivity if there is very little liquid water in the layer
-		for (int j = 0; j < m_nSoilLyrs[i]; j++) {
-			if ((m_Frac_water[i][j] + m_Frac_water_belowpwp[i][j]) < water_min) {
-				m_D[j] = 1e-9;                               // [m2 d-1]
-			}
+		// Determine the maximum number of equal substeps for one day.
+        // The iteration may stop early after the convergence criterion is met.
+		int gasdiffix = static_cast<int>(ceil(1.0 / timestep_limit));
+
+		if (gasdiffix < 1) {
+			gasdiffix = 1;
 		}
 
-
-		// Determine initial and total concentrations
-		float totalConc = 0.0f; // mmol m-3
-
-		for (int j = 0; j < m_nSoilLyrs[i]; j++) {
-			m_C_init[i][j] = m_C[i][j];
-			totalConc += m_C_init[i][j];
+		if (gasdiffix > 100000) {
+			throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas", "Required number of gas diffusion substeps is too large.");
 		}
 
-		float total_diff = 0.0f;
-		totalConc = 0.0;
-		float ratio = 0.0f;
+		double actual_dt = 1.0 / static_cast<double>(gasdiffix);
+
+		double totalConc = 0.0;
+		double total_diff = 0.0;
+		double ratio = 0.0;
 
 		int cncount = 0;
-
-		// Loop until stable concentrations are found, or until 100 iterations have been performed
-		int gasdiffix = int(1 / Dt_gas);
-
 		bool stable = false;
 
 		do {
-			totalConc = 0;
+			totalConc = 0.0;
+
 			for (int j = 0; j < m_nSoilLyrs[i]; j++) {
+
+				if (!std::isfinite(m_C[i][j])) {
+					throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas", "Non-finite gas concentration before CN diffusion.");
+				}
+
 				m_C_init[i][j] = m_C[i][j];
-				totalConc += m_C_init[i][j];
+
+				// Absolute value avoids cancellation if a small numerical
+				// negative concentration is present.
+				totalConc += fabs(static_cast<double>(m_C_init[i][j]));
 			}
 
-			// Use the CN scheme
-			Cnstepgas(i, m_C[i], m_D);
+			Cnstepgas(i, m_C[i], m_D, actual_dt);
 
-			total_diff = 0.0f;
+			total_diff = 0.0;
+
 			for (int j = 0; j < m_nSoilLyrs[i]; j++) {
+
+				if (!std::isfinite(m_C[i][j])) {
+					throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas", "Non-finite gas concentration after CN diffusion.");
+				}
+
+				// CN diffusion may produce a tiny negative concentration
+				// because its double solution is stored back into float arrays.
+				if (m_C[i][j] < 0.0f) {
+
+					if (m_C[i][j] >= -MAX_ERR) {
+						m_C[i][j] = 0.0f;
+					}
+					else {
+						throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas",
+							std::string("Substantial negative concentration after CN diffusion: gas=") +
+							gasName +
+							", cell=" + std::to_string(i) +
+							", layer=" + std::to_string(j) +
+							", concentration=" + std::to_string(m_C[i][j]));
+					}
+				}
+
 				m_C_last[i][j] = m_C[i][j];
-				total_diff += fabs(m_C_last[i][j] - m_C_init[i][j]);
+
+				total_diff += fabs(static_cast<double>(m_C_last[i][j]) - static_cast<double>(m_C_init[i][j]));
 			}
 
 			cncount++;
 
-			ratio = total_diff / totalConc;
+			if (totalConc > 1.0e-20) {
+				ratio = total_diff / totalConc;
+			}
+			else {
+				ratio = total_diff <= 1.0e-20 ? 0.0 : 1.0;
+			}
 
-			// stable if the ratio is < 0.01 and we've passed a third of the max iterations 
-			if (ratio < 0.01 && cncount > int(gasdiffix / 3))
+			if (!std::isfinite(ratio)) {
+				throw ModelException(MID_CH4_LPJGUESS,"Diffuse_Gas", "Non-finite convergence ratio in gas diffusion.");
+			}
+
+			if (ratio < 0.01 &&
+				cncount > gasdiffix / 3) {
+
 				stable = true;
+			}
 
-		} while (cncount < gasdiffix && !stable);     // until max 1% variation between iterations, or 100 loops
+		} while (cncount < gasdiffix && !stable);
 	}
 
 	// Unit conversions - allocate concentrations to g layer-1 or mole layer-1
-	float finalAmount = 0.0f;
+	/*float finalAmount = 0.0f;*/
+	double finalAmount = 0.0;
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
 		//m_Cgas[i][j] = m_C[i][j] * atomic_mass * m_total_volume_water[i][j] / MMOL_PER_MOL;
 		//finalAmount += m_Cgas[i][j];
 		Cgas[j] = m_C[i][j] * atomic_mass * m_total_volume_water[i][j] / MMOL_PER_MOL;
-		finalAmount += Cgas[j];
+		finalAmount += static_cast<double>(Cgas[j]);
 	}
 
 	// Return the amount of gas that has diffused INTO the soil
 	// CO2 & CH4 - g
 	// O2 - mol
-	float gasIntoSoil = finalAmount - initialAmount;
+	/*float gasIntoSoil = finalAmount - initialAmount;*/
+	double gasIntoSoilDouble = finalAmount - initialAmount;
+
+	if (!std::isfinite(gasIntoSoilDouble)) {
+		throw ModelException(MID_CH4_LPJGUESS, "Diffuse_Gas", "Non-finite total gas diffusion amount.");
+	}
+
+	float gasIntoSoil = static_cast<float>(gasIntoSoilDouble);
 
 	if (gas_type == CH4_gas)
 		dailyDiff = gasIntoSoil;         // gC/m2/d
@@ -1068,20 +1757,26 @@ float CH4_LPJGUESS::Diffuse_Gas(int i, Gastype gas_type, float& dailyDiff) {
 
 bool CH4_LPJGUESS::IsWetlandGraminoidActive(const int i) {
 
-	// 排除水体和冰川
-	if (m_landuse[i] == LANDUSE_ID_WATR || m_landuse[i] == LANDUSE_ID_GLC) {
+	if (!IsMethaneWetland(i)) {
 		return false;
 	}
 
-	if (static_cast<int>(m_icnum[i]) != 11) {
+	const int landuse = static_cast<int>(m_landuse[i]);
+
+	// 非森林湿地或本研究区暂定的湿地草地
+	if (landuse != 9 &&
+		landuse != 11 &&
+		landuse != 15) {
 		return false;
 	}
 
-	if (m_biomass[i] <= 0.01f) {
+	if (!std::isfinite(m_lai[i]) ||
+		m_lai[i] <= 1.0e-6f) {
 		return false;
 	}
 
-	if (m_lai[i] <= 0.01f) {
+	if (!std::isfinite(m_rootDepth[i]) ||
+		m_rootDepth[i] <= 0.0f) {
 		return false;
 	}
 
@@ -1091,72 +1786,60 @@ bool CH4_LPJGUESS::IsWetlandGraminoidActive(const int i) {
 
 float CH4_LPJGUESS::Calculate_tiller_areas(const int i) {
 
-	// Calculate the area of tillers
-	// Simplified from LPJ-GUESS, Wania et al. (2010) Sec 2.6
+	// Clear previous-day tiller areas
+	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
+		m_tiller_area[i][j] = 0.0f;
+	}
 
-	float tiller_density = 0.0f;      // [number m-2]
-	float graminoid_leafcmass = 0.0f; // proxy for leaf carbon mass
-	float graminoid_dphen = 0.0f;
-	float graminoid_anpp_red = 0.0f;  // reserved, not used now
-
-	// only allow active WETN
 	if (!IsWetlandGraminoidActive(i)) {
-		// 当前单元没有有效湿地草本，则各层 tiller area 置 0
-		for (int j = 0; j < m_nSoilLyrs[i]; j++) {
-			m_tiller_area[i][j] = 0.0f;
-		}
 		return 0.0f;
 	}
 
-	// estimate graminoid leaf carbon mass from LAI:
-	graminoid_leafcmass = m_lai[i] * leaf_carbon_frac / SLA_dry;  // kgC m-2
+	// Original LPJ-GUESS broadleaf SLA formulation
+	// SLA unit: m2 leaf kgC-1
+	float sla_c = 0.2f * pow(10.0f, 2.41f - 0.38f * log10(12.0f * LPJ_WETGRS_LEAFLONG));
 
-	// use LAI / maxLAI as proxy of phenology
-	if (m_maxLai[i] > 0.01f) {
-		graminoid_dphen = m_lai[i] / m_maxLai[i];
-	}
-	else {
-		graminoid_dphen = 0.0f;
+	if (!std::isfinite(sla_c) || sla_c <= 0.0f) {
+		return 0.0f;
 	}
 
-	// limit to [0,1]
-	if (graminoid_dphen < 0.0f) graminoid_dphen = 0.0f;
-	if (graminoid_dphen > 1.0f) graminoid_dphen = 1.0f;
+	// Daily LAI already contains the current phenological state.
+	// LAI / SLA_C gives effective leaf carbon mass.
+	float graminoid_leafcmass = m_lai[i] / sla_c;  // kgC m-2
 
-	// currently not used
-	graminoid_anpp_red = 0.0f;
+	if (!std::isfinite(graminoid_leafcmass) || graminoid_leafcmass <= 0.0f) {
+		return 0.0f;
+	}
 
-	// keep LPJ-GUESS structure
-	graminoid_leafcmass *= G_PER_KG; // kgC m-2 to gC m-2
+	graminoid_leafcmass *= G_PER_KG;  // kgC m-2 -> gC m-2
+
+	float tiller_density = 0.0f;
 
 	if (tiller_weight > 1.0e-12f) {
-		tiller_density = graminoid_leafcmass * graminoid_dphen / tiller_weight;
-	}
-	else {
-		tiller_density = 0.0f;
+		tiller_density = graminoid_leafcmass / tiller_weight;
 	}
 
-	float tiller_frac = 0.0f;
+	if (!std::isfinite(tiller_density) || tiller_density <= 1.0e-12f) {
+		return 0.0f;
+	}
 
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
-		if (tiller_density > 1.0e-12f) {
-			tiller_frac = tiller_density * m_rootFraction[i][j];
 
-			// Consider this as the fraction of the area (1m2) occupied by tillers in this later
-			m_tiller_area[i][j] = PI * pow(tiller_radius, 2.0f) * tiller_frac * tiller_por;
-
-			if (m_tiller_area[i][j] < 1.0e-9f) {
-				m_tiller_area[i][j] = 0.0f;
-			}
+		if (m_rootFraction[i][j] <= 0.0f) {
+			continue;
 		}
-		else {
+
+		float tiller_frac = tiller_density * m_rootFraction[i][j];
+
+		m_tiller_area[i][j] = PI * pow(tiller_radius, 2.0f) * tiller_frac * tiller_por;
+
+		if (!std::isfinite(m_tiller_area[i][j]) || m_tiller_area[i][j] < 1.0e-9f) {
 			m_tiller_area[i][j] = 0.0f;
 		}
 	}
 
 	return tiller_density;
 }
-
 
 float CH4_LPJGUESS::Plant_Gas_Transport(const int i, Gastype gas_type, float& plantTransportToday) {
 
@@ -1199,17 +1882,21 @@ float CH4_LPJGUESS::Plant_Gas_Transport(const int i, Gastype gas_type, float& pl
 	// to return
 	plantTransportToday = 0.0f;
 
-	// First calculate tiller area for this cell
-	float tiller_density = Calculate_tiller_areas(i);
+	//// First calculate tiller area for this cell
+	//float tiller_density = Calculate_tiller_areas(i);
 
-	// No active wetland graminoids -> no plant transport
-	if (tiller_density <= 1.0e-12f) {
-		return 0.0f;
-	}
+	//// No active wetland graminoids -> no plant transport
+	//if (tiller_density <= 1.0e-12f) {
+	//	return 0.0f;
+	//}
 
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
 
 		float Cnew = 0.0f;   // updated concentration [mmol m-3]
+
+		if (!std::isfinite(m_total_volume_water[i][j]) || m_total_volume_water[i][j] <= 1.0e-12f) {
+			continue;
+		}
 
 		// Convert pool to concentration
 		// CH4 / CO2: gC layer-1 -> mmol m-3
@@ -1231,23 +1918,203 @@ float CH4_LPJGUESS::Plant_Gas_Transport(const int i, Gastype gas_type, float& pl
 			float exponent = kgas * m_tiller_area[i][j] / m_volume_liquid_water[i][j];
 			Cnew = Ceq + (Cgas[j] - Ceq) * exp(-exponent);
 
-			// Accumulate daily plant transport
-			// O2 : mol layer-1 d-1
-			// CH4/CO2 : gC m-2 d-1
-			plantTransportToday += (Cgas[j] - Cnew) *
-				atomic_mass * m_total_volume_water[i][j] / MMOL_PER_MOL;
+			// Layer plant-mediated transport.
+            // O2: mol layer-1 d-1
+            // CH4/CO2: gC m-2 d-1
+			float layerPlantTransport = (Cgas[j] - Cnew) * atomic_mass * m_total_volume_water[i][j] / MMOL_PER_MOL;
 
-			// Remove tiny numerical negatives
-			if (plantTransportToday < 0.0f && fabs(plantTransportToday) < 1.0e-8f) {
-				plantTransportToday = 0.0f;
+			// Remove only tiny negative CH4 transport caused by
+			// single-precision round-off. Revert the corresponding
+			// layer pool update at the same time to preserve mass balance.
+			if (gas_type == CH4_gas && layerPlantTransport < 0.0f && fabs(layerPlantTransport) < MAX_ERR) {
+				layerPlantTransport = 0.0f;
 				Cnew = Cgas[j];
 			}
+
+			plantTransportToday += layerPlantTransport;
 		}
 
 		// Convert concentration back to pool
 		// CH4 / CO2: mmol m-3 -> gC layer-1
 		// O2: mmol m-3 -> mol layer-1
 		Cgas[j] = Cnew * atomic_mass * m_total_volume_water[i][j] / MMOL_PER_MOL;
+	}
+
+	return plantTransportToday;
+}
+
+
+float CH4_LPJGUESS::Plant_CH4_Transport(const int i, float& plantTransportToday, float& plantOxidToday) {
+
+	plantTransportToday = 0.0f;
+	plantOxidToday = 0.0f;
+
+	if (!IsWetlandGraminoidActive(i)) {
+		return 0.0f;
+	}
+
+	// m_nSoilLyrs is float*, so convert it to int before using it as an index
+	int nSoilLyrs = static_cast<int>(m_nSoilLyrs[i]);
+
+	if (nSoilLyrs <= 0) {
+		return 0.0f;
+	}
+
+	// Soil temperature from STP_FP represents the temperature
+    // at the midpoint of each soil layer.
+    // Interpolate soil temperature to the Walter reference depth (500 mm).
+
+	float Tsoil50 = m_Tsoil[i][nSoilLyrs - 1];
+
+	float cumulative_depth = 0.0f;
+	float previous_mid_depth = 0.0f;
+	float previous_temperature = m_Tsoil[i][0];
+
+	for (int j = 0; j < nSoilLyrs; j++) {
+
+		float layer_thickness = m_layer_thickness[i][j];
+
+		float layer_top_depth = cumulative_depth;
+		float layer_bottom_depth = layer_top_depth + layer_thickness;
+
+		float layer_mid_depth = layer_top_depth + 0.5f * layer_thickness;
+
+		if (j == 0 && WALTER_T50_DEPTH_MM <= layer_mid_depth) {
+			Tsoil50 = m_Tsoil[i][j];
+			break;
+		}
+
+		if (j > 0 && WALTER_T50_DEPTH_MM <= layer_mid_depth) {
+
+			float depth_interval = layer_mid_depth - previous_mid_depth;
+
+			if (depth_interval > 0.0f) {
+
+				float interpolation_fraction = (WALTER_T50_DEPTH_MM - previous_mid_depth) / depth_interval;
+
+				Tsoil50 = previous_temperature + interpolation_fraction * (m_Tsoil[i][j] - previous_temperature);
+			}
+			else {
+				Tsoil50 = m_Tsoil[i][j];
+			}
+
+			break;
+		}
+
+		previous_mid_depth = layer_mid_depth;
+		previous_temperature = m_Tsoil[i][j];
+		cumulative_depth = layer_bottom_depth;
+	}
+
+	// Calculate Walter plant growth factor
+	const float walterTmat = m_walterTgr + 10.0f;
+
+	float fgrow = 0.0f;
+
+	if (Tsoil50 <= m_walterTgr) {
+		fgrow = WALTER_AMIN;
+	}
+	else if (Tsoil50 < walterTmat) {
+
+		float tempfactor = (walterTmat - Tsoil50) / (walterTmat - m_walterTgr);
+
+		fgrow = WALTER_AMIN + (WALTER_AMAX - WALTER_AMIN) * (1.0f - tempfactor * tempfactor);
+	}
+	else {
+		fgrow = WALTER_AMAX;
+	}
+
+	if (fgrow <= 0.0f) {
+		return 0.0f;
+	}
+
+	// Calculate the total soil profile depth [mm]
+	float profiledepth = 0.0f;
+
+	for (int j = 0; j < nSoilLyrs; j++) {
+		profiledepth += m_layer_thickness[i][j];
+	}
+
+	// Use the same effective root depth as InitRootFractions()
+	float effective_rootdepth = m_rootDepth[i];
+
+	if (effective_rootdepth > profiledepth) {
+		effective_rootdepth = profiledepth;
+	}
+
+	if (effective_rootdepth <= 0.0f) {
+		return 0.0f;
+	}
+
+	// Convert root depth from mm to cm
+	float effective_rootdepth_cm = effective_rootdepth / 10.0f;
+
+	// Calculate plant-mediated CH4 transport in each soil layer
+	for (int j = 0; j < nSoilLyrs; j++) {
+
+		float layer_thickness_cm = m_layer_thickness[i][j] / 10.0f;
+
+		if (layer_thickness_cm <= 0.0f || m_rootFraction[i][j] <= 0.0f || m_CH4[i][j] <= 0.0f) {
+			continue;
+		}
+
+		// No plant transport from an excessively dry layer
+		if ((m_Frac_water[i][j] + m_Frac_water_belowpwp[i][j]) < water_min) {
+			continue;
+		}
+
+		//// Average Walter root density in this soil layer
+		//float rootdensity = m_rootFraction[i][j] / layer_thickness_cm;
+
+		//// Plant-mediated transport rate, h-1
+		//float plant_rate = WALTER_KP * WALTER_TVEG * fgrow * rootdensity;
+
+		// Convert the integrated root fraction into the
+		// layer-mean Walter root distribution factor.
+		// Walter froot is dimensionless and ranges from 0 to 2.
+		float rootfactor = m_rootFraction[i][j] * effective_rootdepth_cm / layer_thickness_cm;
+
+		if (rootfactor < 0.0f) {
+			rootfactor = 0.0f;
+		}
+		else if (rootfactor > 2.0f) {
+			rootfactor = 2.0f;
+		}
+
+		// Plant-mediated transport rate [h-1]
+		float plant_rate = WALTER_KP * m_walterTveg * fgrow * rootfactor;
+
+		// Convert hourly rate into daily removal fraction
+		float daily_fraction = 1.0f - exp(-plant_rate * 24.0f);
+
+		if (daily_fraction < 0.0f) {
+			daily_fraction = 0.0f;
+		}
+		else if (daily_fraction > 1.0f) {
+			daily_fraction = 1.0f;
+		}
+
+		float removed_ch4 = m_CH4[i][j] * daily_fraction;
+
+		if (removed_ch4 > m_CH4[i][j]) {
+			removed_ch4 = m_CH4[i][j];
+		}
+
+		float oxidized_ch4 = removed_ch4 * m_walterPox;
+
+		float emitted_ch4 = removed_ch4 - oxidized_ch4;
+
+		// Remove CH4 entering the plant transport pathway
+		m_CH4[i][j] -= removed_ch4;
+
+		// Rhizosphere-oxidized CH4 becomes CO2
+		m_CO2_soil[i][j] += oxidized_ch4;
+
+		// m_CH4_oxid is stored in mol C
+		m_CH4_oxid[i][j] += oxidized_ch4 / atomiccmass;
+
+		plantOxidToday += oxidized_ch4;
+		plantTransportToday += emitted_ch4;
 	}
 
 	return plantTransportToday;
@@ -1263,66 +2130,52 @@ bool CH4_LPJGUESS::Calculate_Gas_Ebullition(int i, float& ebull_today) {
 	float waterheight = 0.0;
 	ebull_today = 0.0;
 
-	// Calculate the saturation of each layer
-	for (int j = 0; j < m_nSoilLyrs[i]; j++)
-	{
-		if (m_soil_water_storage[i][j] > 0.0f)
-		{
-			float ratio =(m_soil_water_storage[i][j] + m_soilWP[i][j]) / (m_layer_thickness[i][j] * m_soilPor[i][j]);
+	const bool debugEbullCell = i == 1366 || i == 1367 || i == 1368;
+	bool debugEbullSelectedYear = false;
+	char debugEbullDate[16] = {};
 
-			m_soilSaturation[i][j] = (ratio > 1.0f ? 1.0f : (ratio < 0.0f ? 0.0f : ratio));
-		}
-		else
-		{
-			m_soilSaturation[i][j] = 0.0f;
-		}
+	if (DEBUG_CH4_EBULL && debugEbullCell) {
+
+		const std::time_t currentDate = static_cast<std::time_t>(m_date);
+
+		std::tm dateInfo = {};
+
+#ifdef _WIN32
+		localtime_s(&dateInfo, &currentDate);
+#else
+		localtime_r(&currentDate, &dateInfo);
+#endif
+
+		const int debugYear = dateInfo.tm_year + 1900;
+
+		debugEbullSelectedYear = debugYear >= 1980 && debugYear <= 2015;
+
+		std::strftime(debugEbullDate, sizeof(debugEbullDate), "%Y-%m-%d", &dateInfo);
 	}
 
-	bool emitToAtmosphere = true;       // Whether to emit CH4 directly to the atmosphere (true by default)
-	int bubbleToLayer = -1;
 
-	if (m_handWtrDep[i] <= 0.0f) {    // m
-
-		const float sat_eps = 1e-3f;   // Slightly loosen the "fully saturated" criterion
-
-		for (int j = 0; j < m_nSoilLyrs[i]; j++) {
-			if (m_soilSaturation[i][j] < 1.0f - sat_eps) {
-				bubbleToLayer = j;          // 第一个非饱和层
-				break;
-			}
-		}
-
-		if (bubbleToLayer >= 0) {
-			// 找到了非饱和层 → 气泡停在这个土层里，不直接出大气
-			emitToAtmosphere = false;
-		}
-		else {
-			// 整个剖面都接近饱和 → 仍然视为冒到大气
-			emitToAtmosphere = true;
-			bubbleToLayer = -1;
-		}
-	}
-	else {
-		// waterDepth > 0：地表有积水 → 冒泡直接出到水面/大气
-		emitToAtmosphere = true;
-		bubbleToLayer = -1;
-	}
-
-	// Ensure ebullition from all layers
-	bubbleToLayer = -1;     // The soil layer to bubble to.
+	// Equivalent to IDX - 1 in the public LPJ-GUESS code.
+    // It is only used as a comparison boundary and must never
+    // be used as an array index.
+	const int bubbleToLayer = -1;
 
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
+
+		// Reset today's layer ebullition diagnostics.
+		m_CH4_ebull_ind[i][j] = 0.0f;
+		m_CH4_ebull_vol[i][j] = 0.0f;
 
 		float Tsoil = m_Tsoil[i][j];
 		float TsoilK = Tsoil + K2degC;
 
 		waterheight += m_total_volume_water[i][j];   // m
 
-		// Bubble formation below the WT only
+		// bubbleToLayer is -1, so all real soil layers
+		// participate in ebullition.
 		if (j > bubbleToLayer) {
 
 			// Max CH4 that can be dissolved (Wania et al. (2010), Eqn 15)
-			float CH4_diss_max = 0.05708 - 0.001545 * std::fmax(0.0f, Tsoil) + 0.00002069 * std::fmax(0.0f, Tsoil * Tsoil);
+			float CH4_diss_max = 0.05708 - 0.001545 * Max(0.0f, Tsoil) + 0.00002069 * Max(0.0f, Tsoil * Tsoil);
 			//float tpos = 0.0f;
 			//if (Tsoil > 0.0f)   tpos = Tsoil;
 			//float CH4_diss_max = 0.05708f - 0.001545f  * tpos + 0.00002069f * (Tsoil * Tsoil);
@@ -1343,7 +2196,7 @@ bool CH4_LPJGUESS::Calculate_Gas_Ebullition(int i, float& ebull_today) {
 			if (m_Frac_water[i][j] + m_Frac_water_belowpwp[i][j] > water_min && Tsoil > 0.0) {
 
 				float henry_k_cc_CH4 = TsoilK / (12.2 * henry_k_CH4);
-				m_CH4_diss[i][j] = std::fmin(CH4_diss_max_g, henry_k_cc_CH4 *  m_CH4[i][j]);
+				m_CH4_diss[i][j] = Min(CH4_diss_max_g, henry_k_cc_CH4 *  m_CH4[i][j]);
 				//std::cout << "henry_k_cc_CH4=" << henry_k_cc_CH4 << "\n";
 
 				//// Override (a la Wania et al. 2010) with this new, simpler ebullition
@@ -1353,32 +2206,70 @@ bool CH4_LPJGUESS::Calculate_Gas_Ebullition(int i, float& ebull_today) {
 				m_CH4_gas_vol[i][j] = m_CH4_gas[i][j] / atomiccmass * R_gas * TsoilK / (hydro_press + atm_press);      // [m3]
 				m_CH4_vgc[i][j] = m_CH4_gas_vol[i][j] / (m_layer_thickness[i][j] / MM_PER_M * SQ_M);            // m3/m3
 
-				/*if (i == 629) {
-					float thr = vgc_high * bubble_CH4_frac;
 
-					std::cout << std::fixed << std::setprecision(6)
-						<< "[Ebull] cell=" << i << " lyr=" << j
-						<< " T=" << Tsoil
-						<< " waterheight=" << waterheight
-						<< " Ptot=" << (hydro_press + atm_press)
-						<< " CH4_total=" << m_CH4[i][j]
-						<< " CH4_diss_max_g=" << CH4_diss_max_g
-						<< " henry_k_cc_CH4=" << henry_k_cc_CH4
-						<< " henry_cap=" << (henry_k_cc_CH4 * m_CH4[i][j])
-						<< " CH4_diss=" << m_CH4_diss[i][j]
-						<< " CH4_gas=" << m_CH4_gas[i][j]
-						<< " Vgas=" << m_CH4_gas_vol[i][j]
-						<< " VGC=" << m_CH4_vgc[i][j]
-						<< " thr=" << thr
-						<< " trig=" << (m_CH4_vgc[i][j] > thr ? 1 : 0)
-						<< std::endl;                                                                                                                                                                                                                                                                                                 
-				}*/
+				const float vgc_threshold = vgc_high * bubble_CH4_frac;
+
+				if (DEBUG_CH4_EBULL && debugEbullCell && debugEbullSelectedYear) {
+
+#pragma omp critical(CH4_EBULL_DIAG_WRITE)
+						{
+							static std::ofstream ebullFile;
+							static bool ebullFileInitialized = false;
+
+							if (!ebullFileInitialized) {
+
+								ebullFile.open(
+									"D:/SEIMS_C/data/CW_2/CW_2_longterm_model/"
+									"OUTPUT0/CH4_EBULL_DIAG.csv",
+									std::ios::out | std::ios::trunc
+								);
+
+								if (ebullFile.is_open()) {
+									ebullFile
+										<< "DATE,CELL,LAYER,TSOIL_C,LIQUID_WATER_DEPTH_M,"
+										<< "CH4_TOTAL_GC,CH4_DISS_MAX_GC,"
+										<< "CH4_DISS_GC,CH4_GAS_GC,"
+										<< "CH4_VGC,VGC_THRESHOLD,TRIGGER,"
+										<< "FRAC_WATER,FRAC_BELOW_PWP,FRAC_LIQUID,"
+										<< "FAIR,ANOXIC,"
+										<< "HAND_WATER_DEPTH_AFT_DEP_m\n";
+								}
+
+								ebullFileInitialized = true;
+							}
+
+							if (ebullFile.is_open()) {
+								ebullFile
+									<< std::fixed
+									<< std::setprecision(8)
+									<< debugEbullDate << ','
+									<< i << ','
+									<< j << ','
+									<< Tsoil << ','
+									<< m_volume_liquid_water[i][j] << ','
+									<< m_CH4[i][j] << ','
+									<< CH4_diss_max_g << ','
+									<< m_CH4_diss[i][j] << ','
+									<< m_CH4_gas[i][j] << ','
+									<< m_CH4_vgc[i][j] << ','
+									<< vgc_threshold << ','
+									<< (m_CH4_vgc[i][j] > vgc_threshold ? 1 : 0) << ','
+									<< m_Frac_water[i][j] << ','
+									<< m_Frac_water_belowpwp[i][j] << ','
+									<< m_Frac_water[i][j] + m_Frac_water_belowpwp[i][j] << ','
+									<< m_Fair[i][j] << ','
+									<< m_anoxic[i][j] << ','
+									<< m_handWtrDep[i]
+									<< '\n';
+							}
+						}
+				}
 
 				// Ebullition/bubble formation if the volumetric gas content (VGC) exceeds vgc_high * bubble_CH4_frac, 
 				// where bubble_CH4_frac id the CH4 fraction of gas bubbles
 				if (m_CH4_vgc[i][j] > vgc_high * bubble_CH4_frac) {
 
-					m_CH4_ebull_vol[i][j] = (m_CH4_vgc[i][j] - vgc_low * bubble_CH4_frac) * m_layer_thickness[i][j] / MM_PER_M * SQ_M; // m3/m3
+					m_CH4_ebull_vol[i][j] = (m_CH4_vgc[i][j] - vgc_low * bubble_CH4_frac) * m_layer_thickness[i][j] / MM_PER_M * SQ_M;   // m3 CH4 per m2 ground area
 					m_CH4_vgc[i][j] = vgc_low * bubble_CH4_frac;
 					m_CH4_ebull_ind[i][j] = m_CH4_ebull_vol[i][j] * (hydro_press + atm_press) / (R_gas * TsoilK); // mol
 					m_CH4_gas[i][j] = m_CH4_vgc[i][j] * m_layer_thickness[i][j] / MM_PER_M * SQ_M * (hydro_press + atm_press) / (R_gas * TsoilK); // mol
@@ -1404,23 +2295,6 @@ bool CH4_LPJGUESS::Calculate_Gas_Ebullition(int i, float& ebull_today) {
 			m_CH4_diss[i][j] = m_CH4_diss_yesterday[i][j];
 		} // bubble layer check
 	} // for ii
-
-
-	// If the water table is below the surface, then put the bubbled methane into the first unsaturated layer
-	if (!emitToAtmosphere) {
-
-		m_CH4[i][bubbleToLayer] += ebull_today;
-		ebull_today = 0.0;                    // No emission today.
-
-		// O2 is in [mol layer-1]
-		m_O2[i][bubbleToLayer] *= oxid_frac;       // since 25% of O2 used by roots themselves...  
-		m_CH4[i][bubbleToLayer] /= atomiccmass;    // mol layer-1
-		m_CH4_oxid[i][bubbleToLayer] = std::fmin(m_CH4[i][bubbleToLayer], 0.5f * m_O2[i][bubbleToLayer]); // usually 75%
-		m_CH4[i][bubbleToLayer] = (m_CH4[i][bubbleToLayer] - m_CH4_oxid[i][bubbleToLayer]) * atomiccmass; // gC layer again	
-		m_O2[i][bubbleToLayer] -= 2.0 * m_CH4_oxid[i][bubbleToLayer]; // subtract the moles used in oxidation
-
-		m_CO2_soil[i][bubbleToLayer] += m_CH4_oxid[i][bubbleToLayer] * atomiccmass; // Oxidised CH4 becomes CO2 (and water!)
-	}
 
 	return true;
 }
@@ -1483,6 +2357,7 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	bool allow_Ebullition = true;
 	bool allow_CH4diffusion = true;
 	bool allow_O2diffusion = true;
+	float snowDepth = CalculateSnowDepth(i);
 
 	// Daily diffusion 
 	float O2_diff_today;  
@@ -1525,20 +2400,6 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	m_CH4_C_store_init = m_CH4_store;
 	m_CO2_C_store_init = m_CO2_store;
 
-	/*if (i == 629) {
-		float sum_y = 0.f;
-		std::cout << "\n=== Day " << daynum << " Cell 629: CH4_yesterday per layer (gC/layer) ===\n";
-		for (int j = 0; j < m_nSoilLyrs[i]; j++) {
-			std::cout << "  lyr " << j << " CH4_yesterday=" << m_CH4_yesterday[i][j]
-				<< " CH4_diss_yesterday=" << m_CH4_diss_yesterday[i][j]
-				<< " CH4_gas_yesterday=" << m_CH4_gas_yesterday[i][j]
-				<< "\n";
-			sum_y += m_CH4_yesterday[i][j];
-		}
-		std::cout << "  sum CH4_yesterday=" << sum_y << "\n";
-	}*/
-
-
 
 	// *** STEP 1 ***
 	// Diffusivities and layer depths, and update of gas constants
@@ -1547,23 +2408,48 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	Calculate_Gas_Diffusivities(i);
 	// Units: m2 d-1
 
-	// Layer depths in m, and volume of water in m3
+	// Layer thickness in m.
+    // Water-volume variables are volumes per unit ground area (m3 m-2),
+    // numerically equivalent to water depth (m).
+
+	float cumulative_depth = 0.0f;
+
 
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
-		m_Frac_water[i][j] = m_soil_water_storage[i][j] / m_layer_thickness[i][j];
-		m_Frac_ice[i][j] = m_soilIceSto[i][j] / m_layer_thickness[i][j];
-		m_Frac_water_belowpwp[i][j] = m_soilWP[i][j] / m_layer_thickness[i][j];
-		m_Dz_metre[i][j] = m_layer_thickness[i][j] / MM_PER_M;
-		m_volume_liquid_water[i][j] = (m_Frac_water[i][j] + m_Frac_water_belowpwp[i][j]) * m_Dz_metre[i][j];                       // m3 water 
-		m_total_volume_water[i][j] = (m_Frac_water[i][j] + m_Frac_ice[i][j] + m_Frac_water_belowpwp[i][j]) * m_Dz_metre[i][j];     // m3 water + ice
+
+		float layer_thickness = m_layer_thickness[i][j];
+		float porosity = m_soilPor[i][j];
+		float water_content = Max(0.0f, m_soil_water_storage[i][j]);
+		float ice_content = Max(0.0f, m_soilIceSto[i][j]);
+
+		float liquid_below_pwp = Max(0.0f, m_soilWP[i][j] - ice_content);
+
+		m_Frac_water[i][j] = water_content / layer_thickness;
+
+		m_Frac_ice[i][j] = ice_content / layer_thickness;
+
+		m_Frac_water_belowpwp[i][j] = liquid_below_pwp / layer_thickness;
+
+		m_Dz_metre[i][j] = layer_thickness / MM_PER_M;
+
+		m_volume_liquid_water[i][j] = (m_Frac_water[i][j] + m_Frac_water_belowpwp[i][j]) * m_Dz_metre[i][j];
+
+		m_total_volume_water[i][j] = m_volume_liquid_water[i][j] + m_Frac_ice[i][j] * m_Dz_metre[i][j];
+
+		cumulative_depth += layer_thickness;
 	}
+
 
 	// If we have standing water...
 	if (m_handWtrDep[i] > 0.0) {
 		// m_handWtrDep in m
-		m_Dz_metre[i][0] += m_handWtrDep[i];
+		/*m_Dz_metre[i][0] += m_handWtrDep[i];
 		m_volume_liquid_water[i][0] += (m_Frac_water[i][0] + m_Frac_water_belowpwp[i][0]) * m_handWtrDep[i];
-		m_total_volume_water[i][0] += (m_Frac_water[i][0] + m_Frac_ice[i][0] + m_Frac_water_belowpwp[i][0]) * m_handWtrDep[i];
+		m_total_volume_water[i][0] += (m_Frac_water[i][0] + m_Frac_ice[i][0] + m_Frac_water_belowpwp[i][0]) * m_handWtrDep[i];*/
+		// Surface standing water is 100% liquid water.
+		m_Dz_metre[i][0] += m_handWtrDep[i];
+		m_volume_liquid_water[i][0] += m_handWtrDep[i];
+		m_total_volume_water[i][0] += m_handWtrDep[i];
 	}
 
 	// Update the temperature-dependent gas parameters
@@ -1576,79 +2462,219 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 		return false;
 
 
-
 	// *** STEP 2 ***
 	// Calculate CH4 & CO2 production
 
 	float CH4_daily_total = 0.0f;
 	
 	float total_Rh = 0.0f;             // The total soil respiration (Rh) generated today, gC/m2/day.
+
+	// Convert all layer RSPC values to profile-total Rh.
+    // m_sol_RSPC: kg C ha-1 d-1
+    // total_Rh:   g C m-2 d-1
+	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
+
+		float rspc_layer_Rh = m_sol_RSPC[i][j] * KG_HA_TO_G_M2;
+
+		total_Rh += rspc_layer_Rh;
+	}
 	
 	// Today's decomposition of litter and soil C pools
 	float C_input = 0.0;               // Conservation check - C in methane produced  记录今天产生的所有 C（CH₄ + CO₂）
 	float CH4_Init_Prod = 0.0;         // The total CH₄ originally generated on that day (before oxidation, diffusion, and bubbling)
 	float Total_CH4 = 0.0;             // Calculate the total amount of CH₄ in all layers
 
+	float layerTopDepthMm = 0.0f;
+
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
 
-		// Daily decomposition, converted to gC/m2 from kgC/ha
-		float m_dRh = m_sol_RSPC[i][j] * KG_HA_TO_G_M2;
-		total_Rh += m_dRh;
+		const float layerBottomDepthMm = layerTopDepthMm + m_layer_thickness[i][j];
 
-		//// 打印每一层土壤呼吸（gC/m2/day）
-		//std::cout << "Cell " << i
-		//	<< " Layer " << j
-		//	<< " Soil respiration (m_dRh) = "
-		//	<< m_dRh << " gC/m2/day"
-		//	<< std::endl;
+		//// Original layer RSPC from NUTR_TF.
+		//float rspc_layer_Rh = m_sol_RSPC[i][j] * KG_HA_TO_G_M2;
+
+		//// LPJ-GUESS redistribution of profile-total Rh.
+		//float m_dRh = m_peatRootFraction[i][j] * total_Rh;
+
+		// Use the original layer-specific heterotrophic respiration from WISE.
+        // m_sol_RSPC: kg C ha-1 d-1
+        // m_dRh:      g C m-2 d-1
+		float rspc_layer_Rh = m_sol_RSPC[i][j] * KG_HA_TO_G_M2;
+
+		float m_dRh = rspc_layer_Rh;
+
+		const bool FULL_ANOXIC_TEST = false;
 
 		float anoxic = m_anoxic[i][j];
-		float rootfrac = m_rootFraction[i][j];
+
+		if (FULL_ANOXIC_TEST) {
+			anoxic = 1.0f;
+		}
+
 		float C_input_old = C_input;
 
 		// *** CH4 PRODUCTION IN THIS LAYER ***
 		if ((m_Frac_water[i][j] + m_Frac_water_belowpwp[i][j]) < water_min) {
-			m_CH4_prod[i][j] = 0.0;
+			m_CH4_prod[i][j] = 0.0f;
 		}
-		else {  
-			//m_CH4_prod[i][j] = anoxic * CH4toCO2_PEAT * rootfrac * m_dRh;     // gC/m2
-			//It is already the respiratory volume for each layer, so there is no need to redistribute the root system proportions at each layer.
-			m_CH4_prod[i][j] = anoxic * CH4toCO2_PEAT * m_dRh;       // gC/m2
+		else {
+			m_CH4_prod[i][j] = anoxic * m_ch4Co2Ratio * m_dRh;
 		}
 
-//		// ===== DEBUG PRINT (cells 629-644): what controls CH4 production =====
-//		if (i >= 629 && i <= 644) {
-//			const float FracLiq = m_Frac_water[i][j] + m_Frac_water_belowpwp[i][j];
-//			const bool  passWater = (FracLiq >= water_min);
-//			const float ch4_formula = passWater ? (anoxic * CH4toCO2_PEAT * m_dRh) : 0.0f;
-//
-//#pragma omp critical(CH4DBG_PRINT)
-//			{
-//				std::cout << std::fixed << std::setprecision(6)
-//					<< "[CH4CTRL] day=" << daynum
-//					<< " cell=" << i
-//					<< " lyr=" << j
-//					<< " | sol_RSPC=" << m_sol_RSPC[i][j]                 // kgC/ha/day
-//					<< " m_dRh=" << m_dRh                                // gC/m2/day
-//					<< " | anoxic=" << anoxic
-//					<< " Fair=" << m_Fair[i][j]
-//					<< " por=" << m_soilPor[i][j]
-//					<< " | FracLiq=" << FracLiq
-//					<< " (water=" << m_Frac_water[i][j]
-//					<< " WP=" << m_Frac_water_belowpwp[i][j]
-//					<< ") water_min=" << water_min
-//					<< " pass=" << (passWater ? 1 : 0)
-//					<< " | T=" << m_Tsoil[i][j]
-//					<< " | water_mm=" << m_soil_water_storage[i][j]
-//					<< " WP_mm=" << m_soilWP[i][j]
-//					<< " ice_mm=" << m_soilIceSto[i][j]
-//					<< " thk_mm=" << m_layer_thickness[i][j]
-//					<< " | CH4toCO2=" << CH4toCO2_PEAT
-//					<< " | CH4_prod=" << m_CH4_prod[i][j]
-//					<< " (calc=" << ch4_formula << ")"
-//					<< "\n";
-//			}
-//		}
+		// ---------------------------------------------------------------------
+        // Temporary diagnostics for CH4 production.
+        // This block only writes diagnostic values and does not modify the model.
+        // ---------------------------------------------------------------------
+		/*const bool DEBUG_CH4_PRODUCTION = false;*/
+		const bool DEBUG_CH4_PRODUCTION = true;
+
+		if (DEBUG_CH4_PRODUCTION) {
+
+			const bool debugCell =
+				i == 1366 ||
+				i == 1367 ||
+				i == 1368;
+
+			if (debugCell) {
+
+				const std::time_t currentDate =
+					static_cast<std::time_t>(m_date);
+
+				std::tm dateInfo = {};
+
+#ifdef _WIN32
+				localtime_s(&dateInfo, &currentDate);
+#else
+				localtime_r(&currentDate, &dateInfo);
+#endif
+
+				const int debugYear = dateInfo.tm_year + 1900;
+
+				// Write layer-level CH4 production diagnostics for 1980-2015.
+				const bool debugSelectedYear = debugYear >= 1980 && debugYear <= 2015;
+
+				if (debugSelectedYear) {
+
+					char dateText[16] = {};
+
+					std::strftime(
+						dateText,
+						sizeof(dateText),
+						"%Y-%m-%d",
+						&dateInfo
+					);
+
+					const float fracLiquid =
+						m_Frac_water[i][j] +
+						m_Frac_water_belowpwp[i][j];
+
+					const bool passWater =
+						fracLiquid >= water_min;
+
+					const float ch4ProdCheck =
+						passWater
+						? anoxic * m_ch4Co2Ratio * m_dRh
+						: 0.0f;
+
+#pragma omp critical(CH4_PRODUCTION_DIAG_WRITE)
+					{
+						static std::ofstream debugFile;
+						static bool debugFileInitialized = false;
+
+						if (!debugFileInitialized) {
+
+							const char* outputPath =
+								"D:/SEIMS_C/data/CW_2/CW_2_longterm_model/"
+								"OUTPUT0/CH4_PRODUCTION_DIAG.csv";
+
+							debugFile.open(
+								outputPath,
+								std::ios::out | std::ios::trunc
+							);
+
+							if (!debugFile.is_open()) {
+								std::cerr
+									<< "[CH4_DIAG_ERROR] Cannot open: "
+									<< outputPath
+									<< std::endl;
+							}
+							else {
+								debugFile
+									<< "DATE,"
+									<< "CELL,"
+									<< "LAYER,"
+									<< "LAYER_TOP_DEPTH_mm,"
+									<< "LAYER_BOTTOM_DEPTH_mm,"
+									<< "RSPC_kgCha_d,"
+									<< "RSPC_LAYER_RH_gCm2d,"
+									<< "PROFILE_TOTAL_RH_gCm2d,"
+									<< "LPJ_PEAT_FRACTION_DIAG_ONLY,"
+									<< "DWYER_ROOT_FRACTION,"
+									<< "ROOT_DEPTH_mm,"
+									<< "LAYER_RH_USED_gCm2d,"
+									<< "SOIL_WATER_mm,"
+									<< "PWP_mm,"
+									<< "ICE_mm,"
+									<< "THICKNESS_mm,"
+									<< "FRAC_WATER,"
+									<< "FRAC_BELOW_PWP,"
+									<< "FRAC_LIQUID,"
+									<< "PASS_WATER,"
+									<< "POROSITY,"
+									<< "FAIR,"
+									<< "ANOXIC,"
+									<< "CH4_CO2_RATIO,"
+									<< "CH4_PROD_CHECK_gCm2d,"
+									<< "CH4_PROD_MODEL_gCm2d,"
+									<< "PROD_DIFFERENCE,"
+									<< "TSOIL_C,"
+									<< "HAND_WATER_DEPTH_AFT_DEP_m"
+									<< '\n';
+							}
+
+							debugFileInitialized = true;
+						}
+
+						if (debugFile.is_open()) {
+
+							debugFile
+								<< std::fixed
+								<< std::setprecision(8)
+								<< dateText << ','
+								<< i << ','
+								<< j << ','
+								<< layerTopDepthMm << ','
+								<< layerBottomDepthMm << ','
+								<< m_sol_RSPC[i][j] << ','
+								<< rspc_layer_Rh << ','
+								<< total_Rh << ','
+								<< m_peatRootFraction[i][j] << ','
+								<< m_rootFraction[i][j] << ','
+								<< m_rootDepth[i] << ','
+								<< m_dRh << ','
+								<< m_soil_water_storage[i][j] << ','
+								<< m_soilWP[i][j] << ','
+								<< m_soilIceSto[i][j] << ','
+								<< m_layer_thickness[i][j] << ','
+								<< m_Frac_water[i][j] << ','
+								<< m_Frac_water_belowpwp[i][j] << ','
+								<< fracLiquid << ','
+								<< (passWater ? 1 : 0) << ','
+								<< m_soilPor[i][j] << ','
+								<< m_Fair[i][j] << ','
+								<< anoxic << ','
+								<< m_ch4Co2Ratio << ','
+								<< ch4ProdCheck << ','
+								<< m_CH4_prod[i][j] << ','
+								<< m_CH4_prod[i][j] - ch4ProdCheck << ','
+								<< m_Tsoil[i][j] << ','
+								<< m_handWtrDep[i]
+								<< '\n';
+						}
+					}
+				}
+			}
+		}
 
 		// Cumulative daily CH4
 		CH4_daily_total += m_CH4_prod[i][j];
@@ -1671,45 +2697,20 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 		m_CO2_soil[i][j] = m_CO2_soil_yesterday[i][j] + m_CO2_soil_prod[i][j];
 
 		float C_Added = C_input - C_input_old;            // The actual current carbon input (CH₄ + CO₂) added to the soil layer
-		float Ought_to_have_been = rootfrac * m_dRh;      // Theoretically, the total amount of carbon that this layer should have produced today
+		float Ought_to_have_been = m_dRh;                 // Theoretically, the total amount of carbon that this layer should have produced today
 
 		// Error (used to detect whether the model has correctly allocated carbon)
-		float Er = Ought_to_have_been - C_Added;          // Theoretical production quantity - The actual quantity added to the system,
+		float Er = Ought_to_have_been - C_Added;          // Theoretical production quantity - The actual quantity added to the system
+		// The bottom of the current layer is the top of the next layer.
+		layerTopDepthMm = layerBottomDepthMm;
 	}
-
-	//// C conservation test:
-	//if (fabs(total_Rh - C_input) > MAX_ERR) {
-	//	std::cout << "[CH4] C conservation error: |dRh - C_input| = "
-	//		<< fabs(total_Rh - C_input)
-	//		<< "  at Cell = " << i
-	//		<< std::endl;
-	//	//return false;
-	//}
-
-	//// debugging:
-	//if (Total_CH4 < 0.0000000 || Total_CH4 > 10000000) {
-	//	std::cout << "Bad Total_CH4 at the start of Soil::methane()" << i
-	//		<< ": Total_CH4 = " << Total_CH4
-	//		<< std::endl;
-	//}
 
 	// C conservation test:
 	Calculate_Carbon_Store(i, daynum, true);
+
 	m_CH4_C_store_now = m_CH4_store;
 	m_CO2_C_store_now = m_CO2_store;
 	float check = m_CH4_C_store_now + m_CO2_C_store_now - m_CH4_C_store_init - m_CO2_C_store_init - total_Rh;
-	/*if (fabs(check) > MAX_ERR) {
-		std::cout << "[CH4] Carbon imbalance detected!"
-			<< "  Cell=" << i
-			<< "  CH4_store_now=" << m_CH4_C_store_now
-			<< "  CO2_store_now=" << m_CO2_C_store_now
-			<< "  CH4_store_init=" << m_CH4_C_store_init
-			<< "  CO2_store_init=" << m_CO2_C_store_init
-			<< "  total_Rh=" << total_Rh
-			<< "  check=" << check
-			<< std::endl;
-	}*/
-
 
 
 	// *** STEP 3 ***
@@ -1717,24 +2718,29 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	float DailyO2diffusion = 0.0;     // 当日扩散总量
 	float MolesO2IntoSoil = 0.0;      // 进入土壤顶层的 O₂ 摩尔数
 
-	if (allow_O2diffusion)
+	/*if (allow_O2diffusion)
+		MolesO2IntoSoil = Diffuse_Gas(i, O2_gas, DailyO2diffusion);*/
+
+	if (allow_O2diffusion && snowDepth < SNOW_DIFFUSION_DEPTH_LIMIT_MM) {
 		MolesO2IntoSoil = Diffuse_Gas(i, O2_gas, DailyO2diffusion);
+	}
 	O2_diff_today = DailyO2diffusion;                   // mol O2 into the soil (and then diffused downwards) 
 	// Should be negative, i.e. O2 diffuses INTO the soil
 
 
-
 	// *** STEP 4 ***
 	// Plant transport of oxygen
+	// LPJ-GUESS plant-mediated O2 transport
 
 	O2_plant_today = 0.0f;
+	float tillers = 0.0f;
 
-	
 	if (allow_planttransport) {
-		float tillers = Calculate_tiller_areas(i);
-        // Only allow plant transport if there are graminoid tillers present
+
+		tillers = Calculate_tiller_areas(i);
+
 		if (tillers > 1.0e-12f) {
-			Plant_Gas_Transport(i, O2_gas, O2_plant_today);   // mol O2 into soil through plants
+			Plant_Gas_Transport(i, O2_gas, O2_plant_today);
 		}
 	}
 
@@ -1745,8 +2751,9 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	float DailyCH4diffusion = 0.0;
 	float GramCH4IntoSoil = 0.0;
 
-	if (allow_CH4diffusion)
+	if (allow_CH4diffusion && snowDepth < SNOW_DIFFUSION_DEPTH_LIMIT_MM) {
 		GramCH4IntoSoil = Diffuse_Gas(i, CH4_gas, DailyCH4diffusion);
+	}
 	CH4_diff_today = -DailyCH4diffusion;   // SHOULD BE 0 - gC m-2 d-1
 	// Should be positive, i.e. upward flux
 	
@@ -1754,24 +2761,9 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	if (fabs(CH4_diff_today) < MAX_ERR)
 		CH4_diff_today = 0.0;              // remove tiny values
 
-	//// C conservation test:
-	//if (CH4_diff_today < -0.1 || CH4_diff_today > 10000000) {
-	//	std::cout << "Bad CH4 diffusion detected: "
-	//		<< CH4_diff_today
-	//		<< " (cell=" << i << ")"
-	//		<< std::endl;
-	//}
-
 	// C conserved?
 	Calculate_Carbon_Store(i, daynum, true);
 	check = m_CH4_store - CH4_before_diffusion + CH4_diff_today;
-	/*if (fabs(check) > MAX_ERR) {
-		std::cout << "[C Conservation Error] After CH4 diffusion: "
-			<< check
-			<< "  (cell=" << i << ")"
-			<< std::endl;
-	}*/
-
 
 
 	// *** STEP 6 ***
@@ -1785,9 +2777,9 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
 
 		// O2 is in [mol layer-1]
-		m_O2[i][j] *= oxid_frac;             // since ((1-oxid_frac)*100)% of O2 used by roots themselves... [mol layer-1] 
+		m_O2[i][j] *= m_oxidFrac;            // since ((1-oxid_frac)*100)% of O2 used by roots themselves... [mol layer-1] 
 		m_CH4[i][j] /= atomiccmass;          // mol layer-1
-		m_CH4_oxid[i][j] = std::fmin(m_CH4[i][j], 0.5f * m_O2[i][j]);                // usually 75%
+		m_CH4_oxid[i][j] = Min(m_CH4[i][j], 0.5f * m_O2[i][j]);               // usually 75%
 		m_CH4[i][j] = (m_CH4[i][j] - m_CH4_oxid[i][j]) * atomiccmass;         // gC layer again	
 		m_O2[i][j] -= 2.0 * m_CH4_oxid[i][j];                                 // subtract the moles used in oxidation
 
@@ -1801,7 +2793,6 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	for (int j = 0; j < m_nSoilLyrs[i]; j++) {
 		CH4_oxid_daily += m_CH4_oxid[i][j] * atomiccmass;  // mol → gC
 	}
-
 
 
 	// *** STEP 6b ***
@@ -1831,20 +2822,41 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	checkbefore = check;
 
 
-
 	// *** STEP 7 ***
 	// Plant transport of CH4
+	// Plant-mediated CH4 transport based on Walter and Heimann (2000)
+
+	//CH4_plant_today = 0.0f;
+	//float CH4_plant_oxid_today = 0.0f;
+
+	//if (allow_planttransport) {
+	//	Plant_CH4_Transport(i, CH4_plant_today,CH4_plant_oxid_today);
+
+	//	// Add rhizosphere oxidation associated with plant transport
+	//	// to the daily total methane oxidation
+	//	CH4_oxid_daily += CH4_plant_oxid_today;
+	//}
+
+	// *** STEP 7 ***
+    // LPJ-GUESS plant-mediated CH4 transport
 
 	CH4_plant_today = 0.0f;
 
-	if (allow_planttransport) {
-		float tillers = Calculate_tiller_areas(i);
+	if (allow_planttransport && tillers > 1.0e-12f) {
 
-		// Only allow plant transport if there are active wetland graminoid tillers present
-		if (tillers > 1.0e-12f) {
-			Plant_Gas_Transport(i, CH4_gas, CH4_plant_today);   // CH4 into soil through plants (gC m-2)
-		}
+		Plant_Gas_Transport(i, CH4_gas, CH4_plant_today);
 	}
+
+	//CH4_plant_today = 0.0f;
+
+	//if (allow_planttransport) {
+	//	float tillers = Calculate_tiller_areas(i);
+
+	//	// Only allow plant transport if there are active wetland graminoid tillers present
+	//	if (tillers > 1.0e-12f) {
+	//		Plant_Gas_Transport(i, CH4_gas, CH4_plant_today);   // CH4 into soil through plants (gC m-2)
+	//	}
+	//}
 
 	// Check C budget
 	Calculate_Carbon_Store(i, daynum, true);
@@ -1861,7 +2873,6 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	checkbefore = check;
 
 
-
 	// *** STEP 8 ***
 	// Ebullition of CH4
 	if (allow_Ebullition)
@@ -1871,7 +2882,7 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	// Check C budget
 	Calculate_Carbon_Store(i, daynum, true);
 	//check = m_CH4_store + m_CO2_store + CH4_diff_today + CH4_plant_today + CH4_ebull_today;
-	check = m_CH4_store + m_CO2_store + CH4_diff_today  + CH4_ebull_today + CH4_plant_today;    
+	check = m_CH4_store + m_CO2_store + CH4_diff_today  + CH4_ebull_today + CH4_plant_today;
 
 	float checkafter3 = check - checkbefore;
 
@@ -1911,6 +2922,7 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 	Calculate_Carbon_Store(i, daynum, true);
 
 	CO2_plant_today = 0.0;
+
 
 	// *** STEP 9 ***
 	// Conservation steps
@@ -1995,92 +3007,64 @@ bool CH4_LPJGUESS::Methane(int i, int daynum) {
 		<< " | CH4 total flux = " << CH4_flux_hourly << " gC/m2/h"
 		<< std::endl;*/
 
-	m_CH4_prod_hour[i] = CH4_daily_total / 24.0f;      // Daily methane production  gC/m2/hour
-	m_CH4_oxid_hour[i] = CH4_oxid_daily / 24.0f;       // Daily methane oxidation   gC/m2/hour
-	m_CH4_diff_hour[i] = CH4_diff_today / 24.0f;       // Diffusive flux            gC/m2/hour
-	m_CH4_ebull_hour[i] = CH4_ebull_today / 24.0f;     // Ebullition flux           gC/m2/hour
-	m_CH4_flux_hour[i] = CH4_flux_today / 24.0f;       // Total CH4 flux            gC/m2/hour
+	//m_CH4_prod_hour[i] = CH4_daily_total / 24.0f;      // Daily methane production  gC/m2/hour
+	//m_CH4_oxid_hour[i] = CH4_oxid_daily / 24.0f;       // Daily methane oxidation   gC/m2/hour
+	//m_CH4_diff_hour[i] = CH4_diff_today / 24.0f;       // Diffusive flux            gC/m2/hour
+	//m_CH4_ebull_hour[i] = CH4_ebull_today / 24.0f;     // Ebullition flux           gC/m2/hour
+	//m_CH4_plant_hour[i] = CH4_plant_today / 24.0f;     // Plant transport flux      gC/m2/hour
+	//m_CH4_flux_hour[i] = CH4_flux_today / 24.0f;       // Total CH4 flux            gC/m2/hour
 
-	//// ======= 单条 std::cout 输出（只在 cell=629）=======
-	//if (i == 629)
-	//	std::cout << std::fixed << std::setprecision(6)
-	//	<< "[CH4DBG] day=" << daynum
- //   << " handWtrDep=" << m_handWtrDep[i]
- //   << " Rh=" << total_Rh
- //   << " CH4prod_tot=" << CH4_daily_total
- //   << " CH4diff=" << CH4_diff_today
- //   << " CH4oxid_tot=" << CH4_oxid_daily
- //   << " CH4ebull=" << CH4_ebull_today
- //   << " CH4store_end=" << m_CH4_store
- //   << " thr=" << (vgc_high * bubble_CH4_frac)
-
- //   << " | L0:prod=" << (m_nSoilLyrs[i] > 0 ? m_CH4_prod[i][0] : -999.f)
- //   << " oxid=" << (m_nSoilLyrs[i] > 0 ? m_CH4_oxid[i][0] * atomiccmass : -999.f)
- //   << " CH4=" << (m_nSoilLyrs[i] > 0 ? m_CH4[i][0] : -999.f)
- //   << " diss=" << (m_nSoilLyrs[i] > 0 ? m_CH4_diss[i][0] : -999.f)
- //   << " gas=" << (m_nSoilLyrs[i] > 0 ? m_CH4_gas[i][0] : -999.f)
- //   << " VGC=" << (m_nSoilLyrs[i] > 0 ? m_CH4_vgc[i][0] : -999.f)
- //   << " anoxic=" << (m_nSoilLyrs[i] > 0 ? m_anoxic[i][0] : -999.f)
- //   << " FracLiq=" << (m_nSoilLyrs[i] > 0 ? (m_Frac_water[i][0] + m_Frac_water_belowpwp[i][0]) : -999.f)
-
- //   << " | L1:prod=" << (m_nSoilLyrs[i] > 1 ? m_CH4_prod[i][1] : -999.f)
- //   << " oxid=" << (m_nSoilLyrs[i] > 1 ? m_CH4_oxid[i][1] * atomiccmass : -999.f)
- //   << " CH4=" << (m_nSoilLyrs[i] > 1 ? m_CH4[i][1] : -999.f)
- //   << " diss=" << (m_nSoilLyrs[i] > 1 ? m_CH4_diss[i][1] : -999.f)
- //   << " gas=" << (m_nSoilLyrs[i] > 1 ? m_CH4_gas[i][1] : -999.f)
- //   << " VGC=" << (m_nSoilLyrs[i] > 1 ? m_CH4_vgc[i][1] : -999.f)
- //   << " anoxic=" << (m_nSoilLyrs[i] > 1 ? m_anoxic[i][1] : -999.f)
- //   << " FracLiq=" << (m_nSoilLyrs[i] > 1 ? (m_Frac_water[i][1] + m_Frac_water_belowpwp[i][1]) : -999.f)
-
- //   << " | L2:prod=" << (m_nSoilLyrs[i] > 2 ? m_CH4_prod[i][2] : -999.f)
- //   << " oxid=" << (m_nSoilLyrs[i] > 2 ? m_CH4_oxid[i][2] * atomiccmass : -999.f)
- //   << " CH4=" << (m_nSoilLyrs[i] > 2 ? m_CH4[i][2] : -999.f)
- //   << " diss=" << (m_nSoilLyrs[i] > 2 ? m_CH4_diss[i][2] : -999.f)
- //   << " gas=" << (m_nSoilLyrs[i] > 2 ? m_CH4_gas[i][2] : -999.f)
- //   << " VGC=" << (m_nSoilLyrs[i] > 2 ? m_CH4_vgc[i][2] : -999.f)
- //   << " anoxic=" << (m_nSoilLyrs[i] > 2 ? m_anoxic[i][2] : -999.f)
- //   << " FracLiq=" << (m_nSoilLyrs[i] > 2 ? (m_Frac_water[i][2] + m_Frac_water_belowpwp[i][2]) : -999.f)
-
- //   << " | L3:prod=" << (m_nSoilLyrs[i] > 3 ? m_CH4_prod[i][3] : -999.f)
- //   << " oxid=" << (m_nSoilLyrs[i] > 3 ? m_CH4_oxid[i][3] * atomiccmass : -999.f)
- //   << " CH4=" << (m_nSoilLyrs[i] > 3 ? m_CH4[i][3] : -999.f)
- //   << " diss=" << (m_nSoilLyrs[i] > 3 ? m_CH4_diss[i][3] : -999.f)
- //   << " gas=" << (m_nSoilLyrs[i] > 3 ? m_CH4_gas[i][3] : -999.f)
- //   << " VGC=" << (m_nSoilLyrs[i] > 3 ? m_CH4_vgc[i][3] : -999.f)
- //   << " anoxic=" << (m_nSoilLyrs[i] > 3 ? m_anoxic[i][3] : -999.f)
- //   << " FracLiq=" << (m_nSoilLyrs[i] > 3 ? (m_Frac_water[i][3] + m_Frac_water_belowpwp[i][3]) : -999.f)
-
- //   << " | L4:prod=" << (m_nSoilLyrs[i] > 4 ? m_CH4_prod[i][4] : -999.f)
- //   << " oxid=" << (m_nSoilLyrs[i] > 4 ? m_CH4_oxid[i][4] * atomiccmass : -999.f)
- //   << " CH4=" << (m_nSoilLyrs[i] > 4 ? m_CH4[i][4] : -999.f)
- //   << " diss=" << (m_nSoilLyrs[i] > 4 ? m_CH4_diss[i][4] : -999.f)
- //   << " gas=" << (m_nSoilLyrs[i] > 4 ? m_CH4_gas[i][4] : -999.f)
- //   << " VGC=" << (m_nSoilLyrs[i] > 4 ? m_CH4_vgc[i][4] : -999.f)
- //   << " anoxic=" << (m_nSoilLyrs[i] > 4 ? m_anoxic[i][4] : -999.f)
- //   << " FracLiq=" << (m_nSoilLyrs[i] > 4 ? (m_Frac_water[i][4] + m_Frac_water_belowpwp[i][4]) : -999.f)
-
- //   << " | L5:prod=" << (m_nSoilLyrs[i] > 5 ? m_CH4_prod[i][5] : -999.f)
- //   << " oxid=" << (m_nSoilLyrs[i] > 5 ? m_CH4_oxid[i][5] * atomiccmass : -999.f)
- //   << " CH4=" << (m_nSoilLyrs[i] > 5 ? m_CH4[i][5] : -999.f)
- //   << " diss=" << (m_nSoilLyrs[i] > 5 ? m_CH4_diss[i][5] : -999.f)
- //   << " gas=" << (m_nSoilLyrs[i] > 5 ? m_CH4_gas[i][5] : -999.f)
- //   << " VGC=" << (m_nSoilLyrs[i] > 5 ? m_CH4_vgc[i][5] : -999.f)
- //   << " anoxic=" << (m_nSoilLyrs[i] > 5 ? m_anoxic[i][5] : -999.f)
- //   << " FracLiq=" << (m_nSoilLyrs[i] > 5 ? (m_Frac_water[i][5] + m_Frac_water_belowpwp[i][5]) : -999.f)
-
- //   << " | L6:prod=" << (m_nSoilLyrs[i] > 6 ? m_CH4_prod[i][6] : -999.f)
- //   << " oxid=" << (m_nSoilLyrs[i] > 6 ? m_CH4_oxid[i][6] * atomiccmass : -999.f)
- //   << " CH4=" << (m_nSoilLyrs[i] > 6 ? m_CH4[i][6] : -999.f)
- //   << " diss=" << (m_nSoilLyrs[i] > 6 ? m_CH4_diss[i][6] : -999.f)
- //   << " gas=" << (m_nSoilLyrs[i] > 6 ? m_CH4_gas[i][6] : -999.f)
- //   << " VGC=" << (m_nSoilLyrs[i] > 6 ? m_CH4_vgc[i][6] : -999.f)
- //   << " anoxic=" << (m_nSoilLyrs[i] > 6 ? m_anoxic[i][6] : -999.f)
- //   << " FracLiq=" << (m_nSoilLyrs[i] > 6 ? (m_Frac_water[i][6] + m_Frac_water_belowpwp[i][6]) : -999.f)
-
- //   << "\n";
+	// Convert internal g CH4-C m-2 d-1
+    // to output mg CH4 m-2 h-1.
+	m_CH4_prod_hour[i] = CH4_daily_total / 24.0f * GC_TO_MG_CH4;
+	m_CH4_oxid_hour[i] = CH4_oxid_daily / 24.0f * GC_TO_MG_CH4;
+	m_CH4_diff_hour[i] = CH4_diff_today / 24.0f * GC_TO_MG_CH4;
+	m_CH4_ebull_hour[i] = CH4_ebull_today / 24.0f * GC_TO_MG_CH4;
+	m_CH4_plant_hour[i] = CH4_plant_today / 24.0f * GC_TO_MG_CH4;
+	m_CH4_flux_hour[i] = CH4_flux_today / 24.0f * GC_TO_MG_CH4;
 
 	return true;
 }
+
+
+//int CH4_LPJGUESS::Execute() {
+//
+//	CheckInputData();
+//	InitialOutputs();
+//
+////#pragma omp parallel for
+//	for (int i = 0; i < m_nCells; i++) {
+//
+//		if (m_nSoilLyrs[i] <= 0)  continue;
+//
+//		if (!std::isfinite(m_handWtrDep[i])) {
+//			throw ModelException(MID_CH4_LPJGUESS, "Execute",
+//				"VAR_OL_HAND_WTRDEP_AFT_INFIL contains a non-finite value at cell " +
+//				std::to_string(i) + ".");
+//		}
+//
+//		if (m_handWtrDep[i] < -1.0e-8f) {
+//			throw ModelException(MID_CH4_LPJGUESS, "Execute",
+//				"VAR_OL_HAND_WTRDEP_AFT_INFIL is negative at cell " +
+//				std::to_string(i) +
+//				", value=" + std::to_string(m_handWtrDep[i]) + ".");
+//		}
+//
+//		// PG_EPIC root-depth-based Walter transport fraction
+//		InitRootFractions(i);
+//
+//		// LPJ-GUESS peat root fraction for profile Rh redistribution
+//		InitPeatRootFractions(i);
+//
+//		InitFracAir(i);
+//
+//		InitAnoxic(i);
+//
+//		Methane(i, m_day);
+//
+//	}
+//	return 0;
+//}
 
 
 int CH4_LPJGUESS::Execute() {
@@ -2088,40 +3072,99 @@ int CH4_LPJGUESS::Execute() {
 	CheckInputData();
 	InitialOutputs();
 
-	//// ===== DEBUG: print once before parallel region =====
-	//const int DBG = 629;
-	//if (DBG >= 0 && DBG < m_nCells && m_nSoilLyrs[DBG] > 0) {
-	//	float sum_y = 0.f, sum_ch4 = 0.f;
-	//	for (int j = 0; j < m_nSoilLyrs[DBG]; j++) {
-	//		sum_y += m_CH4_yesterday[DBG][j];
-	//		sum_ch4 += m_CH4[DBG][j];
-	//	}
-	//	std::cout << "\n[CH4 Execute START] day=" << m_day
-	//		<< " cell=" << DBG
-	//		<< " sum(CH4_yesterday)=" << sum_y
-	//		<< " sum(CH4)=" << sum_ch4
-	//		<< " handWtrDep=" << m_handWtrDep[DBG]
-	//		<< "\n";
-	//}
-
-
-#pragma omp parallel for
+	//#pragma omp parallel for
 	for (int i = 0; i < m_nCells; i++) {
 
-		if (m_nSoilLyrs[i] <= 0)  continue;
+		// 每个时间步先清零当前HRU的日输出。
+		// InitialOutputs()只负责首次分配数组，不会每日清零。
+		m_CH4_prod_hour[i] = 0.0f;
+		m_CH4_oxid_hour[i] = 0.0f;
+		m_CH4_diff_hour[i] = 0.0f;
+		m_CH4_ebull_hour[i] = 0.0f;
+		m_CH4_plant_hour[i] = 0.0f;
+		m_CH4_flux_hour[i] = 0.0f;
 
-		InitRootFractions(i);
+		if (m_nSoilLyrs[i] <= 0) {
+			continue;
+		}
 
-		InitFracAir(i);
+		if (!std::isfinite(m_landuse[i])) {
+			throw ModelException(
+	            MID_CH4_LPJGUESS,
+				"Execute",
+				"LANDUSE contains a non-finite value at cell " +
+				std::to_string(i) + ".");
+		}
 
-		InitAnoxic(i);
+		if (!std::isfinite(m_cellLat[i])) {
+			throw ModelException(
+				MID_CH4_LPJGUESS,
+				"Execute",
+				"CELL_LAT contains a non-finite value at cell " +
+				std::to_string(i) + ".");
+		}
 
-		Methane(i, m_day);
+		// 根据土地利用和纬度自动选择甲烷计算方法。
+		const MethaneMethod methaneMethod =
+			SelectMethaneMethod(i);
 
+		// 非湿地HRU不进行甲烷计算。
+		if (methaneMethod == CH4_METHOD_NONE) {
+			continue;
+		}
+
+		// 对参与甲烷计算的HRU检查HAND水深。
+		if (!std::isfinite(m_handWtrDep[i])) {
+			throw ModelException(
+				MID_CH4_LPJGUESS,
+				"Execute",
+				"VAR_OL_HAND_WTRDEP_AFT_DEP contains "
+				"a non-finite value at cell " +
+				std::to_string(i) + ".");
+		}
+
+		if (m_handWtrDep[i] < -1.0e-8f) {
+			throw ModelException(
+				MID_CH4_LPJGUESS,
+				"Execute",
+				"VAR_OL_HAND_WTRDEP_AFT_DEP is negative "
+				"at cell " +
+				std::to_string(i) +
+				", value=" +
+				std::to_string(m_handWtrDep[i]) + ".");
+		}
+
+
+		// 低纬度湿地：Spahni简化方法。
+		if (methaneMethod == CH4_METHOD_SPAHNI) {
+
+			MethaneSpahni(i);
+			continue;
+		}
+
+		// 高纬度湿地/泥炭地：Wania分层方法。
+		if (methaneMethod == CH4_METHOD_WANIA) {
+
+			// PG_EPIC动态根深生成Walter植物传输根系比例。
+			InitRootFractions(i);
+
+			// LPJ-GUESS泥炭地根系比例，用于剖面RSPC重新分配。
+			InitPeatRootFractions(i);
+
+			// 计算各土层空气体积分数。
+			InitFracAir(i);
+
+			// 计算各土层厌氧比例。
+			InitAnoxic(i);
+
+			// 执行Wania分层甲烷产生、扩散、氧化、
+			// 植物传输和冒泡过程。
+			Methane(i, m_day);
+		}
 	}
+
 	return 0;
 }
-
 
 
 
@@ -2151,6 +3194,10 @@ void CH4_LPJGUESS::Get1DData(const char* key, int* n, float** data) {
 	}
 	else if (StringMatch(sk, VAR_CH4_FLUX)) {
 		*data = m_CH4_flux_hour;
+		*n = m_nCells;
+	}
+	else if (StringMatch(sk, VAR_CH4_PLANT)) {
+		*data = m_CH4_plant_hour;
 		*n = m_nCells;
 	}
 	else {

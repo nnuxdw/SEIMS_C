@@ -117,12 +117,12 @@ void SERO_MUSLE::InitialOutputs() {
                 L /= sqrt(m_area[i]) * pow(22.13f, m);
             } else {
                 L = pow(m_slpLen[i] / 22.13f, m);
-            }
+            }     
             float sls = Min(m_dis2Stream[i],300.f);
             sls = Max(m_dis2Stream[i],1.f);
-            if(m_slope[i] <= 0.1)   sls = 61;
-            if(m_slope[i] <= 0.2 && m_slope[i] > 0.1)   sls = 24;
-            if(m_slope[i] > 0.2)   sls = 9.1;
+            if(m_slope[i] <= 0.1)   sls = 61; 
+            if(m_slope[i] <= 0.2 && m_slope[i] > 0.1)   sls = 24; 
+            if(m_slope[i] > 0.2)   sls = 9.1; 
             float L1 = pow(sls / 22.13f, m);
 
             if (m_usleP[i] < 0.f) m_usleP[i] = 0.f;
@@ -268,7 +268,7 @@ void SERO_MUSLE::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(s, VAR_DETACH_LAG)) m_detLgAgg = data;
     else if (StringMatch(s, VAR_AHRU)) m_area = data;
     else if (StringMatch(s, VAR_LANDUSE)) m_landUse = data;
-    else if (StringMatch(s, VAR_DISTSTREAM)) m_dis2Stream = data;
+    else if (StringMatch(s, VAR_DISTSTREAM)) m_dis2Stream = data; 
     else {
         throw ModelException(MID_SERO_MUSLE, "Set1DData", "Parameter " + s + " does not exist.");
     }

@@ -380,7 +380,7 @@ void ModuleFactory::ReadParameterSetting(string& moduleID, TiXmlDocument& doc, S
 
                     //special process for interpolation modules
                     //if (StringMatch(param->Name, Tag_Weight)) {
-                    if (StringMatch(param->Name, Tag_Weight[0]) ||StringMatch(param->Name, Tag_Weight_ID[0])  ) {    
+                    if (StringMatch(param->Name, Tag_Weight[0]) ||StringMatch(param->Name, Tag_Weight_ID[0])  ) {
                         if (setting->dataTypeString().length() == 0) {
                             throw ModelException("ModuleFactory", "ReadParameterSetting",
                                                  //"The parameter " + string(Tag_Weight) +
@@ -692,7 +692,7 @@ void ModuleFactory::GetValueFromDependencyModule(int iModule, vector<SimulationM
                 break;
             }
         }
-        //cout<<iModule << ", " << id <<" , 第"<<k<<"个依赖参数, 来自于模块："<<dependParam->ModuleID<<", "<<dependParam->Name<<endl;
+        //cout<<iModule<<", "<<k<<", "<<dependParam->ModuleID<<", "<<dependParam->Name<<endl;
         if (!modules[k]->IsInputsSetDone()) {
             GetValueFromDependencyModule(k, modules);
         }

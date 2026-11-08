@@ -95,6 +95,13 @@ private:
     //////////////////////////////////////////////////////////////////////////
     void CheckDormantStatus(int i);
 
+    /// Calculate DALEC beta from SEIMS layered soil water
+    float CalcACMWaterStressBetaFromSoilProfile(int i);
+    /// Calculate ACM GPP with water stress
+    float CalculateACM_GPP(int i, float lai, float beta);
+    /// Update ACM fluxes: GPP, Ra, NPP
+    void UpdateACMCarbonFluxes(int i);
+
 private:
     /// valid cells number
     int m_nCells;
@@ -107,6 +114,8 @@ private:
     float* m_meanTemp;
     /// min air temperature
     float* m_minTemp;
+    /// max air temperature
+    float* m_maxTemp;
     /// solar radiation
     float* m_SR;
     /// average annual air temperature
@@ -139,6 +148,8 @@ private:
     float* m_soilSumSat;
     /// amount of water stored in soil layers on current day, sol_st in SWAT
     float** m_soilWtrSto;
+    /// wilting point water in each soil layer (mm), sol_wpmm
+    float** m_soilWP;
     /// amount of water stored in soil profile on current day, sol_sw in SWAT
     float* m_soilWtrStoPrfl;
 
@@ -208,6 +219,10 @@ private:
     float* m_pgOptTemp;
     /// Rate of decline in radiation use efficiency per unit increase in vapor pressure deficit, wavp in SWAT
     float* m_wavp;
+    /// ACM canopy efficiency parameter
+    float* m_acmCe;
+    /// fraction of GPP allocated to autotrophic respiration
+    float* m_fAuto;
 
     /**  parameters need to be initialized in this module if they are NULL, i.e., in initialOutputs(void)  **/
     /// canopy height (m)
@@ -319,6 +334,12 @@ private:
     float* m_biomassDelta;
     /// land cover/crop biomass (dry weight), bio_ms in SWAT
     float* m_biomass;
+    /// gross primary production (gC/m2/day)
+    float* m_gpp;
+    /// autotrophic respiration (gC/m2/day)
+    float* m_ra;
+    /// net primary production (gC/m2/day)
+    float* m_npp;
 
     //ljj++
     float** m_soilFrshOrgN;

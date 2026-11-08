@@ -43,11 +43,11 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput(VAR_NEPR, UNIT_DEPTH_MM, DESC_NEPR, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_TMEAN, UNIT_TEMP_DEG, DESC_TMEAN, Source_Module, DT_Raster1D);
     mdi.AddInput(VAR_DPST, UNIT_DEPTH_MM, DESC_DPST, Source_Module, DT_Raster1D);
-	//mdi.AddInput(VAR_SOTE, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Raster1D);  // xiaodw comment, don't need soil temperature now
+	mdi.AddInput(VAR_SOTE, UNIT_TEMP_DEG, DESC_SOTE, Source_Module, DT_Raster1D);  // xiaodw comment, don't need soil temperature now
 	mdi.AddInput(VAR_IMPOUND_TRIG, UNIT_NON_DIM, DESC_IMPOUND_TRIG, Source_Module_Optional, DT_Raster1D);
     mdi.AddInput(VAR_POT_VOL, UNIT_DEPTH_MM, DESC_POT_VOL, Source_Module_Optional, DT_Raster1D);
 
-	mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OL_HAND_WTRDEP, Source_Module,DT_Raster1D);   // xiaodw, infundation water depth,m 
+	mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Array1D);   // xiaodw, infundation water depth,m
 	//mdi.AddInput(VAR_CHST, UNIT_VOL_M3, DESC_CHST, Source_Module, DT_Array1D);
 
 
@@ -55,10 +55,10 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddOutput(VAR_INFIL, UNIT_DEPTH_MM, DESC_INFIL, DT_Raster1D);
     mdi.AddOutput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, DT_Raster2D);
     mdi.AddOutput(VAR_SOL_SW, UNIT_DEPTH_MM, DESC_SOL_SW, DT_Raster1D);
-	mdi.AddOutput(VAR_OL_HAND_WTRDEP_AFT_INFIL, UNIT_LEN_M, DESC_OL_HAND_WTRDEP, DT_Raster1D);
+	mdi.AddOutput(VAR_OL_HAND_WTRDEP_AFT_INFIL, UNIT_LEN_M, DESC_OLFLOW, DT_Raster1D);
 	mdi.AddOutput(VAR_OL_HAND_INFIL, UNIT_DEPTH_MM, DESC_OL_HAND_INFIL, DT_Raster1D);
-	
-	
+
+
 
     //ljj++
     mdi.AddParameter(VAR_POROST, UNIT_VOL_FRA_M3M3, DESC_POROST, Source_ParameterDB, DT_Raster2D);
@@ -86,7 +86,7 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	mdi.AddOutput(VAR_POROSTDEP, UNIT_DEPTH_MM, DESC_POROSTDEP, DT_Array2D);
 	mdi.AddOutput(VAR_SOL_AWC, UNIT_DEPTH_MM, DESC_SOL_AWC, DT_Array2D);
 	mdi.AddOutput(VAR_SOL_UL, UNIT_DEPTH_MM, DESC_SOL_AWC, DT_Array2D);
-	//mdi.AddOutput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OL_HAND_WTRDEP, DT_Raster1D); // xiaodw, infundation water depth,m 
+	mdi.AddOutput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OL_HAND_WTRDEP, DT_Array1D); // xiaodw, infundation water depth,m
 	mdi.AddOutput(VAR_RUNOFF_PERCENTAGE, UNIT_NON_DIM, DESC_RUNOFF_PERCENTAGE, DT_Raster1D); //
 	mdi.AddOutput(VAR_RUNOFF_CO, UNIT_NON_DIM, DESC_RUNOFF_CO, DT_Raster1D); //
 

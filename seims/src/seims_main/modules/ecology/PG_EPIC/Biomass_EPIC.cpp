@@ -1,18 +1,26 @@
 #include "Biomass_EPIC.h"
 
 #include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <ctime>
 
 #include "PlantGrowthCommon.h"
 #include "text.h"
 
+// Defaults for direct run without calibrating ACM parameters.
+// Suggested tuning window (site-guided): f_auto in [0.45, 0.55], acm_ce in [8.0, 16.0].
+static const float ACM_F_AUTO_DEFAULT = 0.50f;
+static const float ACM_CE_DEFAULT = 12.0f;
 
 Biomass_EPIC::Biomass_EPIC() :
-    m_nCells(-1), m_co2Conc(NODATA_VALUE), m_meanTemp(nullptr), m_minTemp(nullptr),
+    m_nCells(-1), m_co2Conc(NODATA_VALUE), m_meanTemp(nullptr), m_minTemp(nullptr), m_maxTemp(nullptr),
     m_SR(nullptr), m_annMeanTemp(nullptr), m_dayLenMin(nullptr),
     m_dormHr(nullptr), m_nSoilLyrs(nullptr), m_maxSoilLyrs(-1),
     m_soilMaxRootD(nullptr),
     m_soilAlb(nullptr), m_soilDepth(nullptr), m_soilThk(nullptr),
-    m_soilFC(nullptr), m_soilSumFC(nullptr), m_soilSumSat(nullptr), m_soilWtrSto(nullptr),
+    m_soilFC(nullptr), m_soilSumFC(nullptr), m_soilSumSat(nullptr), m_soilWtrSto(nullptr), m_soilWP(nullptr),
     m_soilWtrStoPrfl(nullptr), m_rsdInitSoil(nullptr), m_rsdCovSoil(nullptr),
     m_soilRsd(nullptr), m_biomTrgt(nullptr),
     m_igro(nullptr), m_landCoverCls(nullptr), m_minLaiDorm(nullptr),
@@ -26,7 +34,7 @@ Biomass_EPIC::Biomass_EPIC() :
     m_frGrow1stPt(nullptr), m_frGrow2ndPt(nullptr), m_hvstIdx(nullptr),
     m_frMaxLai1stPt(nullptr), m_frMaxLai2ndPt(nullptr),
     m_matYrs(nullptr), m_pgTempBase(nullptr),
-    m_pgOptTemp(nullptr), m_wavp(nullptr), m_canHgt(nullptr), m_alb(nullptr),
+    m_pgOptTemp(nullptr), m_wavp(nullptr), m_acmCe(nullptr), m_fAuto(nullptr), m_canHgt(nullptr), m_alb(nullptr),
     m_curYrMat(nullptr),
     m_initBiom(nullptr), m_initLai(nullptr),
     m_phuPlt(nullptr), m_dormFlag(nullptr), m_totActPltET(nullptr), m_totPltPET(nullptr),
@@ -44,7 +52,7 @@ Biomass_EPIC::Biomass_EPIC() :
     m_pltP(nullptr), m_frPltN(nullptr), m_frPltP(nullptr), m_NO3Defic(nullptr),
     m_frStrsAe(nullptr), m_frStrsN(nullptr),
     m_frStrsP(nullptr), m_frStrsTmp(nullptr), m_frStrsWtr(nullptr),
-    m_biomassDelta(nullptr), m_biomass(nullptr),
+    m_biomassDelta(nullptr), m_biomass(nullptr), m_gpp(nullptr), m_ra(nullptr), m_npp(nullptr),
     //ljj++
     m_bmdieoff(nullptr),m_soilAWC(nullptr), m_landuse(nullptr),
     m_soilLMN(nullptr), m_soilLSC(nullptr), m_soilLSN(nullptr), m_soilLS(nullptr),
@@ -81,6 +89,9 @@ Biomass_EPIC::~Biomass_EPIC() {
     if (m_frStrsWtr != nullptr) Release1DArray(m_frStrsWtr);
     if (m_biomassDelta != nullptr) Release1DArray(m_biomassDelta);
     if (m_biomass != nullptr) Release1DArray(m_biomass);
+    if (m_gpp != nullptr) Release1DArray(m_gpp);
+    if (m_ra != nullptr) Release1DArray(m_ra);
+    if (m_npp != nullptr) Release1DArray(m_npp);
 
     if (m_wuse != nullptr) Release2DArray(m_nCells, m_wuse);
 }
@@ -103,6 +114,7 @@ void Biomass_EPIC::Set1DData(const char* key, const int n, float* data) {
     //// climate
     if (StringMatch(sk, VAR_TMEAN)) m_meanTemp = data;
     else if (StringMatch(sk, VAR_TMIN)) m_minTemp = data;
+    else if (StringMatch(sk, VAR_TMAX)) m_maxTemp = data;
     else if (StringMatch(sk, DataType_SolarRadiation)) m_SR = data;
     else if (StringMatch(sk, VAR_DAYLEN_MIN)) m_dayLenMin = data;
     else if (StringMatch(sk, VAR_TMEAN_ANN)) m_annMeanTemp = data;
@@ -150,6 +162,8 @@ void Biomass_EPIC::Set1DData(const char* key, const int n, float* data) {
     else if (StringMatch(sk, VAR_T_BASE)) m_pgTempBase = data;
     else if (StringMatch(sk, VAR_T_OPT)) m_pgOptTemp = data;
     else if (StringMatch(sk, VAR_WAVP)) m_wavp = data;
+    else if (StringMatch(sk, "ACM_CE")) m_acmCe = data;
+    else if (StringMatch(sk, "F_AUTO")) m_fAuto = data;
     else if (StringMatch(sk, VAR_EPCO)) m_epco = data;
     else if (StringMatch(sk, VAR_TREEYRS)) m_curYrMat = data;
     else if (StringMatch(sk, VAR_LAIINIT)) m_initLai = data;
@@ -175,6 +189,7 @@ void Biomass_EPIC::Set2DData(const char* key, const int nrows, const int ncols, 
     else if (StringMatch(sk, VAR_SOL_ST)) m_soilWtrSto = data;
     else if (StringMatch(sk, VAR_SOL_NO3)) m_soilNO3 = data;
     else if (StringMatch(sk, VAR_SOL_SOLP)) m_soilSolP = data;
+    else if (StringMatch(sk, VAR_SOL_WPMM)) m_soilWP = data;
     //ljj++
     else if (StringMatch(sk, VAR_SOL_HSN)) {
         m_soilHSN = data;
@@ -220,6 +235,7 @@ bool Biomass_EPIC::CheckInputData() {
     /// DT_Raster1D
     CHECK_POINTER(MID_PG_EPIC, m_annMeanTemp);
     CHECK_POINTER(MID_PG_EPIC, m_minTemp);
+    CHECK_POINTER(MID_PG_EPIC, m_maxTemp);
     CHECK_POINTER(MID_PG_EPIC, m_meanTemp);
     CHECK_POINTER(MID_PG_EPIC, m_SR);
     CHECK_POINTER(MID_PG_EPIC, m_dayLen);
@@ -263,6 +279,8 @@ bool Biomass_EPIC::CheckInputData() {
     CHECK_POINTER(MID_PG_EPIC, m_pgTempBase);
     CHECK_POINTER(MID_PG_EPIC, m_pgOptTemp);
     CHECK_POINTER(MID_PG_EPIC, m_wavp);
+    // m_acmCe and m_fAuto are optional:
+    // if ParameterDB does not provide them, InitialOutputs() assigns defaults.
     CHECK_POINTER(MID_PG_EPIC, m_epco);
     CHECK_POINTER(MID_PG_EPIC, m_curYrMat);
     CHECK_POINTER(MID_PG_EPIC, m_initLai);
@@ -275,6 +293,8 @@ bool Biomass_EPIC::CheckInputData() {
     CHECK_POINTER(MID_PG_EPIC, m_soilThk);
     //CHECK_POINTER(MID_PG_EPIC, m_soilFC);
     CHECK_POINTER(MID_PG_EPIC, m_soilWtrSto);
+    CHECK_POINTER(MID_PG_EPIC, m_soilAWC);
+    CHECK_POINTER(MID_PG_EPIC, m_soilWP);
     CHECK_POINTER(MID_PG_EPIC, m_soilNO3);
     CHECK_POINTER(MID_PG_EPIC, m_soilSolP);
     return true;
@@ -401,6 +421,75 @@ void Biomass_EPIC::InitialOutputs() {
             Initialize1DArray(m_nCells, m_biomass, 0.f);
         }
     }
+    // ACM canopy efficiency parameter (default 12.0, suggested range 8.0-16.0).
+    if (m_acmCe == nullptr) {
+        Initialize1DArray(m_nCells, m_acmCe, ACM_CE_DEFAULT);
+    }
+    // ACM autotrophic respiration fraction (default 0.50, suggested range 0.45-0.55).
+    if (m_fAuto == nullptr) {
+        Initialize1DArray(m_nCells, m_fAuto, ACM_F_AUTO_DEFAULT);
+    }
+    if (m_gpp == nullptr) {
+        Initialize1DArray(m_nCells, m_gpp, 0.f);
+    }
+    if (m_ra == nullptr) {
+        Initialize1DArray(m_nCells, m_ra, 0.f);
+    }
+    if (m_npp == nullptr) {
+        Initialize1DArray(m_nCells, m_npp, 0.f);
+    }
+}
+
+float Biomass_EPIC::CalcACMWaterStressBetaFromSoilProfile(const int i) {
+    // Keep consistent with PG_DALEC assumption:
+    // VAR_SOL_ST is treated as plant-available water above wilting point.
+    float paw = 0.f, awc = 0.f;
+    for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[i]); ly++) {
+        paw += m_soilWtrSto[i][ly];
+        awc += m_soilAWC[i][ly];
+    }
+    if (awc <= UTIL_ZERO) return 0.f;
+    float beta = paw / awc;
+    if (beta < 0.f) beta = 0.f;
+    if (beta > 1.f) beta = 1.f;
+    return beta;
+}
+
+float Biomass_EPIC::CalculateACM_GPP(const int i, const float lai, const float beta) {
+    const float d1 = 0.0156935f;
+    const float theta = 4.22273f;
+    const float k = 208.868f;
+    const float d2 = 0.0453194f;
+    const float b2 = 0.37836f;
+    const float c1 = 7.19298f;
+    const float a2 = 0.011136f;
+    const float c2 = 2.1001f;
+    const float eb1T = 0.789798f;
+    const float psi_d = -2.0f;
+    const float H = 1.0f;
+
+    float tmax = m_maxTemp[i];
+    float dayl = Max(0.f, m_dayLen[i]); // The Length of a Day
+
+    float gc = pow(abs(psi_d), eb1T) / (b2 * H + 0.5f * (tmax - m_minTemp[i])); //Calculate Canopy Stomatal Conductance-Related Terms
+    float p = lai * m_acmCe[i] * exp(a2 * tmax) / gc;  // Canopy Efficiency Parameter m_acmCe; Calibration Required: m_acmCe
+    float q = theta - k; // Calculate intercellular CO2 concentration.
+    float discr = pow(m_co2Conc + q - p, 2.0f) - 4.0f * (m_co2Conc * q - p * theta);
+    if (discr < 0.f) discr = 0.f;
+    float ci = 0.5f * (m_co2Conc + q - p + sqrt(discr));
+    float e0 = c1 * pow(lai, 2.0f) / (c2 + pow(lai, 2.0f));
+    float pd = gc * (m_co2Conc - ci); // CO2 Diffusion Driving Term
+    float pi = e0 * m_SR[i] * pd / (e0 * m_SR[i] + pd + UTIL_ZERO);
+    float gpp_base = pi * (d1 * dayl + d2);
+    return Max(0.f, gpp_base * beta);
+}
+
+void Biomass_EPIC::UpdateACMCarbonFluxes(const int i) {
+    float lai = Max(m_lai[i], 0.f);
+    float beta = CalcACMWaterStressBetaFromSoilProfile(i);
+    m_gpp[i] = CalculateACM_GPP(i, lai, beta);
+    m_ra[i] = Max(0.f, m_fAuto[i] * m_gpp[i]); // Calibration Required: m_fAuto
+    m_npp[i] = Max(0.f, m_gpp[i] - m_ra[i]);
 }
 
 void Biomass_EPIC::DistributePlantET(const int i) {
@@ -899,7 +988,7 @@ void Biomass_EPIC::CheckDormantStatus(const int i) {
 
         if (idc == CROP_IDC_PERENNIAL_LEGUME || idc == CROP_IDC_PERENNIAL) {
             m_dormFlag[i] = 1;
-            float resnew = 0.;
+            float resnew = 0.; 
             resnew = m_bmdieoff[i] * m_biomass[i];
 
             float BLG1 = 0.f, BLG2 = 0.f, BLG3 = 0.f, CLG = 0.f;
@@ -920,7 +1009,7 @@ void Biomass_EPIC::CheckDormantStatus(const int i) {
             sol_min_n = m_soilNO3[i][0] + m_soilNH4[i][0];
 
             resnew = m_bmdieoff[i] * m_biomass[i];
-            resnew_n = m_bmdieoff[i] *  m_pltN[i];
+            resnew_n = m_bmdieoff[i] *  m_pltN[i];	 
             resnew_ne = resnew_n + sf * sol_min_n;
 
             RLN = resnew * CLG / (resnew_n + 1.e-5f);
@@ -952,7 +1041,7 @@ void Biomass_EPIC::CheckDormantStatus(const int i) {
 
             /// update no3 and nh4 in soil
             m_soilNO3[i][0] *= 1.f - sf;
-            m_soilNH4[i][0] *= 1.f - sf;
+            m_soilNH4[i][0] *= 1.f - sf; 
 
             m_soilRsd[i][0] = m_soilRsd[i][0] + resnew;
             m_soilRsd[i][0]  = Max(m_soilRsd[i][0] ,0.);
@@ -998,6 +1087,9 @@ int Biomass_EPIC::Execute() {
     InitialOutputs();
 #pragma omp parallel for
     for (int i = 0; i < m_nCells; i++) {
+        m_gpp[i] = 0.f;
+        m_ra[i] = 0.f;
+        m_npp[i] = 0.f;
         if(m_landuse[i]==LANDUSE_ID_WATR || m_landuse[i]==LANDUSE_ID_GLC) continue;
         if(0<m_dormFlag[i] && m_dormFlag[i]<1) m_dormFlag[i] = 1;  //ljj for averged parameter in HRU
         /// calculate albedo in current day, albedo.f of SWAT
@@ -1018,6 +1110,7 @@ int Biomass_EPIC::Execute() {
         if (FloatEqual(m_igro[i], 1.f)) {
             /// land cover growing
             DistributePlantET(i); /// swu.f
+            UpdateACMCarbonFluxes(i);
             if (FloatEqual(m_dormFlag[i], 0.f)) {
                 /// plant will not undergo stress if dormant
                 AdjustPlantGrowth(i); /// grow.f
@@ -1025,6 +1118,115 @@ int Biomass_EPIC::Execute() {
             CheckDormantStatus(i); /// dormant.f
         }
     }
+
+//	// =============================================================
+//    // Daily LAI seasonal diagnostics
+//    // Must be outside the OpenMP loop.
+//    // At this point, plant growth and dormancy have been updated.
+//    // =============================================================
+//	{
+//		static std::ofstream laiFile;
+//		static bool laiFileInitialized = false;
+//		static long outputDays = 0;
+//
+//		if (!laiFileInitialized) {
+//			const char* outputPath =
+//				R"(D:\SEIMS_C\data\CW_2\LAI_seasonality.csv)";
+//
+//			laiFile.open(
+//				outputPath,
+//				std::ios::out | std::ios::trunc
+//			);
+//
+//			if (!laiFile.is_open()) {
+//				std::cerr
+//					<< "[LAI_CSV_ERROR] Cannot open: "
+//					<< outputPath
+//					<< '\n';
+//			}
+//			else {
+//				laiFile
+//					<< "DATE,CELL_INDEX,"
+//					<< "LAI,"
+//					<< "DORMI,"
+//					<< "IGRO,"
+//					<< "BIOMASS_kgHa,"
+//					<< "BIOMASS_DELTA_kgHaDay,"
+//					<< "PHU_FR,"
+//					<< "FR_ROOT,"
+//					<< "GPP,"
+//					<< "RA,"
+//					<< "NPP"
+//					<< '\n';
+//			}
+//
+//			laiFileInitialized = true;
+//		}
+//
+//		if (laiFile.is_open()) {
+//			const std::time_t currentDate =
+//				static_cast<std::time_t>(m_date);
+//
+//			std::tm dateInfo = {};
+//
+//#ifdef _WIN32
+//			localtime_s(&dateInfo, &currentDate);
+//#else
+//			localtime_r(&currentDate, &dateInfo);
+//#endif
+//
+//			char dateText[16] = {};
+//
+//			std::strftime(
+//				dateText,
+//				sizeof(dateText),
+//				"%Y-%m-%d",
+//				&dateInfo
+//			);
+//
+//			// These are model array indices.
+//			const int debugCells[] = {
+//				1304, 1305, 1306, 1309, 1310
+//			};
+//
+//			const int nDebugCells =
+//				sizeof(debugCells) /
+//				sizeof(debugCells[0]);
+//
+//			for (int p = 0; p < nDebugCells; ++p) {
+//				const int i = debugCells[p];
+//
+//				if (i < 0 || i >= m_nCells) {
+//					continue;
+//				}
+//
+//				laiFile
+//					<< dateText << ','
+//					<< i << ','
+//					<< std::fixed
+//					<< std::setprecision(6)
+//					<< m_lai[i] << ','
+//					<< m_dormFlag[i] << ','
+//					<< m_igro[i] << ','
+//					<< m_biomass[i] << ','
+//					<< m_biomassDelta[i] << ','
+//					<< m_phuAccum[i] << ','
+//					<< m_frRoot[i] << ','
+//					<< m_gpp[i] << ','
+//					<< m_ra[i] << ','
+//					<< m_npp[i]
+//					<< '\n';
+//			}
+//
+//			++outputDays;
+//
+//			if (outputDays % 30 == 0) {
+//				laiFile.flush();
+//			}
+//		}
+//	}
+
+
     return 0;
 }
 
@@ -1057,6 +1259,9 @@ void Biomass_EPIC::Get1DData(const char* key, int* n, float** data) {
     else if (StringMatch(sk, VAR_SOL_SW)) *data = m_soilWtrStoPrfl;
     else if (StringMatch(sk, VAR_BIOMS)) *data = m_biomass;
     else if (StringMatch(sk, "BIOMASS_DELTA")) *data = m_biomassDelta;
+    else if (StringMatch(sk, "GPP")) *data = m_gpp;
+    else if (StringMatch(sk, "RA")) *data = m_ra;
+    else if (StringMatch(sk, "NPP")) *data = m_npp;
     else {
         throw ModelException(MID_PG_EPIC, "Get1DData", "Result " + sk + " does not exist.");
     }

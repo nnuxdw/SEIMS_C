@@ -1,6 +1,9 @@
 #include "ReservoirMethodNEW.h"
 #include <set>
+#include <fstream>
+#include <iomanip>
 #include "text.h"
+
 using namespace std;
 ReservoirMethodNEW::ReservoirMethodNEW() :
     m_dt(-1), m_nCells(-1), m_cellWth(NODATA_VALUE), m_maxSoilLyrs(-1),
@@ -93,11 +96,18 @@ int ReservoirMethodNEW::Execute() {
         for (int i = 0; i < curCellsNum; i++) {
             curBasinArea[subID] += m_area[curCells[i]];
         }
-        //if (subID ==25)gwSub
-        //{
-        //    cout << endl;
-        //}
         total_area += curBasinArea[subID];
+
+		//lj++
+		// Synchronize the subbasin groundwater storage with cell groundwater storage.
+        // Lake seepage and channel seepage are added to m_gwSto by routing modules.
+		float gwStorageAtStart = Max(0.f, m_gwSto[subID]);
+
+		for (int i = 0; i < curCellsNum; i++) {
+			int index = curCells[i];
+			gwSub[index] = gwStorageAtStart;
+		}
+
         //#pragma omp parallel for reduction(+:perco, fPET, revap)
         for (int i = 0; i < curCellsNum; i++) {
             int index = curCells[i];
@@ -142,7 +152,8 @@ int ReservoirMethodNEW::Execute() {
                         }
                         if (ly == 0 && ul_excess > 0.f) {
 							// xdw, just record the ul_excess and give it back to ch_sto at the MUSK_CH_HAND module
-							m_HAND_BackFromGW[index] = ul_excess;
+							/*m_HAND_BackFromGW[index] = ul_excess;*/
+							m_HAND_BackFromGW[index] += ul_excess;
                             // add ul_excess to depressional storage and then to surfq
                             //if (m_potVol != nullptr && FloatEqual(m_impoundTrig[index], 0.f)) {
                             //    m_potVol[index] += ul_excess;
@@ -240,10 +251,124 @@ int ReservoirMethodNEW::Execute() {
         // groundwater runoff (mm)
         float slopeCoef = curSub->GetSlopeCoef();
         float kg = m_Kg_1d[subID] * slopeCoef;
+
+		//// ===== 查看 Reach 18 当前地下水参数 =====
+		//if (subID == 18)
+		//{
+		//	cout << std::fixed << std::setprecision(10)
+		//		<< "[GW_PARAM]"
+		//		<< " date=" << m_year << "-"
+		//		<< m_month << "-"
+		//		<< m_day
+
+		//		<< ", subID=" << subID
+
+		//		<< ", GWMAX_1D="
+		//		<< m_GWMAX_1d[subID]
+
+		//		<< ", Kg_1d="
+		//		<< m_Kg_1d[subID]
+
+		//		<< ", Base_ex_1d="
+		//		<< m_Base_ex_1d[subID]
+
+		//		<< ", slopeCoef="
+		//		<< slopeCoef
+
+		//		<< ", effective_Kg="
+		//		<< kg
+
+		//		<< ", gwSto="
+		//		<< m_gwSto[subID]
+
+		//		<< endl;
+		//}
+
         float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex_1d[subID]); // mm
 		groundRunoff = min(m_gwSto[subID], groundRunoff);
+
         //float groundQ = groundRunoff * curCellsNum * QGConvert;     // groundwater discharge (m3/s)
         float groundQ = groundRunoff * curBasinArea[subID] * QGConvert;
+
+
+		//// ====================================================
+  //      // Groundwater diagnostic output for subbasin 18
+  //      // ====================================================
+		//static std::ofstream gwDebugFile;
+
+		//if (!gwDebugFile.is_open())
+		//{
+		//	gwDebugFile.open(
+		//		"D:\\SEIMS_C\\data\\CW_2\\groundwater_debug.csv",
+		//		std::ios::out
+		//	);
+
+		//	if (gwDebugFile.is_open())
+		//	{
+		//		gwDebugFile
+		//			<< "DATE,"
+		//			<< "SUBID,"
+		//			<< "GWSto_mm,"
+		//			<< "Perco_mm,"
+		//			<< "Revap_mm,"
+		//			<< "GroundRunoff_mm,"
+		//			<< "GroundQ_m3s,"
+		//			<< "Kg,"
+		//			<< "Base_ex,"
+		//			<< "GWMAX_1D,"
+		//			<< "gw_delay_1D"
+		//			<< std::endl;
+		//	}
+		//}
+
+		//if (subID == 18 && gwDebugFile.is_open())
+		//{
+		//	gwDebugFile
+		//		<< m_year << "-"
+		//		<< std::setw(2)
+		//		<< std::setfill('0')
+		//		<< m_month << "-"
+		//		<< std::setw(2)
+		//		<< std::setfill('0')
+		//		<< m_day
+		//		<< ","
+
+		//		<< subID
+		//		<< ","
+
+		//		<< std::setprecision(10)
+		//		<< m_gwSto[subID]
+		//		<< ","
+
+		//		<< perco
+		//		<< ","
+
+		//		<< revap
+		//		<< ","
+
+		//		<< groundRunoff
+		//		<< ","
+
+		//		<< groundQ
+		//		<< ","
+
+		//		<< kg
+		//		<< ","
+
+		//		<< m_Base_ex_1d[subID]
+		//		<< ","
+
+		//		<< m_GWMAX_1d[subID]
+		//		<< ","
+
+		//		<< ((gw_delay_1d != nullptr)
+		//			? gw_delay_1d[subID]
+		//			: -9999.f)
+
+		//		<< std::endl;
+		//}
+
+
         //if (m_gwSto[subID] > m_GWMAX) {
         //    groundRunoff += m_gwSto[subID] - m_GWMAX;
         //    //groundQ = groundRunoff * curCellsNum * QGConvert; // groundwater discharge (m3/s)
@@ -292,6 +417,27 @@ int ReservoirMethodNEW::Execute() {
 			//throw ModelException("ReservoirMethodNEW", "EXECUTE", "地下水为nan");
    //     }
         groundStorage = Max(groundStorage, 0.f);
+
+		/*if (subID == 18)
+		{
+			cout << std::fixed << std::setprecision(6)
+				<< "[GW_BAL]"
+				<< " date=" << m_year << "-"
+				<< m_month << "-"
+				<< m_day
+
+				<< ", GW_start=" << m_gwSto[subID]
+				<< ", perco=" << perco
+				<< ", percoDeep=" << percoDeep
+				<< ", revap=" << revap
+				<< ", groundRunoff=" << groundRunoff
+				<< ", gwBank_m3=" << gwBank
+				<< ", GW_end=" << groundStorage
+
+				<< endl;
+		}*/
+
+
         for (int i = 0; i < curCellsNum; i++) {
             int index = curCells[i];
             gwSub[index] = groundStorage;
@@ -368,18 +514,66 @@ int ReservoirMethodNEW::Execute() {
         m_T_GWWB[i][5] = m_T_QG[i];
     }
 
-    // update soil moisture
-    for (auto it = m_subbasinIDs.begin(); it != m_subbasinIDs.end(); ++it) {
-        Subbasin* sub = m_subbasinsInfo->GetSubbasinByID(*it);
-        int* cells = sub->GetCells();
-        int nCells = sub->GetCellCount();
-        int index = 0;
-        //#pragma omp parallel for
-        for (int i = 0; i < nCells; i++) {
-            index = cells[i];
-            m_soilWtrSto[cells[i]][CVT_INT(m_nSoilLyrs[cells[i]]) - 1] += m_revap[index];
-        }
-    }
+    //// update soil moisture
+    //for (auto it = m_subbasinIDs.begin(); it != m_subbasinIDs.end(); ++it) {
+    //    Subbasin* sub = m_subbasinsInfo->GetSubbasinByID(*it);
+    //    int* cells = sub->GetCells();
+    //    int nCells = sub->GetCellCount();
+    //    int index = 0;
+    //    //#pragma omp parallel for
+    //    for (int i = 0; i < nCells; i++) {
+    //        index = cells[i];
+    //        m_soilWtrSto[cells[i]][CVT_INT(m_nSoilLyrs[cells[i]]) - 1] += m_revap[index];
+    //    }
+    //}
+
+	// Add groundwater revap to the soil profile from the bottom layer upward.
+    // Water exceeding the capacity of the whole soil profile is returned
+    // to the HAND surface-water system.
+	for (auto it = m_subbasinIDs.begin(); it != m_subbasinIDs.end(); ++it) {
+
+		Subbasin* sub = m_subbasinsInfo->GetSubbasinByID(*it);
+		int* cells = sub->GetCells();
+		int nCells = sub->GetCellCount();
+
+		//#pragma omp parallel for
+		for (int i = 0; i < nCells; i++) {
+
+			int index = cells[i];
+			int nly = CVT_INT(m_nSoilLyrs[index]);
+
+			float remainingRevap = Max(0.f, m_revap[index]);
+
+			for (int ly = nly - 1;
+				ly >= 0 && remainingRevap > 1.e-6f;
+				ly--) {
+
+				if (m_soilSat[index][ly] <= 0.f) {
+					continue;
+				}
+
+				float availableCapacity =
+					m_soilSat[index][ly] -
+					m_soilWtrSto[index][ly];
+
+				availableCapacity =
+					Max(0.f, availableCapacity);
+
+				float addedWater =
+					Min(remainingRevap, availableCapacity);
+
+				m_soilWtrSto[index][ly] += addedWater;
+				remainingRevap -= addedWater;
+			}
+
+			// The whole soil profile is saturated.
+			// Return the remaining water to the HAND surface-water system.
+			if (remainingRevap > 1.e-6f) {
+				m_HAND_BackFromGW[index] += remainingRevap;
+			}
+		}
+	}
+
     // TODO: Is it need to allocate revap to each soil layers??? By LJ
     return 0;
 }
@@ -403,6 +597,7 @@ bool ReservoirMethodNEW::CheckInputData() {
     CHECK_POINTER(MID_GWA_RE, m_pet);
     CHECK_POINTER(MID_GWA_RE, m_slope);
     CHECK_POINTER(MID_GWA_RE, m_soilWtrSto);
+	CHECK_POINTER(MID_GWA_RE, m_soilSat);
     CHECK_POINTER(MID_GWA_RE, m_nSoilLyrs);
     CHECK_POINTER(MID_GWA_RE, m_soilThk);
     CHECK_POINTER(MID_GWA_RE, m_subbasinsInfo);

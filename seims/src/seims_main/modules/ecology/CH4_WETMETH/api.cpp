@@ -33,31 +33,35 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	//mdi.AddParameter(VAR_SOL_AWC, UNIT_DEPTH_MM, DESC_SOL_AWC, Source_ParameterDB, DT_Raster2D);
 	mdi.AddParameter(VAR_FIELDCAP, UNIT_VOL_FRA_M3M3, DESC_FIELDCAP, Source_ParameterDB, DT_Raster2D);
 
-	mdi.AddParameter(VAR_CH4_R, UNIT_NON_DIM, DESC_CH4_R, Source_ParameterDB, DT_Single);
-	mdi.AddParameter(VAR_CH4_TREF, UNIT_NON_DIM, DESC_CH4_TREF, Source_ParameterDB, DT_Single);
+	//mdi.AddParameter(VAR_CH4_R, UNIT_NON_DIM, DESC_CH4_R, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_CH4_RH_RATIO, UNIT_NON_DIM, DESC_CH4_RH_RATIO, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_CH4_TREF, UNIT_TEMP_K, DESC_CH4_TREF, Source_ParameterDB, DT_Single);
 	mdi.AddParameter(VAR_CH4_TAU_PROD, UNIT_LEN_M, DESC_CH4_TAU_PROD, Source_ParameterDB, DT_Single);
 	mdi.AddParameter(VAR_CH4_Z_OATZ, UNIT_LEN_M, DESC_CH4_Z_OATZ, Source_ParameterDB, DT_Single);
 	mdi.AddParameter(VAR_CH4_TAU_OXID, UNIT_LEN_M, DESC_CH4_TAU_OXID, Source_ParameterDB, DT_Single);
 
 	/// Set inputs from other modules (Source_Module or Source_Module_Optional)
 	mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);
-	mdi.AddInput(VAR_SOL_WOC, UNIT_CONT_KGHA, DESC_SOL_WOC, Source_Module, DT_Raster2D);
+	//mdi.AddInput(VAR_SOL_WOC, UNIT_CONT_KGHA, DESC_SOL_WOC, Source_Module, DT_Raster2D);
+	mdi.AddInput(VAR_SOL_RSPC, UNIT_CONT_KGHA, DESC_SOL_RSPC, Source_Module_Optional, DT_Raster2D); // 异养呼吸
 
-	mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Raster1D);        // hand水深(m)
-	mdi.AddInput(VAR_INFIL, UNIT_DEPTH_MM, DESC_INFIL, Source_Module, DT_Raster1D);              // 入渗(mm)
-	mdi.AddInput(VAR_NEPR, UNIT_DEPTH_MM, DESC_NEPR, Source_Module, DT_Raster1D);                 // from interception module,净降水(mm)
-	mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Array2D);              // 渗漏(mm)
-	mdi.AddInput(VAR_SSRU, UNIT_DEPTH_MM, DESC_SSRU, Source_Module_Optional, DT_Raster2D);      // 壤中流(mm)
-	mdi.AddInput(VAR_DPST, UNIT_DEPTH_MM, DESC_DPST, Source_Module, DT_Raster1D);               // depression storage(mm)
-	mdi.AddInput(VAR_INET, UNIT_DEPTH_MM, DESC_INET, Source_Module, DT_Raster1D);               // Evaporation from intercepted storage
-	mdi.AddInput(VAR_EXCP, UNIT_DEPTH_MM, DESC_EXCP, Source_Module, DT_Raster1D);                //Excess precipitation
+	//mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Array1D);         // hand水深(m)
+	//mdi.AddInput(VAR_OL_HAND_WTRDEP_AFT_INFIL, UNIT_LEN_M, DESC_OLFLOW,Source_Module, DT_Raster1D); // 读取SUR_MR_HAND入渗后剩余的HAND地表水深
+	mdi.AddInput(VAR_OL_HAND_WTRDEP_AFT_DEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Raster1D);
+	mdi.AddInput(VAR_INFIL, UNIT_DEPTH_MM, DESC_INFIL, Source_Module, DT_Raster1D);                 // 入渗(mm)
+	mdi.AddInput(VAR_NEPR, UNIT_DEPTH_MM, DESC_NEPR, Source_Module, DT_Raster1D);                   // from interception module,净降水(mm)
+	mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Array2D);                  // 渗漏(mm)
+	mdi.AddInput(VAR_SSRU, UNIT_DEPTH_MM, DESC_SSRU, Source_Module_Optional, DT_Raster2D);          // 壤中流(mm)
+	mdi.AddInput(VAR_DPST, UNIT_DEPTH_MM, DESC_DPST, Source_Module, DT_Raster1D);                   // depression storage(mm)
+	mdi.AddInput(VAR_INET, UNIT_DEPTH_MM, DESC_INET, Source_Module, DT_Raster1D);                   // Evaporation from intercepted storage
+	mdi.AddInput(VAR_EXCP, UNIT_DEPTH_MM, DESC_EXCP, Source_Module, DT_Raster1D);                   // Excess precipitation
 	//mdi.AddInput(VAR_SBIF, UNIT_FLOW_CMS, DESC_SBIF, Source_Module, DT_Array1D);
-	mdi.AddInput(VAR_SOET, UNIT_DEPTH_MM, DESC_SOET, Source_Module, DT_Raster1D);               // actual soil evaporation
+	mdi.AddInput(VAR_SOET, UNIT_DEPTH_MM, DESC_SOET, Source_Module, DT_Raster1D);                   // actual soil evaporation
 
     /// Set output variables of the current module
-	mdi.AddOutput(VAR_CH4_PRODUCTION, UNIT_G_M2_HOUR, DESC_CH4_PRODUCTION, DT_Raster1D);
-	mdi.AddOutput(VAR_CH4_EMISSION_FLUX, UNIT_G_M2_HOUR, DESC_CH4_EMISSION_FLUX, DT_Raster1D);
-	mdi.AddOutput(VAR_CH4_TOTAL, UNIT_G_M2_HOUR, DESC_CH4_TOTAL, DT_Single);
+	mdi.AddOutput(VAR_CH4_PRODUCTION, UNIT_MG_CH4_M2_HOUR, DESC_CH4_PRODUCTION, DT_Array1D);
+	mdi.AddOutput(VAR_CH4_EMISSION_FLUX, UNIT_MG_CH4_M2_HOUR, DESC_CH4_EMISSION_FLUX, DT_Array1D);
+	mdi.AddOutput(VAR_CH4_TOTAL, UNIT_MG_CH4_HOUR, DESC_CH4_TOTAL, DT_Single);
 
 	mdi.AddOutput(VAR_SOILSAT_L1, UNIT_WAT_RATIO, DESC_SOILSAT_L1, DT_Raster1D);
 	mdi.AddOutput(VAR_SOILSAT_L2, UNIT_WAT_RATIO, DESC_SOILSAT_L2, DT_Raster1D);

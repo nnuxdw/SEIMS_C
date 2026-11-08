@@ -103,15 +103,15 @@ else:
 # 会话ID，避免跨实例互相影响（强烈推荐）
 if os.name == 'nt':  # Windows
     # base_path = r'G:\program\seims\SEIMS_HAND\data\MSL_1'
-    base_path = r'G:\program\seims\SEIMS_C\data\CW_2'
+    base_path = r'D:\SEIMS_C\data\CW_2'
 else:  # Linux/Unix
-    base_path = '/data/user/xiaodw/software/SEIMS_C/data/CW_2'
+    base_path = '/data/user/lijing/software/SEIMS_C/data/CW_2'
 # # 淹没范围才会用，淹没面积率定不用管
 subbasin_flood_path = base_path + f'/inundation_cali/subbasin_flood'
 subbasin_ids=[1171,1176,1193,1194,1214]
 
 # 不同的实例指定不同的id，避免锁文件相互影响
-RUN_ID = 'CW_1_20251026'
+RUN_ID = 'CW_2_20260425'
 
 # Check object variables
 if not multiobj:

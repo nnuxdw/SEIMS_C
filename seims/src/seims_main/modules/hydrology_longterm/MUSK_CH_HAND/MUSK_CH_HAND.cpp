@@ -3,10 +3,87 @@
 #include "utils_math.h"
 #include "text.h"
 #include "ChannelRoutingCommon.h"
+#include <fstream>
+#include <iomanip>
+#include <limits>
 #include <map>
-#include <set> 
+#include <set>
+#include <sstream>
 #include "text.h"
 using namespace utils_math;
+
+namespace {
+const bool MUSK_ENABLE_DEBUG_LOG = false;
+const int MUSK_DEBUG_REACH = 18;
+const char* MUSK_DEBUG_LOG_FILE ="D:/SEIMS_C/data/CW_2/workspace/rundata/"
+    "MUSK_CH_HAND_debug_reach18_main_water_daily.csv";
+
+struct MuskDebugPreRouteState {
+    double handInfilM3;
+    double handEvapM3;
+    double handDepM3;
+    double handBackFromGwM3;
+    double handNetSubtractM3;
+    double subbasinNetPcpM3;
+    double subbasinNetPcpCms;
+    double subbasinAreaM2;
+
+    MuskDebugPreRouteState()
+        : handInfilM3(0.0), handEvapM3(0.0), handDepM3(0.0), handBackFromGwM3(0.0),
+          handNetSubtractM3(0.0), subbasinNetPcpM3(0.0), subbasinNetPcpCms(0.0),
+          subbasinAreaM2(0.0) {}
+};
+
+std::ofstream g_muskDebugLog;
+bool g_muskDebugLogHeaderWritten = false;
+MuskDebugPreRouteState g_muskDebugPreRouteState;
+
+bool ShouldWriteMuskDebugLog(const int reachId) {
+    return MUSK_ENABLE_DEBUG_LOG && reachId == MUSK_DEBUG_REACH;
+}
+
+void ResetMuskDebugPreRouteState() {
+    g_muskDebugPreRouteState = MuskDebugPreRouteState();
+}
+
+const char* MuskBranchLabel(const bool isLake, const bool isRes, const bool routeAsChannel) {
+    if (isLake) return "lake";
+    if (isRes && !routeAsChannel) return "reservoir";
+    return "channel";
+}
+
+void WriteMuskDebugLogHeader(std::ofstream& dbg) {
+    dbg << "date,year,month,day,doy,reach_id,branch,is_lake,is_res,downstream_id,has_downstream,"
+        << "sto_begin_m3,sto_after_inflow_m3,sto_end_m3,storage_delta_m3,sto_min_substep_m3,sto_max_substep_m3,"
+        << "qIn_total_cms,local_total_cms,upstream_total_cms,"
+        << "qs_local_cms,qi_local_cms,qg_local_cms,pt_local_cms,qs_up_cms,qi_up_cms,qg_up_cms,"
+        << "diag_net_pcp_cms,diag_net_pcp_m3,used_prec_cms,used_prec_m3,"
+        << "hand_infil_m3,hand_evap_m3,hand_dep_m3,hand_back_from_gw_m3,hand_net_subtract_m3,"
+        << "bank_release_m3,bank_to_gw_m3,transmission_loss_m3,water_evap_m3,deep_seep_m3,total_loss_m3,"
+        << "rteWtrIn_m3,rteWtrOut_m3,net_rte_exchange_m3,"
+        << "signed_q_cms,qout_cms,qs_out_cms,qi_out_cms,qg_out_cms,qout_min_substep_cms,qout_max_substep_cms,"
+        << "ch_wtr_depth_m,ch_wtr_width_m,ch_cross_area_m2,subbasin_depth_m,inundation_area_km2,lake_area_m2,"
+		<< "rrtime_h,routing_substeps,routing_det_h,"
+		<< "lake_in_m3,lake_surface_out_m3,qg_bypass_m3,"
+		<< "lake_storage_delta_m3,lake_balance_error_m3,"
+		<< "lake_seep_to_gw_mm,gw_sto_after_lake_seep_mm"
+		<< '\n';
+}
+
+void AppendMuskDebugLogRow(const std::string& row) {
+    if (!MUSK_ENABLE_DEBUG_LOG) return;
+    if (!g_muskDebugLog.is_open()) {
+        g_muskDebugLog.open(MUSK_DEBUG_LOG_FILE,
+            g_muskDebugLogHeaderWritten ? std::ios::app : std::ios::out);
+        if (!g_muskDebugLog.is_open()) return;
+    }
+    if (!g_muskDebugLogHeaderWritten) {
+        WriteMuskDebugLogHeader(g_muskDebugLog);
+        g_muskDebugLogHeaderWritten = true;
+    }
+    g_muskDebugLog << row;
+}
+}
 
 MUSK_CH_HAND::MUSK_CH_HAND() :
     m_dt(-1), m_inputSubbsnID(-1), m_nreach(-1), m_outletID(-1),
@@ -138,7 +215,7 @@ bool MUSK_CH_HAND::CheckInputData() {
 #include <new>
 
 static inline bool IsNoData(float v, float nodata) {
-	// nodata Ô¼¶¨Îª -9999£¬Ò»°ã²»»á³öÏÖ NaN£¬µ«Ò»Æð¶µµ×
+	// nodata Ô¼ï¿½ï¿½Îª -9999ï¿½ï¿½Ò»ï¿½ã²»ï¿½ï¿½ï¿½ï¿½ï¿½ NaNï¿½ï¿½ï¿½ï¿½Ò»ï¿½ð¶µµï¿½
 	return std::isnan(v) || std::fabs(v - nodata) < 1e-6f;
 }
 
@@ -150,7 +227,7 @@ void MUSK_CH_HAND::LoadHandLevelsFromArrays(
 	float nodata /*= -9999.0f*/,
 	bool buildHandIds /*= false*/
 ) {
-	// 1) Ö¸ÕëÐ£Ñé
+	// 1) Ö¸ï¿½ï¿½Ð£ï¿½ï¿½
 	if (!m_HAND_Subbasin || !m_HAND_Flood_Level || !m_HAND_LevelDepth ||
 		!m_HAND_SumArea || !m_HAND_SumVolume || !m_HAND_AvgDepth ||
 		!m_HAND_AccVolume || !m_HAND_LowerAccDepthFlat || !m_HAND_LowerAccDepthLen) {
@@ -162,7 +239,7 @@ void MUSK_CH_HAND::LoadHandLevelsFromArrays(
 		return;
 	}
 
-	// 2) µÚÒ»±é£ºÍ³¼Æ max_sbid¡¢Ã¿¸ö sbid ÓÐÄÄÐ© level£¨ÓÃÓÚ n_levels£©
+	// 2) ï¿½ï¿½Ò»ï¿½é£ºÍ³ï¿½ï¿½ max_sbidï¿½ï¿½Ã¿ï¿½ï¿½ sbid ï¿½ï¿½ï¿½ï¿½Ð© levelï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ n_levelsï¿½ï¿½
 	int max_sbid = -1;
 	std::map<int, std::set<int>> subbasinLevels; // sbid -> unique levels
 
@@ -189,7 +266,7 @@ void MUSK_CH_HAND::LoadHandLevelsFromArrays(
 		m_Hands.resize(max_sbid + 1);
 	}
 
-	// 4) ³õÊ¼»¯Ã¿¸ö subbasin µÄ n_levels£¬²¢È·±£ levels vector ÖÁÉÙÄÜ×°ÏÂ×î´ó level
+	// 4) ï¿½ï¿½Ê¼ï¿½ï¿½Ã¿ï¿½ï¿½ subbasin ï¿½ï¿½ n_levelsï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½ levels vector ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½ï¿½ level
 	for (const auto& kv : subbasinLevels) {
 		int sbid = kv.first;
 		const auto& levSet = kv.second;
@@ -202,10 +279,10 @@ void MUSK_CH_HAND::LoadHandLevelsFromArrays(
 		}
 	}
 
-	// 5) µÚ¶þ±é£ºÖðÌõÐ´Èë level ×Ö¶Î£¬²¢»¹Ô­ LowerAccDepth
+	// 5) ï¿½Ú¶ï¿½ï¿½é£ºï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ level ï¿½Ö¶Î£ï¿½ï¿½ï¿½ï¿½ï¿½Ô­ LowerAccDepth
 	int flatPos = 0;
 
-	// Èç¹ûÄãÒª¹¹Ôì handIds£ºÏÈÊÕ¼¯£¬ÔÙÒ»´ÎÐÔ new
+	// ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ handIdsï¿½ï¿½ï¿½ï¿½ï¿½Õ¼ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ new
 	std::map<std::pair<int, int>, std::vector<int>> idsTmp;
 
 	for (int i = 0; i < cellsNum; ++i) {
@@ -223,14 +300,14 @@ void MUSK_CH_HAND::LoadHandLevelsFromArrays(
 		}
 		Level& level = hand.levels[lev];
 
-		// ---- »ù±¾×Ö¶Î£¨°´ nodata ±£»¤£©----
+		// ---- ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶Î£ï¿½ï¿½ï¿½ nodata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----
 		if (!IsNoData(m_HAND_LevelDepth[i], nodata))  level.m_levelDepth = m_HAND_LevelDepth[i];
 		if (!IsNoData(m_HAND_SumArea[i], nodata))     level.m_levelSumArea = m_HAND_SumArea[i];
 		if (!IsNoData(m_HAND_SumVolume[i], nodata))   level.m_levelSumVol = static_cast<double>(m_HAND_SumVolume[i]);
 		if (!IsNoData(m_HAND_AvgDepth[i], nodata))    level.m_levelAvgDepth = m_HAND_AvgDepth[i];
 		if (!IsNoData(m_HAND_AccVolume[i], nodata))   level.m_levelAccVol = static_cast<double>(m_HAND_AccVolume[i]);
 
-		// ---- LowerAccDepth£ºÓÃ Len + Flat »¹Ô­ ----
+		// ---- LowerAccDepthï¿½ï¿½ï¿½ï¿½ Len + Flat ï¿½ï¿½Ô­ ----
 		float lenf = m_HAND_LowerAccDepthLen[i];
 		int L = 0;
 		if (!IsNoData(lenf, nodata) && lenf > 0.0f) {
@@ -244,7 +321,7 @@ void MUSK_CH_HAND::LoadHandLevelsFromArrays(
 				return;
 			}
 
-			// ÊÍ·Å¾ÉÄÚ´æ£¨±ÜÃâÖØ¸´¼ÓÔØÊ±Ð¹Â©£©
+			// ï¿½Í·Å¾ï¿½ï¿½Ú´æ£¨ï¿½ï¿½ï¿½ï¿½ï¿½Ø¸ï¿½ï¿½ï¿½ï¿½ï¿½Ê±Ð¹Â©ï¿½ï¿½
 			if (level.m_levelLowerAccDepth != nullptr) {
 				delete[] level.m_levelLowerAccDepth;
 				level.m_levelLowerAccDepth = nullptr;
@@ -261,18 +338,18 @@ void MUSK_CH_HAND::LoadHandLevelsFromArrays(
 			}
 			flatPos += L;
 
-			// Ç¿ÁÒ½¨Òé£ºÔÚ Level Àï±£´æ³¤¶È£¨ÄãÈç¹ûÃ»ÓÐÕâ¸ö×Ö¶Î£¬Çë¼ÓÉÏ£©
+			// Ç¿ï¿½Ò½ï¿½ï¿½é£ºï¿½ï¿½ Level ï¿½ï±£ï¿½æ³¤ï¿½È£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶Î£ï¿½ï¿½ï¿½ï¿½ï¿½Ï£ï¿½
 			// level.m_levelLowerAccDepthLen = L;
 		}
 
-		// ---- (¿ÉÑ¡) ¹¹Ôì handIds£ºÕâÀïÓÃ ¡°Êý×éÏÂ±ê i¡± µ±×÷ ID ----
-		// Èç¹ûÄãÓÐÕæÊµ HRU_ID Êý×é£¨ÀýÈç m_HAND_HRU_ID[i]£©£¬°Ñ i »»³ÉÕæÊµÖµ¼´¿É¡£
+		// ---- (ï¿½ï¿½Ñ¡) ï¿½ï¿½ï¿½ï¿½ handIdsï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â±ï¿½ iï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ID ----
+		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµ HRU_ID ï¿½ï¿½ï¿½é£¨ï¿½ï¿½ï¿½ï¿½ m_HAND_HRU_ID[i]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ i ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÊµÖµï¿½ï¿½ï¿½É¡ï¿½
 		if (buildHandIds) {
 			idsTmp[{sbid, lev}].push_back(i);
 		}
 	}
 
-	// 6) Èç¹ûÐèÒª handIds£ºÍ³Ò»·ÖÅä¡¢Ð´Èë
+	// 6) ï¿½ï¿½ï¿½ï¿½ï¿½Òª handIdsï¿½ï¿½Í³Ò»ï¿½ï¿½ï¿½ä¡¢Ð´ï¿½ï¿½
 	if (buildHandIds) {
 		for (auto& kv : idsTmp) {
 			int sbid = kv.first.first;
@@ -281,7 +358,7 @@ void MUSK_CH_HAND::LoadHandLevelsFromArrays(
 
 			Level& level = m_Hands[sbid].levels[lev];
 
-			// ÊÍ·Å¾É handIds
+			// ï¿½Í·Å¾ï¿½ handIds
 			if (level.handIds != nullptr) {
 				delete[] level.handIds;
 				level.handIds = nullptr;
@@ -301,7 +378,7 @@ void MUSK_CH_HAND::LoadHandLevelsFromArrays(
 		}
 	}
 
-	// 7) flatPos Ð£Ñé£¨¿ÉÑ¡µ«ºÜÓÐÓÃ£©
+	// 7) flatPos Ð£ï¿½é£¨ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã£ï¿½
 	if (flatPos != flatLen) {
 		std::cerr << "[WARN] LowerAccDepthFlat not fully consumed: flatPos="
 			<< flatPos << ", flatLen=" << flatLen << std::endl;
@@ -320,14 +397,14 @@ void MUSK_CH_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>
 	}
 
 	string line;
-	getline(file, line);  // Ìø¹ý±íÍ·
+	getline(file, line);  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·
 
 	while (getline(file, line)) {
 		stringstream ss(line);
 		string token;
 		vector<string> tokens;
 
-		// È¡Ç° 8 ¸ö×Ö¶Î:
+		// È¡Ç° 8 ï¿½ï¿½ï¿½Ö¶ï¿½:
 		// 0 Subbasin
 		// 1 Flood_Level
 		// 2 LevelDepth
@@ -339,16 +416,16 @@ void MUSK_CH_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>
 			tokens.push_back(token);
 		}
 
-		// µÚ 9 ÁÐ£ºLowerAccDepth£¬ÐÎÈç "[0.0, ...]"£¬±»Ë«ÒýºÅ°ü×Å
+		// ï¿½ï¿½ 9 ï¿½Ð£ï¿½LowerAccDepthï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ "[0.0, ...]"ï¿½ï¿½ï¿½ï¿½Ë«ï¿½ï¿½ï¿½Å°ï¿½ï¿½ï¿½
 		std::string accDepthStr;
-		std::getline(ss, accDepthStr, '"');  // Ìø¹ýÇ°Ò»¸öÒýºÅ£¨¿ÉÄÜÊÇ¿Õ´®£©
-		std::getline(ss, accDepthStr, '"');  // È¡ÖÐ¼äÊý×é×Ö·û´®
+		std::getline(ss, accDepthStr, '"');  // ï¿½ï¿½ï¿½ï¿½Ç°Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Å£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¿Õ´ï¿½ï¿½ï¿½
+		std::getline(ss, accDepthStr, '"');  // È¡ï¿½Ð¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½
 
-		// ---- ½âÎö»ù±¾×Ö¶Î ----
+		// ---- ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½ ----
 		int subbasin = std::stoi(tokens[0]);
 		int lev = std::stoi(tokens[1]);
 
-		// ½á¹¹Ð£Ñé & »ñÈ¡ Hand
+		// ï¿½á¹¹Ð£ï¿½ï¿½ & ï¿½ï¿½È¡ Hand
 		Hand& hand = m_Hands[subbasin];
 		if (lev >= static_cast<int>(hand.levels.size())) {
 			hand.levels.resize(lev + 1);
@@ -361,7 +438,7 @@ void MUSK_CH_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>
 		level.m_levelAvgDepth = std::stof(tokens[5]);
 		level.m_levelAccVol = std::stod(tokens[6]);
 
-		// ---- ½âÎö LowerAccDepth Êý×é ----
+		// ---- ï¿½ï¿½ï¿½ï¿½ LowerAccDepth ï¿½ï¿½ï¿½ï¿½ ----
 		std::vector<float> accDepthVec = parseAccDepthArray(accDepthStr);
 		level.m_levelLowerAccDepth = new float[accDepthVec.size()];
 		for (size_t i = 0; i < accDepthVec.size(); ++i) {
@@ -389,7 +466,7 @@ void MUSK_CH_HAND::LoadHandIdsToChHandLevels(const string& filename, vector<Hand
 	map<pair<int, int>, int> handCounts;
 	map<int, set<int> > subbasinLevels; // <sbid, set of levels>
 
-	// µÚÒ»´Î±éÀú£ºÍ³¼Æ hand ÊýºÍ level Êý
+	// ï¿½ï¿½Ò»ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½Í³ï¿½ï¿½ hand ï¿½ï¿½ï¿½ï¿½ level ï¿½ï¿½
 	while (getline(infile, line)) {
 		istringstream iss(line);
 		string hru_id_str, subbasin_str, level_str, interval_str, depth_str;
@@ -403,7 +480,7 @@ void MUSK_CH_HAND::LoadHandIdsToChHandLevels(const string& filename, vector<Hand
 		if (level > max_level) max_level = level;
 
 		handCounts[make_pair(sbid, level)]++;
-		subbasinLevels[sbid].insert(level); // Í³¼Æ level Êý
+		subbasinLevels[sbid].insert(level); // Í³ï¿½ï¿½ level ï¿½ï¿½
 	}
 
 	if ((int)m_Hands.size() <= max_sbid) {
@@ -464,9 +541,9 @@ vector<float> MUSK_CH_HAND::parseAccDepthArray(const std::string& str) {
 	std::vector<float> values;
 	std::string s = str;
 
-	// È¥µôÇ°ºóÖÐÀ¨ºÅ
-	if (!s.empty() && s.front() == '[') s.erase(0, 1);              // É¾³ýµÚÒ»¸ö×Ö·û
-	if (!s.empty() && s.back() == ']') s.erase(s.size() - 1);       // É¾³ý×îºóÒ»¸ö×Ö·û
+	// È¥ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	if (!s.empty() && s.front() == '[') s.erase(0, 1);              // É¾ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö·ï¿½
+	if (!s.empty() && s.back() == ']') s.erase(s.size() - 1);       // É¾ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö·ï¿½
 
 
 	std::stringstream ss(s);
@@ -477,7 +554,7 @@ vector<float> MUSK_CH_HAND::parseAccDepthArray(const std::string& str) {
 			values.push_back(std::stof(token));
 		}
 		catch (...) {
-			values.push_back(0.0f); // ·ÀÓù´íÎó
+			values.push_back(0.0f); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		}
 	}
 	return values;
@@ -541,7 +618,7 @@ void MUSK_CH_HAND::InitialOutputs() {
 	//xdw++
 	m_lakedpini = new(nothrow) float[m_nreach + 1];
 	m_lakearea = new(nothrow) float[m_nreach + 1];
-	
+
 //#ifdef _WIN32
 //	string txt_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/FloodStep.txt";
 //	string csv_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/InundationMap.csv";
@@ -551,7 +628,7 @@ void MUSK_CH_HAND::InitialOutputs() {
 //#endif
 	//// load floodstep
 	//LoadHandIdsToChHandLevels(txt_filename, m_Hands);
-	//// load 
+	//// load
 	//loadHandFromCSVIntoVector(csv_filename, m_Hands);
 	int lower_flat_len = 0;
 	for (int i = 0; i < m_nCells; i++)
@@ -591,8 +668,8 @@ void MUSK_CH_HAND::InitialOutputs() {
 		//xiaodw modify for adapting HAND, remove ljj's initialize method
 		//ljj++
 		//if (m_islake[i] == 1) {
-		//	m_lakedpini[i] = pow(m_lakevol[i] * 1.e-9f / (m_A_Va[i]), 1.0 / (m_A_Vb[i])); //³õÖµ¸ÄÁË
-		//	m_lakedp[i] = m_lakedpini[i]; //³õÖµ¸ÄÁË
+		//	m_lakedpini[i] = pow(m_lakevol[i] * 1.e-9f / (m_A_Va[i]), 1.0 / (m_A_Vb[i])); //ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½
+		//	m_lakedp[i] = m_lakedpini[i]; //ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½
 		//}
 		//if (m_islake[i] == 1) m_chSto[i] = m_lakevol[i];
 		//if (m_isres[i] == 1) m_chSto[i] = m_lakevol[i];
@@ -601,7 +678,7 @@ void MUSK_CH_HAND::InitialOutputs() {
 
 		int lev = static_cast<int>(m_lakeHandLevelini[i]);
 
-	
+
 		if (m_islake[i] == 1 || m_isres[i] == 1) {
 
 			m_lakedpini[i] = lev > 0 ? lev < m_Hands[i].n_levels ? m_Hands[i].levels[1].m_levelLowerAccDepth[lev + 1] : m_Hands[i].levels[1].m_levelLowerAccDepth[lev] : 0.0;
@@ -687,6 +764,7 @@ void MUSK_CH_HAND::PointSourceLoading() {
 
 
 int MUSK_CH_HAND::Execute() {
+    ResetMuskDebugPreRouteState();
     InitialOutputs();
     /// load point source water volume from m_ptSrcFactory
     PointSourceLoading();
@@ -702,9 +780,11 @@ int MUSK_CH_HAND::Execute() {
         m_temp2[*id] = 0.f;
         curBasinArea[*id] = 0.f;
         curBasinDem[*id] = 0.f;
-        
+
         float total_area=0.f;
         if(m_islake[*id] == 1 || m_isres[*id] == 1){
+			//lj++
+			m_lakearea[*id] = Max(0.0f, m_subbasinInundationArea[*id]) * 1.0e6f;
             for (int i = 0; i < curCellsNum; i++) {
                 int index = curCells[i];
                 total_area += m_area[index];
@@ -713,8 +793,13 @@ int MUSK_CH_HAND::Execute() {
                 curBasinArea[*id] += m_area[index];
             }
             m_prec[*id] = m_prec[*id] / total_area * m_lakearea[*id]/ m_dt;  //m3/s
-            m_pet[*id] = m_pet[*id] / total_area * m_lakearea[*id]/ m_dt;  
+            m_pet[*id] = m_pet[*id] / total_area * m_lakearea[*id]/ m_dt;
         }
+
+		//lj++
+		total_area = 0.f;
+		curBasinArea[*id] = 0.f;
+
         for (int i = 0; i < curCellsNum; i++) {
                 int index = curCells[i];
                 total_area += m_area[index];
@@ -724,10 +809,19 @@ int MUSK_CH_HAND::Execute() {
                 m_temp2[*id]+= m_slope[index]* m_area[index];
                 curBasinDem[*id] += m_dem[index]* m_area[index];
                 curBasinArea[*id] += m_area[index];
+                if (*id == MUSK_DEBUG_REACH) {
+                    g_muskDebugPreRouteState.subbasinAreaM2 += static_cast<double>(m_area[index]);
+                    g_muskDebugPreRouteState.subbasinNetPcpM3 +=
+                        static_cast<double>(m_netPcp[index]) * 0.001 * static_cast<double>(m_area[index]);
+                }
         }
         m_temp1[*id] = m_temp1[*id] / total_area;
         m_temp2[*id] = m_temp2[*id] / total_area;
         curBasinDem[*id] = curBasinDem[*id] / total_area;
+        if (*id == MUSK_DEBUG_REACH && m_dt > 0) {
+            g_muskDebugPreRouteState.subbasinNetPcpCms =
+                g_muskDebugPreRouteState.subbasinNetPcpM3 / static_cast<double>(m_dt);
+        }
     }
 	//xdw++,update ch_sto by each HAND's water depth
 	for (auto id = m_subbasinIDs.begin(); id != m_subbasinIDs.end(); ++id) {
@@ -735,11 +829,32 @@ int MUSK_CH_HAND::Execute() {
 		int curCellsNum = sub->GetCellCount();
 		int* curCells = sub->GetCells();
 		float substractVol = 0.0;
+        double handInfilM3 = 0.0;
+        double handEvapM3 = 0.0;
+        double handDepM3 = 0.0;
+        double handBackFromGwM3 = 0.0;
 		// add each HAND's water vol
 		for (int i = 0; i < curCellsNum; i++) {
 			int index = curCells[i];
-			substractVol += (m_HAND_Infil[index] + m_hand_eavp[index] + m_hand_dep[index] - m_HAND_BackFromGW[index]) * 0.001f * m_area[index];
+            const double cellArea = static_cast<double>(m_area[index]);
+            const double handInfil = static_cast<double>(m_HAND_Infil[index]) * 0.001 * cellArea;
+            const double handEvap = static_cast<double>(m_hand_eavp[index]) * 0.001 * cellArea;
+            const double handDep = static_cast<double>(m_hand_dep[index]) * 0.001 * cellArea;
+            const double handBackFromGw = static_cast<double>(m_HAND_BackFromGW[index]) * 0.001 * cellArea;
+			substractVol += static_cast<float>(handInfil + handEvap + handDep - handBackFromGw);
+            handInfilM3 += handInfil;
+            handEvapM3 += handEvap;
+            handDepM3 += handDep;
+            handBackFromGwM3 += handBackFromGw;
 		}
+        if (*id == MUSK_DEBUG_REACH) {
+            g_muskDebugPreRouteState.handInfilM3 = handInfilM3;
+            g_muskDebugPreRouteState.handEvapM3 = handEvapM3;
+            g_muskDebugPreRouteState.handDepM3 = handDepM3;
+            g_muskDebugPreRouteState.handBackFromGwM3 = handBackFromGwM3;
+            g_muskDebugPreRouteState.handNetSubtractM3 =
+                handInfilM3 + handEvapM3 + handDepM3 - handBackFromGwM3;
+        }
 		if (m_chSto[*id] >= substractVol)
 		{
 			m_chSto[*id] -= substractVol;
@@ -748,12 +863,12 @@ int MUSK_CH_HAND::Execute() {
 			/*cout << "MUSK_CH_HAND: m_chSto < substractVol, subbasinid:" << *id << ", m_chSto: " << m_chSto[*id] << ", substractVol: " << substractVol << endl;*/
 			m_chSto[*id] = 0.0;
 		}
-		
-		
+
+
 	}
     for (auto it = m_rteLyrs.begin(); it != m_rteLyrs.end(); ++it) {
         // There are not any flow relationship within each routing layer.
-        // So parallelization can be done here. 
+        // So parallelization can be done here.
         int reachNum = CVT_INT(it->second.size());
         size_t errCount = 0;
         // the size of m_rteLyrs (map) is equal to the maximum stream order
@@ -763,7 +878,7 @@ int MUSK_CH_HAND::Execute() {
             if (m_inputSubbsnID == 0 || m_inputSubbsnID == reachIndex) {
                 // for OpenMP version, all reaches will be executed,
                 // for MPI version, only the current reach will be executed.
-                if(m_islake[reachIndex] == 1){ 
+                if(m_islake[reachIndex] == 1){
                     if (!LakeBudget(reachIndex)) {
                         errCount++;
                     }
@@ -818,7 +933,7 @@ void MUSK_CH_HAND::SetValue(const char* key, const float value) {
     else if (StringMatch(sk, VAR_LAKE_SEEP)) m_lakeseep = value;
     else if (StringMatch(sk, VAR_K_PET)) m_petFactor = value;
     else if (StringMatch(sk, VAR_LAKE_MNVOL))  m_minvol = value;
-	
+
     else if (StringMatch(sk, "LAKEB"))  m_lakeb = value;
     else {
         throw ModelException(MID_MUSK_CH_HAND, "SetValue", "Parameter " + sk + " does not exist.");
@@ -845,7 +960,7 @@ void MUSK_CH_HAND::Set1DData(const char* key, const int n, float* data) {
     string sk(key);
     //check the input data
     if (StringMatch(sk, VAR_SUBBSN)) {
-        m_subbsnID = data; 
+        m_subbsnID = data;
     } else if (StringMatch(sk, VAR_SBPET)) {
         CheckInputSize(MID_MUSK_CH_HAND, key, n - 1, m_nreach);
         m_petSubbsn = data;
@@ -1023,7 +1138,7 @@ void MUSK_CH_HAND::Get1DData(const char* key, int* n, float** data) {
     } else if (StringMatch(sk, VAR_CHCROSSAREA)) {
         m_chCrossArea[0] = m_chCrossArea[m_outletID];
         *data = m_chCrossArea;
-    } 
+    }
     else if (StringMatch(sk, VAR_qout)) {
         *data = m_qRchOut;
     }
@@ -1039,7 +1154,7 @@ void MUSK_CH_HAND::Get1DData(const char* key, int* n, float** data) {
     else if (StringMatch(sk, "rrtime")) {
         *data = m_rrtime;
     }
-	
+
     else {
         throw ModelException(MID_MUSK_CH_HAND, "Get1DData", "Output " + sk + " does not exist.");
     }
@@ -1105,7 +1220,7 @@ void MUSK_CH_HAND::SetReaches(clsReaches* reaches) {
 	if (nullptr == m_minvol_1d) {
 		reaches->GetReachesSingleProperty(VAR_LAKE_MNVOL_1D, &m_minvol_1d);
 	}
-	
+
     if (nullptr == m_A_Va) reaches->GetReachesSingleProperty("A_Va", &m_A_Va);
     if (nullptr == m_A_Vb) reaches->GetReachesSingleProperty("A_Vb", &m_A_Vb);
     if (nullptr == m_A_a) reaches->GetReachesSingleProperty("A_a", &m_A_a);
@@ -1140,7 +1255,7 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
     float qIn = 0.f; /// Water entering reach on current day from both current subbasin and upstreams
     // 1.1. water from this subbasin
     qIn += m_olQ2Rch[i]; /// surface flow
-	
+
     float qiSub = 0.f;   /// interflow flow
     if (nullptr != m_ifluQ2Rch && m_ifluQ2Rch[i] >= 0.f) {
         qiSub = m_ifluQ2Rch[i];
@@ -1178,10 +1293,10 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
                     ", groundwater part illegal!" << endl;
             return false;
         }
-        //ljj++
-        if(m_islake[*upRchID] == 1 || m_isres[*upRchID] == 1){
-            qgUp += m_gndQ2Rch[*upRchID];
-        }
+        ////ljj++
+        //if(m_islake[*upRchID] == 1 || m_isres[*upRchID] == 1){
+        //    qgUp += m_gndQ2Rch[*upRchID];
+        //}
         if (m_qsRchOut[*upRchID] > 0.f) qsUp += m_qsRchOut[*upRchID];
         if (m_qiRchOut[*upRchID] > 0.f) qiUp += m_qiRchOut[*upRchID];
         if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
@@ -1205,6 +1320,7 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
     if (nullptr != m_gwSto) {
         m_gwSto[i] += bankOutGw / m_chArea[i] * 1000.f; // updated groundwater storage
     }
+    const float stoAfterInflow = m_chStoTmp + qIn * m_dt;
 
     // Compute storage time constant (ratio of storage to discharge) for reach
     // Wetting perimeter at bankfull
@@ -1276,14 +1392,22 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
     float rttlc = 0.f;             // transmission losses from reach on day, m^3
     float qinday = 0.f;            // m^3
     float qoutday = 0.f;           // m^3
+    float rttlcDay = 0.f;          // total transmission losses for current day, m^3
+    float rtevpDay = 0.f;          // total evaporation losses for current day, m^3
+    float stoMinSub = m_chStoTmp;
+    float stoMaxSub = m_chStoTmp;
+    float qoutMinSubCms = (std::numeric_limits<float>::max)();
+    float qoutMaxSubCms = 0.f;
 
     m_rteWtrOut[i] = qIn * m_dt;
     wtrin = qIn * m_dt / nn;
     // Iterate for the day
     m_rrtime[i] =0.f;
     for (int ii = 0; ii < nn; ii++) {
+        const float stoBeginSub = m_chSto[i];
         // Calculate volume of water in reach
         vol = m_chSto[i] + wtrin; // m^3
+        const float stoAfterInflowSub = vol;
         // Find average flowrate in a sub time interval, m^3/s
         volrt = vol / (86400.f / nn);
         // Find maximum flow capacity of the channel at bank full, m^3/s
@@ -1369,11 +1493,12 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
                 rtwtr -= rttlc1;
                 rttlc = rttlc1 + rttlc2; // Total water loss by transmission
             }
+            rttlcDay += rttlc;
             // Calculate evaporation
             float rtevp = 0.f;
             float rtevp1 = 0.f;
             float rtevp2 = 0.f;
-            //ljj++ for hulugou rep will increase DOC concentration 
+            //ljj++ for hulugou rep will increase DOC concentration
             //assuming the transport is very fast, rep is small???
             if (rtwtr > 0.f) {
                 /// In SWAT source code, line 306 of rtmusk.f, I think aaa should be divided by nn! By lj.
@@ -1402,6 +1527,7 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
                 rtwtr -= rtevp1;
                 rtevp = rtevp1 + rtevp2; // Total water loss by evaporation
             }
+            rtevpDay += rtevp;
 
             // Define flow parameters for current iteration
             m_flowIn[i] = wtrin;
@@ -1418,6 +1544,13 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
             m_flowIn[i] = 0.f;
             m_flowOut[i] = 0.f;
         }
+        stoMinSub = Min(stoMinSub, Min(stoBeginSub, Min(stoAfterInflowSub, m_chSto[i])));
+        stoMaxSub = Max(stoMaxSub, Max(stoBeginSub, Max(stoAfterInflowSub, m_chSto[i])));
+        const double elapsedDtSec = nn > 0 ? static_cast<double>(ii + 1) * static_cast<double>(m_dt) / static_cast<double>(nn)
+                                           : static_cast<double>(m_dt);
+        const float subStepOutCms = elapsedDtSec > 0.0 ? qoutday / static_cast<float>(elapsedDtSec) : 0.f;
+        qoutMinSubCms = Min(qoutMinSubCms, subStepOutCms);
+        qoutMaxSubCms = Max(qoutMaxSubCms, subStepOutCms);
     } /* Iterate for the day */
     if (rtwtr < 0.f) rtwtr = 0.f;
     if (m_chSto[i] < 0.f) m_chSto[i] = 0.f;
@@ -1457,6 +1590,44 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
         }
     }
 
+    if (ShouldWriteMuskDebugLog(i)) {
+        if (qoutMinSubCms == (std::numeric_limits<float>::max)()) qoutMinSubCms = 0.f;
+        const int downstreamId = static_cast<int>(m_reachDownStream[i]);
+        const float usedPrecCms = 0.f;
+        const float usedPrecM3 = 0.f;
+        const float localTotalCms = m_olQ2Rch[i] + qiSub + qgSub + ptSub + usedPrecCms;
+        const float upstreamTotalCms = qsUp + qiUp + qgUp;
+        const float totalLossM3 = bankOutGw + rttlcDay + rtevpDay;
+        const float rteWtrInM3 = qIn * m_dt;
+        std::ostringstream dbg;
+        dbg << std::fixed << std::setprecision(6)
+            << m_date << ',' << m_year << ',' << m_month << ',' << m_day << ',' << m_dayOfYear << ','
+            << i << ',' << MuskBranchLabel(false, m_isres[i] == 1.f, true) << ','
+            << 0 << ',' << (m_isres[i] == 1.f ? 1 : 0) << ','
+            << downstreamId << ',' << (downstreamId > 0 ? 1 : 0) << ','
+            << m_chStoTmp << ',' << stoAfterInflow << ',' << m_chSto[i] << ',' << (m_chSto[i] - m_chStoTmp) << ','
+            << stoMinSub << ',' << stoMaxSub << ','
+            << qIn << ',' << localTotalCms << ',' << upstreamTotalCms << ','
+            << m_olQ2Rch[i] << ',' << qiSub << ',' << qgSub << ',' << ptSub << ','
+            << qsUp << ',' << qiUp << ',' << qgUp << ','
+            << g_muskDebugPreRouteState.subbasinNetPcpCms << ',' << g_muskDebugPreRouteState.subbasinNetPcpM3 << ','
+            << usedPrecCms << ',' << usedPrecM3 << ','
+            << g_muskDebugPreRouteState.handInfilM3 << ',' << g_muskDebugPreRouteState.handEvapM3 << ','
+            << g_muskDebugPreRouteState.handDepM3 << ',' << g_muskDebugPreRouteState.handBackFromGwM3 << ','
+            << g_muskDebugPreRouteState.handNetSubtractM3 << ','
+            << bankOut << ',' << bankOutGw << ',' << rttlcDay << ',' << rtevpDay << ',' << 0.0 << ',' << totalLossM3 << ','
+            << rteWtrInM3 << ',' << m_rteWtrOut[i] << ',' << (rteWtrInM3 - m_rteWtrOut[i]) << ','
+            << m_qRchOut[i] << ',' << m_qRchOut[i] << ',' << m_qsRchOut[i] << ',' << m_qiRchOut[i] << ',' << m_qgRchOut[i] << ','
+            << qoutMinSubCms << ',' << qoutMaxSubCms << ','
+            << m_chWtrDepth[i] << ',' << m_chWtrWth[i] << ',' << m_chCrossArea[i] << ','
+            << (nullptr != m_subbasinWtrDep ? m_subbasinWtrDep[i] : 0.f) << ','
+            << (nullptr != m_subbasinInundationArea ? m_subbasinInundationArea[i] : 0.f) << ','
+            << (nullptr != m_lakearea ? m_lakearea[i] : 0.f) << ','
+            << m_rrtime[i] << ',' << nn << ',' << det
+            << '\n';
+        AppendMuskDebugLogRow(dbg.str());
+    }
+
     // todo, compute revap from bank storage. In SWAT, revap coefficient is equal to gw_revap.
 
 #ifdef DEBUG_MUSK_CH_HAND_CH
@@ -1466,7 +1637,7 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
 
 	//cout << "===== ChannelFlow Debug: Reach " << i << " Day " << m_dayOfYear << " =====" << endl;
 
-	// ÊäÈë²¿·Ö
+	// ï¿½ï¿½ï¿½ë²¿ï¿½ï¿½
 	//cout << "[Inputs] "
 	//	<< "olQ2Rch=" << m_olQ2Rch[i]
 	//	<< ", qiSub=" << qiSub
@@ -1479,7 +1650,7 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
 	//	<< ", qIn=" << qIn
 	//	<< endl;
 
-	//// Muskingum ²ÎÊý
+	//// Muskingum ï¿½ï¿½ï¿½ï¿½
 	//cout << "[Muskingum] "
 	//	<< "k_bankfull=" << k_bankfull
 	//	<< ", k_bankfull2=" << k_bankfull2
@@ -1491,7 +1662,7 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
 	//	<< ",ch_n=" << m_chMan[i]
 	//	<< endl;
 
-	// µü´ú½áÊøºóµÄ½á¹û
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä½ï¿½ï¿½
 		cout << "[MUSK_CH_HAND] " << endl;
 		cout
 		<< "Sbid: " << i << "   "
@@ -1501,7 +1672,7 @@ bool MUSK_CH_HAND::ChannelFlow(const int i) {
 		<< " qsRchOut=" << m_qsRchOut[i] << "   "
 		<< " qiRchOut=" << m_qiRchOut[i] << "   "
 		<< " qgRchOut=" << m_qgRchOut[i] << "   "
-		
+
 		<< " chWtrDepth=" << m_chWtrDepth[i] << "   "
 		<< " chWtrWth=" << m_chWtrWth[i] << "   "
 		<< " CrossArea=" << m_chCrossArea[i] << "   "
@@ -1520,7 +1691,8 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
     m_chWtrDepth[i] = 0.f;
 	// xdw, use HAND's water depth
 	m_lakedp[i] = m_subbasinWtrDep[i];
-	m_lakearea[i] = m_subbasinInundationArea[i];
+	/*m_lakearea[i] = m_subbasinInundationArea[i];*/
+	m_lakearea[i] = Max(0.0f, m_subbasinInundationArea[i]) * 1.0e6f;
     //! 1. add all the inflow water
     float qIn = 0.f; /// Water entering reach on current day from both current subbasin and upstreams
     // 1.1. water from this subbasin
@@ -1535,7 +1707,7 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
     //     qgSub = m_gndQ2Rch[i];
     //     qIn += qgSub;
     // }
-        
+
     // 1.2. water from upstream reaches
     float qsUp = 0.f;
     float qiUp = 0.f;
@@ -1565,11 +1737,11 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
         if (m_qiRchOut[*upRchID] > 0.f) qiUp += m_qiRchOut[*upRchID];
         if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
     }
-    qIn += qsUp + qiUp + qgUp;   
+    qIn += qsUp + qiUp + qgUp;
     float pre_Sto = m_chSto[i];
     //add precipitation
-    qIn += m_prec[i];   
-    m_lakepcp[i] = m_prec[i]*m_dt;   
+    qIn += m_prec[i];
+    m_lakepcp[i] = m_prec[i]*m_dt;
     // add qIn
     //m_chSto[i] += qIn * m_dt;
     float rtwtr = 0.f;    //flow out
@@ -1577,32 +1749,36 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
     float A1 = m_A_a[i]*pow(m_lakedp[i],m_A_b[i]);  //km2
     float aa = 0.f;
     aa = Max(1.f, A1*1.e6f);
-    
+
     //! 2. minus all the outflow water
     //float h0 = 0.f;
     //h0 = m_minvol;
-    //float thwl = m_lakedpini[i] * h0; 
+    //float thwl = m_lakedpini[i] * h0;
     //float max_outflow = Max(0.f, (m_lakedp[i] - thwl) * aa);
     //max_outflow = Max(0.f, pow((m_lakedp[i] - thwl), m_A_Vb[i])*m_A_Va[i]*1.e9f);
 
     // lake evaporation
-    float rtevp = 0.f; 
-    
-    rtevp = m_evlake * m_pet[i] * m_dt; //m3
+    float rtevp = 0.f;
+
+    //rtevp = m_evlake * m_pet[i] * m_dt; //m3
     //rtevp = m_evlake * m_petSubbsn[i] * 0.001f * m_lakearea[i]; //m3
+	rtevp = Max(0.f, m_evlake) * m_pet[i] * m_dt; // m3
     rtevp = Min(rtevp, m_chSto[i]);
     //m_chSto[i] -= rtevp;
 
     // lake groundwater
-	float LakeOutGw = 0.0;
-    //float LakeOutGw = m_chSto[i] * m_lakeseep *0.01f;
-    //LakeOutGw = Min(LakeOutGw, m_chSto[i]);
-    //LakeOutGw = Max(LakeOutGw, 0.f);
-    //m_lakeperc[i] = LakeOutGw;
-    //if (nullptr != m_gwSto) {
-    //    m_gwSto[i] += LakeOutGw / m_lakearea[i] * 1000.f; // updated groundwater storage
-    //    m_chSto[i] -= LakeOutGw;
-    //}
+	/*float LakeOutGw = 0.0;*/
+    float LakeOutGw = m_chSto[i] * m_lakeseep *0.01f;
+    LakeOutGw = Min(LakeOutGw, m_chSto[i]);
+    LakeOutGw = Max(LakeOutGw, 0.f);
+    m_lakeperc[i] = LakeOutGw;
+    if (nullptr != m_gwSto) {
+        //m_gwSto[i] += LakeOutGw / m_lakearea[i] * 1000.f; // updated groundwater storage
+		m_gwSto[i] += LakeOutGw / curBasinArea[i] * 1000.f; // updated groundwater storage
+        m_chSto[i] -= LakeOutGw;
+    }
+	//lj++
+	rtevp = Min(rtevp, Max(0.f, m_chSto[i]));
     m_chSto[i] -= rtevp;
 
     //float SI = (m_chSto[i] / m_dt) -m_qout1[i]*0.5 + (qIn+m_qin1[i])*0.5;
@@ -1624,34 +1800,34 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
      float runoff = 0.f;
      //float max_outflow = Max(0.f, pow((m_lakedp[i] - thwl), m_A_Vb[i])*m_A_Va[i]*1.e9f);
 
-	 // 
-	 float max_outflow = m_chSto[i] / m_dt;  // 
+	 //float max_outflow = m_chSto[i] / m_dt;  //
+	 float max_outflow = Max(0.f, m_chSto[i]) / m_dt;
 
      if(m_lakedp[i] > thwl){
          //runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb);
-		 runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb_1d[i])*m_lakearea[i] / m_dt;
+		 runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb_1d[i]) * m_lakearea[i] / m_dt;
          runoff = Max(runoff,0.f);
      }
 
-	 // 
-	 runoff = Min(runoff, max_outflow);
+	 /*runoff = Min(runoff, max_outflow);*/
+	 runoff = Max(0.f, Min(runoff, max_outflow));
 
      //if(runoff*m_dt>max_outflow) runoff = max_outflow/ m_dt;
     rtwtr = runoff + m_gndQ2Rch[i];
-    m_chSto[i] =  (SI - rtwtr)*m_dt;
+    /*m_chSto[i] =  (SI - rtwtr)*m_dt;*/
+	m_chSto[i] = (SI - runoff) * m_dt;
     m_chSto[i] =  Max(m_chSto[i], 0.f);
-    
+
     m_qRchOut[i] = rtwtr;
 	// xdw, don't need to update lake water level here, it will be updated in OL_HAND
     //float h1 = pow(m_chSto[i]*1.e-9f/ (m_A_Va[i]),1.0/(m_A_Vb[i])) ;
     //m_lakedp[i] = Max(0.f, h1);
-	
 
     m_rteWtrOut[i] = m_qRchOut[i] * m_dt;   // m^3
     m_qin1[i] = qIn;
     m_qout1[i] = runoff;
     m_chWtrDepth[i] = m_lakedp[i];
-    
+
     float qInSum = m_olQ2Rch[i] + qiSub + qgSub + qsUp + qiUp + qgUp;
     if (qInSum < UTIL_ZERO) {
         // In case of divided by zero.
@@ -1678,14 +1854,98 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
     m_T_LKWB[i][5] = m_qRchOut[i] * m_dt;
     m_T_LKWB[i][6] = m_chSto[i];
 
+    if (ShouldWriteMuskDebugLog(i)) {
+        const int downstreamId = static_cast<int>(m_reachDownStream[i]);
+        const float usedPrecCms = m_prec[i];
+        const float usedPrecM3 = m_lakepcp[i];
+        const float localTotalCms = m_olQ2Rch[i] + qiSub + qgSub + usedPrecCms;
+        const float upstreamTotalCms = qsUp + qiUp + qgUp;
+        const float stoAfterInflow = pre_Sto + qIn * m_dt;
+        const float stoMinSub = Min(pre_Sto, Min(stoAfterInflow, m_chSto[i]));
+        const float stoMaxSub = Max(pre_Sto, Max(stoAfterInflow, m_chSto[i]));
+        const float rteWtrInM3 = qIn * m_dt;
+        const float totalLossM3 = rtevp + LakeOutGw;
+
+		// Lake-only water balance.
+        // Local groundwater bypass does not enter or leave the lake storage.
+		const double lakeInM3 =
+			static_cast<double>(qIn) * static_cast<double>(m_dt);
+
+		const double lakeSurfaceOutM3 =
+			static_cast<double>(runoff) * static_cast<double>(m_dt);
+
+		const double qgBypassM3 =
+			static_cast<double>(Max(0.f, m_gndQ2Rch[i])) *
+			static_cast<double>(m_dt);
+
+		const double lakeStorageDeltaM3 =
+			static_cast<double>(m_chSto[i]) -
+			static_cast<double>(pre_Sto);
+
+		const double lakeBalanceErrorM3 =
+			lakeInM3 -
+			lakeSurfaceOutM3 -
+			static_cast<double>(rtevp) -
+			static_cast<double>(LakeOutGw) -
+			lakeStorageDeltaM3;
+
+		double lakeSeepToGwMm = 0.0;
+
+		if (curBasinArea[i] > UTIL_ZERO) {
+			lakeSeepToGwMm =
+				static_cast<double>(LakeOutGw) /
+				static_cast<double>(curBasinArea[i]) *
+				1000.0;
+		}
+
+		const double gwStoAfterLakeSeepMm =
+			static_cast<double>(m_gwSto[i]);
+
+        std::ostringstream dbg;
+        dbg << std::fixed << std::setprecision(6)
+            << m_date << ',' << m_year << ',' << m_month << ',' << m_day << ',' << m_dayOfYear << ','
+            << i << ',' << MuskBranchLabel(true, false, false) << ','
+            << 1 << ',' << 0 << ','
+            << downstreamId << ',' << (downstreamId > 0 ? 1 : 0) << ','
+            << pre_Sto << ',' << stoAfterInflow << ',' << m_chSto[i] << ',' << (m_chSto[i] - pre_Sto) << ','
+            << stoMinSub << ',' << stoMaxSub << ','
+            << qIn << ',' << localTotalCms << ',' << upstreamTotalCms << ','
+            << m_olQ2Rch[i] << ',' << qiSub << ',' << qgSub << ',' << 0.0 << ','
+            << qsUp << ',' << qiUp << ',' << qgUp << ','
+            << g_muskDebugPreRouteState.subbasinNetPcpCms << ',' << g_muskDebugPreRouteState.subbasinNetPcpM3 << ','
+            << usedPrecCms << ',' << usedPrecM3 << ','
+            << g_muskDebugPreRouteState.handInfilM3 << ',' << g_muskDebugPreRouteState.handEvapM3 << ','
+            << g_muskDebugPreRouteState.handDepM3 << ',' << g_muskDebugPreRouteState.handBackFromGwM3 << ','
+            << g_muskDebugPreRouteState.handNetSubtractM3 << ','
+            << 0.0 << ',' << 0.0 << ',' << 0.0 << ',' << rtevp << ',' << LakeOutGw << ',' << totalLossM3 << ','
+            << rteWtrInM3 << ',' << m_rteWtrOut[i] << ',' << (rteWtrInM3 - m_rteWtrOut[i]) << ','
+            << m_qRchOut[i] << ',' << m_qRchOut[i] << ',' << m_qsRchOut[i] << ',' << m_qiRchOut[i] << ',' << m_qgRchOut[i] << ','
+            << m_qRchOut[i] << ',' << m_qRchOut[i] << ','
+            << m_chWtrDepth[i] << ',' << m_chWtrWth[i] << ',' << m_chCrossArea[i] << ','
+            << (nullptr != m_subbasinWtrDep ? m_subbasinWtrDep[i] : 0.f) << ','
+            << (nullptr != m_subbasinInundationArea ? m_subbasinInundationArea[i] : 0.f) << ','
+            << (nullptr != m_lakearea ? m_lakearea[i] : 0.f) << ','
+			<< m_rrtime[i] << ',' << 1 << ','
+			<< (static_cast<double>(m_dt) / 3600.0) << ','
+			<< lakeInM3 << ','
+			<< lakeSurfaceOutM3 << ','
+			<< qgBypassM3 << ','
+			<< lakeStorageDeltaM3 << ','
+			<< lakeBalanceErrorM3 << ','
+			<< lakeSeepToGwMm << ','
+			<< gwStoAfterLakeSeepMm
+			<< '\n';
+        AppendMuskDebugLogRow(dbg.str());
+    }
+
 #ifdef DEBUG_MUSK_CH_HAND_LAKE
-	// Ö»µ÷ÊÔÛ¶ÑôºþÕâ¸öºþµ¥Ôª£¨±ÈÈç 1171£©£¬Äã¿ÉÒÔÊÓÇé¿ö¸Ä³É±ðµÄ ID »òÈ¥µôÌõ¼þ
+	// Ö»ï¿½ï¿½ï¿½ï¿½Û¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 1171ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä³É±ï¿½ï¿½ ID ï¿½ï¿½È¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (i == 1171)
 	{
 		cout << "\n===== LakeBudget Debug: rchID=" << i
 			<< "  Day=" << m_dayOfYear << " =====\n";
 
-		// ---- 0) ÉÏÓÎÀ´Ë®·Ö½â£ºÃ¿¸öÉÏÓÎºÓ¶ÎµÄ³öÁ÷ ----
+		// ---- 0) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë®ï¿½Ö½â£ºÃ¿ï¿½ï¿½ï¿½ï¿½ï¿½ÎºÓ¶ÎµÄ³ï¿½ï¿½ï¿½ ----
 		cout << "[Upstream detail] (unit: m3/s, day volume in m3)\n";
 		for (auto upIt = m_reachUpStream.at(i).begin();
 			upIt != m_reachUpStream.at(i).end(); ++upIt)
@@ -1706,12 +1966,12 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
 				<< "\n";
 		}
 
-		// ---- 1) ³õÊ¼¿âÈÝ ----
+		// ---- 1) ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ ----
 		cout << "[Initial] "
 			<< "Storage_pre=" << pre_Sto << " m3, "
 			<< "Depth_pre=" << m_lakedp[i] << " m\n";
 
-		// ---- 2) Èëºþ×ÜÁ¿ (m3/day) ----
+		// ---- 2) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (m3/day) ----
 		double inflow_m3 = (m_olQ2Rch[i] + qiSub + qsUp + qiUp + qgUp + m_prec[i]) * m_dt;
 		cout << "[Inflow] "
 			<< "olQ=" << m_olQ2Rch[i] * m_dt
@@ -1723,8 +1983,9 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
 			<< ", TotalIn=" << inflow_m3
 			<< " m3\n";
 
-		// ---- 3) ³öºþ×ÜÁ¿ (m3/day) ----
-		double outflow_m3 = m_rteWtrOut[i] + rtevp + LakeOutGw;
+		// ---- 3) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (m3/day) ----
+		double lakeSurfaceOutM3 = runoff * m_dt;
+		double outflow_m3 = lakeSurfaceOutM3 + rtevp + LakeOutGw;
 		cout << "[Outflow] "
 			<< "SurfaceOut=" << m_rteWtrOut[i]
 			<< ", Evap=" << rtevp
@@ -1732,13 +1993,13 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
 			<< ", TotalOut=" << outflow_m3
 			<< " m3\n";
 
-		// ---- 4) Ë®Á¿±ä»¯ ----
+		// ---- 4) Ë®ï¿½ï¿½ï¿½ä»¯ ----
 		cout << "[Delta Storage] "
 			<< "Storage_after=" << m_chSto[i]
 			<< " m3,  dS=" << (m_chSto[i] - pre_Sto)
 			<< " m3\n";
 
-		// ---- 5) ¼òÒ×ÖÊÁ¿Æ½ºâ¼ì²é ----
+		// ---- 5) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ½ï¿½ï¿½ï¿½ï¿½ ----
 		cout << "[MassBalance] IN - OUT - dS = "
 			<< inflow_m3 - outflow_m3 - (m_chSto[i] - pre_Sto)
 			<< "  (should be near 0)\n";
@@ -1757,7 +2018,8 @@ bool MUSK_CH_HAND::ResBudget(const int i) {
 
 	// xdw, use HAND's water depth
 	m_chWtrDepth[i] = m_subbasinWtrDep[i];
-	m_lakearea[i] = m_subbasinInundationArea[i];
+	/*m_lakearea[i] = m_subbasinInundationArea[i];*/
+	m_lakearea[i] = Max(0.0f, m_subbasinInundationArea[i]) * 1.0e6f;
     //! 1. add all the inflow water
     float qIn = 0.f; /// Water entering reach on current day from both current subbasin and upstreams
 
@@ -1797,24 +2059,24 @@ bool MUSK_CH_HAND::ResBudget(const int i) {
         if (m_qiRchOut[*upRchID] > 0.f) qiUp += m_qiRchOut[*upRchID];
         if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
     }
-    qIn += qsUp + qiUp + qgUp;     
+    qIn += qsUp + qiUp + qgUp;
 
     float pre_Sto = m_chSto[i];
 
     //add precipitation
-    qIn += m_prec[i];  
+    qIn += m_prec[i];
 
-    float wtrin = qIn * m_dt;  //m3  
+    float wtrin = qIn * m_dt;  //m3
     float rtwtr = 0.f;    //flow out
-    
+
     // add qIn
     m_chSto[i] += qIn * m_dt;
 
 	// evaporation
-	float rtevp = 0.f; 
+	float rtevp = 0.f;
 	rtevp = m_evlake * m_petSubbsn[i]/m_petFactor * 0.001f * m_lakearea[i]; //m3
 	//rtevp = m_evlake * m_petSubbsn[i] / m_petFactor_1d[i] * 0.001f * m_lakearea[i]; //m3
-	
+
 	rtevp = Min(rtevp, m_chSto[i]);
     //  groundwater
 	//float ResOutGw = m_chSto[i] * m_lakeseep *0.01f;  //ljj++todo add new param resseep
@@ -1826,7 +2088,7 @@ bool MUSK_CH_HAND::ResBudget(const int i) {
     m_chSto[i] -= rtevp;
 
 
-    //initial 
+    //initial
     float TotalReservoirStorageM3CC = m_lakevol[i];
     float ConservativeStorageLimitCC = m_ResLc[i]; //minimum storage, 0.1 as defult
     ConservativeStorageLimitCC = Min(ConservativeStorageLimitCC,0.5f);
@@ -1839,9 +2101,9 @@ bool MUSK_CH_HAND::ResBudget(const int i) {
     float Normal_FloodStorageLimitCC = NormalStorageLimitCC + adjust_Normal_FloodCC * (FloodStorageLimitCC - NormalStorageLimitCC);
 
     float InvDtSecDay = m_dt;
-    float MinReservoirOutflowCC = m_resminq[i];  //minimum outflow 
-    float NormalReservoirOutflowCC = m_resnormq[i]; //normal outflow 
-    float NonDamagingReservoirOutflowCC = m_resndq[i]; //non-damaging outflow 
+    float MinReservoirOutflowCC = m_resminq[i];  //minimum outflow
+    float NormalReservoirOutflowCC = m_resnormq[i]; //normal outflow
+    float NonDamagingReservoirOutflowCC = m_resndq[i]; //non-damaging outflow
     float ReservoirRnormqMultCC=m_res_normMult[i];  //!!todo
     NormalReservoirOutflowCC = NormalReservoirOutflowCC * ReservoirRnormqMultCC;
     if(NormalReservoirOutflowCC > MinReservoirOutflowCC){
@@ -1857,7 +2119,7 @@ bool MUSK_CH_HAND::ResBudget(const int i) {
 
     //New reservoir fill (fraction)
     float ReservoirFillCC = m_chSto[i] / TotalReservoirStorageM3CC;
-    
+
     //below 2Lc
     float ReservoirOutflow1 = Min(MinReservoirOutflowCC, m_chSto[i] / InvDtSecDay);
 
@@ -1865,23 +2127,23 @@ bool MUSK_CH_HAND::ResBudget(const int i) {
     float DeltaO = NormalReservoirOutflowCC - MinReservoirOutflowCC;
     float DeltaLN = NormalStorageLimitCC - 2 * ConservativeStorageLimitCC;
     float ReservoirOutflow2 = MinReservoirOutflowCC + DeltaO * (ReservoirFillCC - 2 * ConservativeStorageLimitCC) / DeltaLN;
-    
+
     //Ln<F<Lf
     float DeltaNFL = FloodStorageLimitCC - Normal_FloodStorageLimitCC;
     float ReservoirOutflow3a = NormalReservoirOutflowCC;
-    float ReservoirOutflow3b = NormalReservoirOutflowCC + ((ReservoirFillCC - Normal_FloodStorageLimitCC) / DeltaNFL) 
+    float ReservoirOutflow3b = NormalReservoirOutflowCC + ((ReservoirFillCC - Normal_FloodStorageLimitCC) / DeltaNFL)
                                 * (NonDamagingReservoirOutflowCC - NormalReservoirOutflowCC);
 
     //F>Lf
     float temp = Min(NonDamagingReservoirOutflowCC, Max(qIn * 1.2, NormalReservoirOutflowCC));
     float ReservoirOutflow4 = Min(Max((ReservoirFillCC - FloodStorageLimitCC-0.01) *
                                 TotalReservoirStorageM3CC / InvDtSecDay,NonDamagingReservoirOutflowCC), temp);
-    
-    //Reservoir outflow [m3/s] 
+
+    //Reservoir outflow [m3/s]
     rtwtr = 0.f;
     rtwtr = ReservoirOutflow1;
-	// 1: ¡Ü2Lc, 2: (2Lc,Ln], 3: (Ln,Normal_Flood], 33: (Normal_Flood,Lf], 4: >Lf, by xiaodw
-	int stageUsed = 1;            
+	// 1: ï¿½ï¿½2Lc, 2: (2Lc,Ln], 3: (Ln,Normal_Flood], 33: (Normal_Flood,Lf], 4: >Lf, by xiaodw
+	int stageUsed = 1;
 	float rtwtr_raw = ReservoirOutflow1;
 	bool capped = false;
 	if (ReservoirFillCC > 2 * ConservativeStorageLimitCC) { rtwtr = ReservoirOutflow2;  stageUsed = 2;  rtwtr_raw = rtwtr; }
@@ -1925,24 +2187,64 @@ bool MUSK_CH_HAND::ResBudget(const int i) {
         m_qgRchOut[i] = 0.f;
     }
 
+    if (ShouldWriteMuskDebugLog(i)) {
+        const int downstreamId = static_cast<int>(m_reachDownStream[i]);
+        const float usedPrecCms = m_prec[i];
+        const float usedPrecM3 = m_prec[i] * m_dt;
+        const float localTotalCms = m_olQ2Rch[i] + qiSub + qgSub + usedPrecCms;
+        const float upstreamTotalCms = qsUp + qiUp + qgUp;
+        const float stoAfterInflow = pre_Sto + qIn * m_dt;
+        const float stoMinSub = Min(pre_Sto, Min(stoAfterInflow, m_chSto[i]));
+        const float stoMaxSub = Max(pre_Sto, Max(stoAfterInflow, m_chSto[i]));
+        const float rteWtrInM3 = qIn * m_dt;
+        const float totalLossM3 = rtevp;
+        std::ostringstream dbg;
+        dbg << std::fixed << std::setprecision(6)
+            << m_date << ',' << m_year << ',' << m_month << ',' << m_day << ',' << m_dayOfYear << ','
+            << i << ',' << MuskBranchLabel(false, true, false) << ','
+            << 0 << ',' << 1 << ','
+            << downstreamId << ',' << (downstreamId > 0 ? 1 : 0) << ','
+            << pre_Sto << ',' << stoAfterInflow << ',' << m_chSto[i] << ',' << (m_chSto[i] - pre_Sto) << ','
+            << stoMinSub << ',' << stoMaxSub << ','
+            << qIn << ',' << localTotalCms << ',' << upstreamTotalCms << ','
+            << m_olQ2Rch[i] << ',' << qiSub << ',' << qgSub << ',' << 0.0 << ','
+            << qsUp << ',' << qiUp << ',' << qgUp << ','
+            << g_muskDebugPreRouteState.subbasinNetPcpCms << ',' << g_muskDebugPreRouteState.subbasinNetPcpM3 << ','
+            << usedPrecCms << ',' << usedPrecM3 << ','
+            << g_muskDebugPreRouteState.handInfilM3 << ',' << g_muskDebugPreRouteState.handEvapM3 << ','
+            << g_muskDebugPreRouteState.handDepM3 << ',' << g_muskDebugPreRouteState.handBackFromGwM3 << ','
+            << g_muskDebugPreRouteState.handNetSubtractM3 << ','
+            << 0.0 << ',' << 0.0 << ',' << 0.0 << ',' << rtevp << ',' << 0.0 << ',' << totalLossM3 << ','
+            << rteWtrInM3 << ',' << m_rteWtrOut[i] << ',' << (rteWtrInM3 - m_rteWtrOut[i]) << ','
+            << m_qRchOut[i] << ',' << m_qRchOut[i] << ',' << m_qsRchOut[i] << ',' << m_qiRchOut[i] << ',' << m_qgRchOut[i] << ','
+            << m_qRchOut[i] << ',' << m_qRchOut[i] << ','
+            << m_chWtrDepth[i] << ',' << m_chWtrWth[i] << ',' << m_chCrossArea[i] << ','
+            << (nullptr != m_subbasinWtrDep ? m_subbasinWtrDep[i] : 0.f) << ','
+            << (nullptr != m_subbasinInundationArea ? m_subbasinInundationArea[i] : 0.f) << ','
+            << (nullptr != m_lakearea ? m_lakearea[i] : 0.f) << ','
+            << m_rrtime[i] << ',' << 1 << ',' << (static_cast<double>(m_dt) / 3600.0)
+            << '\n';
+        AppendMuskDebugLogRow(dbg.str());
+    }
+
 #ifdef DEBUG_MUSK_CH_HAND_RSV
 	{
-		// ÅÐ¶¨ÎÄ±¾·Ö¼¶
+		// ï¿½Ð¶ï¿½ï¿½Ä±ï¿½ï¿½Ö¼ï¿½
 		string levelStr;
 		if (ReservoirFillCC <= 2.f * ConservativeStorageLimitCC) {
-			levelStr = "¡Ü2Lc (±£ÊØ¿âÈÝÇø)";
+			levelStr = "ï¿½ï¿½2Lc (ï¿½ï¿½ï¿½Ø¿ï¿½ï¿½ï¿½ï¿½ï¿½)";
 		}
 		else if (ReservoirFillCC <= NormalStorageLimitCC) {
-			levelStr = "(2Lc, Ln] (Õý³£¿âÈÝÒÔÏÂ)";
+			levelStr = "(2Lc, Ln] (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)";
 		}
 		else if (ReservoirFillCC <= Normal_FloodStorageLimitCC) {
-			levelStr = "(Ln, Normal_Flood] (Õý³£~¿Éµ÷ºé)";
+			levelStr = "(Ln, Normal_Flood] (ï¿½ï¿½ï¿½ï¿½~ï¿½Éµï¿½ï¿½ï¿½)";
 		}
 		else if (ReservoirFillCC <= FloodStorageLimitCC) {
-			levelStr = "(Normal_Flood, Lf] (¿Éµ÷ºé~·ÀºéÉÏÏÞ)";
+			levelStr = "(Normal_Flood, Lf] (ï¿½Éµï¿½ï¿½ï¿½~ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)";
 		}
 		else {
-			levelStr = ">Lf (³¬·ÀºéÉÏÏÞ)";
+			levelStr = ">Lf (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)";
 		}
 
 		std::cout << "[ResBudget] day=" << m_dayOfYear

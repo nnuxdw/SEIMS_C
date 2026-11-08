@@ -25,11 +25,10 @@ from preprocess.db_read_model import ReadModelData
 import matplotlib as mpl
 def main():
     NN = 1  #可调，需要前多少组参数集
-    # tar = ['QG','QI','QS','SBGS']
+    # tar = ['QG','QI','QS','SBGS','F']
     tar = ['F']
-    watershed_num = 1171
-    conn = MongoClient('172.21.124.127', 27019)
-    db = conn.poyang_lake1_longterm_model   #需要自己修改数据库名字
+    conn = MongoClient('127.0.0.1', 27017)
+    db = conn.CW_2_longterm_model   #需要自己修改数据库名字
 
     wtsd_name = get_watershed_name('Specify watershed name to run postprocess.')
     if wtsd_name not in list(DEMO_MODELS.keys()):
@@ -41,7 +40,7 @@ def main():
     SEIMS_path = os.path.abspath(cur_path + '../../..')
     model_paths = ModelPaths(SEIMS_path, wtsd_name, DEMO_MODELS[wtsd_name])
     cf = ConfigParser()
-    cali_cfg_file = model_paths.cfg_dir + os.path.sep + f'calibration_{watershed_num}.ini'
+    cali_cfg_file = model_paths.workspace + os.path.sep + 'calibration.ini'
     cf.read(cali_cfg_file)
 
     #读取率定结果
@@ -133,7 +132,8 @@ def main():
             # print(x)
             # print(datetime.strptime(x,'%Y-%m-%d'))
         newdf['Date'] = [datetime.strptime(x,'%Y-%m-%d') for x in out['Date'][0]]
-        for jj in range(0,len(out['Q'])):
+        # for jj in range(0,len(out['QG'])):
+        for jj in range(0, len(out['F'])):
             newdf['%s_%s'%(name,jj)] = list(out['%s'%name][jj])
         newdf.set_index('Date',inplace=True)
         newdf.to_csv(model_paths.model_dir + os.path.sep + r'CALI_NSGA2_Gen_%s_Pop_%s\%s.csv'%(ngens,npop,name))
