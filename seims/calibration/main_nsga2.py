@@ -40,7 +40,7 @@ from run_seims import MainSEIMS
 from calibration.calibrate import Calibration, initialize_calibrations, calibration_objectives,evaluate_nowait_or_skip,evaluate_blocking
 from calibration.calibrate import TimeseriesData, ObsSimData
 from calibration.userdef import write_param_values_to_mongodb, output_population_details
-from calibration.calibrate import cali_inundation_extent,cali_inundation_area, base_path,subbasin_flood_path,subbasin_ids
+from calibration.calibrate import cali_inundation_extent,cali_inundation_area
 import inundation_cali_tools as ic_tool
 
 
@@ -201,6 +201,8 @@ def main(cfg):
     obs_vars, obs_data_dict = model_obj.ReadOutletObservations_new(object_vars)  #ljj++
     #-------------------------xiaodw, if calibrate inundation extent --------------------
     if cali_inundation_extent:
+        subbasin_flood_path = ''
+        subbasin_ids = []
         obs_inun_data_dict = ic_tool.load_monthly_tifs(
             root_dir=subbasin_flood_path,
             subbasin_ids=subbasin_ids,
