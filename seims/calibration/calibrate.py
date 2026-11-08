@@ -34,18 +34,11 @@ from calibration.sample_lhs import lhs
 import numpy
 from pathlib import Path
 import time, random
-from datetime import datetime
 
-# 会话ID，避免跨实例互相影响（强烈推荐）
-# base_path = '/data/user/xiaodw/software/WISE/data/lock'
-base_path = 'G:\program\seims\SEIMS_HAND\data\poyang_lake1\poyang_lake1_longterm_model'
-subbasin_flood_path = base_path + f'/inundation_cali/subbasin_flood'
-subbasin_ids=[1171,1176,1193,1194,1214]
 
-# 不同的实例指定不同的id，避免锁文件相互影响
-RUN_ID = 'poyanglake_1_20250910'
 cali_inundation_extent = False
 cali_inundation_area = True
+copy_output = True
 # RUN_ID =  time.strftime("%Y%m%d-%H%M%S")
 
 """ xiaodw add
@@ -112,8 +105,8 @@ class ObsSimData(object):
         for name in effnames:
             tmpvar = '%s-%s' % (varname, name)
             if tmpvar not in self.objnames:
-                #values.append(-9999.)
-                tmpvars.append(tmpvar)
+                values.append(-9999.)
+                # tmpvars.append(tmpvar)
             else:
                 if name.upper() == 'PBIAS':
                     tmpvars.append('%s-abs(PBIAS)' % varname)
@@ -290,10 +283,6 @@ def _filter_sim_by_obs(sim_obs_dict, invalid_values=(-9999.0,)):
         }
     return out
 
-def _lock_path_for(ind, cali_obj):
-    # 按你的任务唯一标识来建锁文件（建议用 gen+id）
-    gen = getattr(ind, "gen", 0)
-    return Path("/tmp/nsga2_locks") / f"gen{gen}_id{ind.id}.lock"
 
 def evaluate_nowait_or_skip(cali_obj, ind):
     """
@@ -351,21 +340,25 @@ def _fi_bi_from_binary(sim_bin, obs_bin):
         bi = sim_area / obs_area
     return fi, bi
 
-def _lock_path_for(ind, cali_obj):
+def _lock_path_for(ind, cali_obj,base_path,RUN_ID):
     gen = getattr(ind, "gen", 0)
-    return Path(base_path + "/lock/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
+    # lock = Path(base_path + "/lock/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
+    lock_path = Path(base_path + "/" + cali_obj.model.db_name + "/lock/nsga2_locks") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
+    return lock_path
 
-def _done_path_for(ind, cali_obj):
+def _done_path_for(ind, cali_obj,base_path,RUN_ID):
     gen = getattr(ind, "gen", 0)
-    return Path(base_path + "/lock/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.done"
+    # lock_path = Path(base_path + "/lock/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.done"
+    lock_path = Path(base_path + "/" + cali_obj.model.db_name + "/lock/nsga2_done") / f"{RUN_ID}_g{gen}_id{ind.id}.lock"
+    return lock_path
 
 def _mark_done(done_path):
     done_path.parent.mkdir(parents=True, exist_ok=True)
     open(done_path, "w").close()  # 空文件即表示 DONE
 
-def evaluate_blocking(cali_obj, ind, timeout_s=None):
-    lock_path = str(_lock_path_for(ind, cali_obj))
-    done_path = _done_path_for(ind, cali_obj)
+def evaluate_blocking(cali_obj, ind,base_path,RUN_ID, timeout_s=2400):
+    lock_path = str(_lock_path_for(ind, cali_obj,base_path,RUN_ID))
+    done_path = _done_path_for(ind, cali_obj,base_path,RUN_ID)
 
     owner = f"pid={os.getpid()}"
     start = time.time()
@@ -385,7 +378,8 @@ def evaluate_blocking(cali_obj, ind, timeout_s=None):
                     return -1
 
                 scoop_log(f"[RUN][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 开始运行。")
-                res = calibration_objectives(cali_obj, ind)
+                gen = getattr(ind,'gen',0)
+                res = calibration_objectives(cali_obj, gen, ind)
 
                 # 3) 成功完成 → 写入 DONE 标记（在释放锁之前写，确保可见）
                 _mark_done(done_path)
@@ -407,7 +401,7 @@ def evaluate_blocking(cali_obj, ind, timeout_s=None):
         scoop_log(f"[WAIT][{owner}] gen={getattr(ind,'gen',0)} id={ind.id} 已等待 {elapsed:.1f}s，10s 后重试…")
         time.sleep(10)
 
-def calibration_objectives(cali_obj, ind):
+def calibration_objectives(cali_obj, gen, ind):
     """Evaluate the objectives of given individual.
     """
     cali_obj.ID = ind.id
@@ -421,29 +415,31 @@ def calibration_objectives(cali_obj, ind):
 
     # Execute model
     model_obj.SetMongoClient()
-    # model_obj.run()
+    run_success = model_obj.run(timeout=240)
     time.sleep(0.1)  # Wait a moment in case of unpredictable file system error
 
     # read simulation data of the entire simulation period (include calibration and validation)
     #if model_obj.ReadTimeseriesSimulations():
-    if model_obj.ReadTimeseriesSimulations_new():   #ljj++
+    if run_success and model_obj.ReadTimeseriesSimulations_new():   #ljj++
         ind.sim.vars = model_obj.sim_vars[:]
         ind.sim.data = deepcopy(model_obj.sim_value)
     else:
         model_obj.clean(calibration_id=ind.id)
         model_obj.UnsetMongoClient()
+        # 模型运行失败，设置 NSE 为 -9999
+        ind.cali.objnames = [f"{var}-NSE" for var in ind.obs.vars]
+        ind.cali.objvalues = [-9999.0] * len(ind.cali.objnames)
+        ind.cali.valid = False
         return ind
 
     # Calculate NSE, R2, RMSE, PBIAS, and RSR, etc. of calibration period
-    print(f"cali_stime: {cali_obj.cfg.cali_stime}/n, cali_etime: {cali_obj.cfg.cali_etime}/n")
+    # print(f"cali_stime: {cali_obj.cfg.cali_stime}/n, cali_etime: {cali_obj.cfg.cali_etime}/n")
     ind.cali.vars, ind.cali.data = model_obj.ExtractSimData(cali_obj.cfg.cali_stime,
                                                             cali_obj.cfg.cali_etime)
     # print(f"ind.cali.vars: {ind.cali.vars}/n, ind.cali.data: {ind.cali.data}/n")
     ind.cali.sim_obs_data = model_obj.ExtractSimObsData(cali_obj.cfg.cali_stime,
                                                         cali_obj.cfg.cali_etime)
-    # xiaodw add, to remove simdata(for some time step)  which doesn't have obs data(no need to do this, which is done in timeseries_data.py: if sim_date not in obs_dict)
-    # print(ind.cali.sim_obs_data)
-    # ind.cali.sim_obs_data = _filter_sim_by_obs(ind.cali.sim_obs_data)
+
 
     ind.cali.objnames, \
     ind.cali.objvalues = model_obj.CalcTimeseriesStatistics(ind.cali.sim_obs_data,
@@ -451,9 +447,14 @@ def calibration_objectives(cali_obj, ind):
                                                             cali_obj.cfg.cali_etime)
     # 输出校准期指标
     cali_metrics = ", ".join(f"{name}:{value:.4f}" for name, value in zip(ind.cali.objnames, ind.cali.objvalues))
-    print(f"cali: {cali_metrics}")
+    # print(f"cali: {cali_metrics}")
     if ind.cali.objnames and ind.cali.objvalues:
         ind.cali.valid = True
+    else:
+        # 计算指标失败，设置 NSE 为 -9999
+        ind.cali.objnames = [f"{var}-NSE" for var in ind.obs.vars]
+        ind.cali.objvalues = [-9999.0] * len(ind.cali.objnames)
+        ind.cali.valid = False
     # Calculate NSE, R2, RMSE, PBIAS, and RSR, etc. of validation period
     if cali_obj.cfg.calc_validation:
         ind.vali.vars, ind.vali.data = model_obj.ExtractSimData(cali_obj.cfg.vali_stime,
@@ -467,10 +468,15 @@ def calibration_objectives(cali_obj, ind):
                                                                 cali_obj.cfg.vali_etime)
         if ind.vali.objnames and ind.vali.objvalues:
             ind.vali.valid = True
+        else:
+            # 计算指标失败，设置 NSE 为 -9999
+            ind.vali.objnames = [f"{var}-NSE" for var in ind.obs.vars]
+            ind.vali.objvalues = [-9999.0] * len(ind.vali.objnames)
+            ind.vali.valid = False
 
         # 输出验证期指标
         vali_metrics = ", ".join(f"{name}:{value:.4f}" for name, value in zip(ind.vali.objnames, ind.vali.objvalues))
-        print(f"vali: {vali_metrics}")
+        # print(f"vali: {vali_metrics}")
     # Get timespan
     ind.io_time, ind.comp_time, ind.simu_time, ind.runtime = model_obj.GetTimespan()
     ##-----------------------xiaodw add, calibrate Fi,Bi for inundation extent-----------------------------
@@ -529,6 +535,8 @@ def calibration_objectives(cali_obj, ind):
     ##-----------------------end calibrate Fi,Bi for inundation extent-----------------------------
     # delete model output directory for saving storage
     print(f"delete output directory: {ind.id}")
+    if copy_output:
+        model_obj.copy_dir(calibration_id=ind.id,gen = gen)
     model_obj.clean(calibration_id=ind.id)
     model_obj.UnsetMongoClient()
 

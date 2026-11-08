@@ -24,7 +24,7 @@ from spotpy.objectivefunctions import nashsutcliffe, rsquared, rmse, pbias,kge, 
 from preprocess.db_read_model import ReadModelData
 import matplotlib as mpl
 def main():
-    NN = 5  #可调，需要前多少组参数集
+    NN = 2  #可调，需要前多少组参数集
 
     wtsd_name = get_watershed_name('Specify watershed name to run postprocess.')
     if wtsd_name not in list(DEMO_MODELS.keys()):
@@ -36,7 +36,7 @@ def main():
     SEIMS_path = os.path.abspath(cur_path + '../../..')
     model_paths = ModelPaths(SEIMS_path, wtsd_name, DEMO_MODELS[wtsd_name])
     cf = ConfigParser()
-    cali_cfg_file = model_paths.workspace + os.path.sep + 'calibration.ini'
+    cali_cfg_file = model_paths.cfg_dir + os.path.sep + 'calibration.ini'
     cf.read(cali_cfg_file)
 
     #读取率定结果
@@ -91,7 +91,7 @@ def main():
 
 
     var_name = sim_obs_data[0]['var_name']
-    # var_name = 'Q'
+    # var_name = ['Q_322']
     for nn,kk in enumerate(var_name):
         obssim = pd.DataFrame()
         sims = pd.DataFrame()

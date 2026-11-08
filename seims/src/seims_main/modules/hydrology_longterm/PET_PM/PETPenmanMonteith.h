@@ -101,6 +101,7 @@ private:
     float m_snowTemp;
     /// Correction Factor for PET
     float m_petFactor;
+    float* m_petFactor_1d;
     /// output pet array
     float* m_pet;
     /// maximum amount of transpiration (plant et)  that can occur on current day in HRU

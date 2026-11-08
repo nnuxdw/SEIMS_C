@@ -2183,6 +2183,16 @@ bool clsRasterData<T, MASK_T>::ReadFromMongoDB(MongoGridFs* gfs,
     }
     buf = nullptr;
     CheckDefaultValue();
+	//******************************************************
+	// xdw add, if filename == 0_HAND_LOWERACCDEPTH_FLAT, the length of raster data is not equal to HRU number and shouldn't be changed here
+	auto ends_with = [](const std::string& s, const std::string& suffix) -> bool {
+		if (s.size() < suffix.size()) return false;
+		return std::equal(suffix.rbegin(), suffix.rend(), s.rbegin());
+	};
+	if (ends_with(filename, "HAND_LOWERACCDEPTH_FLAT")) {
+		return true;
+	}
+	//******************************************************
     if (re_build_data) {
         MaskAndCalculateValidPosition();
     }

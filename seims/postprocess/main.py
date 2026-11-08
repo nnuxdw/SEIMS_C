@@ -25,7 +25,7 @@ from postprocess.plot_timeseries import get_upstream_subbasins,fetch_upstream_av
 
 def main():
     ###--------------------xiaodw, plot Q,QI,QS,QG into one chart
-    # subbasin_id = 173
+    # subbasin_id = 1
     subbasin_id = 1171
     file_dict = {
         "Surface Runoff": "QS.txt",

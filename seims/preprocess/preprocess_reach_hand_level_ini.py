@@ -2,7 +2,7 @@ from typing import Dict, Optional, Union
 from pymongo import MongoClient, UpdateOne
 from pymongo.errors import BulkWriteError
 import pandas as pd
-
+import os
 def set_lake_hand_level_ini(
     mongo_uri: str,
     mapping,
@@ -106,17 +106,23 @@ def count_hand_levels(csv_path: str) -> Dict[int, int]:
     return counts.to_dict()
 
 if __name__ == '__main__':
-    mongo_uri = "mongodb://localhost:27017"
-    db_name = "poyang_lake1_longterm_model"
+
+    db_name = "taihu_5_longterm_model"
     collection = "REACHES"
     subbasin_field = "SUBBASINID"
     target_field= "Lake_Hand_Level_Ini"
+    if os.name == 'nt':  # Windows
+        # csv_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\InundationMap.csv"
+        csv_path = r"G:\program\seims\SEIMS_HAND\data\taihu_5\workspace\rundata\InundationMap.csv"
+        mongo_uri = "mongodb://localhost:27017"
+    else:  # Linux/Unix
+        csv_path = r"/data/user/xiaodw/software/WISE_V20160219/data/MSL_1/workspace/rundata/InundationMap.csv"
+        mongo_uri = "mongodb://172.21.124.127:27019"
 
-    csv_path = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\InundationMap.csv"
     # 从InundationMap.csv中统计每个Subbasin有多少层级HAND
     level_counts_map = count_hand_levels(csv_path)
     level_counts_map_ini = {}
-    ratio = 0.5
+    ratio = 0.15
     for subbasinid, nlevels in level_counts_map.items():
         ini_level = int(nlevels * ratio)   # 截断取整
         level_counts_map_ini[subbasinid] = ini_level
@@ -129,7 +135,7 @@ if __name__ == '__main__':
         coll_name=collection,
         subbasin_field=subbasin_field,
         target_field=target_field,
-        default_value = -9998,
+        default_value = 1,
         create_index = True,
         dry_run=False)
 

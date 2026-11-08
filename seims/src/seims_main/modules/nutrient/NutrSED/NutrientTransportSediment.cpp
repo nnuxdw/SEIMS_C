@@ -38,7 +38,7 @@ NutrientTransportSediment::NutrientTransportSediment() :
     m_LDOCToCH(nullptr),m_surfRDOCtoCH(nullptr),m_IfluRDOCtoCH(nullptr),m_brt(nullptr),m_surfrunoff(nullptr),
     m_lag_doc(nullptr),m_lag_dic(nullptr),m_lag_rpoc(nullptr),m_lag_lpoc(nullptr),m_landUse(nullptr),
     m_lag_orgn(nullptr),m_lag_orgp(nullptr),m_surfpoc(nullptr),m_surfdoc(nullptr),m_subsurfdoc(nullptr),
-    m_lag_minpa(nullptr),m_lag_minps(nullptr)
+    m_lag_minpa(nullptr),m_lag_minps(nullptr),m_kd_oc_1d(nullptr),m_perco_doc_1d(nullptr)
 {
 }
 
@@ -177,6 +177,8 @@ void NutrientTransportSediment::Set1DData(const char* key, const int n, float* d
     else if (StringMatch(sk, VAR_LANDUSE)) m_landUse = data;
     else if (StringMatch(sk, "SURFDOC")) m_surfdoc = data;
     else if (StringMatch(sk, "SURFPOC")) m_surfpoc = data;
+    else if (StringMatch(sk, "kd_oc_1d")) m_kd_oc_1d = data;
+    else if (StringMatch(sk, "perco_doc_1d")) m_perco_doc_1d = data;
     else {
         throw ModelException(MID_NUTRSED, "Set1DData", "Parameter " + sk + " does not exist.");
     }
@@ -667,6 +669,7 @@ void NutrientTransportSediment::OrgNRemovedInRunoffCenturyModel(const int i) {
         m_sol_WOC[i][0] = m_sol_LSC[i][0] + m_sol_LMC[i][0] + m_sol_HPC[i][0] + m_sol_HSC[i][0] + m_sol_BMC[i][0];
         //DK = 0.0001f * PRMT_21 * m_sol_WOC[i][0];
         DK = 0.0001f * m_kd_oc * m_sol_WOC[i][0];
+        //DK = 0.0001f * m_kd_oc_1d[i] * m_sol_WOC[i][0];
         X1 = m_soilSat[i][0];
         //X1 = m_soilPor[i][0] * m_soilThk[i][0] - m_soilWP[i][0];
         if (X1 <= 0.f) X1 = 0.01f;
@@ -680,8 +683,10 @@ void NutrientTransportSediment::OrgNRemovedInRunoffCenturyModel(const int i) {
             //CO = X3 / (m_soilPerco[i][0] + PRMT_44 * (m_surfRf[i] + m_subSurfRf[i][0]));
             //CO = X3 / (m_soilPerco[i][0] + m_perco_doc * (m_surfRf[i] + m_subSurfRf[i][0]));
             CO = X3 / (m_soilPerco[i][0] + m_perco_doc * (m_surfrunoff[i] + m_subSurfRf[i][0]));
+            //CO = X3 / (m_soilPerco[i][0] + m_perco_doc_1d[i] * (m_surfrunoff[i] + m_subSurfRf[i][0]));
             //CS = PRMT_44 * CO;
             CS = m_perco_doc * CO;
+            //CS = m_perco_doc_1d[i] * CO;
             VBC = CO * m_soilPerco[i][0];
             m_sol_BMC[i][0] -= X3;
             //QBC = CS * (m_surfRf[i] + m_subSurfRf[i][0]);
@@ -714,6 +719,7 @@ void NutrientTransportSediment::OrgNRemovedInRunoffCenturyModel(const int i) {
             if (V >= UTIL_ZERO) {
                 //VBC = Y1 * (1.f - exp(-V / (m_soilSat[i][k] + 0.0001f * PRMT_21 * m_sol_WOC[i][k])));
                 VBC = Y1 * (1.f - exp(-V / (m_soilSat[i][k] + 0.0001f * m_kd_oc * m_sol_WOC[i][k])));
+                //VBC = Y1 * (1.f - exp(-V / (m_soilSat[i][k] + 0.0001f * m_kd_oc_1d[i] * m_sol_WOC[i][k])));
                 VBC1 = Max(VBC,0.f);
             }
         }

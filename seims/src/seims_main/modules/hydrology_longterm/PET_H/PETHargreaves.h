@@ -64,6 +64,7 @@ private:
     float* m_dayLen; ///< day length (hr)
     float* m_phuBase; ///< base zero total heat units (used when no land cover is growing)
     float* m_pet; ///< potential evapotranspiration on the day
+	float* m_petFactor_1d;
     float* m_vpd; ///< vapor pressure deficit
 };
 #endif /* SEIMS_MODULE_PET_H_H */

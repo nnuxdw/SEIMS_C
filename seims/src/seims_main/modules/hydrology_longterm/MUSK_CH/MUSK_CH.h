@@ -29,7 +29,7 @@ using namespace bmps;
 using namespace std;
 
 
-// ï¿½ï¿½Ê¾Ã¿Ò»ï¿½ï¿½ï¿½ HAND ï¿½ï¿½Ï¢
+// ±íÊ¾Ã¿Ò»²ãµÄ HAND ÐÅÏ¢
 struct Level {
 	//vector<float> handHeights;   // index is hand id
 	int* handIds;   // index is layer 0,1,2,3..., value is hand id
@@ -49,7 +49,7 @@ struct Level {
 
 };
 
-// ï¿½ï¿½Ê¾Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½ HAND ï¿½ï¿½
+// ±íÊ¾Ã¿¸ö×ÓÁ÷ÓòÏÂµÄËùÓÐ HAND ²ã
 struct Hand {
 	int n_levels;
 	int m_CurInundationLevel;
@@ -99,7 +99,7 @@ public:
     void GetValue(const char* key, float* value) OVERRIDE;
 
     void Get1DData(const char* key, int* n, float** data) OVERRIDE;
-
+    
     //ljj++
     void SetSubbasins(clsSubbasins* subbasins) OVERRIDE;
 
@@ -114,7 +114,7 @@ private:
     void PointSourceLoading();
 
     bool ChannelFlow(int i);
-
+    
     //ljj++
     bool LakeBudget(int i);
 
@@ -132,6 +132,7 @@ private:
     float m_aBank;     ///< bank flow recession constant
     float m_bBank;     ///< bank storage loss coefficient
     float* m_subbsnID; ///< Subbasin grid
+    float* m_Epch_1d;      ///< reach evaporation adjustment factor, evrch in SWAT.
 
     /// Muskingum input parameters
 
@@ -225,7 +226,9 @@ private:
     float m_lakeseep; //m/day; hydraulic conductivity of the lake bottom
     float m_petFactor;
     float m_minvol;
+	float *m_minvol_1d;
     float m_lakeb;
+	float *m_lakeb_1d;
 
     float* m_ispermafrost;
     float* m_islake;
@@ -297,6 +300,8 @@ private:
 
 	float* m_subbasinWtrDep;
 	float* m_subbasinInundationArea;  // subbasin inundation area, for lake/resovior/reach;
+
+
 };
 
 #endif /* SEIMS_MODULE_MUSK_CH_H */

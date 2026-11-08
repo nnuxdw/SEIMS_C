@@ -8,7 +8,7 @@ SET_LM::SET_LM() :
     m_pet(nullptr), m_IntcpET(nullptr),
     m_deprStoET(nullptr), m_maxPltET(nullptr), m_soilTemp(nullptr),
     m_soilFrozenTemp(NODATA_VALUE),
-    m_soilET(nullptr),m_soilAWC(nullptr), m_handWtrDep(nullptr), m_subbsnID(nullptr), m_chSto(nullptr), m_handArea(nullptr), m_hand_eavp(nullptr) {
+    m_soilET(nullptr),m_soilAWC(nullptr),  m_subbsnID(nullptr), m_handArea(nullptr), m_hand_eavp(nullptr) {
 }
 
 SET_LM::~SET_LM() {
@@ -23,7 +23,7 @@ int SET_LM::Execute() {
     for (int i = 0; i < m_nCells; i++) {
         m_soilET[i] = 0.0f;
 		//if (m_soilTemp[i] <= m_soilFrozenTemp) { continue; }     // xiaodw comment, don't need soil temperature now
-	   //float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_maxPltET[i];   // xiaodw comment, don't need plant et now, remove it
+	   //float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_maxPltET[i];   // xiaodw comment, don't need plant et now, remove it 
 		// xiaodw++, If a HAND  is inundated, its water is evaporated with priority
 		float etDeficiency = m_pet[i] - m_IntcpET[i] - m_deprStoET[i] - m_hand_eavp[i];//m_deprStoET
 		for (int j = 0; j < CVT_INT(m_nSoilLyrs[i]); j++) {
@@ -55,21 +55,32 @@ int SET_LM::Execute() {
 			etDeficiency -= et2d;
 			m_soilET[i] += et2d;
 #ifdef DEBUG_SET_LM
-				if (i == 2562)
-				{
-					std::cout << "------------------ ET Debug Info ------------------" << std::endl;
-					std::cout << "  HRU ID                : " << i << std::endl;
-					std::cout << "  Soil Layer             : " << j << " / " << m_nSoilLyrs[i] << std::endl;
-					std::cout << "  Soil Moisture (before) : " << smBefore << " mm" << std::endl;
-					std::cout << "  Soil Moisture (after)  : " << m_soilWtrSto[i][j] << " mm" << std::endl;
-					std::cout << "  AWC (Field Capacity)   : " << m_soilAWC[i][j] << " mm" << std::endl;
-					std::cout << "  ET Demand (deficiency) : " << etDeficiency << " mm" << std::endl;
-					std::cout << "  ET Extracted (et2d)    : " << et2d << " mm" << std::endl;
-					std::cout << "---------------------------------------------------" << std::endl << std::endl;
-				}
+			int SPECIFIED_SBID = 2;
+			int subbasinId = CVT_INT(m_subbsnID[i]);
+			//if (subbasinId == SPECIFIED_SBID) {
+
+			//	cout << "Sbid: " << subbasinId << "   "
+			//		<< " HandId: " << id << "   " << endl;
+			//	for (int j = 0; j < CVT_INT(m_nSoilLyrs[id]); j++) {
+			//		cout
+			//			<< "Layer: " << j << "   "
+			//			<< " MoisBfe=" << m_soilMoistBfe[id][j] << "   "
+			//			<< " MoisAft=" << m_soilMoist[id][j] << "   "
+			//			<< " WtrStoBfe=" << m_soilWtrStoBfe[id][j] << "   "
+			//			<< " WtrStoAft=" << m_soilWtrSto[id][j] << "   "
+			//			<< " Perco=" << m_soilPerco[id][j] << "   "
+			//			<< " SubF= " << m_subSurfRf[id][j] << "   "
+			//			<< " SAT=" << m_soilSat[id][j] << "   "
+			//			<< " AWC=" << m_soilAWC[id][j] << "   "
+			//			<< " WP=" << m_soilWP[id][j] << "   "
+			//			<< " THICK=" << m_soilThk[id][j] << "   "
+			//			<< endl;
+			//	}
+			//	
+			//}
 
 #endif // DEBUG_SET_LM
-
+			
 		}
     }
     if (errCount > 0) {
@@ -82,25 +93,13 @@ void SET_LM::Get1DData(const char* key, int* nRows, float** data) {
     InitialOutputs();
     string s(key);
     if (StringMatch(s, VAR_SOET)) *data = m_soilET;
-	else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
-		*data = m_handWtrDep;
-	}
-	else if (StringMatch(s, VAR_CHST)) {
-		m_chSto[0] = m_chSto[m_outletID];
-		*data = m_chSto;
-	}
+
     else {
         throw ModelException(MID_SET_LM, "Get1DData", "Result " + s + " does not exist.");
     }
     *nRows = m_nCells;
 }
 
-void SET_LM::SetReaches(clsReaches* reaches) {
-	if (nullptr == reaches) {
-		throw ModelException(MID_MUSK_CH, "SetReaches", "The reaches input can not to be NULL.");
-	}
-	m_nreach = reaches->GetReachNumber();
-}
 
 void SET_LM::SetValue(const char* key, const float value) {
     string s(key);
@@ -113,7 +112,7 @@ void SET_LM::SetValue(const char* key, const float value) {
 
 void SET_LM::Set1DData(const char* key, const int n, float* data) {
     string s(key);
-
+	
 	if (StringMatch(s, VAR_SOILLAYERS)) {
 		CheckInputSize(MID_SET_LM, key, n, m_nCells);
 		m_nSoilLyrs = data;
@@ -138,18 +137,9 @@ void SET_LM::Set1DData(const char* key, const int n, float* data) {
 		CheckInputSize(MID_SET_LM, key, n, m_nCells);
 		m_soilTemp = data;
 	}
-	else if (StringMatch(s, VAR_OL_HAND_WTRDEP)) {
-		CheckInputSize(MID_SET_LM, key, n, m_nCells);
-		m_handWtrDep = data;
-	}
 	else if (StringMatch(s, VAR_SUBBSN)) {
 		CheckInputSize(MID_SET_LM, key, n, m_nCells);
 		m_subbsnID = data;
-	}
-	else if (StringMatch(s, VAR_CHST)) {
-		// ע�����ﰴ���Ҫ���õ��� n - 1 �� m_nreach
-		CheckInputSize(MID_SET_LM, key, n - 1, m_nreach);
-		m_chSto = data;
 	}
 	else if (StringMatch(s, VAR_AHRU)) {
 		CheckInputSize(MID_SET_LM, key, n, m_nCells);
@@ -182,9 +172,9 @@ bool SET_LM::CheckInputData() {
     CHECK_POINTER(MID_SET_LM, m_IntcpET);
     CHECK_POINTER(MID_SET_LM, m_pet);
     CHECK_POINTER(MID_SET_LM, m_deprStoET);
-	//CHECK_POINTER(MID_SET_LM, m_maxPltET);    // xiaodw comment, don't need plant et now, remove it
+	//CHECK_POINTER(MID_SET_LM, m_maxPltET);    // xiaodw comment, don't need plant et now, remove it 
 	CHECK_POINTER(MID_SET_LM, m_soilWtrSto);
-	//CHECK_POINTER(MID_SET_LM, m_soilTemp);     // xiaodw comment, don't need soil temperature now, remove it
+	//CHECK_POINTER(MID_SET_LM, m_soilTemp);     // xiaodw comment, don't need soil temperature now, remove it 
 	CHECK_NODATA(MID_SET_LM, m_soilFrozenTemp);
     return true;
 }
@@ -192,13 +182,9 @@ bool SET_LM::CheckInputData() {
 void SET_LM::InitialOutputs() {
     CHECK_POSITIVE(MID_SET_LM, m_nCells);
     if (nullptr == m_soilET) Initialize1DArray(m_nCells, m_soilET, 0.f);
-	if (m_handWtrDep == nullptr)
-	{
-		Initialize1DArray(m_nCells, m_handWtrDep, 0.f);//xdw++
-	}
 	if (m_hand_eavp == nullptr)
 	{
 		Initialize1DArray(m_nCells, m_hand_eavp, 0.f);//xdw++
 	}
-
+	
 }

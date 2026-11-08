@@ -46,12 +46,12 @@ NutrCH_QUAL2E::NutrCH_QUAL2E() :
 	m_surfRDOCToCH(nullptr),m_latRDOCToCH(nullptr),m_gwRDOCToCH(nullptr),m_latDICToCH(nullptr),m_surfDICToCH(nullptr),
     m_LPOCToCH(nullptr),m_RPOCToCH(nullptr),m_LDOCToCH(nullptr),m_gwDICToCH(nullptr),
     m_chDOCcon(nullptr),
-    m_chOutLDOC(nullptr), m_chOutLDOCConc(nullptr), m_chLDOC(nullptr),
+    m_chOutLDOC(nullptr), m_chOutLDOCConc(nullptr), m_chLDOC(nullptr), 
 	m_chOutDIC(nullptr), m_chOutDICConc(nullptr), m_chDIC(nullptr),
-	m_chOutLPOC(nullptr), m_chOutLPOCConc(nullptr), m_chLPOC(nullptr),
-	m_chOutRPOC(nullptr), m_chOutRPOCConc(nullptr), m_chRPOC(nullptr),
+	m_chOutLPOC(nullptr), m_chOutLPOCConc(nullptr), m_chLPOC(nullptr), 
+	m_chOutRPOC(nullptr), m_chOutRPOCConc(nullptr), m_chRPOC(nullptr), 
 	m_chOutRDOC(nullptr), m_chOutRDOCConc(nullptr), m_chRDOC(nullptr),
-    m_chsurfRDOC(nullptr), m_chlatRDOC(nullptr), m_chgwRDOC(nullptr),
+    m_chsurfRDOC(nullptr), m_chlatRDOC(nullptr), m_chgwRDOC(nullptr), 
     m_chOutlatRDOC(nullptr), m_chOutsurfRDOC(nullptr), m_chOutgwRDOC(nullptr),
     m_chOutTotDOC(nullptr),m_chOutTotDOCConc(nullptr),
     m_chOutTotPOC(nullptr),m_chOutTotPOCConc(nullptr),
@@ -61,9 +61,10 @@ NutrCH_QUAL2E::NutrCH_QUAL2E() :
     m_qsRchOut(nullptr), m_qiRchOut(nullptr), m_qgRchOut(nullptr),m_ch_Temp(nullptr),m_chAirTemp_pre(nullptr),
     m_olQ2Rch(nullptr), m_ifluQ2Rch(nullptr), m_gndQ2Rch(nullptr),m_snowMelt(nullptr),
     m_subsnow(nullptr),m_airtemp(nullptr),m_chAirTemp(nullptr),m_chRH(nullptr),m_chWS(nullptr),
-    m_rhd(nullptr),m_ws(nullptr),m_rrtime(nullptr),m_GlacierMelt(nullptr),m_subglacier(nullptr),
+    m_rhd(nullptr),m_ws(nullptr),m_rrtime(nullptr),m_GlacierMelt(nullptr),m_subglacier(nullptr),m_lakearea(nullptr),
     m_chTemp_pre(nullptr),m_chSto_pre(nullptr),m_chSlope(nullptr),m_chArea(nullptr),m_intercpt(-1.f),
-    m_A_b(nullptr),m_A_a(nullptr),m_A_Vb(nullptr),m_A_Va(nullptr),m_T_LKWB(nullptr)
+    m_A_b(nullptr),m_A_a(nullptr),m_A_Vb(nullptr),m_A_Va(nullptr),m_T_LKWB(nullptr),
+    m_krp_1d(nullptr),m_kd_rp_1d(nullptr),m_sv_rp_1d(nullptr),m_krd_1d(nullptr)
 {
 }
 
@@ -202,7 +203,7 @@ void NutrCH_QUAL2E::ParametersSubbasinForChannel() {
             // tmp_chrhd[irch] = 0.f;
             // tmp_chws[irch] = 0.f;
             // tmp_chCellCount[irch] = 0.f;
-
+            
             m_chDaylen[irch] = 0.f;
             m_chSr[irch] = 0.f;
             m_chTemp[irch] = 0.f;
@@ -212,7 +213,7 @@ void NutrCH_QUAL2E::ParametersSubbasinForChannel() {
             m_chRH[irch] = 0.f;
             m_chWS[irch] = 0.f;
             m_chCellCount[irch] = 0.f;
-
+            
         }
 //#pragma omp parallel for
         for (int i = 0; i < m_nCells; i++) {
@@ -222,7 +223,7 @@ void NutrCH_QUAL2E::ParametersSubbasinForChannel() {
             if (m_rchID[i] <= 0.f) {
                 continue;
             }
-
+            
             //if (m_nReaches == 1) {  // deprecated code, left for remaind. lj
             //    subi = 1;
             //} else
@@ -236,7 +237,7 @@ void NutrCH_QUAL2E::ParametersSubbasinForChannel() {
             m_chAirTemp[irch] += m_airtemp[i]*m_area[i];
             m_chRH[irch] += m_rhd[i]*m_area[i];
             m_chWS[irch] += m_ws[i]*m_area[i];
-            m_chCellCount[irch] += m_area[i];
+            m_chCellCount[irch] += m_area[i]; 
         }
 //#pragma omp critical
         // {
@@ -249,7 +250,7 @@ void NutrCH_QUAL2E::ParametersSubbasinForChannel() {
         //         m_chAirTemp[irch] += tmp_chAt[irch];
         //         m_chRH[irch] += tmp_chrhd[irch];
         //         m_chWS[irch] += tmp_chws[irch];
-        //         m_chCellCount[irch] = tmp_chCellCount[irch];
+        //         m_chCellCount[irch] = tmp_chCellCount[irch];         
         //     }
         // }
         //delete[] tmp_chDaylen;
@@ -272,7 +273,7 @@ void NutrCH_QUAL2E::ParametersSubbasinForChannel() {
             m_chRH[irch] /= m_chCellCount[irch];
             m_chWS[irch] /= m_chCellCount[irch];
         }else{
-
+            
         }
         m_subsnow[irch] /= m_dt;
         m_subglacier[irch] /= m_dt;
@@ -511,11 +512,31 @@ void NutrCH_QUAL2E::Set1DData(const char* key, const int n, float* data) {
         m_snowMelt = data;
         return;
     }
-    if (StringMatch(sk, "GL_RO")) {
+    if (StringMatch(sk, "GL_RO")) { 
         CheckInputCellSize(key, n);
         m_GlacierMelt = data;
         return;
 	}
+    if (StringMatch(sk, "krp_1d")) {
+        CheckInputCellSize(key, n);
+        m_krp_1d = data;
+        return;
+    }
+    if (StringMatch(sk, "kd_rp_1d")) {
+        CheckInputCellSize(key, n);
+        m_kd_rp_1d = data;
+        return;
+    }
+    if (StringMatch(sk, "sv_rp_1d")) {
+        CheckInputCellSize(key, n);
+        m_sv_rp_1d = data;
+        return;
+    }
+    if (StringMatch(sk, "krd_1d")) {
+        CheckInputCellSize(key, n);
+        m_krd_1d = data;
+        return;
+    }
     CheckInputSize(MID_NUTRCH_QUAL2E, key, n - 1, m_nReaches);
     if (StringMatch(sk, VAR_QRECH)) m_qRchOut = data;
     else if (StringMatch(sk, VAR_CHST)) {
@@ -629,7 +650,7 @@ void NutrCH_QUAL2E::SetReaches(clsReaches* reaches) {
 	// if (nullptr == m_chlatRDOC) reaches->GetReachesSingleProperty(REACH_LATRDOC, &m_chlatRDOC);
 	// if (nullptr == m_chgwRDOC) reaches->GetReachesSingleProperty(REACH_GWDRDOC, &m_chgwRDOC);
     // if (nullptr == m_chDOCcon) reaches->GetReachesSingleProperty("chDOC", &m_chDOCcon);
-
+    
     // if (nullptr == m_chArea) Initialize1DArray(m_nReaches + 1, m_chArea, 0.f);
     // if (nullptr == m_chSlope) Initialize1DArray(m_nReaches + 1, m_chSlope, 0.f);
 	if (nullptr == m_chDIC) Initialize1DArray(m_nReaches + 1, m_chDIC, 0.f);
@@ -907,7 +928,7 @@ void NutrCH_QUAL2E::AddInputNutrient(const int i) {
     m_chlatRDOC[i] +=  m_latRDOCToCH[i];
     m_chgwRDOC[i] += m_gwRDOCToCH[i];
 
-
+    
     m_T_LKWB[i][1] = m_surfRDOCToCH[i] + m_latRDOCToCH[i];
     m_T_LKWB[i][2] = m_lakepcp[i] * 1.2f * 0.001f;
     // /// organic N, P contribution from channel erosion
@@ -981,7 +1002,7 @@ void NutrCH_QUAL2E::RouteOut(const int i) {
     m_chOutsurfRDOC[i] = 0.f;
     m_chOutlatRDOC[i] = 0.f;
     m_chOutgwRDOC[i] = 0.f;
-
+    
     //get out flow water fraction
     float wtrTotal = m_chStorage[i] + m_rteWtrOut[i]; // m^3
     if(m_islake[i] == 1|| m_isres[i]==1) wtrTotal += m_lakeperc[i];
@@ -1007,7 +1028,7 @@ void NutrCH_QUAL2E::RouteOut(const int i) {
     m_chOutTP[i] = m_chOutOrgP[i] + m_chOutSolP[i];
     //if(i == 12) cout << "m_chOutOrgP: " << m_chOutOrgP[i] << ", m_chOrgP: " << m_chOrgP[i] << ", outFrac: "<<outFraction<<endl;
     // kg ==> mg/L
-
+    
     //ljj++
 	m_chOutDIC[i] = m_chDIC[i] * outFraction;    //kg
 	m_chOutLDOC[i] = m_chLDOC[i] * outFraction;
@@ -1529,9 +1550,9 @@ void NutrCH_QUAL2E::NutrientTransform(const int i) {
     float f_co2 = 0.2;        //fraction of DIC in CO2
     float ksed = 0.02;        //first-order sediment decay rate (/day)
     float kbur = 0.05;        //first - order sediment burial rate(/ day)
-
+        
     //bottom algea death procese
-    float Ab_con = 0.f;
+    float Ab_con = 0.f;	
     Ab_con = m_Ab[i];
     m_AbDeath[i] = 0.f;
     m_AbDeath[i] = Ab_con * corTempc(kdb, 1.04f, wtmp); //bottom algea death biomass(g / m2 / day)
@@ -1659,14 +1680,17 @@ void NutrCH_QUAL2E::NutrientTransform(const int i) {
     Ab_RP = f_rpb * Ab_cbn;
     float RP_LD = 0.f;
     RP_LD = corTempc(m_krp, 1.047f, wtmp) * rpoccon;
+    //RP_LD = corTempc(m_krp_1d[i], 1.047f, wtmp) * rpoccon;
     RP_LD = Min(RP_LD,rpoccon);
     RP_LD = Max(RP_LD,0.f);
     float RP_DIC = 0.f;
     RP_DIC = corTempc(m_kd_rp, 1.047f, wtmp) * rpoccon;
+    //RP_DIC = corTempc(m_kd_rp_1d[i], 1.047f, wtmp) * rpoccon;
     RP_DIC = Min(RP_DIC,rpoccon);
     RP_DIC = Max(RP_DIC,0.f);
     float RP_set = 0.f;
     RP_set = m_sv_rp / m_chWtrDepth[i] * rpoccon;
+    //RP_set = m_sv_rp_1d[i] / m_chWtrDepth[i] * rpoccon;
     RP_set = Min(RP_set,rpoccon*0.5f);
     // //ljj modified
     // float blcrpoc =  m_npoc;  //!!todo 用户自定义的平衡浓度
@@ -1721,6 +1745,7 @@ void NutrCH_QUAL2E::NutrientTransform(const int i) {
     float Foxc = 0.f;
     Foxc = o2con / (o2con + ksdocf);
     RD_DIC = Foxc * corTempc(m_krd, 1.047, wtmp)*rdoccon;
+    //RD_DIC = Foxc * corTempc(m_krd_1d[i], 1.047, wtmp)*rdoccon;
     RD_DIC = Min(RD_DIC,rdoccon);
     RD_DIC = Max(RD_DIC,0.f);
     float Fxodn = 0.f;
@@ -1732,15 +1757,15 @@ void NutrCH_QUAL2E::NutrientTransform(const int i) {
     LD_NO3 = 0.f;
     //m_chRDOC[i] = rdoccon + (Alg_RD + Ab_RD + LR_DOC - RD_DIC - LD_NO3)* tday;
     m_chRDOC[i] = rdoccon + (Alg_RD + Ab_RD + RP_LD - RD_DIC - LD_NO3)* tday;
-    m_T_LKWB[i][6] = (Alg_RD + Ab_RD + RP_LD)* wtrTotal * 0.001f;
-    m_T_LKWB[i][7] = (RD_DIC)* wtrTotal * 0.001f;
+    m_T_LKWB[i][6] = (Alg_RD + Ab_RD + RP_LD)* wtrTotal * 0.001f;  
+    m_T_LKWB[i][7] = (RD_DIC)* wtrTotal * 0.001f; 
     if (m_chRDOC[i] <= 0.f) m_chRDOC[i] = 0.f;
 
     //DIC reaction pathways
     float Atm_DIC = 0.f;
     float kac = corTempc(m_rk2[i], thm_rk2, wtmp)*0.923;          //CO2 reaeration rate(/ day)
     float wtmpk = wtmp + 273.15;  //convet the unit of water temp to Kelvin
-    float kh_DIC = pow(10.0f,((2385.73f / wtmpk) + 0.0152642f * wtmpk - 14.0184f));   //Henry's constant [mol/L/atm]
+    float kh_DIC = pow(10.0f,((2385.73f / wtmpk) + 0.0152642f * wtmpk - 14.0184f));   //Henry's constant [mol/L/atm] 
     float CO2_sat = 12.0f * kh_DIC * p_co2 / 1000.0f;        //CO2 saturation(unit converting to mg / L)
     Atm_DIC = kac * (CO2_sat - f_co2 * diccon);   //Atmospheric CO2 reaeration
     float SC = 1911.1 - 118.11*wtmp + 3.4527*pow(wtmp,2) - 0.04132*pow(wtmp,3);
@@ -1779,7 +1804,7 @@ void NutrCH_QUAL2E::NutrientTransform(const int i) {
     if (m_scbn[i] < 0.f) m_scbn[i] = 0.f;
     float bed_DIC = dic_bed;          //DIC release from bed sediment
     //m_chDIC[i] = diccon + (Atm_DIC + LP_DIC + RP_DIC + LD_DIC + RD_DIC  //transformations from organic carbon pools
-    m_chDIC[i] = diccon + (Atm_DIC + RP_DIC  + RD_DIC
+    m_chDIC[i] = diccon + (Atm_DIC + RP_DIC  + RD_DIC 
                         + Alg_DIC + Ab_DIC - DIC_Alg - DIC_Ab + CBOD_DIC + bed_DIC)*tday;
     if (m_chDIC[i] < 0.f) m_chDIC[i] = 0.f;
     ////ljj-- end OC Metabolism/////
@@ -1857,7 +1882,7 @@ void NutrCH_QUAL2E::swat_rtmp(const int i){
         tw_initail = ((sub_snow+sub_glacier) * tmp_snow + sub_gw * tmp_gw + (sub_surq + sub_latq) * coefficient_tmp * m_chAirTemp_pre[i] + tmp_up_all + m_chTemp_pre[i]) / (sub_snow+sub_glacier + sub_gw + sub_surq + sub_latq + q_up_all + m_chSto_pre[i]);
     }
     m_chSto_pre[i] = m_chStorage[i]/86400;
-
+    
 	if (tw_initail <= -1.0)
 	{
 		tw_initail = -1.0;
@@ -1873,7 +1898,7 @@ void NutrCH_QUAL2E::swat_rtmp(const int i){
 			tmp_dew = m_chAirTemp[i] + wtmp_add;
 			break;
 		}
-
+		
 		case 2:
 		{
 			float em = 0.0;
@@ -1932,7 +1957,7 @@ void NutrCH_QUAL2E::swat_rtmp(const int i){
 	}
     m_ch_Temp[i] = tmp_outlet;
     m_chTemp[i] = tmp_outlet;
-
+    
 }
 
 
@@ -2003,7 +2028,7 @@ void NutrCH_QUAL2E::GetValue(const char* key, float* value) {
     else if (StringMatch(sk, VAR_CHSTR_SURFRDOC)) *value = m_chsurfRDOC[m_inputSubbsnID];
     else if (StringMatch(sk, VAR_CHSTR_LATRDOC)) *value = m_chlatRDOC[m_inputSubbsnID];
     else if (StringMatch(sk, VAR_CHSTR_GWDRDOC)) *value = m_chgwRDOC[m_inputSubbsnID];
-
+     
     else {
         throw ModelException(MID_NUTRCH_QUAL2E, "GetValue", "Parameter " + sk + " does not exist.");
     }

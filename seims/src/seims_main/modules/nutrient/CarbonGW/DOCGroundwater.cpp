@@ -10,7 +10,7 @@ DOCGroundwater::DOCGroundwater():
 	
 	//output
 	m_gw_DOCSto(nullptr), m_gw_DOCconc(nullptr),  m_Deepgrndwtr_DOC(nullptr),m_recharge1(nullptr),
-	m_gwDOCtoCH(nullptr),m_maxSoilLyrs(-1),gw_delay(NODATA_VALUE),
+	m_gwDOCtoCH(nullptr),m_maxSoilLyrs(-1),gw_delay(NODATA_VALUE),gw_delay_1d(nullptr),m_hlife_docgw_1d(nullptr),
 	m_gw_DICSto(nullptr),m_Deepgrndwtr_DIC(nullptr),m_recharge2(nullptr),m_gwDICtoCH(nullptr)
 {
 }
@@ -60,6 +60,8 @@ void DOCGroundwater::Set1DData(const char* key, const int n, float* data) {
 	if (StringMatch(sk, VAR_AHRU)) m_area = data;
 	if (StringMatch(sk, VAR_PERC_LOWEST_DOC)) m_soilPerco = data;
 	if (StringMatch(sk, VAR_PERC_LOWEST_DIC)) m_soilPercoDIC = data;
+	if (StringMatch(sk, "gw_delay_1d")) gw_delay_1d = data;
+	if (StringMatch(sk, "hlife_docgw_1d")) m_hlife_docgw_1d = data;
 
 
 }
@@ -137,6 +139,7 @@ int DOCGroundwater::Execute() {
         m_recharge1[subID] = 0.f;
 		//m_recharge2[subID] = 0.f;
         float gw_delaye = exp(-1./(gw_delay));
+        //float gw_delaye = exp(-1./(gw_delay_1d[subID]));
         m_recharge1[subID] = (1.- gw_delaye) * perco + gw_delaye * rchrg1;
 		//m_recharge2[subID] = (1.- gw_delaye) * perco_dic + gw_delaye * rchrg2;
         perco = m_recharge1[subID];
@@ -179,7 +182,8 @@ int DOCGroundwater::Execute() {
 
 		//compute DOC reaction losses in the groundwater
 		float temp_doc = m_gw_DOCSto[subID];
-		m_gw_DOCSto[subID] = m_gw_DOCSto[subID] * exp(-0.693f /m_hlife_docgw); 
+		m_gw_DOCSto[subID] = m_gw_DOCSto[subID] * exp(-0.693f /m_hlife_docgw);
+		//m_gw_DOCSto[subID] = m_gw_DOCSto[subID] * exp(-0.693f /m_hlife_docgw_1d[subID]);
 		m_gw_DOCSto[subID] = Max(0.f, m_gw_DOCSto[subID]);
 		//m_gw_DICSto[subID] += temp_doc - m_gw_DOCSto[subID];
 		//m_gw_DICSto[subID] = Max(0.f, m_gw_DICSto[subID]);

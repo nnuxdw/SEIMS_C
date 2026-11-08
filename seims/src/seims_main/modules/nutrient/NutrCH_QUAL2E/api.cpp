@@ -156,6 +156,10 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddInput("LAKE_P", UNIT_DAY, "TODO", Source_Module, DT_Raster1D);
     mdi.AddInput("LAKE_E", UNIT_DAY, "TODO", Source_Module, DT_Raster1D);
     mdi.AddInput("gw_DOCsto", UNIT_DAY, "TODO", Source_Module, DT_Array1D);
+    //mdi.AddParameter("krp_1d", UNIT_NON_DIM, DESC_KRP, Source_ParameterDB, DT_Raster1D);
+    //mdi.AddParameter("kd_rp_1d", UNIT_NON_DIM, DESC_KDRP, Source_ParameterDB, DT_Raster1D);
+    //mdi.AddParameter("sv_rp_1d", UNIT_NON_DIM, DESC_SVRP, Source_ParameterDB, DT_Raster1D);
+    //mdi.AddParameter("krd_1d", UNIT_NON_DIM, DESC_KRD, Source_ParameterDB, DT_Raster1D);
 
 	mdi.AddInOutput(VAR_CH_DIC, UNIT_KG, DESC_CH_DIC, DT_Array1D, TF_SingleValue);
 	mdi.AddInOutput(VAR_CH_LDOC, UNIT_KG, DESC_CH_LDOC, DT_Array1D, TF_SingleValue);

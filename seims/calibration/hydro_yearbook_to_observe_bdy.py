@@ -236,7 +236,7 @@ if __name__ == '__main__':
     split_dir = r'J:\G\data\鄱阳湖数据\流量\其它站点\拆分数据'
 
     # split_excel_by_sheets(input_benkesheng,output_dir)  # 单个站点处理
-    # batch_split_folder(input_benkesheng_dir,split_dir)    # 多站点批量处理
+    batch_split_folder(input_benkesheng_dir,split_dir)    # 多站点批量处理
     # step2：批量处理：将分割好的流量文件，按照站点转为SEIMS Observe需要的文件
     observe_dir = r'J:\G\data\鄱阳湖数据\流量\其它站点\站点合并数据'
     station_id_map = {

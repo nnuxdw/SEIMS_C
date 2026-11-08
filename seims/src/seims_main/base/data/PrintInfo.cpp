@@ -520,7 +520,7 @@ void PrintInfoItem::AggregateData(time_t time, int numrows, float* data) {
 			}
 
 		}
-
+        
         m_Counter++;
     }
 }

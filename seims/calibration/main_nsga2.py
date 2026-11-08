@@ -59,7 +59,7 @@ filter_ind = False  # Filter for valid population for the next generation
 multiobj = dict()
 if step == 'Q':
     # Step 1: Calibrate streamflow, max. NSE, min. RSR, and min. |PBIAS| (percent)
-    multiobj.setdefault('Q', [['NSE', 1., -100, '>0'], ['RSR', -1., 100], ['PBIAS', -1., 500.]])
+    multiobj.setdefault('Q_1', [['NSE', 1., -100, '>0'], ['RSR', -1., 100], ['PBIAS', -1., 500.]])
 elif step == 'SED':
     # Step 2: Calibration sediment, max. NSE-SED, min. RSR-SED, min., and |PBIAS|-SED
     multiobj.setdefault('SED', [['NSE', 1., -100, '>0'], ['RSR', -1., 100], ['PBIAS', -1., 500.]])
@@ -88,20 +88,26 @@ elif step == 'TEST':
     multiobj.setdefault('SOTE200_12', [['NSE', 1., -100, '>0'], ['R-square', 1., -100, '>0']])
 #######
 else:
+    multiobj.setdefault('Q_123', [['NSE', 1., -100, '>0']])
+    multiobj.setdefault('F_123', [['NSE', 1., -100, '>0']])
     # Customize your own multiobjective here, such as:
     # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0.'],
     #                           ['RSR', -1., 2., '<2.'],
     #                           ['PBIAS', -1., 50., '<50.']])
-    multiobj.setdefault('Q_322', [['NSE', 1., -100, '>0']])
-    multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
-    # multiobj.setdefault('Q_123', [['NSE', 1., -100, '>0']])
-    # multiobj.setdefault('Q_141', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_322', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
+
+    # multiobj.setdefault('Q_1171', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_214', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_255', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_347', [['NSE', 1., -100, '>0']])
     # multiobj.setdefault('Q_457', [['NSE', 1., -100, '>0']])
-    multiobj.setdefault('F_322', [['FI', 1., -1.], ['BI', -1., 2.]])
-    multiobj.setdefault('F_1171', [['FI', 1., -1.], ['BI', -1., 2.]])
+    # multiobj.setdefault('F_322', [['FI', 1., -1.], ['BI', -1., 2.]])
+    # multiobj.setdefault('F_322', [['NSE', 1., -100, '>0']])
+
+    # multiobj.setdefault('F_214', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('F_1171', [['NSE', 1., -100, '>0']])
+    # multiobj.setdefault('F_1171', [['FI', 1., -1.], ['BI', -1., 2.]])
 
 
 
@@ -165,7 +171,7 @@ toolbox.register('select', tools.selNSGA2)
 def main(cfg):
     """Main workflow of NSGA-II based Scenario analysis."""
     random.seed()
-    # scoop_log('Population: %d, Generation: %d' % (cfg.opt.npop, cfg.opt.ngens))
+    scoop_log('Population: %d, Generation: %d' % (cfg.opt.npop, cfg.opt.ngens))
 
     # Initial timespan variables
     stime = time.time()
@@ -267,11 +273,11 @@ def main(cfg):
         # except ImportError or ImportWarning:  # Python build-in map (serial)
         #     invalid_pops = list(map(toolbox.evaluate, [cali_obj] * popnum, invalid_pops))
 
-        # scoop_log(f"过滤之前pops长度为:{len(invalid_pops)}")
+        scoop_log(f"过滤之前pops长度为:{len(invalid_pops)}")
         # 关键：把 None（被跳过的个体）过滤掉
         invalid_pops = [ind for ind in invalid_pops if ind != -1]
 
-        # scoop_log(f"过滤之后pops长度为:{len(invalid_pops)}")
+        scoop_log(f"过滤之后pops长度为:{len(invalid_pops)}")
 
         for tmpind in invalid_pops:
             labels = list()
@@ -289,8 +295,8 @@ def main(cfg):
                     raise ValueError("模型返回指标维度不一致！")
 
             except Exception as e:
-                print(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, tmpfitnessv={tmpfitnessv}, multi_weight={multi_weight}, 原因: {e}")
-                # scoop_log(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, tmpfitnessv={tmpfitnessv}, multi_weight={multi_weight}, 原因: {e}")
+                # print(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, tmpfitnessv={tmpfitnessv}, multi_weight={multi_weight}, 原因: {e}")
+                scoop_log(f"[模型失败] id={tmpind.id}, gen={tmpind.gen}, tmpfitnessv={tmpfitnessv}, multi_weight={multi_weight}, 原因: {e}")
                 tmpind.fitness.values = tuple([9999.0] * len(multi_weight))  # 用极差值惩罚模型失败者
 
         # Filter for a valid solution
@@ -359,7 +365,7 @@ def main(cfg):
         invalid_inds = [ind for ind in offspring if not ind.fitness.valid]
         valid_inds = [ind for ind in offspring if ind.fitness.valid]
         if len(invalid_inds) == 0:  # No need to continue
-            # scoop_log('Note: No invalid individuals available, the NSGA2 will be terminated!')
+            scoop_log('Note: No invalid individuals available, the NSGA2 will be terminated!')
             break
 
         # Write new calibrated parameters to MongoDB
@@ -466,15 +472,15 @@ def main(cfg):
     allmodels_exect = numpy.array(allmodels_exect)
     numpy.savetxt('%s/exec_time_allmodelruns.txt' % cfg.opt.out_dir,
                   allmodels_exect, delimiter=str(' '), fmt=str('%.4f'))
-    # scoop_log('Running time of all SEIMS models:\n'
-    #           '\tIO\tCOMP\tSIMU\tRUNTIME\n'
-    #           'MAX\t%s\n'
-    #           'MIN\t%s\n'
-    #           'AVG\t%s\n'
-    #           'SUM\t%s\n' % ('\t'.join('%.3f' % t for t in allmodels_exect.max(0)),
-    #                          '\t'.join('%.3f' % t for t in allmodels_exect.min(0)),
-    #                          '\t'.join('%.3f' % t for t in allmodels_exect.mean(0)),
-    #                          '\t'.join('%.3f' % t for t in allmodels_exect.sum(0))))
+    scoop_log('Running time of all SEIMS models:\n'
+              '\tIO\tCOMP\tSIMU\tRUNTIME\n'
+              'MAX\t%s\n'
+              'MIN\t%s\n'
+              'AVG\t%s\n'
+              'SUM\t%s\n' % ('\t'.join('%.3f' % t for t in allmodels_exect.max(0)),
+                             '\t'.join('%.3f' % t for t in allmodels_exect.min(0)),
+                             '\t'.join('%.3f' % t for t in allmodels_exect.mean(0)),
+                             '\t'.join('%.3f' % t for t in allmodels_exect.sum(0))))
 
     exec_time = 0.
     for genid, tmptime in list(modelruns_time.items()):
@@ -486,11 +492,11 @@ def main(cfg):
     for genid, tmpcount in list(modelruns_count.items()):
         allcount += tmpcount
 
-    # scoop_log('Initialization timespan: %.4f\n'
-    #           'Model execution timespan: %.4f\n'
-    #           'Sum of model runs timespan: %.4f\n'
-    #           'Plot Pareto graphs timespan: %.4f' % (init_time, exec_time,
-    #                                                  exec_time_sum, plot_time))
+    scoop_log('Initialization timespan: %.4f\n'
+              'Model execution timespan: %.4f\n'
+              'Sum of model runs timespan: %.4f\n'
+              'Plot Pareto graphs timespan: %.4f' % (init_time, exec_time,
+                                                     exec_time_sum, plot_time))
 
     return pop, logbook
 
@@ -499,7 +505,7 @@ if __name__ == "__main__":
     cf, method = get_optimization_config()
     cali_cfg = CaliConfig(cf, method=method)
 
-    # scoop_log('### START TO CALIBRATION OPTIMIZING ###')
+    scoop_log('### START TO CALIBRATION OPTIMIZING ###')
     startT = time.time()
 
     fpop, fstats = main(cali_cfg)
@@ -511,5 +517,5 @@ if __name__ == "__main__":
         #   when using unicode_literals, please use '%s' to concatenate string!
         f.write('%s' % fstats.__str__())
     endT = time.time()
-    # scoop_log('### END OF CALIBRATION OPTIMIZING ###')
-    # scoop_log('Running time: %.2fs' % (endT - startT))
+    scoop_log('### END OF CALIBRATION OPTIMIZING ###')
+    scoop_log('Running time: %.2fs' % (endT - startT))

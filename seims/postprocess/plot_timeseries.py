@@ -679,6 +679,74 @@ def plot_obs_vs_sim(merged_df,
         plt.show()
     else:
         plt.close(fig)
+import matplotlib.pyplot as plt
+from matplotlib.dates import AutoDateLocator, AutoDateFormatter
+
+def plot_sim_only(merged_df,
+                  out_path=None,
+                  title=None,
+                  ylabel="Discharge",
+                  show=True,
+                  figsize=(12, 6),
+                  markersize=10,
+                  alpha=0.7):
+    """
+    将对齐后的模拟时间序列画成点图。
+
+    参数
+    ----
+    merged_df : pd.DataFrame
+        需包含 'sim' 列，索引为 DatetimeIndex。
+    out_path : str or None
+        若给定则保存到该路径。
+    title : str or None
+        图标题。
+    ylabel : str
+        纵轴名称。
+    show : bool
+        是否 plt.show()。
+    figsize : tuple
+        画布大小。
+    markersize : int
+        点的大小。
+    alpha : float
+        点的透明度。
+    """
+    if merged_df.empty:
+        raise ValueError("merged_df 为空，无法绘图。")
+
+    if title is None:
+        title = "Simulated Values"
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # 只画模拟值
+    ax.scatter(merged_df.index, merged_df["sim"],
+               label="Simulated", s=markersize, alpha=alpha, marker="o", color="red", zorder=2)
+
+    # 轴与网格
+    ax.set_title(title)
+    ax.set_xlabel("Date")
+    ax.set_ylabel(ylabel)
+    ax.grid(True, alpha=0.3)
+
+    # 时间刻度自动格式化
+    locator = AutoDateLocator()
+    formatter = AutoDateFormatter(locator)
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
+
+    ax.legend()
+    fig.tight_layout()
+
+    if out_path:
+        fig.savefig(out_path, dpi=300)
+        print("图已保存到:", out_path)
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
 
 def plot_obs_vs_sim_scatter_xy(merged_df,
                                out_path=None,
@@ -843,6 +911,70 @@ def compute_nse_with_sim_and_obs(
     nse = nash_sutcliffe_efficiency(merged["obs"], merged["sim"])
 
     return nse, merged
+
+def read_simulation_only(
+    basedir: str,
+    file_dict: dict,
+    station_id,
+    sim_label_for_nse,
+    read_runoff_file_func=None,
+):
+    """
+    组合：只读取模拟数据 -> 时间对齐 -> 返回模拟数据。
+    返回 merged_df，其中包含模拟数据（没有观测值和 NSE）。
+    """
+    if read_runoff_file_func is None:
+        raise ValueError("请通过 read_runoff_file_func 参数传入你已有的 read_runoff_file 函数。")
+
+    # 1) 读取模拟（用你给的 read_runoff_file 与 file_dict）
+    #    file_dict 结构示例：
+    #    {
+    #        "Surface Runoff": "surf.txt",
+    #        "Interflow": "interflow.txt",
+    #        "Groundwater": "gw.txt",
+    #        "Total Runoff": "total.txt"
+    #    }
+    sim_df = None
+
+    for label, file_name in file_dict.items():
+        if label != sim_label_for_nse:
+            continue
+        file_path = os.path.join(basedir, file_name)
+        sim_dict = read_runoff_file_func(file_path)
+        if station_id not in sim_dict:
+            raise ValueError(f"模拟文件 {file_path} 中未找到 station_id {station_id}")
+        df_sim = sim_dict[station_id].copy()
+
+        # 期望 df_sim.index 是 DatetimeIndex，且有列 'Value'
+        if not isinstance(df_sim.index, pd.DatetimeIndex):
+            df_sim.index = pd.to_datetime(df_sim.index, errors="coerce", utc=True)
+
+        df_sim = df_sim.sort_index()
+
+        # 转换为 DataFrame，并重命名列为 'sim'
+        sim_df = df_sim[['Value']].rename(columns={'Value': 'sim'})
+        break
+
+    if sim_df is None:
+        raise ValueError(f"未在 file_dict 中找到用于 NSE 的曲线标签：{sim_label_for_nse}")
+
+    # 2) 根据时间过滤模拟（并做 inner join 对齐）
+    def to_utc_naive(index_like) -> pd.DatetimeIndex:
+        """
+        统一把各种时间索引/数组转成：先按 UTC 解析 -> 再去掉时区（naive）。
+        """
+        idx = pd.to_datetime(index_like, utc=True, errors="coerce")
+        return idx.tz_localize(None)
+
+    # —— 在拼接前做统一 ——
+    sim_df.index = to_utc_naive(sim_df.index)
+
+    if sim_df.empty:
+        raise ValueError("模拟数据为空，请检查模拟数据源。")
+
+    return sim_df
+
+
 
 
 """xiaodw, plot QI+QS+QG-Q into one chart"""

@@ -15,6 +15,7 @@
 
 #include "MetadataInfoConst.h"
 #include "basic.h"
+#include <unordered_map>
 
 using namespace ccgl;
 using std::vector;
@@ -43,6 +44,7 @@ public:
      * \return adjusted float value
      */
     float GetAdjustedValue(float pre_value = NODATA_VALUE);
+    float GetAdjustedValueWithFID(int fid, float pre_value = NODATA_VALUE);
 
     //! Adjust 1D array
     void Adjust1DArray(int n, float* data);
@@ -82,6 +84,7 @@ public:
     float Value;
     //! Impact value
     float Impact;
+    float Impact1;
     //! Change type
     string Change;
     //! Absolute maximum value
@@ -102,6 +105,12 @@ public:
     string BasicName;
     //! whether is initialized
     bool initialized;
+
+    //ljj++
+    bool use_cali_csv = false;
+    std::unordered_map<int, float> fid_cali_map;
+    void LoadCaliCSV(const std::string& para_name,const std::string& filename);
+
 };
 
 #endif /* SEIMS_PARAMETER_INFO_H */

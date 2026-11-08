@@ -88,8 +88,10 @@ private:
     float m_dp_co;
     //! baseflow recession coefficient
     float m_Kg;
+    float* m_Kg_1d;
     //! baseflow recession exponent
     float m_Base_ex;
+    float* m_Base_ex_1d;
     //! the amount of water percolated from the soil water reservoir and input to the groundwater reservoir from the percolation module(mm)
     float** m_soilPerco;
     //! evaporation from interception storage (mm) from the interception module
@@ -148,6 +150,7 @@ private:
     float* m_area;
     float* curBasinArea;
     float* m_rchrg;
+    float* gw_delay_1d;
     float gw_delay;
 
 };

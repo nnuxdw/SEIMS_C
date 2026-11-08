@@ -1,46 +1,46 @@
-ï»¿
 #include "MUSK_CH.h"
+
 #include "utils_math.h"
 #include "text.h"
 #include "ChannelRoutingCommon.h"
 #include <map>
-#include <set>
+#include <set> 
 #include "text.h"
-
 using namespace utils_math;
 
 MUSK_CH::MUSK_CH() :
-	m_dt(-1), m_inputSubbsnID(-1), m_nreach(-1), m_outletID(-1),
-	m_Epch(NODATA_VALUE), m_Bnk0(NODATA_VALUE), m_Chs0_perc(NODATA_VALUE),
-	m_aBank(NODATA_VALUE), m_bBank(NODATA_VALUE), m_subbsnID(nullptr),
-	m_mskX(NODATA_VALUE), m_mskCoef1(NODATA_VALUE), m_mskCoef2(NODATA_VALUE),
-	m_chWth(nullptr), m_chDepth(nullptr), m_chLen(nullptr), m_chArea(nullptr),
-	m_chSideSlope(nullptr), m_chSlope(nullptr), m_chMan(nullptr),
-	m_Kchb(nullptr), m_Kbank(nullptr), m_reachDownStream(nullptr),
-	// Inputs from other modules
-	m_petSubbsn(nullptr), m_gwSto(nullptr),
-	m_olQ2Rch(nullptr), m_ifluQ2Rch(nullptr), m_gndQ2Rch(nullptr),
-	// Temporary variables
-	m_ptSub(nullptr), m_flowIn(nullptr), m_flowOut(nullptr), m_seepage(nullptr),
-	// Outputs
-	m_qRchOut(nullptr), m_qsRchOut(nullptr), m_qiRchOut(nullptr), m_qgRchOut(nullptr),
-	m_chSto(nullptr), m_rteWtrIn(nullptr), m_rteWtrOut(nullptr), m_bankSto(nullptr),
-	m_chWtrDepth(nullptr), m_chWtrWth(nullptr), m_chBtmWth(nullptr), m_chCrossArea(nullptr),
-	//ljj++
-	m_GWMAX(NODATA_VALUE), m_Kg(NODATA_VALUE), m_Base_ex(NODATA_VALUE), m_ispermafrost(nullptr),
-	m_nCells(-1), m_subbasinsInfo(nullptr), m_prec(nullptr), curBasinArea(nullptr), m_area(nullptr), m_netPcp(nullptr),
-	m_islake(nullptr), m_lakearea(nullptr), m_evlake(NODATA_VALUE), m_lakeseep(NODATA_VALUE), m_petFactor(NODATA_VALUE),
-	m_minvol(NODATA_VALUE), m_lakedpini(nullptr), m_lakedp(nullptr), m_lakevol(nullptr), m_lakeb(NODATA_VALUE),
-	m_A_Va(nullptr), m_A_Vb(nullptr), m_A_a(nullptr), m_A_b(nullptr), m_pet(nullptr), m_PET(nullptr),
-	m_qin1(nullptr), m_qout1(nullptr), m_lakealpha(nullptr), m_natural_flow(nullptr),
-	m_isres(nullptr), m_ResLc(nullptr), m_ResLn(nullptr), m_ResLf(nullptr), m_ResAdjust(nullptr),
-	m_Ch2GW(nullptr), m_GWMIN(NODATA_VALUE), m_aquifer(nullptr), m_maxSoilLyrs(-1), m_temp1(nullptr), m_temp2(nullptr),
-	m_dem(nullptr), curBasinDem(nullptr), m_charge(nullptr), m_qin(nullptr), m_recharge(nullptr),
-	m_potRfCoef(nullptr), m_slope(nullptr), flowoutlength(nullptr), m_T_LKWB(nullptr),
-	m_resminq(nullptr), m_resndq(nullptr), m_resnormq(nullptr), m_res_normMult(nullptr), m_rrtime(nullptr),
-	m_lakeperc(nullptr), m_lakepcp(nullptr), m_chBedMeanElev(nullptr), m_chBedStartElev(nullptr), m_chBedEndElev(nullptr),
+    m_dt(-1), m_inputSubbsnID(-1), m_nreach(-1), m_outletID(-1),
+    m_Epch(NODATA_VALUE), m_Bnk0(NODATA_VALUE), m_Chs0_perc(NODATA_VALUE),
+    m_aBank(NODATA_VALUE), m_bBank(NODATA_VALUE), m_subbsnID(nullptr),
+    m_mskX(NODATA_VALUE), m_mskCoef1(NODATA_VALUE), m_mskCoef2(NODATA_VALUE),
+    m_chWth(nullptr), m_chDepth(nullptr), m_chLen(nullptr), m_chArea(nullptr),
+    m_chSideSlope(nullptr), m_chSlope(nullptr), m_chMan(nullptr),
+    m_Kchb(nullptr), m_Kbank(nullptr), m_reachDownStream(nullptr),
+    // Inputs from other modules
+    m_petSubbsn(nullptr), m_gwSto(nullptr),
+    m_olQ2Rch(nullptr), m_ifluQ2Rch(nullptr), m_gndQ2Rch(nullptr),
+    // Temporary variables
+    m_ptSub(nullptr), m_flowIn(nullptr), m_flowOut(nullptr), m_seepage(nullptr),
+    // Outputs
+    m_qRchOut(nullptr), m_qsRchOut(nullptr), m_qiRchOut(nullptr), m_qgRchOut(nullptr),
+    m_chSto(nullptr), m_rteWtrIn(nullptr), m_rteWtrOut(nullptr), m_bankSto(nullptr),
+    m_chWtrDepth(nullptr), m_chWtrWth(nullptr), m_chBtmWth(nullptr), m_chCrossArea(nullptr),
+    //ljj++
+    m_GWMAX(NODATA_VALUE),m_Kg(NODATA_VALUE), m_Base_ex(NODATA_VALUE),m_ispermafrost(nullptr),
+    m_nCells(-1),m_subbasinsInfo(nullptr),m_prec(nullptr),curBasinArea(nullptr),m_area(nullptr),m_netPcp(nullptr),
+    m_islake(nullptr),m_lakearea(nullptr),m_evlake(NODATA_VALUE),m_lakeseep(NODATA_VALUE),m_petFactor(NODATA_VALUE),
+    m_minvol(NODATA_VALUE),m_lakedpini(nullptr),m_lakedp(nullptr),m_lakevol(nullptr),m_lakeb(NODATA_VALUE),
+    m_A_Va(nullptr),m_A_Vb(nullptr),m_A_a(nullptr),m_A_b(nullptr),m_pet(nullptr),m_PET(nullptr),
+    m_qin1(nullptr),m_qout1(nullptr),m_lakealpha(nullptr),m_natural_flow(nullptr),
+    m_isres(nullptr),m_ResLc(nullptr),m_ResLn(nullptr),m_ResLf(nullptr),m_ResAdjust(nullptr),
+    m_Ch2GW(nullptr),m_GWMIN(NODATA_VALUE),m_aquifer(nullptr),m_maxSoilLyrs(-1),m_temp1(nullptr),m_temp2(nullptr),
+    m_dem(nullptr),curBasinDem(nullptr),m_charge(nullptr),m_qin(nullptr),m_recharge(nullptr),
+    m_potRfCoef(nullptr),m_slope(nullptr),flowoutlength(nullptr),m_T_LKWB(nullptr),
+    m_resminq(nullptr),m_resndq(nullptr),m_resnormq(nullptr),m_res_normMult(nullptr),m_rrtime(nullptr),
+    m_lakeperc(nullptr),m_lakepcp(nullptr),m_Epch_1d(nullptr),m_lakeb_1d(nullptr),
+	//m_chBedMeanElev(nullptr), m_chBedStartElev(nullptr), m_chBedEndElev(nullptr),
 	// xiaodw ++
-	m_lakeHandLevelini(nullptr)
+	m_lakeHandLevelini(nullptr), m_minvol_1d(nullptr)
 {
 }
 
@@ -126,14 +126,14 @@ void MUSK_CH::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 	}
 
 	string line;
-	getline(file, line);  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·
+	getline(file, line);  // Ìø¹ý±íÍ·
 
 	while (getline(file, line)) {
 		stringstream ss(line);
 		string token;
 		vector<string> tokens;
 
-		// È¡Ç° 8 ï¿½ï¿½ï¿½Ö¶ï¿½:
+		// È¡Ç° 8 ¸ö×Ö¶Î:
 		// 0 Subbasin
 		// 1 Flood_Level
 		// 2 LevelDepth
@@ -145,16 +145,16 @@ void MUSK_CH::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 			tokens.push_back(token);
 		}
 
-		// ï¿½ï¿½ 9 ï¿½Ð£ï¿½LowerAccDepthï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ "[0.0, ...]"ï¿½ï¿½ï¿½ï¿½Ë«ï¿½ï¿½ï¿½Å°ï¿½ï¿½ï¿½
+		// µÚ 9 ÁÐ£ºLowerAccDepth£¬ÐÎÈç "[0.0, ...]"£¬±»Ë«ÒýºÅ°ü×Å
 		std::string accDepthStr;
-		std::getline(ss, accDepthStr, '"');  // ï¿½ï¿½ï¿½ï¿½Ç°Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Å£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¿Õ´ï¿½ï¿½ï¿½
-		std::getline(ss, accDepthStr, '"');  // È¡ï¿½Ð¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½
+		std::getline(ss, accDepthStr, '"');  // Ìø¹ýÇ°Ò»¸öÒýºÅ£¨¿ÉÄÜÊÇ¿Õ´®£©
+		std::getline(ss, accDepthStr, '"');  // È¡ÖÐ¼äÊý×é×Ö·û´®
 
-		// ---- ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½ ----
+		// ---- ½âÎö»ù±¾×Ö¶Î ----
 		int subbasin = std::stoi(tokens[0]);
 		int lev = std::stoi(tokens[1]);
 
-		// ï¿½á¹¹Ð£ï¿½ï¿½ & ï¿½ï¿½È¡ Hand
+		// ½á¹¹Ð£Ñé & »ñÈ¡ Hand
 		Hand& hand = m_Hands[subbasin];
 		if (lev >= static_cast<int>(hand.levels.size())) {
 			hand.levels.resize(lev + 1);
@@ -167,7 +167,7 @@ void MUSK_CH::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 		level.m_levelAvgDepth = std::stof(tokens[5]);
 		level.m_levelAccVol = std::stod(tokens[6]);
 
-		// ---- ï¿½ï¿½ï¿½ï¿½ LowerAccDepth ï¿½ï¿½ï¿½ï¿½ ----
+		// ---- ½âÎö LowerAccDepth Êý×é ----
 		std::vector<float> accDepthVec = parseAccDepthArray(accDepthStr);
 		level.m_levelLowerAccDepth = new float[accDepthVec.size()];
 		for (size_t i = 0; i < accDepthVec.size(); ++i) {
@@ -180,8 +180,6 @@ void MUSK_CH::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 	file.close();
 	std::cout << "Finished loading Inundation data from file: " << csvPath << std::endl;
 }
-
-
 
 void MUSK_CH::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_Hands) {
 	ifstream infile(filename);
@@ -197,7 +195,7 @@ void MUSK_CH::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_
 	map<pair<int, int>, int> handCounts;
 	map<int, set<int> > subbasinLevels; // <sbid, set of levels>
 
-	// ï¿½ï¿½Ò»ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½Í³ï¿½ï¿½ hand ï¿½ï¿½ï¿½ï¿½ level ï¿½ï¿½
+	// µÚÒ»´Î±éÀú£ºÍ³¼Æ hand ÊýºÍ level Êý
 	while (getline(infile, line)) {
 		istringstream iss(line);
 		string hru_id_str, subbasin_str, level_str, interval_str, depth_str;
@@ -211,7 +209,7 @@ void MUSK_CH::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_
 		if (level > max_level) max_level = level;
 
 		handCounts[make_pair(sbid, level)]++;
-		subbasinLevels[sbid].insert(level); // Í³ï¿½ï¿½ level ï¿½ï¿½
+		subbasinLevels[sbid].insert(level); // Í³¼Æ level Êý
 	}
 
 	if ((int)m_Hands.size() <= max_sbid) {
@@ -272,9 +270,9 @@ vector<float> MUSK_CH::parseAccDepthArray(const std::string& str) {
 	std::vector<float> values;
 	std::string s = str;
 
-	// È¥ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-	if (!s.empty() && s.front() == '[') s.erase(0, 1);              // É¾ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö·ï¿½
-	if (!s.empty() && s.back() == ']') s.erase(s.size() - 1);       // É¾ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö·ï¿½
+	// È¥µôÇ°ºóÖÐÀ¨ºÅ
+	if (!s.empty() && s.front() == '[') s.erase(0, 1);              // É¾³ýµÚÒ»¸ö×Ö·û
+	if (!s.empty() && s.back() == ']') s.erase(s.size() - 1);       // É¾³ý×îºóÒ»¸ö×Ö·û
 
 
 	std::stringstream ss(s);
@@ -285,7 +283,7 @@ vector<float> MUSK_CH::parseAccDepthArray(const std::string& str) {
 			values.push_back(std::stof(token));
 		}
 		catch (...) {
-			values.push_back(0.0f); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			values.push_back(0.0f); // ·ÀÓù´íÎó
 		}
 	}
 	return values;
@@ -350,7 +348,7 @@ void MUSK_CH::InitialOutputs() {
 	//xdw++
 	m_lakedpini = new(nothrow) float[m_nreach + 1];
 	m_lakearea = new(nothrow) float[m_nreach + 1];
-
+	
 #ifdef _WIN32
 	string txt_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/FloodStep.txt";
 	string csv_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/InundationMap.csv";
@@ -360,7 +358,7 @@ void MUSK_CH::InitialOutputs() {
 #endif
 	// load floodstep
 	LoadHandIdsToChHandLevels(txt_filename, m_Hands);
-	// load
+	// load 
 	loadHandFromCSVIntoVector(csv_filename, m_Hands);
     for (int i = 1; i <= m_nreach; i++) {
         m_qRchOut[i] = m_olQ2Rch[i];
@@ -394,8 +392,8 @@ void MUSK_CH::InitialOutputs() {
 		//xiaodw modify for adapting HAND, remove ljj's initialize method
 		//ljj++
 		//if (m_islake[i] == 1) {
-		//	m_lakedpini[i] = pow(m_lakevol[i] * 1.e-9f / (m_A_Va[i]), 1.0 / (m_A_Vb[i])); //ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½
-		//	m_lakedp[i] = m_lakedpini[i]; //ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½
+		//	m_lakedpini[i] = pow(m_lakevol[i] * 1.e-9f / (m_A_Va[i]), 1.0 / (m_A_Vb[i])); //³õÖµ¸ÄÁË
+		//	m_lakedp[i] = m_lakedpini[i]; //³õÖµ¸ÄÁË
 		//}
 		//if (m_islake[i] == 1) m_chSto[i] = m_lakevol[i];
 		//if (m_isres[i] == 1) m_chSto[i] = m_lakevol[i];
@@ -404,7 +402,7 @@ void MUSK_CH::InitialOutputs() {
 
 		int lev = static_cast<int>(m_lakeHandLevelini[i]);
 
-
+	
 		if (m_islake[i] == 1 || m_isres[i] == 1) {
 
 			m_lakedpini[i] = lev > 0 ? lev < m_Hands[i].n_levels ? m_Hands[i].levels[1].m_levelLowerAccDepth[lev + 1] : m_Hands[i].levels[1].m_levelLowerAccDepth[lev] : 0.0;
@@ -504,7 +502,7 @@ int MUSK_CH::Execute() {
         m_temp2[*id] = 0.f;
         curBasinArea[*id] = 0.f;
         curBasinDem[*id] = 0.f;
-
+        
         float total_area=0.f;
         if(m_islake[*id] == 1 || m_isres[*id] == 1){
             for (int i = 0; i < curCellsNum; i++) {
@@ -515,7 +513,7 @@ int MUSK_CH::Execute() {
                 curBasinArea[*id] += m_area[index];
             }
             m_prec[*id] = m_prec[*id] / total_area * m_lakearea[*id]/ m_dt;  //m3/s
-            m_pet[*id] = m_pet[*id] / total_area * m_lakearea[*id]/ m_dt;
+            m_pet[*id] = m_pet[*id] / total_area * m_lakearea[*id]/ m_dt;  
         }
         for (int i = 0; i < curCellsNum; i++) {
                 int index = curCells[i];
@@ -533,7 +531,7 @@ int MUSK_CH::Execute() {
     }
     for (auto it = m_rteLyrs.begin(); it != m_rteLyrs.end(); ++it) {
         // There are not any flow relationship within each routing layer.
-        // So parallelization can be done here.
+        // So parallelization can be done here. 
         int reachNum = CVT_INT(it->second.size());
         size_t errCount = 0;
         // the size of m_rteLyrs (map) is equal to the maximum stream order
@@ -543,7 +541,7 @@ int MUSK_CH::Execute() {
             if (m_inputSubbsnID == 0 || m_inputSubbsnID == reachIndex) {
                 // for OpenMP version, all reaches will be executed,
                 // for MPI version, only the current reach will be executed.
-                if(m_islake[reachIndex] == 1){
+                if(m_islake[reachIndex] == 1){ 
                     if (!LakeBudget(reachIndex)) {
                         errCount++;
                     }
@@ -595,7 +593,7 @@ void MUSK_CH::SetValue(const char* key, const float value) {
     else if (StringMatch(sk, VAR_LAKE_SEEP)) m_lakeseep = value;
     else if (StringMatch(sk, VAR_K_PET)) m_petFactor = value;
     else if (StringMatch(sk, VAR_LAKE_MNVOL))  m_minvol = value;
-
+	
     else if (StringMatch(sk, "LAKEB"))  m_lakeb = value;
     else {
         throw ModelException(MID_MUSK_CH, "SetValue", "Parameter " + sk + " does not exist.");
@@ -664,7 +662,12 @@ void MUSK_CH::Set1DData(const char* key, const int n, float* data) {
         CheckInputSize(MID_MUSK_CH, key, n, m_nCells);
         m_slope = data;
     }
-
+    else if (StringMatch(sk, "ep_ch_1d")) {
+        m_Epch_1d = data;
+    }
+	else if (StringMatch(sk, VAR_K_PET_1D)) {
+		m_petFactor_1d = data;
+	}
 	else if (StringMatch(sk, VAR_SUBBASIN_WTR_DEPTH)) {
 		m_subbasinWtrDep = data;
 	}else if (StringMatch(sk, VAR_SUBBASIN_FLOODED_AREA)) {
@@ -743,7 +746,7 @@ void MUSK_CH::Get1DData(const char* key, int* n, float** data) {
     } else if (StringMatch(sk, VAR_CHCROSSAREA)) {
         m_chCrossArea[0] = m_chCrossArea[m_outletID];
         *data = m_chCrossArea;
-    }
+    } 
     else if (StringMatch(sk, VAR_qout)) {
         *data = m_qRchOut;
     }
@@ -759,7 +762,7 @@ void MUSK_CH::Get1DData(const char* key, int* n, float** data) {
     else if (StringMatch(sk, "rrtime")) {
         *data = m_rrtime;
     }
-
+	
     else {
         throw ModelException(MID_MUSK_CH, "Get1DData", "Output " + sk + " does not exist.");
     }
@@ -814,12 +817,18 @@ void MUSK_CH::SetReaches(clsReaches* reaches) {
     if (nullptr == m_ispermafrost) reaches->GetReachesSingleProperty(REACH_PERMAFORST, &m_ispermafrost);
     //ljj++
     if (nullptr == m_islake) reaches->GetReachesSingleProperty(REACH_ISLAKE, &m_islake);
-    if (nullptr == m_lakearea) reaches->GetReachesSingleProperty(REACH_LAKEAREA, &m_lakearea);
+    //if (nullptr == m_lakearea) reaches->GetReachesSingleProperty(REACH_LAKEAREA, &m_lakearea);
     if (nullptr == m_lakevol) reaches->GetReachesSingleProperty(REACH_LAKEVOL, &m_lakevol);
-    if (nullptr == m_lakedpini) reaches->GetReachesSingleProperty(REACH_LAKEDPINI, &m_lakedpini);
+    //if (nullptr == m_lakedpini) reaches->GetReachesSingleProperty(REACH_LAKEDPINI, &m_lakedpini);
     if (nullptr == m_lakealpha) reaches->GetReachesSingleProperty(REACH_LAKEALPHA, &m_lakealpha);
-
-
+	// xiaodw
+	if (nullptr == m_lakeb_1d) {
+		reaches->GetReachesSingleProperty(REACH_LAKEB_1D, &m_lakeb_1d);
+	}
+	if (nullptr == m_minvol_1d) {
+		reaches->GetReachesSingleProperty(VAR_LAKE_MNVOL_1D, &m_minvol_1d);
+	}
+	
     if (nullptr == m_A_Va) reaches->GetReachesSingleProperty("A_Va", &m_A_Va);
     if (nullptr == m_A_Vb) reaches->GetReachesSingleProperty("A_Vb", &m_A_Vb);
     if (nullptr == m_A_a) reaches->GetReachesSingleProperty("A_a", &m_A_a);
@@ -853,7 +862,7 @@ bool MUSK_CH::ChannelFlow(const int i) {
     float qIn = 0.f; /// Water entering reach on current day from both current subbasin and upstreams
     // 1.1. water from this subbasin
     qIn += m_olQ2Rch[i]; /// surface flow
-
+	
     float qiSub = 0.f;   /// interflow flow
     if (nullptr != m_ifluQ2Rch && m_ifluQ2Rch[i] >= 0.f) {
         qiSub = m_ifluQ2Rch[i];
@@ -1082,7 +1091,7 @@ bool MUSK_CH::ChannelFlow(const int i) {
             float rtevp = 0.f;
             float rtevp1 = 0.f;
             float rtevp2 = 0.f;
-            //ljj++ for hulugou rep will increase DOC concentration
+            //ljj++ for hulugou rep will increase DOC concentration 
             //assuming the transport is very fast, rep is small???
             if (rtwtr > 0.f) {
                 /// In SWAT source code, line 306 of rtmusk.f, I think aaa should be divided by nn! By lj.
@@ -1168,11 +1177,52 @@ bool MUSK_CH::ChannelFlow(const int i) {
 
     // todo, compute revap from bank storage. In SWAT, revap coefficient is equal to gw_revap.
 
-#ifdef PRINT_DEBUG
-	cout << " chStorage after routing " << m_chStorage[i] << endl;
-	cout << " surfq: " << m_qsCh[i] << ", ifluq: " << m_qiCh[i] << ", groudq: " << m_qgCh[i] << endl;
+#ifdef DEBUG_MUSK_CH_CH
+	cout << "===== ChannelFlow Debug: Reach " << i << " Day " << m_dayOfYear << " =====" << endl;
+
+	// ÊäÈë²¿·Ö
+	cout << "[Inputs] "
+		<< "olQ2Rch=" << m_olQ2Rch[i]
+		<< ", qiSub=" << qiSub
+		<< ", qgSub=" << qgSub
+		<< ", ptSub=" << ptSub
+		<< ", qsUp=" << qsUp
+		<< ", qiUp=" << qiUp
+		<< ", qgUp=" << qgUp
+		<< ", bankOut=" << bankOut / m_dt
+		<< ", qIn=" << qIn
+		<< endl;
+
+	// Muskingum ²ÎÊý
+	cout << "[Muskingum] "
+		<< "k_bankfull=" << k_bankfull
+		<< ", k_bankfull2=" << k_bankfull2
+		<< ", detmax=" << detmax
+		<< ", detmin=" << detmin
+		<< ", det=" << det
+		<< ", nn=" << nn
+		<< ", c1=" << c1 << ", c2=" << c2 << ", c3=" << c3
+		<< ",ch_n=" << m_chMan[i]
+		<< endl;
+
+	// µü´ú½áÊøºóµÄ½á¹û
+	cout << "[Results] "
+		<< "qRchOut=" << m_qRchOut[i]
+		<< ", qsRchOut=" << m_qsRchOut[i]
+		<< ", qiRchOut=" << m_qiRchOut[i]
+		<< ", qgRchOut=" << m_qgRchOut[i]
+		<< ", chSto=" << m_chSto[i]
+		<< ", chWtrDepth=" << m_chWtrDepth[i]
+		<< ", chWtrWth=" << m_chWtrWth[i]
+		<< ", CrossArea=" << m_chCrossArea[i]
+		<< ", rteWtrOut=" << m_rteWtrOut[i]
+		<< ", rrtime=" << m_rrtime[i]
+		<< endl;
+
+	cout << "=============================================" << endl;
 #endif
-	return true;
+
+    return true;
 }
 //ljj++
 bool MUSK_CH::LakeBudget(const int i) {
@@ -1194,7 +1244,7 @@ bool MUSK_CH::LakeBudget(const int i) {
     //     qgSub = m_gndQ2Rch[i];
     //     qIn += qgSub;
     // }
-
+        
     // 1.2. water from upstream reaches
     float qsUp = 0.f;
     float qiUp = 0.f;
@@ -1224,12 +1274,12 @@ bool MUSK_CH::LakeBudget(const int i) {
         if (m_qiRchOut[*upRchID] > 0.f) qiUp += m_qiRchOut[*upRchID];
         if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
     }
-    qIn += qsUp + qiUp + qgUp;
+    qIn += qsUp + qiUp + qgUp;   
 	m_chStoLastStep[i] = m_chSto[i];
     float pre_Sto = m_chSto[i];
     //add precipitation
-    qIn += m_prec[i];
-    m_lakepcp[i] = m_prec[i]*m_dt;
+    qIn += m_prec[i];   
+    m_lakepcp[i] = m_prec[i]*m_dt;   
     // add qIn
     //m_chSto[i] += qIn * m_dt;
     float rtwtr = 0.f;    //flow out
@@ -1237,17 +1287,17 @@ bool MUSK_CH::LakeBudget(const int i) {
     float A1 = m_A_a[i]*pow(m_lakedp[i],m_A_b[i]);  //km2
     float aa = 0.f;
     aa = Max(1.f, A1*1.e6f);
-
+    
     //! 2. minus all the outflow water
     //float h0 = 0.f;
     //h0 = m_minvol;
-    //float thwl = m_lakedpini[i] * h0;
+    //float thwl = m_lakedpini[i] * h0; 
     //float max_outflow = Max(0.f, (m_lakedp[i] - thwl) * aa);
     //max_outflow = Max(0.f, pow((m_lakedp[i] - thwl), m_A_Vb[i])*m_A_Va[i]*1.e9f);
 
     // lake evaporation
-    float rtevp = 0.f;
-
+    float rtevp = 0.f; 
+    
     rtevp = m_evlake * m_pet[i] * m_dt; //m3
     //rtevp = m_evlake * m_petSubbsn[i] * 0.001f * m_lakearea[i]; //m3
     rtevp = Min(rtevp, m_chSto[i]);
@@ -1278,30 +1328,32 @@ bool MUSK_CH::LakeBudget(const int i) {
     // else{
     //     rtwtr = 0.f;
     // }
-     float thwl = m_lakedpini[i] * m_minvol;
-
+     //float thwl = m_lakedpini[i] * m_minvol;
+	 float thwl = m_lakedpini[i] * m_minvol_1d[i];
+	 
      float runoff = 0.f;
      //float max_outflow = Max(0.f, pow((m_lakedp[i] - thwl), m_A_Vb[i])*m_A_Va[i]*1.e9f);
      if(m_lakedp[i] > thwl){
-         runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb);
+         //runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb);
+		 runoff = m_lakealpha[i] * pow((m_lakedp[i] - thwl), m_lakeb_1d[i])*m_lakearea[i] / m_dt;
          runoff = Max(runoff,0.f);
      }
      //if(runoff*m_dt>max_outflow) runoff = max_outflow/ m_dt;
     rtwtr = runoff + m_gndQ2Rch[i];
     m_chSto[i] =  (SI - rtwtr)*m_dt;
     m_chSto[i] =  Max(m_chSto[i], 0.f);
-
+    
     m_qRchOut[i] = rtwtr;
 	// xdw, don't need to update lake water level here, it will be updated in OL_HAND
     //float h1 = pow(m_chSto[i]*1.e-9f/ (m_A_Va[i]),1.0/(m_A_Vb[i])) ;
     //m_lakedp[i] = Max(0.f, h1);
-
+	
 
     m_rteWtrOut[i] = m_qRchOut[i] * m_dt;   // m^3
     m_qin1[i] = qIn;
     m_qout1[i] = runoff;
     m_chWtrDepth[i] = m_lakedp[i];
-
+    
     float qInSum = m_olQ2Rch[i] + qiSub + qgSub + qsUp + qiUp + qgUp;
     if (qInSum < UTIL_ZERO) {
         // In case of divided by zero.
@@ -1320,14 +1372,87 @@ bool MUSK_CH::LakeBudget(const int i) {
 		m_qgRchOut[i] = m_gndQ2Rch[i];
     }
 
-	m_T_LKWB[i][0] = (qsUp + qiUp + qgUp) * m_dt;
-	m_T_LKWB[i][1] = (m_olQ2Rch[i] + m_ifluQ2Rch[i]) * m_dt;
-	m_T_LKWB[i][2] = (m_prec[i]) * m_dt;
-	m_T_LKWB[i][3] = rtevp;
-	m_T_LKWB[i][4] = LakeOutGw;
-	m_T_LKWB[i][5] = m_qRchOut[i] * m_dt;
-	m_T_LKWB[i][6] = m_chSto[i];
-	return true;
+    m_T_LKWB[i][0] = (qsUp + qiUp + qgUp) * m_dt;
+    m_T_LKWB[i][1] = (m_olQ2Rch[i]+m_ifluQ2Rch[i]) * m_dt;
+    m_T_LKWB[i][2] = (m_prec[i]) * m_dt;
+    m_T_LKWB[i][3] = rtevp;
+    m_T_LKWB[i][4] = LakeOutGw;
+    m_T_LKWB[i][5] = m_qRchOut[i] * m_dt;
+    m_T_LKWB[i][6] = m_chSto[i];
+
+#ifdef DEBUG_MUSK_CH_LAKE
+	// Ö»µ÷ÊÔÛ¶ÑôºþÕâ¸öºþµ¥Ôª£¨±ÈÈç 1171£©£¬Äã¿ÉÒÔÊÓÇé¿ö¸Ä³É±ðµÄ ID »òÈ¥µôÌõ¼þ
+	if (i == 1171)
+	{
+		cout << "\n===== LakeBudget Debug: rchID=" << i
+			<< "  Day=" << m_dayOfYear << " =====\n";
+
+		// ---- 0) ÉÏÓÎÀ´Ë®·Ö½â£ºÃ¿¸öÉÏÓÎºÓ¶ÎµÄ³öÁ÷ ----
+		cout << "[Upstream detail] (unit: m3/s, day volume in m3)\n";
+		for (auto upIt = m_reachUpStream.at(i).begin();
+			upIt != m_reachUpStream.at(i).end(); ++upIt)
+		{
+			int upId = *upIt;
+			float qs = m_qsRchOut[upId];
+			float qi = m_qiRchOut[upId];
+			float qg = m_qgRchOut[upId];
+			double qs_day = qs * m_dt;
+			double qi_day = qi * m_dt;
+			double qg_day = qg * m_dt;
+
+			cout << "  upRchID=" << upId
+				<< " | qsOut=" << qs << " (" << qs_day << " m3/day)"
+				<< ", qiOut=" << qi << " (" << qi_day << " m3/day)"
+				<< ", qgOut=" << qg << " (" << qg_day << " m3/day)"
+				<< ", totalQ=" << (qs + qi + qg) << " m3/s"
+				<< "\n";
+		}
+
+		// ---- 1) ³õÊ¼¿âÈÝ ----
+		cout << "[Initial] "
+			<< "Storage_pre=" << pre_Sto << " m3, "
+			<< "Depth_pre=" << m_lakedp[i] << " m\n";
+
+		// ---- 2) Èëºþ×ÜÁ¿ (m3/day) ----
+		double inflow_m3 = (m_olQ2Rch[i] + qiSub + qsUp + qiUp + qgUp + m_prec[i]) * m_dt;
+		cout << "[Inflow] "
+			<< "olQ=" << m_olQ2Rch[i] * m_dt
+			<< ", iflow=" << qiSub * m_dt
+			<< ", up_surf=" << qsUp * m_dt
+			<< ", up_sub=" << qiUp * m_dt
+			<< ", up_gw=" << qgUp * m_dt
+			<< ", precip=" << m_prec[i] * m_dt
+			<< ", TotalIn=" << inflow_m3
+			<< " m3\n";
+
+		// ---- 3) ³öºþ×ÜÁ¿ (m3/day) ----
+		double outflow_m3 = m_rteWtrOut[i] + rtevp + LakeOutGw;
+		cout << "[Outflow] "
+			<< "SurfaceOut=" << m_rteWtrOut[i]
+			<< ", Evap=" << rtevp
+			<< ", GW=" << LakeOutGw
+			<< ", TotalOut=" << outflow_m3
+			<< " m3\n";
+
+		// ---- 4) Ë®Á¿±ä»¯ ----
+		cout << "[Delta Storage] "
+			<< "Storage_after=" << m_chSto[i]
+			<< " m3,  dS=" << (m_chSto[i] - pre_Sto)
+			<< " m3\n";
+
+		// ---- 5) ¼òÒ×ÖÊÁ¿Æ½ºâ¼ì²é ----
+		cout << "[MassBalance] IN - OUT - dS = "
+			<< inflow_m3 - outflow_m3 - (m_chSto[i] - pre_Sto)
+			<< "  (should be near 0)\n";
+
+		cout << "=============================================\n";
+		cout.flush();
+	}
+#endif
+
+
+
+    return true;
 }
 
 bool MUSK_CH::ResBudget(const int i) {
@@ -1374,22 +1499,24 @@ bool MUSK_CH::ResBudget(const int i) {
         if (m_qiRchOut[*upRchID] > 0.f) qiUp += m_qiRchOut[*upRchID];
         if (m_qgRchOut[*upRchID] > 0.f) qgUp += m_qgRchOut[*upRchID];
     }
-    qIn += qsUp + qiUp + qgUp;
+    qIn += qsUp + qiUp + qgUp;     
 
     float pre_Sto = m_chSto[i];
 
     //add precipitation
-    qIn += m_prec[i];
+    qIn += m_prec[i];  
 
-    float wtrin = qIn * m_dt;  //m3
+    float wtrin = qIn * m_dt;  //m3  
     float rtwtr = 0.f;    //flow out
-
+    
     // add qIn
     m_chSto[i] += qIn * m_dt;
 
 	// evaporation
-	float rtevp = 0.f;
-	rtevp = m_evlake * m_petSubbsn[i] / m_petFactor * 0.001f * m_lakearea[i]; //m3
+	float rtevp = 0.f; 
+	rtevp = m_evlake * m_petSubbsn[i]/m_petFactor * 0.001f * m_lakearea[i]; //m3
+	//rtevp = m_evlake * m_petSubbsn[i] / m_petFactor_1d[i] * 0.001f * m_lakearea[i]; //m3
+	
 	rtevp = Min(rtevp, m_chSto[i]);
     //  groundwater
 	//float ResOutGw = m_chSto[i] * m_lakeseep *0.01f;  //ljj++todo add new param resseep
@@ -1401,7 +1528,7 @@ bool MUSK_CH::ResBudget(const int i) {
     m_chSto[i] -= rtevp;
 
 
-    //initial
+    //initial 
     float TotalReservoirStorageM3CC = m_lakevol[i];
     float ConservativeStorageLimitCC = m_ResLc[i]; //minimum storage, 0.1 as defult
     ConservativeStorageLimitCC = Min(ConservativeStorageLimitCC,0.5f);
@@ -1414,9 +1541,9 @@ bool MUSK_CH::ResBudget(const int i) {
     float Normal_FloodStorageLimitCC = NormalStorageLimitCC + adjust_Normal_FloodCC * (FloodStorageLimitCC - NormalStorageLimitCC);
 
     float InvDtSecDay = m_dt;
-    float MinReservoirOutflowCC = m_resminq[i];  //minimum outflow
-    float NormalReservoirOutflowCC = m_resnormq[i]; //normal outflow
-    float NonDamagingReservoirOutflowCC = m_resndq[i]; //non-damaging outflow
+    float MinReservoirOutflowCC = m_resminq[i];  //minimum outflow 
+    float NormalReservoirOutflowCC = m_resnormq[i]; //normal outflow 
+    float NonDamagingReservoirOutflowCC = m_resndq[i]; //non-damaging outflow 
     float ReservoirRnormqMultCC=m_res_normMult[i];  //!!todo
     NormalReservoirOutflowCC = NormalReservoirOutflowCC * ReservoirRnormqMultCC;
     if(NormalReservoirOutflowCC > MinReservoirOutflowCC){
@@ -1432,7 +1559,7 @@ bool MUSK_CH::ResBudget(const int i) {
 
     //New reservoir fill (fraction)
     float ReservoirFillCC = m_chSto[i] / TotalReservoirStorageM3CC;
-
+    
     //below 2Lc
     float ReservoirOutflow1 = Min(MinReservoirOutflowCC, m_chSto[i] / InvDtSecDay);
 
@@ -1440,23 +1567,23 @@ bool MUSK_CH::ResBudget(const int i) {
     float DeltaO = NormalReservoirOutflowCC - MinReservoirOutflowCC;
     float DeltaLN = NormalStorageLimitCC - 2 * ConservativeStorageLimitCC;
     float ReservoirOutflow2 = MinReservoirOutflowCC + DeltaO * (ReservoirFillCC - 2 * ConservativeStorageLimitCC) / DeltaLN;
-
+    
     //Ln<F<Lf
     float DeltaNFL = FloodStorageLimitCC - Normal_FloodStorageLimitCC;
     float ReservoirOutflow3a = NormalReservoirOutflowCC;
-    float ReservoirOutflow3b = NormalReservoirOutflowCC + ((ReservoirFillCC - Normal_FloodStorageLimitCC) / DeltaNFL)
+    float ReservoirOutflow3b = NormalReservoirOutflowCC + ((ReservoirFillCC - Normal_FloodStorageLimitCC) / DeltaNFL) 
                                 * (NonDamagingReservoirOutflowCC - NormalReservoirOutflowCC);
 
     //F>Lf
     float temp = Min(NonDamagingReservoirOutflowCC, Max(qIn * 1.2, NormalReservoirOutflowCC));
     float ReservoirOutflow4 = Min(Max((ReservoirFillCC - FloodStorageLimitCC-0.01) *
                                 TotalReservoirStorageM3CC / InvDtSecDay,NonDamagingReservoirOutflowCC), temp);
-
-    //Reservoir outflow [m3/s]
+    
+    //Reservoir outflow [m3/s] 
     rtwtr = 0.f;
     rtwtr = ReservoirOutflow1;
-	// 1: ï¿½ï¿½2Lc, 2: (2Lc,Ln], 3: (Ln,Normal_Flood], 33: (Normal_Flood,Lf], 4: >Lf, by xiaodw
-	int stageUsed = 1;
+	// 1: ¡Ü2Lc, 2: (2Lc,Ln], 3: (Ln,Normal_Flood], 33: (Normal_Flood,Lf], 4: >Lf, by xiaodw
+	int stageUsed = 1;            
 	float rtwtr_raw = ReservoirOutflow1;
 	bool capped = false;
 	if (ReservoirFillCC > 2 * ConservativeStorageLimitCC) { rtwtr = ReservoirOutflow2;  stageUsed = 2;  rtwtr_raw = rtwtr; }
@@ -1500,7 +1627,54 @@ bool MUSK_CH::ResBudget(const int i) {
         m_qgRchOut[i] = 0.f;
     }
 
-	return true;
+#ifdef DEBUG_MUSK_CH_RSV
+	{
+		// ÅÐ¶¨ÎÄ±¾·Ö¼¶
+		string levelStr;
+		if (ReservoirFillCC <= 2.f * ConservativeStorageLimitCC) {
+			levelStr = "¡Ü2Lc (±£ÊØ¿âÈÝÇø)";
+		}
+		else if (ReservoirFillCC <= NormalStorageLimitCC) {
+			levelStr = "(2Lc, Ln] (Õý³£¿âÈÝÒÔÏÂ)";
+		}
+		else if (ReservoirFillCC <= Normal_FloodStorageLimitCC) {
+			levelStr = "(Ln, Normal_Flood] (Õý³£~¿Éµ÷ºé)";
+		}
+		else if (ReservoirFillCC <= FloodStorageLimitCC) {
+			levelStr = "(Normal_Flood, Lf] (¿Éµ÷ºé~·ÀºéÉÏÏÞ)";
+		}
+		else {
+			levelStr = ">Lf (³¬·ÀºéÉÏÏÞ)";
+		}
+
+		std::cout << "[ResBudget] day=" << m_dayOfYear
+			<< " rchID=" << i
+			<< " Sto=" << m_chSto[i] << " m3"
+			<< " Fill=" << ReservoirFillCC
+			<< " Level=" << levelStr
+			<< " Stage=" << stageUsed
+			<< " qIn=" << qIn << " m3/s"
+			<< " Qout_raw=" << rtwtr_raw << " m3/s"
+			<< (capped ? " (capped)" : "")
+			<< " Qout=" << rtwtr << " m3/s"
+			<< " [Lc=" << ConservativeStorageLimitCC
+			<< ", Ln=" << NormalStorageLimitCC
+			<< ", Normal_Flood=" << Normal_FloodStorageLimitCC
+			<< ", Lf=" << FloodStorageLimitCC << "]"
+			<< " parts: ol=" << m_olQ2Rch[i]
+			<< " if=" << qiSub
+			<< " gw=" << qgSub
+			<< " upS=" << qsUp
+			<< " upI=" << qiUp
+			<< " upG=" << qgUp
+			<< " precip=" << m_prec[i]
+			<< " gwSto=" << m_gwSto[i]
+			<< std::endl;
+	}
+#endif
+
+
+    return true;
 }
 
 void MUSK_CH::SetSubbasins(clsSubbasins* subbsns) {

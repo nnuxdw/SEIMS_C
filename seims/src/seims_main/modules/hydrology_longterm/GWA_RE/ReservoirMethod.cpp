@@ -17,7 +17,8 @@ ReservoirMethod::ReservoirMethod() :
     /// outputs
     m_T_QG(nullptr), m_T_Revap(nullptr), m_T_GWWB(nullptr),
     m_nSubbsns(-1), m_inputSubbsnID(-1), m_subbasinsInfo(nullptr),
-    m_area(nullptr),curBasinArea(nullptr),m_rchrg(nullptr),gw_delay(NODATA_VALUE) {
+    m_area(nullptr),curBasinArea(nullptr),m_rchrg(nullptr),gw_delay(NODATA_VALUE),
+    m_Base_ex_1d(nullptr),m_Kg_1d(nullptr),gw_delay_1d(nullptr) {
 }
 
 ReservoirMethod::~ReservoirMethod() {
@@ -95,7 +96,8 @@ int ReservoirMethod::Execute() {
         }
         rchrg1 = m_rchrg[subID];
         m_rchrg[subID] = 0.f;
-        float gw_delaye = exp(-1./(gw_delay));
+        //float gw_delaye = exp(-1./(gw_delay));
+        float gw_delaye = exp(-1./(gw_delay_1d[subID]));
         m_rchrg[subID] = (1.- gw_delaye) * perco + gw_delaye * rchrg1;
         perco = m_rchrg[subID];
         // perco /= curCellsNum; // mean mm
@@ -116,11 +118,12 @@ int ReservoirMethod::Execute() {
             }
             revap = m_gwSto[subID];
         }
-
         // groundwater runoff (mm)
         float slopeCoef = curSub->GetSlopeCoef();
-        float kg = m_Kg * slopeCoef;
-        float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex); // mm
+        //float kg = m_Kg * slopeCoef;
+        float kg = m_Kg_1d[subID] * slopeCoef;
+        //float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex); // mm
+        float groundRunoff = kg * pow(m_gwSto[subID], m_Base_ex_1d[subID]); // mm
         groundRunoff = Min(groundRunoff,m_gwSto[subID]);
         //float groundQ = groundRunoff * curCellsNum * QGConvert;     // groundwater discharge (m3/s)
         float groundQ = groundRunoff * curBasinArea[subID] * QGConvert;
@@ -156,15 +159,23 @@ int ReservoirMethod::Execute() {
                     << "\t" << m_Kg << "\t" << m_Base_ex << "\t" << slopeCoef << endl;
             throw ModelException("Subbasin", "setInputs", oss.str());
         }
-#ifdef PRINT_DEBUG
-        cout << "ID: " << subID <<
-                ", pet: " << std::fixed << setprecision(6) << fPET <<
-                ", perco: " << std::fixed << setprecision(6) << perco <<
-                ", percoDeep: " << std::fixed << setprecision(6) << percoDeep <<
-                ", revap: " << std::fixed << setprecision(6) << revap <<
-                ", groundRunoff: " << std::fixed << setprecision(6) << groundRunoff <<
-                ", groundQ: " << std::fixed << setprecision(6) << groundQ <<
-                ", gwStore: " << std::fixed << setprecision(6) << groundStorage << endl;
+#ifdef DEBUG_RESERVOIR
+		if (subID == 1171)
+		{
+			std::cout << std::fixed << std::setprecision(6)
+				<< "[RES] subID=" << subID
+				<< " PET=" << fPET          // 子流域蒸散发
+				<< " Perco=" << perco       // 下渗到含水层
+				<< " PercoDeep=" << percoDeep // 深层渗漏
+				<< " Revap=" << revap       // 地下水回蒸
+				<< " Rg=" << groundRunoff   // 地下水径流 (mm)
+				<< " Qg=" << groundQ        // 地下水出流 (m3/s)
+				<< " Gw=" << groundStorage  // 含水层库容 (mm)
+				<< "m_Base_ex_1d=" << m_Base_ex_1d[subID]
+				<< std::endl;
+			std::cout.flush();
+		}
+
 #endif
         m_petSubbsn[subID] = curSub->GetPet();
         m_T_Perco[subID] = curSub->GetPerco();
@@ -281,7 +292,13 @@ void ReservoirMethod::Set1DData(const char* key, const int n, float* data) {
     } //ljj++
     else if (StringMatch(sk, VAR_AHRU)) {
 		m_area = data;
-	}else {
+	}else if (StringMatch(sk, "Base_ex_1d")) {
+        m_Base_ex_1d = data;
+    }else if (StringMatch(sk, "Kg_1d")) {
+        m_Kg_1d = data;
+    }else if (StringMatch(sk, "gw_delay_1d")) {
+        gw_delay_1d = data;
+    }else {
         throw ModelException(MID_GWA_RE, "Set1DData", "Parameter " + sk + " does not exist in current module.");
     }
 }

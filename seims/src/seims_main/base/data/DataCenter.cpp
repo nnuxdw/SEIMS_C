@@ -2,7 +2,7 @@
 
 #include "utils_time.h"
 #include "text.h"
-
+#include <unordered_set> 
 using namespace utils_time;
 
 DataCenter::DataCenter(InputArgs* input_args, ModuleFactory* factory, const int subbasin_id /* = 0 */) :
@@ -149,6 +149,64 @@ void DataCenter::DumpCaliParametersInDB() {
 }
 
 bool DataCenter::CheckAdjustment(const string& para_name) {
+    static bool csv1_loaded = false;
+    static bool csv2_loaded = false;
+
+    // 参数名单：这些参数使用 caliparam2.csv，其余使用 caliparam.csv
+    static const std::unordered_set<std::string> csv2_params_set = {
+        "BASE_EX_1D","KG_1D","GW_DELAY_1D","EP_CH_1D","CH_N","HLIFE_DOCGW_1D","LAKEB_1D","LAKE_ALPHA",
+        "KRP_1D","KD_RP_1D","SV_RP_1D","KRD_1D","RES_LC","RES_LN","RES_LF","RES_normMult","RES_ADJUST","LAKE_MNLWL_1D","GWMAX_1D" // 大写
+    };
+
+    // 加载 caliparam.csv（仅一次）
+    if (!csv1_loaded) {
+        for (auto& kv : init_params_) {
+            const std::string& name = kv.first;
+            if (csv2_params_set.find(name) == csv2_params_set.end()) {
+                
+                kv.second->LoadCaliCSV(name,model_path_ + SEP + "caliparam.csv");
+            }
+        }
+        csv1_loaded = true;
+    }
+
+    // 加载 caliparam2.csv（仅一次）
+    if (!csv2_loaded) {
+        for (auto& kv : init_params_) {
+            const std::string& name = kv.first;
+            if (csv2_params_set.find(name) != csv2_params_set.end()) {
+                kv.second->LoadCaliCSV(name,model_path_ + SEP + "caliparam_sub.csv");
+            }
+        }
+        csv2_loaded = true;
+    }
+
+	/*if (!csv1_loaded) {
+		std::cout << "[DEBUG] Start loading caliparam.csv: "
+			<< model_path_ + SEP + "caliparam.csv" << std::endl;
+		for (auto& kv : init_params_) {
+			const std::string& name = kv.first;
+			if (csv2_params_set.find(name) == csv2_params_set.end()) {
+				std::cout << "[DEBUG] Load from caliparam.csv -> " << name << std::endl;
+				kv.second->LoadCaliCSV(name, model_path_ + SEP + "caliparam.csv");
+			}
+		}
+		csv1_loaded = true;
+	}
+
+	if (!csv2_loaded) {
+		std::cout << "[DEBUG] Start loading caliparam_sub.csv: "
+			<< model_path_ + SEP + "caliparam_sub.csv" << std::endl;
+		for (auto& kv : init_params_) {
+			const std::string& name = kv.first;
+			if (csv2_params_set.find(name) != csv2_params_set.end()) {
+				std::cout << "[DEBUG] Load from caliparam_sub.csv -> " << name << std::endl;
+				kv.second->LoadCaliCSV(name, model_path_ + SEP + "caliparam_sub.csv");
+			}
+		}
+		csv2_loaded = true;
+	}*/
+
     string upper_name = GetUpper(para_name);
     auto find_iter = init_params_.find(upper_name);
     bool adjust_data = false;

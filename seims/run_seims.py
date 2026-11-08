@@ -40,8 +40,8 @@ import time
 from typing import Optional, Union, Dict, List, AnyStr
 from subprocess import CalledProcessError
 
-if os.path.abspath(os.path.join(sys.path[0], '..')) not in sys.path:
-    sys.path.insert(0, os.path.abspath(os.path.join(sys.path[0], '..')))
+if os.path.abspath(os.path.join(sys.path[0], '../../tools')) not in sys.path:
+    sys.path.insert(0, os.path.abspath(os.path.join(sys.path[0], '../../tools')))
 
 import global_mongoclient as MongoDBObj
 
@@ -52,6 +52,7 @@ from preprocess.db_mongodb import MongoClient, ConnectMongoDB
 from preprocess.db_read_model import ReadModelData
 from utility import read_simulation_from_txt, parse_datetime_from_ini,read_simulation_from_txt_new
 from utility import match_simulation_observation, calculate_statistics
+from shutil import copy2, copytree, rmtree
 
 
 class ParseSEIMSConfig(object):
@@ -288,7 +289,7 @@ class MainSEIMS(object):
             self.cmd += ['-n', str(self.nprocess)]
         self.cmd += [self.seims_exec,
                      '-wp', self.model_dir, '-thread', str(self.nthread),
-                     '-lyr', str(self.lyrmtd), '-host', self.host, '-port', self.port]
+                     '-lyr', str(self.lyrmtd), '-host', self.host, '-port', str(self.port)]
         if self.scenario_id >= 0:
             self.cmd += ['-sce', str(self.scenario_id)]
         if self.calibration_id >= 0:
@@ -643,7 +644,7 @@ class MainSEIMS(object):
                                                               {'$set': {'STARTTIME': cur_stime_str,
                                                                         'ENDTIME': cur_etime_str}})
 
-    def run(self):
+    def run(self, timeout=60, max_retries=1):
         """Run SEIMS model
 
         Examples:
@@ -661,21 +662,53 @@ class MainSEIMS(object):
         # If the output time period is specified, reset the time period of all output IDs
         if self.out_stime and self.out_etime:
             self.ResetOutputsPeriod(self.OutputIDs, self.out_stime, self.out_etime)
-        try:
-            self.runlogs = UtilClass.run_command(self.Command)
-            # xiaodw add, to avoid other thread use the same folder and delete it
-            if not os.path.exists(self.OutputDirectory):
-                os.makedirs(self.OutputDirectory)
-            with open(self.OutputDirectory + os.sep + 'runlogs.txt', 'w', encoding='utf-8') as f:
-                f.write('\n'.join(self.runlogs))
-            self.ParseTimespan(self.runlogs)
-            self.run_success = True
-        except CalledProcessError or IOError or Exception as err:
-            # 1. SEIMS-based model running failed
-            # 2. The OUTPUT directory was not been created successfully by SEIMS-based model
-            # 3. Other unpredictable errors
-            print('Run SEIMS model failed! %s' % str(err))
-            self.run_success = False
+        
+        retries = 0
+        while retries <= max_retries:
+            try:
+                print(self.Command, flush=True)
+                # 添加超时机制
+                import subprocess
+                process = subprocess.Popen(self.Command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                try:
+                    stdout, stderr = process.communicate(timeout=timeout)
+                    self.runlogs = stdout.split('\n')
+                    # xiaodw add, to avoid other thread use the same folder and delete it
+                    if not os.path.exists(self.OutputDirectory):
+                        os.makedirs(self.OutputDirectory)
+                    with open(self.OutputDirectory + os.sep + 'runlogs.txt', 'w', encoding='utf-8') as f:
+                        f.write(stdout)
+                    self.ParseTimespan(self.runlogs)
+                    self.run_success = True
+                    break  # 成功执行，退出循环
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    stdout, stderr = process.communicate()
+                    retries += 1
+                    timeout_msg = f'Run SEIMS model timeout (calibration_id={self.calibration_id})! Process killed.'
+                    if retries <= max_retries:
+                        print(f'{timeout_msg} Retrying ({retries}/{max_retries})...')
+                        self.runlogs = [f'{timeout_msg} Retrying ({retries}/{max_retries})...']
+                    else:
+                        print(f'{timeout_msg} Max retries reached.')
+                        self.runlogs = [f'{timeout_msg} Max retries reached.']
+                        if not os.path.exists(self.OutputDirectory):
+                            os.makedirs(self.OutputDirectory)
+                        with open(self.OutputDirectory + os.sep + 'runlogs.txt', 'w', encoding='utf-8') as f:
+                            f.write(f'{timeout_msg} Max retries reached.')
+                        self.run_success = False
+            except CalledProcessError or IOError or Exception as err:
+                # 1. SEIMS-based model running failed
+                # 2. The OUTPUT directory was not been created successfully by SEIMS-based model
+                # 3. Other unpredictable errors
+                retries += 1
+                error_msg = f'Run SEIMS model failed (calibration_id={self.calibration_id})! {str(err)}'
+                if retries <= max_retries:
+                    print(f'{error_msg}. Retrying ({retries}/{max_retries})...')
+                else:
+                    print(f'{error_msg}. Max retries reached.')
+                    self.run_success = False
+        
         self.runtime = time.time() - stime
         return self.run_success
 
@@ -701,6 +734,43 @@ class MainSEIMS(object):
             read_model.CleanScenariosConfiguration(scenario_id)
             if delete_spatial_gfs:
                 read_model.CleanSpatialGridFs(scenario_id)
+
+    def copy_dir(self,  calibration_id=None, gen=None
+              ):
+
+        """
+        将 self.OutputDirectory 下的所有内容复制到：
+            <parent_of_OutputDirectory>/cali_copy/{gen}_{calibration_id}/
+        若目标目录已存在，会先清空再复制。
+        返回目标目录路径。
+        """
+        if calibration_id is None or gen is None:
+            raise ValueError("calibration_id 和 gen 不能为空")
+
+        src = os.path.abspath(self.OutputDirectory)
+        if not os.path.isdir(src):
+            raise FileNotFoundError(f"OutputDirectory 不存在或不是目录: {src}")
+
+        parent_dir = os.path.dirname(src)  # 父目录
+        dst_root = os.path.join(parent_dir, "cali_copy")
+        dst = os.path.join(dst_root, f"gen_{gen}_cali_{calibration_id}")
+
+        os.makedirs(dst_root, exist_ok=True)
+        # 目标已存在则清空
+        if os.path.exists(dst):
+            rmtree(dst, ignore_errors=True)
+        os.makedirs(dst, exist_ok=True)
+
+        # 逐项复制（子目录用 copytree，文件用 copy2）
+        for name in os.listdir(src):
+            s = os.path.join(src, name)
+            d = os.path.join(dst, name)
+            if os.path.isdir(s):
+                copytree(s, d)  # 若要“合并”而不是覆盖，可改成 dirs_exist_ok=True（Python 3.8+）
+            else:
+                copy2(s, d)
+
+        return dst
 
 
 def create_run_model(modelcfg_dict, scenario_id=0, calibration_id=-1, subbasin_id=0):

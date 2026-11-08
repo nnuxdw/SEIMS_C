@@ -23,13 +23,18 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.SetHelpfile("");
 
     mdi.AddParameter(VAR_T0, UNIT_TEMP_DEG, DESC_T0, Source_ParameterDB, DT_Single);
+    mdi.AddParameter("T0_1d", UNIT_TEMP_DEG, DESC_T0, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_K_BLOW, UNIT_NON_DIM, DESC_K_BLOW, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_T_SNOW, UNIT_TEMP_DEG, DESC_T_SNOW, Source_ParameterDB, DT_Single);
+	mdi.AddParameter(VAR_T_SNOW_1D, UNIT_TEMP_DEG, DESC_T_SNOW, Source_ParameterDB, DT_Raster1D);
     // I don't think VAR_SWE0 is useful. By LJ
     // mdi.AddParameter(VAR_SWE0, UNIT_DEPTH_MM, DESC_SWE0, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_LAG_SNOW, UNIT_NON_DIM, DESC_LAG_SNOW, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_C_SNOW6, UNIT_MELT_FACTOR, DESC_C_SNOW6, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_C_SNOW12, UNIT_MELT_FACTOR, DESC_C_SNOW12, Source_ParameterDB, DT_Single);
+    mdi.AddParameter("lag_snow_1d", UNIT_NON_DIM, DESC_LAG_SNOW, Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("c_snow6_1d", UNIT_MELT_FACTOR, DESC_C_SNOW6, Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter("c_snow12_1d", UNIT_MELT_FACTOR, DESC_C_SNOW12, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_SNOCOVMX, UNIT_DEPTH_MM, DESC_SNOCOVMX, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_SNO50COV, UNIT_NON_DIM, DESC_SNO50COV, Source_ParameterDB, DT_Single);
     mdi.AddParameter(VAR_AHRU, UNIT_DEPTH_MM, DESC_AHRU, Source_ParameterDB, DT_Raster1D);

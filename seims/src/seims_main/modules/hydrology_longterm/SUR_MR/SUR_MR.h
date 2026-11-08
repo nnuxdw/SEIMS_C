@@ -101,6 +101,7 @@ private:
 
     /// threshold soil freezing temperature (deg C)
     float m_soilFrozenTemp;
+    float* m_soilFrozenTemp_1d;
     /// frozen soil moisture relative to saturation above which no infiltration occur
     /// (m3/m3 or mm H2O/ mm Soil)
     float m_soilFrozenWtrRatio;
@@ -140,7 +141,7 @@ private:
 	/// m_soilFC * m_soilThk
 	float** m_soilFCDepth;
 	/// water depth of each hand, initialized by m_bankSto,m
-	float* m_handWtrDep;
+	float* m_handWtrDep;   
 
 	int m_nSubbsns;
 	/// subbasin grid (ID of subbasin)

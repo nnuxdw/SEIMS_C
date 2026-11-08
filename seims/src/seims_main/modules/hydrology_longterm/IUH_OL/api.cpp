@@ -41,7 +41,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
     mdi.AddParameter(VAR_SLOPE, UNIT_PERCENT, DESC_SLOPE, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter(VAR_MANNING, UNIT_NON_DIM, DESC_MANNING, Source_ParameterDB, DT_Raster1D);
     mdi.AddParameter("SURLAG", "days", "Surface runoff lag time", Source_ParameterDB, DT_Single);
-    //mdi.AddParameter(VAR_SLPLEN, UNIT_LEN_M, DESC_SLPLEN, Source_ParameterDB_Optional, DT_Raster1D);
+    mdi.AddParameter("SURLAG_1d", "days", "Surface runoff lag time", Source_ParameterDB, DT_Raster1D);
+    mdi.AddParameter(VAR_SLPLEN, UNIT_LEN_M, DESC_SLPLEN, Source_ParameterDB_Optional, DT_Raster1D);
     mdi.AddParameter(VAR_DISTSTREAM, UNIT_LEN_M, DESC_DISTSTREAM, Source_ParameterDB, DT_Raster1D);
     mdi.AddOutput("BRT", "none", "fraction of surface runoff that takes one day or less to reach the subbasin", DT_Array1D);
     mdi.AddOutput("tconc", "none", "time of concentration for HRU", DT_Raster1D);

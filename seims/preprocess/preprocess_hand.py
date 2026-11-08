@@ -1,9 +1,14 @@
+import os.path
+
 import pandas as pd
 import geopandas as gpd
 from pymongo import MongoClient
 from collections import defaultdict
 from collections import defaultdict, deque
 import copy
+from pathlib import Path
+import geopandas as gpd
+import os
 
 # 1. 读取 SHP 文件并返回 {FIELDID: area}
 def load_area_map_from_shapefile(shapefile_path):
@@ -40,53 +45,62 @@ def compute_hand_area_volume(hand_df, ch_map):
 
     for sbid, group in grouped:
         levels = group.groupby("Flood_Level")
-        sorted_levels = sorted(levels, key=lambda x: x[0])  # 按层升序
+        sorted_levels = sorted(levels, key=lambda x: x[0])
 
         prev_hand_area_sum = 0.0
-        sub_result = []
 
+        sub_result = []
         level_depths = []
         avg_depths = []
         level_indices = []
 
         for idx, (level, level_df) in enumerate(sorted_levels):
-            hand_area_sum = level_df["area"].sum()
-            hand_volume = (level_df["area"] * level_df["Depth"]).sum()
+            # ✅ 取 HRU_ID（假设同一 Subbasin + Flood_Level 下唯一；若不唯一也先取第一个）
+            hru_id = level_df["HRU_ID"].iloc[0] if "HRU_ID" in level_df.columns else None
+
+            hand_area = level_df["area"].iloc[0]
+            hand_volume = level_df["area"].iloc[0] * level_df["Depth"].iloc[0]
+
             interval = level_df["HAND_Threshold_Interval"].iloc[0]
             lower, upper = map(float, interval.split(","))
             level_depth = upper - lower
 
             ch = ch_map.get(int(sbid), {})
-            ch_area = 0
-            channel_volume = 0
+            ch_area = 0.0
+            channel_volume = 0.0
+
             is_lake = ch.get("Is_Lake", 0)
             is_res = ch.get("Is_Res", 0)
 
             if is_lake != 1 and is_res != 1 and idx == 0:
-                ch_area = ch.get("CH_WIDTH", 0) * ch.get("CH_LEN", 0)
+                ch_area = ch.get("CH_WIDTH", 0.0) * ch.get("CH_LEN", 0.0)
                 channel_volume = ch_area * level_depth
 
             prev_hand_volume = prev_hand_area_sum * level_depth
+
             sum_volume = channel_volume + prev_hand_volume + hand_volume
-            sum_area = ch_area + prev_hand_area_sum + hand_area_sum
+            sum_area = ch_area + prev_hand_area_sum + hand_area
 
             avg_depth = sum_volume / sum_area if sum_area > 0 else 0.0
 
-            sub_result.append({
+            row = {
                 "Subbasin": sbid,
+                "HRU_ID": hru_id,          # ✅ 新增
                 "Flood_Level": level,
                 "LevelDepth": level_depth,
                 "SumArea": sum_area,
                 "SumVolume": sum_volume,
-                "AvgDepth": avg_depth
-            })
+                "AvgDepth": avg_depth,
+            }
+            sub_result.append(row)
+
+            prev_hand_area_sum += hand_area
 
             level_depths.append(level_depth)
             avg_depths.append(avg_depth)
             level_indices.append(level)
 
-            prev_hand_area_sum += hand_area_sum
-
+        # ===== LowerAccDepth 保留你的原逻辑 =====
         n = len(level_depths)
         acc_depth_matrix = [[0.0 for _ in range(n + 1)] for _ in range(n + 1)]
 
@@ -98,8 +112,7 @@ def compute_hand_area_volume(hand_df, ch_map):
                     acc_depth_matrix[i][lev] = avg_depths[i - 1] + sum(level_depths[i:lev - 1])
 
         for i in range(1, n + 1):
-            acc_depth = [round(v, 3) for v in acc_depth_matrix[i]]
-            sub_result[i - 1]["LowerAccDepth"] = acc_depth
+            sub_result[i - 1]["LowerAccDepth"] = [round(v, 3) for v in acc_depth_matrix[i]]
 
         result.extend(sub_result)
 
@@ -108,17 +121,15 @@ def compute_hand_area_volume(hand_df, ch_map):
 
     df_result["AccVolume"] = df_result.groupby("Subbasin")["SumVolume"].cumsum()
 
-    # 保留 3 位小数
     df_result["SumArea"] = df_result["SumArea"].round(3)
     df_result["SumVolume"] = df_result["SumVolume"].round(3)
     df_result["AvgDepth"] = df_result["AvgDepth"].round(3)
     df_result["AccVolume"] = df_result["AccVolume"].round(3)
 
-    # 确保 AccDepth 在最后一列
-    cols = [col for col in df_result.columns if col != "LowerAccDepth"] + ["LowerAccDepth"]
+    cols = [col for col in df_result.columns if col not in ("LowerAccDepth")] + ["LowerAccDepth"]
     df_result = df_result[cols]
-
     return df_result
+
 
 
 
@@ -292,27 +303,134 @@ def repair_flood_levels(input_path: str, output_path: str):
         fout.write(header)
         fout.writelines(modified_lines)
 
+import os
+os.environ["USE_PYGEOS"] = "0"  # 可选：避免 Shapely/GEOS 与 PyGEOS/GEOS 不匹配导致的慢和奇怪行为
+
+from pathlib import Path
+import geopandas as gpd
+from shapely.ops import unary_union
+
+
+def reproject_to_mollweide_and_dissolve(
+    in_shp: str,
+    out_dir: str,
+    field_id: str = "FIELDID",
+    out_name=None,
+    mollweide_crs="ESRI:54009",
+):
+    """
+    投影到 Mollweide（等面积） -> 修复无效几何（尽量保留 holes） -> 按 FIELDID 融合 -> 输出 shp
+    并新增/汇总 area_m2（单位 m²）
+    """
+    in_shp = str(in_shp)
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    gdf = gpd.read_file(in_shp)
+
+    if gdf.empty:
+        raise ValueError("输入 Shapefile 为空。")
+    if gdf.crs is None:
+        raise ValueError("输入 Shapefile 缺少 CRS（.prj），请先定义 CRS。")
+    if field_id not in gdf.columns:
+        raise KeyError(f"找不到字段 {field_id!r}，请检查字段名。")
+
+    # 1) 投影到等面积
+    gdf = gdf.to_crs(mollweide_crs)
+
+    # 2) 清理空几何
+    gdf = gdf[gdf.geometry.notnull() & (~gdf.geometry.is_empty)].copy()
+
+    # 3) 修复几何：优先 make_valid（更能保洞），不支持再 buffer(0)
+    # GeoPandas 新版本：GeoSeries.make_valid()
+    if hasattr(gdf.geometry, "make_valid"):
+        gdf["geometry"] = gdf.geometry.make_valid()
+    else:
+        # 兼容 Shapely 版本：尝试 shapely.make_valid；失败再用 buffer(0)
+        try:
+            from shapely import make_valid as _make_valid  # Shapely >= 2
+            gdf["geometry"] = gdf.geometry.apply(lambda geom: _make_valid(geom) if geom is not None else None)
+        except Exception:
+            # 老环境 fallback：buffer(0)（能修很多，但可能在极少数情况下改变洞）
+            gdf["geometry"] = gdf.geometry.apply(lambda geom: geom.buffer(0) if geom is not None else None)
+
+    # 再过滤一次修复后无效/空
+    gdf = gdf[gdf.geometry.notnull() & (~gdf.geometry.is_empty)].copy()
+
+    # 4) 面积（m²）
+    gdf["area_m2"] = gdf.geometry.area
+
+    # 5) 手写按 field_id 融合（避免 geopandas.dissolve 的 pygeos union 路径更容易炸）
+    rows = []
+    for fid, grp in gdf.groupby(field_id, sort=False):
+        geoms = [g for g in grp.geometry.values if g is not None and (not g.is_empty)]
+        if not geoms:
+            continue
+
+        try:
+            merged = unary_union(geoms)
+        except Exception:
+            # 二次兜底：对组内几何再 make_valid/buffer(0) 一次再 union
+            fixed = []
+            for gg in geoms:
+                try:
+                    if hasattr(gpd.GeoSeries([gg]), "make_valid"):
+                        fixed.append(gpd.GeoSeries([gg]).make_valid().iloc[0])
+                    else:
+                        fixed.append(gg.buffer(0))
+                except Exception:
+                    pass
+            merged = unary_union([x for x in fixed if x is not None and (not x.is_empty)])
+
+        rows.append({
+            field_id: fid,
+            "area_m2": float(grp["area_m2"].sum()),
+            "geometry": merged
+        })
+
+    out_gdf = gpd.GeoDataFrame(rows, crs=gdf.crs)
+
+    if out_name is None:
+        out_name = f"{Path(in_shp).stem}_moll_dissolve"
+    out_path = out_dir / f"{out_name}.shp"
+    out_gdf.to_file(out_path, driver="ESRI Shapefile", encoding="utf-8")
+
+    return str(out_path)
+
 
 if __name__ == '__main__':
-    input_shp = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\workspace\HRU_file\HRU_mollwede.shp"
-    input_hand_flood_step_old = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepOld.txt"
-    input_hand_flood_step = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStep.txt"
-    output_map = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\InundationMap.csv"
-    repaired_flood_level = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepRepair.txt"
-    modifyed_flood_level = r"G:\program\seims\SEIMS_HAND\data\poyang_lake1\rundata\FloodStepModify.txt"
+    base_path = r"/data/poyang_lake1"
+    # base_path = r"G:\program\seims\SEIMS_HAND\data\Cottonwood"
+    ### 投影到等面积,再按照FIELDID合并之后且
+    input_shp = os.path.join(base_path, "workspace\HRU_file\HRU.shp")
+    out_dir = os.path.join(base_path, "workspace\HRU_file")
+    out_name = 'hru_mollweide_dissolved'
+    proj = "ESRI:54009"
+    out_shp = reproject_to_mollweide_and_dissolve(
+        in_shp=input_shp,
+        out_dir=out_dir,
+        field_id="FIELDID",
+        out_name=out_name,
+        mollweide_crs=proj
+    )
+
+    # input_shp = os.path.join(base_path,"workspace\spatial_shp\subbasin_mollwede_dissolved.shp") #Cottonwood
+    # input_shp = os.path.join(base_path, "workspace\HRU_file\HRU_mollwede_dissolved.shp") #poyang
+    input_hand_flood_step = os.path.join(base_path,"rundata\FloodStep.txt")
+    output_map = os.path.join(base_path,"rundata\InundationMap.csv")
+
+    build_hand_lookup_table(
+        shp_path=out_shp,
+        hand_txt_path=input_hand_flood_step,
+        output_csv=output_map,
+        mongo_uri="mongodb://localhost:27017",
+        mongo_db="poyang_lake1_longterm_model_1171",
+        mongo_col="REACHES",
+    )
+
     # 检查缺失层级
     # check_flood_level_gaps(input_hand_flood_step_old)
     # 修复层号从0开始的情况，改为从1开始
     # modify_flood_level(input_hand_flood_step,modifyed_flood_level)
-
     # 修复缺失层级
     # repair_flood_levels(input_hand_flood_step,repaired_flood_level)
-
-    build_hand_lookup_table(
-        shp_path=input_shp,
-        hand_txt_path=input_hand_flood_step,
-        output_csv=output_map,
-        mongo_uri="mongodb://localhost:27017",
-        mongo_db="poyang_lake1_longterm_model",
-        mongo_col="REACHES",
-    )

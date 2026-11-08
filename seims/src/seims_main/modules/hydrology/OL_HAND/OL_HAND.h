@@ -11,16 +11,16 @@
 #include "SimulationModule.h"
 #include "Scenario.h"
 //#include "clsReach.h"
-#define FLOOD_DEPTH_THRESH 0.1f
+
 
 using namespace bmps;
 using namespace std;
 
-// ï¿½ï¿½Ê¾Ã¿Ò»ï¿½ï¿½ï¿½ HAND ï¿½ï¿½Ï¢
+// ±íÊ¾Ã¿Ò»²ãµÄ HAND ÐÅÏ¢
 struct Level {
 	//vector<float> handHeights;   // index is hand id
-	vector<int> handIds;   // index is layer 0,1,2,3..., value is hand id
-
+	int* handIds;   // index is layer 0,1,2,3..., value is hand id
+	
 	//float m_chOverHeadVol;      /// represents the physical space between the top of the channel banks and the upper boundary, index represents subbasin id for dim 1, index represents layer for dim 2 cooresponding to each HAND height
 	/*float* m_handArea;					/// area of each hand
 	float* m_handWtrDep;			    /// water depth of each hand, initialized by m_bankSto*/
@@ -37,7 +37,7 @@ struct Level {
 
 };
 
-// ï¿½ï¿½Ê¾Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½ HAND ï¿½ï¿½
+// ±íÊ¾Ã¿¸ö×ÓÁ÷ÓòÏÂµÄËùÓÐ HAND ²ã
 struct Hand {
 	int n_levels = 0;
 	int m_CurInundationLevel = 0;
@@ -72,6 +72,14 @@ public:
 
 	void InitialOutputs() OVERRIDE;
 
+	void LoadHandLevelsFromArrays(
+		int cellsNum,
+		int flatLen,
+		std::vector<Hand>& m_Hands,
+		float nodata /*= -9999.0f*/,
+		bool buildHandIds /*= false*/
+	);
+
 private:
 
 
@@ -89,12 +97,12 @@ private:
 	int m_nSubbsns;
 	int m_inputSubbsnID; ///< current subbasin ID, 0 for the entire watershed
 
-
+	
 	map<int, int> m_idToIndex;   /// map from subbasin id(or reach id) to index of the array
 	vector<Hand> m_Hands;  ///  subbasin (or reach)-- layers -- hands,  index represents subbasin id for dim 1, index represents layer for dim 2
 	///
-
-
+ 
+		
 	float* m_subbsnID;       /// subbasin grid (subbasins ID)
 	int m_nreach;                ///< reach number (= subbasin number)
 	int m_outletID;    ///< outlet ID, also can be derived by m_reachLayers.rbegin()->second[0];
@@ -132,11 +140,19 @@ private:
 
 
 	// test
-	int curLev = 0;               // ï¿½ï¿½Ê¼ï¿½Óµï¿½1ï¿½ã¿ªÊ¼
-	int levCounter = 0;           // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú¿ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½Î½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
+	int curLev = 0;               // ³õÊ¼´ÓµÚ1²ã¿ªÊ¼
+	int levCounter = 0;           // ¼ÆÊýÆ÷£¬ÓÃÓÚ¿ØÖÆÃ¿Á½´Î½øÈëÏÂÒ»²ã
 
-
-
+	
+	float* m_HAND_Subbasin;
+	float* m_HAND_Flood_Level;
+	float* m_HAND_LevelDepth;
+	float* m_HAND_SumArea;
+	float* m_HAND_SumVolume;
+	float* m_HAND_AvgDepth;
+	float* m_HAND_AccVolume;
+	float* m_HAND_LowerAccDepthFlat;
+	float* m_HAND_LowerAccDepthLen;
 
 };
 #endif /* SEIMS_MODULE_OL_HAND_H */
