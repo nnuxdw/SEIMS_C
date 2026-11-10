@@ -72,7 +72,7 @@ void ParamInfo::LoadCaliCSV(const std::string& para_name,const std::string& file
     int fid_idx = -1, para_idx = -1;
     for (size_t i = 0; i < headers.size(); ++i) {
         if (headers[i] == "subbasin" || headers[i] =="FID") fid_idx = i;
-        if (headers[i] == para_name) para_idx = i;
+        if (GetUpper(headers[i]) == GetUpper(para_name)) para_idx = i;
     }
 
     if (fid_idx == -1 || para_idx == -1) {
