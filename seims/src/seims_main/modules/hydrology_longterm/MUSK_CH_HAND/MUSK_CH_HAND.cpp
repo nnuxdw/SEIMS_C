@@ -828,7 +828,6 @@ int MUSK_CH_HAND::Execute() {
 		Subbasin* sub = m_subbasinsInfo->GetSubbasinByID(*id);
 		int curCellsNum = sub->GetCellCount();
 		int* curCells = sub->GetCells();
-		float substractVol = 0.0;
         double handInfilM3 = 0.0;
         double handEvapM3 = 0.0;
         double handDepM3 = 0.0;
@@ -841,12 +840,12 @@ int MUSK_CH_HAND::Execute() {
             const double handEvap = static_cast<double>(m_hand_eavp[index]) * 0.001 * cellArea;
             const double handDep = static_cast<double>(m_hand_dep[index]) * 0.001 * cellArea;
             const double handBackFromGw = static_cast<double>(m_HAND_BackFromGW[index]) * 0.001 * cellArea;
-			substractVol += static_cast<float>(handInfil + handEvap + handDep - handBackFromGw);
             handInfilM3 += handInfil;
             handEvapM3 += handEvap;
             handDepM3 += handDep;
             handBackFromGwM3 += handBackFromGw;
 		}
+        const double netHandLossM3 = handInfilM3 + handEvapM3 + handDepM3 - handBackFromGwM3;
         if (*id == MUSK_DEBUG_REACH) {
             g_muskDebugPreRouteState.handInfilM3 = handInfilM3;
             g_muskDebugPreRouteState.handEvapM3 = handEvapM3;
@@ -855,14 +854,21 @@ int MUSK_CH_HAND::Execute() {
             g_muskDebugPreRouteState.handNetSubtractM3 =
                 handInfilM3 + handEvapM3 + handDepM3 - handBackFromGwM3;
         }
-		if (m_chSto[*id] >= substractVol)
-		{
-			m_chSto[*id] -= substractVol;
+		const double storageM3 = Max(0.0, static_cast<double>(m_chSto[*id]));
+		const double roundoffM3 = 4.0 * std::numeric_limits<float>::epsilon() *
+			Max(storageM3, fabs(netHandLossM3));
+		if (netHandLossM3 > storageM3 + Max(1.e-4, roundoffM3)) {
+			std::ostringstream message;
+			message << "HAND losses exceed available reach storage: reach=" << *id
+			        << ", date=" << m_date << ", storage_m3=" << storageM3
+			        << ", net_loss_m3=" << netHandLossM3
+			        << ", infiltration_m3=" << handInfilM3
+			        << ", evaporation_m3=" << handEvapM3
+			        << ", depression_m3=" << handDepM3
+			        << ", groundwater_return_m3=" << handBackFromGwM3;
+			throw ModelException(MID_MUSK_CH_HAND, "Execute", message.str());
 		}
-		else {
-			/*cout << "MUSK_CH_HAND: m_chSto < substractVol, subbasinid:" << *id << ", m_chSto: " << m_chSto[*id] << ", substractVol: " << substractVol << endl;*/
-			m_chSto[*id] = 0.0;
-		}
+		m_chSto[*id] = static_cast<float>(Max(0.0, storageM3 - netHandLossM3));
 
 
 	}
@@ -1702,11 +1708,8 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
         qiSub = m_ifluQ2Rch[i];
         qIn += qiSub;
     }
-    float qgSub = 0.f; /// groundwater flow
-    // if (nullptr != m_gndQ2Rch && m_gndQ2Rch[i] >= 0.f) {
-    //     qgSub = m_gndQ2Rch[i];
-    //     qIn += qgSub;
-    // }
+    // Local groundwater bypasses the lake and joins the downstream outflow.
+    const float qgBypass = m_gndQ2Rch != nullptr ? Max(0.f, m_gndQ2Rch[i]) : 0.f;
 
     // 1.2. water from upstream reaches
     float qsUp = 0.f;
@@ -1813,7 +1816,7 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
 	 runoff = Max(0.f, Min(runoff, max_outflow));
 
      //if(runoff*m_dt>max_outflow) runoff = max_outflow/ m_dt;
-    rtwtr = runoff + m_gndQ2Rch[i];
+    rtwtr = runoff + qgBypass;
     /*m_chSto[i] =  (SI - rtwtr)*m_dt;*/
 	m_chSto[i] = (SI - runoff) * m_dt;
     m_chSto[i] =  Max(m_chSto[i], 0.f);
@@ -1828,26 +1831,14 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
     m_qout1[i] = runoff;
     m_chWtrDepth[i] = m_lakedp[i];
 
-    float qInSum = m_olQ2Rch[i] + qiSub + qgSub + qsUp + qiUp + qgUp;
-    if (qInSum < UTIL_ZERO) {
-        // In case of divided by zero.
-        // m_qsRchOut[i] = 0.f;
-        // m_qiRchOut[i] = 0.f;
-        // m_qgRchOut[i] = 0.f;
-        // m_qgsRchOut[i] = 0.f;
-        // m_qRchOut[i] = 0.f;
-    } else {
-        // In my opinion, these lines should use `qIn` instead of `qInSum`. By lj.
-        // m_qsRchOut[i] = m_qRchOut[i] * (m_olQ2Rch[i] + qsUp) / qIn;
-        // m_qiRchOut[i] = m_qRchOut[i] * (qiSub + qiUp) / qIn;
-        // m_qgRchOut[i] = m_qRchOut[i] * (qgSub + qgUp) / qIn;
-		m_qsRchOut[i] = runoff;
-		m_qiRchOut[i] = 0.f;
-		m_qgRchOut[i] = m_gndQ2Rch[i];
-    }
+    m_qsRchOut[i] = runoff;
+    m_qiRchOut[i] = 0.f;
+    m_qgRchOut[i] = qgBypass;
 
     m_T_LKWB[i][0] = (qsUp + qiUp + qgUp) * m_dt;
-    m_T_LKWB[i][1] = (m_olQ2Rch[i]+m_ifluQ2Rch[i]) * m_dt;
+    // The table covers the lake plus local groundwater bypass. Count the
+    // bypass as both local inflow and total downstream outflow.
+    m_T_LKWB[i][1] = (m_olQ2Rch[i] + qiSub + qgBypass) * m_dt;
     m_T_LKWB[i][2] = (m_prec[i]) * m_dt;
     m_T_LKWB[i][3] = rtevp;
     m_T_LKWB[i][4] = LakeOutGw;
@@ -1858,7 +1849,7 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
         const int downstreamId = static_cast<int>(m_reachDownStream[i]);
         const float usedPrecCms = m_prec[i];
         const float usedPrecM3 = m_lakepcp[i];
-        const float localTotalCms = m_olQ2Rch[i] + qiSub + qgSub + usedPrecCms;
+        const float localTotalCms = m_olQ2Rch[i] + qiSub + qgBypass + usedPrecCms;
         const float upstreamTotalCms = qsUp + qiUp + qgUp;
         const float stoAfterInflow = pre_Sto + qIn * m_dt;
         const float stoMinSub = Min(pre_Sto, Min(stoAfterInflow, m_chSto[i]));
@@ -1875,7 +1866,7 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
 			static_cast<double>(runoff) * static_cast<double>(m_dt);
 
 		const double qgBypassM3 =
-			static_cast<double>(Max(0.f, m_gndQ2Rch[i])) *
+			static_cast<double>(qgBypass) *
 			static_cast<double>(m_dt);
 
 		const double lakeStorageDeltaM3 =
@@ -1910,7 +1901,7 @@ bool MUSK_CH_HAND::LakeBudget(const int i) {
             << pre_Sto << ',' << stoAfterInflow << ',' << m_chSto[i] << ',' << (m_chSto[i] - pre_Sto) << ','
             << stoMinSub << ',' << stoMaxSub << ','
             << qIn << ',' << localTotalCms << ',' << upstreamTotalCms << ','
-            << m_olQ2Rch[i] << ',' << qiSub << ',' << qgSub << ',' << 0.0 << ','
+            << m_olQ2Rch[i] << ',' << qiSub << ',' << qgBypass << ',' << 0.0 << ','
             << qsUp << ',' << qiUp << ',' << qgUp << ','
             << g_muskDebugPreRouteState.subbasinNetPcpCms << ',' << g_muskDebugPreRouteState.subbasinNetPcpM3 << ','
             << usedPrecCms << ',' << usedPrecM3 << ','

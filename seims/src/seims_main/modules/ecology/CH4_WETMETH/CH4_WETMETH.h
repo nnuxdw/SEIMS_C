@@ -1,4 +1,4 @@
-/*!
+﻿/*!
  * \file CH4_WETMETH.h
  * \brief WETMETH (Wetland CH4 Model) module for methane production and oxidation
  *        Implementation of WETMETH model for calculating methane emissions from wetlands

@@ -1,4 +1,4 @@
-/*!
+ï»¿/*!
  * \brief A IO test demo of developing module for SEIMS.
  *
  * \author Liangjun Zhu
@@ -16,7 +16,7 @@
 using namespace bmps;
 using namespace std;
 
-// ±íÊ¾Ã¿Ò»²ãµÄ HAND ĞÅÏ¢
+// è¡¨ç¤ºæ¯ä¸€å±‚çš„ HAND ä¿¡æ¯
 struct Level {
 	//vector<float> handHeights;   // index is hand id
 	int* handIds;   // index is layer 0,1,2,3..., value is hand id
@@ -37,7 +37,7 @@ struct Level {
 
 };
 
-// ±íÊ¾Ã¿¸ö×ÓÁ÷ÓòÏÂµÄËùÓĞ HAND ²ã
+// è¡¨ç¤ºæ¯ä¸ªå­æµåŸŸä¸‹çš„æ‰€æœ‰ HAND å±‚
 struct Hand {
 	int n_levels = 0;
 	int m_CurInundationLevel = 0;
@@ -142,8 +142,8 @@ private:
 
 
 	// test
-	int curLev = 0;               // ³õÊ¼´ÓµÚ1²ã¿ªÊ¼
-	int levCounter = 0;           // ¼ÆÊıÆ÷£¬ÓÃÓÚ¿ØÖÆÃ¿Á½´Î½øÈëÏÂÒ»²ã
+	int curLev = 0;               // åˆå§‹ä»ç¬¬1å±‚å¼€å§‹
+	int levCounter = 0;           // è®¡æ•°å™¨ï¼Œç”¨äºæ§åˆ¶æ¯ä¸¤æ¬¡è¿›å…¥ä¸‹ä¸€å±‚
 
 	
 	float* m_HAND_Subbasin;

@@ -1,4 +1,4 @@
-#include "CH4_WETMETH.h"
+﻿#include "CH4_WETMETH.h"
 #include "text.h"
 #include <cmath>
 #include <algorithm>

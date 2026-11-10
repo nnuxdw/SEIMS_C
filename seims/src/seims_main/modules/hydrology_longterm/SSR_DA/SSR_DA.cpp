@@ -16,7 +16,9 @@ SSR_DA::SSR_DA() :
     m_soilFrozenTemp(NODATA_VALUE), m_slope(nullptr), m_ks(nullptr), m_soilSat(nullptr),
     m_poreIdx(nullptr),
     m_soilFC(nullptr), m_soilWP(nullptr),
-    m_soilWtrSto(nullptr), m_soilWtrStoPrfl(nullptr), m_soilTemp(nullptr), m_chWidth(nullptr),
+    m_soilWtrSto(nullptr), m_soilWtrStoPrfl(nullptr),
+    m_handWtrDepAfterInfil(nullptr), m_handWtrDepAfterDep(nullptr), m_handInfil(nullptr),
+    m_soilTemp(nullptr), m_chWidth(nullptr),
     m_rchID(nullptr), m_flowInIdxD8(nullptr), m_rteLyrs(nullptr),
     m_nRteLyrs(-1), m_nSubbsns(-1), m_subbsnID(nullptr),
     /// outputs
@@ -837,6 +839,35 @@ int SSR_DA::Execute() {
     for (int i = 1; i <= m_nSubbsns; i++) {
         m_ifluQ2Rch[0] += m_ifluQ2Rch[i];
     }
+    // Free drainage and interflow above can reopen pore space while HAND water
+    // is still ponded at the surface. Refill that space from the water left
+    // after depression storage and evaporation, keeping the channel-to-soil
+    // transfer in m_handInfil so MUSK_CH_HAND debits the same volume.
+    if (m_handWtrDepAfterInfil != nullptr && m_handWtrDepAfterDep != nullptr &&
+        m_handInfil != nullptr) {
+        for (int i = 0; i < m_nCells; ++i) {
+            float availableMm = Max(0.f, m_handWtrDepAfterDep[i]) * 1000.f;
+            if (availableMm <= 1.e-6f) continue;
+            float replenishedMm = 0.f;
+            // Preserve the existing HAND bottom-to-top saturation convention.
+            for (int ly = CVT_INT(m_nSoilLyrs[i]) - 1; ly >= 0 && availableMm > 1.e-6f; --ly) {
+                if (m_soilSat[i][ly] <= 0.f) continue;
+                const float deficitMm = Max(0.f, m_soilSat[i][ly] - m_soilWtrSto[i][ly]);
+                const float addedMm = Min(availableMm, deficitMm);
+                m_soilWtrSto[i][ly] += addedMm;
+                availableMm -= addedMm;
+                replenishedMm += addedMm;
+            }
+            if (replenishedMm > 0.f) {
+                m_handInfil[i] += replenishedMm;
+                m_handWtrDepAfterInfil[i] = Max(0.f, m_handWtrDepAfterInfil[i] - replenishedMm * 0.001f);
+                m_handWtrDepAfterDep[i] = Max(0.f, m_handWtrDepAfterDep[i] - replenishedMm * 0.001f);
+                m_soilWtrStoPrfl[i] = 0.f;
+                for (int ly = 0; ly < CVT_INT(m_nSoilLyrs[i]); ++ly)
+                    m_soilWtrStoPrfl[i] += m_soilWtrSto[i][ly];
+            }
+        }
+    }
     return 0;
 }
 
@@ -876,6 +907,12 @@ void SSR_DA::Set1DData(const char* key, const int nrows, float* data) {
         m_nSoilLyrs = data;
     } else if (StringMatch(s, VAR_SOL_SW)) {
         m_soilWtrStoPrfl = data;
+    } else if (StringMatch(s, VAR_OL_HAND_WTRDEP_AFT_INFIL)) {
+        m_handWtrDepAfterInfil = data;
+    } else if (StringMatch(s, VAR_OL_HAND_WTRDEP_AFT_DEP)) {
+        m_handWtrDepAfterDep = data;
+    } else if (StringMatch(s, VAR_OL_HAND_INFIL)) {
+        m_handInfil = data;
     }
     //ljj++
     else if (StringMatch(s, VAR_AHRU)) m_area = data;
@@ -955,35 +992,52 @@ void SSR_DA::Set2DData(const char* key, const int nrows, const int ncols, float*
 void SSR_DA::Get1DData(const char* key, int* n, float** data) {
     InitialOutputs();
     string sk(key);
+    // Soil storage is shared with SET_LM and GWA_RENEW. Both modules can change it
+    // after SSR_DA::Execute(), so refresh diagnostic ratios when output is read.
+    const auto refreshMoisture = [this](float* values, const int layer) {
+        if (m_soilWtrSto == nullptr || m_soilSat == nullptr || m_nSoilLyrs == nullptr) return;
+        for (int i = 0; i < m_nCells; ++i) {
+            values[i] = layer < CVT_INT(m_nSoilLyrs[i]) && m_soilSat[i][layer] > 0.f
+                            ? m_soilWtrSto[i][layer] / m_soilSat[i][layer]
+                            : NODATA_VALUE;
+        }
+    };
 	if (StringMatch(sk, VAR_SBIF)) {
 		*data = m_ifluQ2Rch;
 		*n = m_nSubbsns + 1;
 	}
 	else if (StringMatch(sk, VAR_SOL_MOIST1)) {
+		refreshMoisture(m_soilMoist_1, 0);
 		*n = m_nCells;
 		*data = m_soilMoist_1;
 	}
 	else if (StringMatch(sk, VAR_SOL_MOIST5)) {
+		refreshMoisture(m_soilMoist_5, 1);
 		*n = m_nCells;
 		*data = m_soilMoist_5;
 	}
 	else if (StringMatch(sk, VAR_SOL_MOIST15)) {
+		refreshMoisture(m_soilMoist_15, 2);
 		*n = m_nCells;
 		*data = m_soilMoist_15;
 	}
 	else if (StringMatch(sk, VAR_SOL_MOIST30)) {
+		refreshMoisture(m_soilMoist_30, 3);
 		*n = m_nCells;
 		*data = m_soilMoist_30;
 	}
 	else if (StringMatch(sk, VAR_SOL_MOIST60)) {
+		refreshMoisture(m_soilMoist_60, 4);
 		*n = m_nCells;
 		*data = m_soilMoist_60;
 	}
 	else if (StringMatch(sk, VAR_SOL_MOIST100)) {
+		refreshMoisture(m_soilMoist_100, 5);
 		*n = m_nCells;
 		*data = m_soilMoist_100;
 	}
 	else if (StringMatch(sk, VAR_SOL_MOIST200)) {
+		refreshMoisture(m_soilMoist_200, 6);
 		*n = m_nCells;
 		*data = m_soilMoist_200;
 	}

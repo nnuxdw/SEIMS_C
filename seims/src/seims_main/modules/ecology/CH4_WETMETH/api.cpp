@@ -1,4 +1,4 @@
-#include "api.h"
+Ôªø#include "api.h"
 #include "CH4_WETMETH.h"
 #include "text.h"
 #include "MetadataInfo.h"
@@ -43,15 +43,15 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 	/// Set inputs from other modules (Source_Module or Source_Module_Optional)
 	mdi.AddInput(VAR_SOL_ST, UNIT_DEPTH_MM, DESC_SOL_ST, Source_Module, DT_Array2D);
 	//mdi.AddInput(VAR_SOL_WOC, UNIT_CONT_KGHA, DESC_SOL_WOC, Source_Module, DT_Raster2D);
-	mdi.AddInput(VAR_SOL_RSPC, UNIT_CONT_KGHA, DESC_SOL_RSPC, Source_Module_Optional, DT_Raster2D); // “Ï—¯∫ÙŒ¸
+	mdi.AddInput(VAR_SOL_RSPC, UNIT_CONT_KGHA, DESC_SOL_RSPC, Source_Module_Optional, DT_Raster2D); // ÂºÇÂÖªÂëºÂê∏
 
-	//mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Array1D);         // handÀÆ…Ó(m)
-	//mdi.AddInput(VAR_OL_HAND_WTRDEP_AFT_INFIL, UNIT_LEN_M, DESC_OLFLOW,Source_Module, DT_Raster1D); // ∂¡»°SUR_MR_HAND»Î…¯∫Û £”‡µƒHANDµÿ±ÌÀÆ…Ó
+	//mdi.AddInput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Array1D);         // handÊ∞¥Ê∑±(m)
+	//mdi.AddInput(VAR_OL_HAND_WTRDEP_AFT_INFIL, UNIT_LEN_M, DESC_OLFLOW,Source_Module, DT_Raster1D); // ËØªÂèñSUR_MR_HANDÂÖ•Ê∏óÂêéÂâ©‰ΩôÁöÑHANDÂú∞Ë°®Ê∞¥Ê∑±
 	mdi.AddInput(VAR_OL_HAND_WTRDEP_AFT_DEP, UNIT_LEN_M, DESC_OLFLOW, Source_Module, DT_Raster1D);
-	mdi.AddInput(VAR_INFIL, UNIT_DEPTH_MM, DESC_INFIL, Source_Module, DT_Raster1D);                 // »Î…¯(mm)
-	mdi.AddInput(VAR_NEPR, UNIT_DEPTH_MM, DESC_NEPR, Source_Module, DT_Raster1D);                   // from interception module,æªΩµÀÆ(mm)
-	mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Array2D);                  // …¯¬©(mm)
-	mdi.AddInput(VAR_SSRU, UNIT_DEPTH_MM, DESC_SSRU, Source_Module_Optional, DT_Raster2D);          // »¿÷–¡˜(mm)
+	mdi.AddInput(VAR_INFIL, UNIT_DEPTH_MM, DESC_INFIL, Source_Module, DT_Raster1D);                 // ÂÖ•Ê∏ó(mm)
+	mdi.AddInput(VAR_NEPR, UNIT_DEPTH_MM, DESC_NEPR, Source_Module, DT_Raster1D);                   // from interception module,ÂáÄÈôçÊ∞¥(mm)
+	mdi.AddInput(VAR_PERCO, UNIT_DEPTH_MM, DESC_PERCO, Source_Module, DT_Array2D);                  // Ê∏óÊºè(mm)
+	mdi.AddInput(VAR_SSRU, UNIT_DEPTH_MM, DESC_SSRU, Source_Module_Optional, DT_Raster2D);          // Â£§‰∏≠ÊµÅ(mm)
 	mdi.AddInput(VAR_DPST, UNIT_DEPTH_MM, DESC_DPST, Source_Module, DT_Raster1D);                   // depression storage(mm)
 	mdi.AddInput(VAR_INET, UNIT_DEPTH_MM, DESC_INET, Source_Module, DT_Raster1D);                   // Evaporation from intercepted storage
 	mdi.AddInput(VAR_EXCP, UNIT_DEPTH_MM, DESC_EXCP, Source_Module, DT_Raster1D);                   // Excess precipitation

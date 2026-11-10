@@ -5,10 +5,7 @@
 #include <string>
 #include <cctype>
 #include <algorithm>
-<<<<<<< HEAD
-=======
 //#define DEBUG_WB19
->>>>>>> origin/hand_dev_lj
 
 
 OL_HAND::OL_HAND() :
@@ -28,12 +25,12 @@ OL_HAND::~OL_HAND() {
 }
 
 static inline std::string trim(std::string s) {
-	// ȥ��ǰ���ո�
+	// 去掉前导空格
 	s.erase(s.begin(),
 		std::find_if(s.begin(), s.end(),
 			[](int ch) { return !std::isspace(ch); }));
 
-	// ȥ��β��ո�
+	// 去掉尾随空格
 	s.erase(std::find_if(s.rbegin(), s.rend(),
 		[](int ch) { return !std::isspace(ch); }).base(),
 		s.end());
@@ -52,7 +49,7 @@ static inline std::string trim(std::string s) {
 #include <new>
 
 static inline bool IsNoData(float v, float nodata) {
-	// nodata Լ��Ϊ -9999��һ�㲻����� NaN����һ�𶵵�
+	// nodata 约定为 -9999，一般不会出现 NaN，但一起兜底
 	return std::isnan(v) || std::fabs(v - nodata) < 1e-6f;
 }
 
@@ -63,7 +60,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 	float nodata /*= -9999.0f*/,
 	bool buildHandIds /*= false*/
 ) {
-	// 1) ָ��У��
+	// 1) 指针校验
 	if (!m_HAND_Subbasin || !m_HAND_Flood_Level || !m_HAND_LevelDepth ||
 		!m_HAND_SumArea || !m_HAND_SumVolume || !m_HAND_AvgDepth ||
 		!m_HAND_AccVolume || !m_HAND_LowerAccDepthFlat || !m_HAND_LowerAccDepthLen) {
@@ -75,7 +72,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 		return;
 	}
 
-	// 2) ��һ�飺ͳ�� max_sbid��ÿ�� sbid ����Щ level������ n_levels��
+	// 2) 第一遍：统计 max_sbid、每个 sbid 有哪些 level（用于 n_levels）
 	int max_sbid = -1;
 	std::map<int, std::set<int>> subbasinLevels; // sbid -> unique levels
 
@@ -102,7 +99,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 		m_Hands.resize(max_sbid + 1);
 	}
 
-	// 4) ��ʼ��ÿ�� subbasin �� n_levels����ȷ�� levels vector ������װ����� level
+	// 4) 初始化每个 subbasin 的 n_levels，并确保 levels vector 至少能装下最大 level
 	for (const auto& kv : subbasinLevels) {
 		int sbid = kv.first;
 		const auto& levSet = kv.second;
@@ -115,10 +112,10 @@ void OL_HAND::LoadHandLevelsFromArrays(
 		}
 	}
 
-	// 5) �ڶ��飺����д�� level �ֶΣ�����ԭ LowerAccDepth
+	// 5) 第二遍：逐条写入 level 字段，并还原 LowerAccDepth
 	int flatPos = 0;
 
-	// �����Ҫ���� handIds�����ռ�����һ���� new
+	// 如果你要构造 handIds：先收集，再一次性 new
 	std::map<std::pair<int, int>, std::vector<int>> idsTmp;
 
 	for (int i = 0; i < cellsNum; ++i) {
@@ -136,14 +133,14 @@ void OL_HAND::LoadHandLevelsFromArrays(
 		}
 		Level& level = hand.levels[lev];
 
-		// ---- �����ֶΣ��� nodata ������----
+		// ---- 基本字段（按 nodata 保护）----
 		if (!IsNoData(m_HAND_LevelDepth[i], nodata))  level.m_levelDepth = m_HAND_LevelDepth[i];
 		if (!IsNoData(m_HAND_SumArea[i], nodata))     level.m_levelSumArea = m_HAND_SumArea[i];
 		if (!IsNoData(m_HAND_SumVolume[i], nodata))   level.m_levelSumVol = static_cast<double>(m_HAND_SumVolume[i]);
 		if (!IsNoData(m_HAND_AvgDepth[i], nodata))    level.m_levelAvgDepth = m_HAND_AvgDepth[i];
 		if (!IsNoData(m_HAND_AccVolume[i], nodata))   level.m_levelAccVol = static_cast<double>(m_HAND_AccVolume[i]);
 
-		// ---- LowerAccDepth���� Len + Flat ��ԭ ----
+		// ---- LowerAccDepth：用 Len + Flat 还原 ----
 		float lenf = m_HAND_LowerAccDepthLen[i];
 		int L = 0;
 		if (!IsNoData(lenf, nodata) && lenf > 0.0f) {
@@ -157,7 +154,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 				return;
 			}
 
-			// �ͷž��ڴ棨�����ظ�����ʱй©��
+			// 释放旧内存（避免重复加载时泄漏）
 			if (level.m_levelLowerAccDepth != nullptr) {
 				delete[] level.m_levelLowerAccDepth;
 				level.m_levelLowerAccDepth = nullptr;
@@ -174,18 +171,18 @@ void OL_HAND::LoadHandLevelsFromArrays(
 			}
 			flatPos += L;
 
-			// ǿ�ҽ��飺�� Level �ﱣ�泤�ȣ������û������ֶΣ�����ϣ�
+			// 强烈建议：在 Level 里保存长度（你如果没有这个字段，请加上）
 			// level.m_levelLowerAccDepthLen = L;
 		}
 
-		// ---- (��ѡ) ���� handIds�������� �������±� i�� ���� ID ----
-		// ���������ʵ HRU_ID ���飨���� m_HAND_HRU_ID[i]������ i ������ʵֵ���ɡ�
+		// ---- (可选) 构造 handIds：这里用 “数组下标 i” 当作 ID ----
+		// 如果你有真实 HRU_ID 数组（例如 m_HAND_HRU_ID[i]），把 i 换成真实值即可。
 		if (buildHandIds) {
 			idsTmp[{sbid, lev}].push_back(i);
 		}
 	}
 
-	// 6) �����Ҫ handIds��ͳһ���䡢д��
+	// 6) 如果需要 handIds：统一分配、写入
 	if (buildHandIds) {
 		for (auto& kv : idsTmp) {
 			int sbid = kv.first.first;
@@ -194,7 +191,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 
 			Level& level = m_Hands[sbid].levels[lev];
 
-			// �ͷž� handIds
+			// 释放旧 handIds
 			if (level.handIds != nullptr) {
 				delete[] level.handIds;
 				level.handIds = nullptr;
@@ -214,7 +211,7 @@ void OL_HAND::LoadHandLevelsFromArrays(
 		}
 	}
 
-	// 7) flatPos У�飨��ѡ�������ã�
+	// 7) flatPos 校验（可选但很有用）
 	if (flatPos != flatLen) {
 		std::cerr << "[WARN] LowerAccDepthFlat not fully consumed: flatPos="
 			<< flatPos << ", flatLen=" << flatLen << std::endl;
@@ -364,7 +361,7 @@ void OL_HAND::InitialOutputs() {
 		{
 			Initialize1DArray(m_nreach + 1, m_subbasinWtrDep, 0.f);
 		}
-		// XDW�� this method, read inundationmap from csv and txt, is deperated. insteadly, read it from database
+		// XDW， this method, read inundationmap from csv and txt, is deperated. insteadly, read it from database
 //#ifdef _WIN32
 //		string txt_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/FloodStep.txt";
 //		string csv_filename = "G:/program/seims/SEIMS_HAND/data/poyang_lake1/rundata/InundationMap.csv";
@@ -409,9 +406,9 @@ void OL_HAND::InitialOutputs() {
 		}
 
 		// =======================================================
-		// ��ʼ���׶Σ���� OL_HAND �Ѿ��õ��� MUSK_CH_HAND �ĳ�ʼ m_chSto��
-		// ���ó�ʼ m_chSto �����ʼ HAND ˮ�����û�����
-		// ������һ�� SUR_MR_HAND / MUSK_CH_HAND �Ͳ����õ� 0��
+		// 初始化阶段：如果 OL_HAND 已经拿到了 MUSK_CH_HAND 的初始 m_chSto，
+		// 就用初始 m_chSto 反算初始 HAND 水深和淹没面积。
+		// 这样第一天 SUR_MR_HAND / MUSK_CH_HAND 就不会拿到 0。
 		// =======================================================
 		if (m_chSto != nullptr) {
 			for (int sbid = 1; sbid <= m_nreach; ++sbid) {
@@ -426,7 +423,7 @@ void OL_HAND::InitialOutputs() {
 			cout.flush();*/
 		}
 		else {
-			// �����û���õ� chSto���ų�ʼ���� 0
+			// 如果还没有拿到 chSto，才初始化成 0
 			for (int sbid = 1; sbid <= m_nreach; ++sbid) {
 				updateAllHandsWtrDep(sbid);
 			}
@@ -449,7 +446,7 @@ void OL_HAND::InitialOutputs() {
 			//cout << "sb area: " << subbasinArea * 0.000001 << endl;
 
 		}
-		// todo: m_handOvFlow ��m_Hands[sbid].levels[lev].m_levelWtrDep��ʼֵ�Ƿ���ȣ��ؼ���VAR_OLFLOW������ģ������������壬�Ƿ񺭸��˺ӵ����ĵ���ˮ��
+		// todo: m_handOvFlow 和m_Hands[sbid].levels[lev].m_levelWtrDep初始值是否相等？关键是VAR_OLFLOW在其它模块算出来的意义，是否涵盖了河道泛滥的淹水？
 
 
 	}
@@ -527,7 +524,7 @@ int OL_HAND::Execute() {
 		const int sbid = 18;
 
 		// =====================================================
-		// 1. ԭ�е�19��������״̬��ӡ
+		// 1. 原有的19号子流域状态打印
 		// =====================================================
 		std::cout
 			<< "[WB19_OL]"
@@ -556,7 +553,7 @@ int OL_HAND::Execute() {
 
 
 		// =====================================================
-		// 2. ��������HAND��Ԫˮ���ˮ��
+		// 2. 根据所有HAND单元水深反算水量
 		// =====================================================
 		double gridWaterVolume = 0.0;
 
@@ -583,7 +580,7 @@ int OL_HAND::Execute() {
 					continue;
 				}
 
-				// ����ͬһ����Ԫ���ظ�ͳ��
+				// 避免同一个单元被重复统计
 				if (!visitedIds.insert(handId).second)
 				{
 					continue;
@@ -612,7 +609,7 @@ int OL_HAND::Execute() {
 					depth = 0.0;
 				}
 
-				// ˮ��m �� ���m2 = ���m3
+				// 水深m × 面积m2 = 体积m3
 				gridWaterVolume += depth * area;
 
 				if (depth > 1.0e-10)
@@ -630,11 +627,11 @@ int OL_HAND::Execute() {
 				m_Hands[sbid].excessWtrVol
 				);
 
-		// ֻ����դ��ˮ��ʱ�����
+		// 只考虑栅格水深时的误差
 		const double gridVolumeError =
 			gridWaterVolume - chStoVolume;
 
-		// դ��ˮ���ͳ���ˮ����ͬ��ʾ��ˮ��
+		// 栅格水量和超额水量共同表示的水量
 		const double representedVolume =
 			gridWaterVolume + excessWaterVolume;
 
@@ -845,10 +842,10 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 		m_chSto[reachId] = 0.f;
 		m_Hands[reachId].excessWtrVol = 0.f;
 
-		// ��� HAND level �� 1 ��ʼ��������Ϊ 1 ����ȫ
+		// 你的 HAND level 从 1 开始，所以设为 1 更安全
 		m_Hands[reachId].m_CurInundationLevel = 1;
 
-		// ͳһ���� hand ˮ���û��ǡ���������û�����������ˮ��
+		// 统一更新 hand 水深、淹没标记、子流域淹没面积、子流域水深
 		updateAllHandsWtrDep(reachId);
 
 		return true;
@@ -858,7 +855,7 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 	const int n = hand.n_levels;
 	vector<Level>& levels = hand.levels;
 
-	// ���ֲ��ң��ҵ� sto ������һ�㣨��һ�� AccVol >= sto��
+	// 二分查找：找到 sto 落在哪一层（第一个 AccVol >= sto）
 	int left = 1, right = n, target_level = n;
 
 	while (left <= right) {
@@ -872,7 +869,7 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 		}
 	}
 
-	hand.m_CurInundationLevel = target_level;  // ���Ŵ� 1 ��ʼ
+	hand.m_CurInundationLevel = target_level;  // 层编号从 1 开始
 	float remaining = 0.0;
 	if (target_level == 1)
 	{
@@ -887,21 +884,49 @@ bool OL_HAND::HandInundation_BinarySearch(const int reachId, float sto) {
 		exit(0);
 	}
 
-	//  target_level ��֮�µ�ˮ��  ���� target_level ���е�ǰδ��������һС��ˮ��
+	//  target_level 层之下的水深  加上 target_level 层中当前未填满的那一小截水深
 	float partial_depth = (levels[target_level].m_levelSumArea > 0.0f) ? remaining / levels[target_level].m_levelSumArea : 0.0f;
 	for (int i = 1; i <= target_level; ++i) {
 		levels[i].m_levelWtrDep = levels[i].m_levelLowerAccDepth[target_level] + partial_depth;
 	}
 
-	// �������в�ˮ��Ϊ 0
+	// 后面所有层水深为 0
 	for (int i = target_level + 1; i <= n; ++i) {
 		levels[i].m_levelWtrDep = 0.0f;
 	}
 
-	// ����������������ʣ�ಿ����Ϊ����ˮ
+	// 若超出最大体积，则剩余部分作为超额水
 	float maxVolume = levels[n].m_levelAccVol;
-	if (sto > maxVolume) {
-		hand.excessWtrVol = sto - maxVolume;
+	hand.excessWtrVol = Max(0.f, sto - maxVolume);
+
+	// The tabulated HAND volume can differ from the volume represented by
+	// per-HRU depths and AHRU. Losses use AHRU, so lower the common water
+	// surface when necessary to keep their available water within m_chSto.
+	std::vector<double> levelAreas(target_level + 1, 0.0);
+	double rasterVolume = 0.0;
+	double highestDepth = 0.0;
+	for (int ll = 1; ll <= target_level; ++ll) {
+		for (int idx = 0; idx < levels[ll].m_levelHandNum; ++idx) {
+			const int handId = levels[ll].handIds[idx];
+			if (handId >= 0 && handId < m_nCells && m_handArea[handId] > 0.f)
+				levelAreas[ll] += m_handArea[handId];
+		}
+		rasterVolume += levelAreas[ll] * Max(0.f, levels[ll].m_levelWtrDep);
+		highestDepth = Max(highestDepth, static_cast<double>(levels[ll].m_levelWtrDep));
+	}
+	if (rasterVolume > static_cast<double>(sto) && highestDepth > 0.0) {
+		double lower = 0.0;
+		double upper = highestDepth;
+		for (int iter = 0; iter < 40; ++iter) {
+			const double drop = 0.5 * (lower + upper);
+			double representedVolume = 0.0;
+			for (int ll = 1; ll <= target_level; ++ll)
+				representedVolume += levelAreas[ll] * Max(0.0, static_cast<double>(levels[ll].m_levelWtrDep) - drop);
+			if (representedVolume > static_cast<double>(sto)) lower = drop;
+			else upper = drop;
+		}
+		for (int ll = 1; ll <= target_level; ++ll)
+			levels[ll].m_levelWtrDep = static_cast<float>(Max(0.0, static_cast<double>(levels[ll].m_levelWtrDep) - upper));
 	}
 
 	updateAllHandsWtrDep(reachId);
@@ -941,9 +966,9 @@ vector<float> OL_HAND::parseAccDepthArray(const std::string& str) {
 	std::vector<float> values;
 	std::string s = str;
 
-	// ȥ��ǰ��������
-	if (!s.empty() && s.front() == '[') s.erase(0, 1);              // ɾ����һ���ַ�
-	if (!s.empty() && s.back() == ']') s.erase(s.size() - 1);       // ɾ�����һ���ַ�
+	// 去掉前后中括号
+	if (!s.empty() && s.front() == '[') s.erase(0, 1);              // 删除第一个字符
+	if (!s.empty() && s.back() == ']') s.erase(s.size() - 1);       // 删除最后一个字符
 
 
 	std::stringstream ss(s);
@@ -954,7 +979,7 @@ vector<float> OL_HAND::parseAccDepthArray(const std::string& str) {
 			values.push_back(std::stof(token));
 		}
 		catch (...) {
-			values.push_back(0.0f); // ��������
+			values.push_back(0.0f); // 防御错误
 		}
 	}
 	return values;
@@ -968,14 +993,14 @@ void OL_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 	}
 
 	string line;
-	getline(file, line);  // ������ͷ
+	getline(file, line);  // 跳过表头
 
 	while (getline(file, line)) {
 		stringstream ss(line);
 		string token;
 		vector<string> tokens;
 
-		// ȡǰ 7 ���ֶ�:
+		// 取前 7 个字段:
 		// 0 Subbasin
 		// 1 Flood_Level
 		// 2 LevelDepth
@@ -987,16 +1012,16 @@ void OL_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 			tokens.push_back(token);
 		}
 
-		// �� 8 �У�LowerAccDepth������ "[0.0, ...]"����˫���Ű���
+		// 第 8 列：LowerAccDepth，形如 "[0.0, ...]"，被双引号包着
 		std::string accDepthStr;
-		std::getline(ss, accDepthStr, '"');  // ����ǰһ�����ţ������ǿմ���
-		std::getline(ss, accDepthStr, '"');  // ȡ�м������ַ���
+		std::getline(ss, accDepthStr, '"');  // 跳过前一个引号（可能是空串）
+		std::getline(ss, accDepthStr, '"');  // 取中间数组字符串
 
-		// ---- ���������ֶ� ----
+		// ---- 解析基本字段 ----
 		int subbasin = std::stoi(tokens[0]);
 		int lev = std::stoi(tokens[1]);
 
-		// �ṹУ�� & ��ȡ Hand
+		// 结构校验 & 获取 Hand
 		Hand& hand = m_Hands[subbasin];
 		if (lev >= static_cast<int>(hand.levels.size())) {
 			hand.levels.resize(lev + 1);
@@ -1009,7 +1034,7 @@ void OL_HAND::loadHandFromCSVIntoVector(const string& csvPath, vector<Hand>& m_H
 		level.m_levelAvgDepth = std::stof(tokens[5]);
 		level.m_levelAccVol = std::stod(tokens[6]);
 
-		// ---- ���� LowerAccDepth ���� ----
+		// ---- 解析 LowerAccDepth 数组 ----
 		std::vector<float> accDepthVec = parseAccDepthArray(accDepthStr);
 		level.m_levelLowerAccDepth = new float[accDepthVec.size()];
 		for (size_t i = 0; i < accDepthVec.size(); ++i) {
@@ -1039,7 +1064,7 @@ void OL_HAND::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_
 	map<pair<int, int>, int> handCounts;
 	map<int, set<int> > subbasinLevels; // <sbid, set of levels>
 
-	// ��һ�α�����ͳ�� hand ���� level ��
+	// 第一次遍历：统计 hand 数和 level 数
 	while (getline(infile, line)) {
 		istringstream iss(line);
 		string hru_id_str, subbasin_str, level_str, interval_str, depth_str;
@@ -1053,7 +1078,7 @@ void OL_HAND::LoadHandIdsToChHandLevels(const string& filename, vector<Hand>& m_
 		if (level > max_level) max_level = level;
 
 		handCounts[make_pair(sbid, level)]++;
-		subbasinLevels[sbid].insert(level); // ͳ�� level ��
+		subbasinLevels[sbid].insert(level); // 统计 level 数
 	}
 
 	if ((int)m_Hands.size() <= max_sbid) {

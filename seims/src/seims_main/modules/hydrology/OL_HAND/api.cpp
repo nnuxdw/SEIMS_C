@@ -1,4 +1,4 @@
-#include "api.h"
+﻿#include "api.h"
 
 #include "OL_HAND.h"
 #include "text.h"
@@ -50,8 +50,8 @@ extern "C" SEIMS_MODULE_API const char* MetadataInformation() {
 
 	mdi.AddOutput(VAR_OL_HAND_WTRDEP, UNIT_LEN_M, DESC_OLFLOW, DT_Array1D);
 	mdi.AddOutput(VAR_IS_HAND_FLOODED, UNIT_NON_DIM, DESC_IS_HAND_FLOODED, DT_Raster1D);
-	mdi.AddOutput(VAR_SUBBASIN_FLOODED_AREA, UNIT_AREA_M2, DESC_SUBBASIN_FLOODED_AREA, DT_Array1D);
-	mdi.AddOutput(VAR_SUBBASIN_WTR_DEPTH, UNIT_AREA_M2, DESC_SUBBASIN_WTR_DEPTH, DT_Array1D);
+	mdi.AddOutput(VAR_SUBBASIN_FLOODED_AREA, UNIT_AREA_KM2, DESC_SUBBASIN_FLOODED_AREA, DT_Array1D);
+	mdi.AddOutput(VAR_SUBBASIN_WTR_DEPTH, UNIT_LEN_M, DESC_SUBBASIN_WTR_DEPTH, DT_Array1D);
 
 
     /// write out the XML file.

@@ -103,6 +103,11 @@ private:
     float **m_soilWtrSto;
     /// soil water storage in soil profile (mm)
     float *m_soilWtrStoPrfl;
+    /// Remaining HAND surface water (m) and cumulative surface-to-soil flux (mm).
+    /// Both arrays are owned by SUR_MR_HAND.
+    float *m_handWtrDepAfterInfil;
+    float *m_handWtrDepAfterDep;
+    float *m_handInfil;
     /// soil temperature, deg C
     float *m_soilTemp;
 
